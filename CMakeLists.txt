@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick Widgets)
 qt_standard_project_setup(REQUIRES 6.12)
 
-qt_add_executable(arbiter src/main.cpp src/keybindings.cpp src/keybindings.h)
+qt_add_executable(arbiter src/main.cpp src/browserapplication.h src/keybindings.cpp src/keybindings.h)
 if(APPLE)
     enable_language(OBJCXX)
     target_sources(arbiter PRIVATE src/macwindow.mm)
@@ -27,6 +27,7 @@ target_link_libraries(arbiter PRIVATE
 )
 set_target_properties(arbiter PROPERTIES
     MACOSX_BUNDLE TRUE
+    MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Info.plist.in"
     MACOSX_BUNDLE_BUNDLE_NAME Arbiter
     MACOSX_BUNDLE_GUI_IDENTIFIER com.arbiter.browser
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}

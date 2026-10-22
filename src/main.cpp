@@ -9,15 +9,16 @@
 #include <QtWebEngineCore/qtwebenginecoreglobal.h>
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
 #include "keybindings.h"
-#ifdef Q_OS_MACOS
+#include "browserapplication.h"
 #include <QWindow>
+#ifdef Q_OS_MACOS
 void configureMacWindow(QWindow *window);
 #endif
 
 int main(int argc, char *argv[])
 {
     QtWebEngineQuick::initialize();
-    QApplication app(argc, argv);
+    BrowserApplication app(argc, argv);
     QCoreApplication::setOrganizationName(QStringLiteral("Arbiter"));
     QCoreApplication::setApplicationName(QStringLiteral("Arbiter"));
     QCoreApplication::setApplicationVersion(QStringLiteral("0.1.0"));
@@ -45,6 +46,15 @@ int main(int argc, char *argv[])
     engine.loadFromModule(QStringLiteral("Arbiter"), QStringLiteral("Main"));
     if (!engine.rootObjects().isEmpty()) {
         QObject *root = engine.rootObjects().first();
+        app.setUrlHandler([root](const QUrl &url) {
+            QMetaObject::invokeMethod(root, "navigate", Q_ARG(QString, url.toString()));
+            if (auto *window = qobject_cast<QWindow *>(root)) {
+                if (window->visibility() == QWindow::Minimized)
+                    window->showNormal();
+                window->raise();
+                window->requestActivate();
+            }
+        });
         auto *applicationMenu = nativeMenu.addMenu(QStringLiteral("Arbiter"));
         auto *settingsAction = applicationMenu->addAction(QObject::tr("Settings…"));
         settingsAction->setMenuRole(QAction::PreferencesRole);

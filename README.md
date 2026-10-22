@@ -18,6 +18,11 @@ or a click outside dismisses the editor. The default empty page has a centered
 address/search field, focused on startup. Drag the empty page background to move
 the window.
 
+The macOS bundle registers HTTP and HTTPS URL schemes. Links opened with
+`open -a /path/to/arbiter.app 'https://example.com/'` are delivered to the
+existing window, including when the app is launched by the link. Registration
+does not make Arbiter the default browser.
+
 Open Settings from the start page or the native Arbiter > Preferences… menu,
 with Cmd+, on macOS / Ctrl+, elsewhere, or by
 entering `arbiter://settings` in the address editor. Click a binding and press a
@@ -112,19 +117,14 @@ ARBITER_DIAGNOSTICS=1 ./build-qt612/arbiter.app/Contents/MacOS/arbiter
 - `src/main.cpp`: application identity, Qt WebEngine initialization, QML loading.
 - `src/macwindow.mm`: immersive macOS window setup with native corners and shadow.
 - `src/keybindings.*`: shortcut model, validation, defaults, and saved preferences.
+- `src/browserapplication.h`: receives and queues native HTTP/HTTPS open events.
+- `cmake/Info.plist.in`: macOS bundle metadata and URL-scheme registration.
 - `qml/Main.qml`: minimal browser window and navigation.
 - `CMakeLists.txt`: Qt dependencies and application bundle.
 
-## Verified build (2026-10-22)
+## Tests
 
-The commands above successfully configured and built the macOS app using Qt
-6.12.0 from the Qt Online Installer, AppleClang 21.0.0 from Xcode, CMake, and
-Ninja. The `arbiter_qmllint` target passed with that same Qt installation. The
-app was launched and its process was confirmed running. Address entry, page
-loading, Back, and Forward were checked in the running macOS app. The keyboard
-address editor and centered empty-page field replace the earlier floating dock.
-
-Keyboard binding tests run independently of the browser:
+Run the keyboard binding and native URL handling tests independently of the browser:
 
 ```sh
 cmake -S tests -B build-tests -G Ninja \
