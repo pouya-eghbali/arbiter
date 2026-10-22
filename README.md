@@ -42,7 +42,8 @@ rejected, and Reset to defaults restores the original bindings.
 
 - Qt **6.12.0 or newer**, including Qt Quick, Quick Controls, **Qt WebEngine**,
   **Qt WebChannel**, and **Qt Positioning**.
-- CMake 3.24+, Ninja, and a C++20 compiler (Xcode on macOS).
+- CMake 3.24+, Ninja, and a C++20 compiler.
+- On macOS, full Xcode 26+ with Icon Composer and `actool` to compile the layered app icon.
 
 On macOS, use the Qt Online Installer / MaintenanceTool to install the Qt 6.12
 macOS desktop kit and the Qt WebEngine, Qt WebChannel, and Qt Positioning
@@ -132,6 +133,7 @@ ARBITER_DIAGNOSTICS=1 ./build-qt612/arbiter.app/Contents/MacOS/arbiter
 - `src/tabs.*`: tab identity, selection, metadata, and recently closed URLs.
 - `src/browserapplication.h`: receives and queues native HTTP/HTTPS open events.
 - `cmake/Info.plist.in`: macOS bundle metadata and URL-scheme registration.
+- `assets/icon/Arbiter.icon`: editable Icon Composer source; the macOS build compiles its Liquid Glass asset catalog and compatibility icon.
 - `qml/Main.qml`: minimal browser window and navigation.
 - `CMakeLists.txt`: Qt dependencies and application bundle.
 

@@ -13,6 +13,35 @@ if(APPLE)
     enable_language(OBJCXX)
     target_sources(arbiter PRIVATE src/macwindow.mm)
     target_link_libraries(arbiter PRIVATE "-framework AppKit")
+
+    find_program(XCRUN_EXECUTABLE xcrun REQUIRED)
+    set(ARBITER_ICON_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon/Arbiter.icon")
+    set(ARBITER_ICON_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/app-icon")
+    file(GLOB_RECURSE ARBITER_ICON_INPUTS CONFIGURE_DEPENDS "${ARBITER_ICON_SOURCE}/*")
+    set(ARBITER_ICON_DEPLOYMENT_TARGET "${CMAKE_OSX_DEPLOYMENT_TARGET}")
+    if(NOT ARBITER_ICON_DEPLOYMENT_TARGET)
+        set(ARBITER_ICON_DEPLOYMENT_TARGET "13.0")
+    endif()
+    add_custom_command(
+        OUTPUT "${ARBITER_ICON_OUTPUT}/Assets.car" "${ARBITER_ICON_OUTPUT}/Arbiter.icns"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${ARBITER_ICON_OUTPUT}"
+        COMMAND "${XCRUN_EXECUTABLE}" actool "${ARBITER_ICON_SOURCE}"
+            --compile "${ARBITER_ICON_OUTPUT}"
+            --platform macosx
+            --minimum-deployment-target "${ARBITER_ICON_DEPLOYMENT_TARGET}"
+            --app-icon Arbiter
+            --output-partial-info-plist "${ARBITER_ICON_OUTPUT}/partial.plist"
+        DEPENDS ${ARBITER_ICON_INPUTS}
+        VERBATIM
+        COMMENT "Compiling Arbiter's layered macOS app icon"
+    )
+    set_source_files_properties(
+        "${ARBITER_ICON_OUTPUT}/Assets.car" "${ARBITER_ICON_OUTPUT}/Arbiter.icns"
+        PROPERTIES MACOSX_PACKAGE_LOCATION Resources
+    )
+    target_sources(arbiter PRIVATE
+        "${ARBITER_ICON_OUTPUT}/Assets.car" "${ARBITER_ICON_OUTPUT}/Arbiter.icns"
+    )
 endif()
 qt_add_qml_module(arbiter
     URI Arbiter
