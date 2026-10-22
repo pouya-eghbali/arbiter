@@ -10,6 +10,20 @@ on a blank page without making a startup network request. Search queries go to
 DuckDuckGo. Workspaces, tabs, extension management, downloads, and password/autofill
 integration are not implemented yet.
 
+The page fills the window. On macOS, the native frame retains rounded corners
+and shadows while its title text, background, and window buttons are hidden.
+There is no persistent toolbar or address bar over websites. Cmd+L opens a
+centered address editor with the full URL selected; Enter navigates, and Escape
+or a click outside dismisses the editor. The default empty page has a centered
+address/search field, focused on startup. Drag the empty page background to move
+the window.
+
+Open Settings from the start page or the native Arbiter > Preferences… menu,
+with Cmd+, on macOS / Ctrl+, elsewhere, or by
+entering `arbiter://settings` in the address editor. Click a binding and press a
+new key combination. Bindings save immediately, duplicate assignments are
+rejected, and Reset to defaults restores the original bindings.
+
 ## Requirements
 
 - Qt **6.12.0 or newer**, including Qt Quick, Quick Controls, **Qt WebEngine**,
@@ -60,18 +74,44 @@ helpers, followed by platform signing/notarization.
 
 ## Controls
 
-- Cmd+L on macOS / Ctrl+L elsewhere: focus the address field.
+- Cmd+L on macOS / Ctrl+L elsewhere: open the address editor, or focus the empty
+  page's address field.
 - Platform refresh, back, and forward shortcuts; Escape stops loading.
+- Escape dismisses the address editor without navigating.
+- Cmd+Ctrl+F on macOS toggles full screen; Cmd+W closes the window.
+- Cmd+Ctrl+M expands the window to fill the desktop, and restores its previous
+  size when pressed again. This is separate from full screen.
+- Option-drag anywhere in the macOS window moves it. Normal page dragging is
+  unaffected, and moving is disabled while in full screen.
+- Drag the top 10 pixels of the window to move it over a website; a small handle
+  appears on hover. Double-click that edge to expand or restore the window.
 - Enter a URL, hostname, or search query in the address field.
+
+Keyboard shortcuts above are defaults and can be changed in Settings.
 
 Browser cookies and cache use Qt's platform-local application data/cache paths
 under the `Arbiter` application identity and `Default` profile. This is not a
 password vault or a sync service. Chromium's sandbox and normal TLS certificate
 validation remain enabled.
 
+The browser uses Qt WebEngine's Chromium user agent with the QtWebEngine and
+Arbiter product tokens removed for website compatibility. Chromium's real
+version and platform tokens are preserved. JavaScript, workers, WebAssembly,
+and Web Crypto use the engine's normal settings; no extra JavaScript sandbox
+or script blocker is added.
+
+For optional page-console, loading, engine-version, and browser-feature
+diagnostics, launch the executable directly:
+
+```sh
+ARBITER_DIAGNOSTICS=1 ./build-qt612/arbiter.app/Contents/MacOS/arbiter
+```
+
 ## Source layout
 
 - `src/main.cpp`: application identity, Qt WebEngine initialization, QML loading.
+- `src/macwindow.mm`: immersive macOS window setup with native corners and shadow.
+- `src/keybindings.*`: shortcut model, validation, defaults, and saved preferences.
 - `qml/Main.qml`: minimal browser window and navigation.
 - `CMakeLists.txt`: Qt dependencies and application bundle.
 
@@ -80,5 +120,15 @@ validation remain enabled.
 The commands above successfully configured and built the macOS app using Qt
 6.12.0 from the Qt Online Installer, AppleClang 21.0.0 from Xcode, CMake, and
 Ninja. The `arbiter_qmllint` target passed with that same Qt installation. The
-app was launched and its process was confirmed running. Navigation and other
-browser interactions have not yet been checked as part of this validation.
+app was launched and its process was confirmed running. Address entry, page
+loading, Back, and Forward were checked in the running macOS app. The keyboard
+address editor and centered empty-page field replace the earlier floating dock.
+
+Keyboard binding tests run independently of the browser:
+
+```sh
+cmake -S tests -B build-tests -G Ninja \
+  -DCMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/macos"
+cmake --build build-tests --parallel
+ctest --test-dir build-tests --output-on-failure
+```
