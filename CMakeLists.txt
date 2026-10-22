@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick Widgets)
 qt_standard_project_setup(REQUIRES 6.12)
 
-qt_add_executable(arbiter src/main.cpp src/browserapplication.h src/keybindings.cpp src/keybindings.h)
+qt_add_executable(arbiter src/main.cpp src/browserapplication.h src/keybindings.cpp src/keybindings.h src/tabs.cpp src/tabs.h)
 if(APPLE)
     enable_language(OBJCXX)
     target_sources(arbiter PRIVATE src/macwindow.mm)
@@ -17,7 +17,7 @@ endif()
 qt_add_qml_module(arbiter
     URI Arbiter
     VERSION 1.0
-    QML_FILES qml/Main.qml
+    QML_FILES qml/Main.qml qml/WebContextMenu.qml
 )
 target_link_libraries(arbiter PRIVATE
     Qt6::Quick

@@ -6,8 +6,10 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
 {
 #ifdef Q_OS_MACOS
     const QKeySequence fullscreen(QStringLiteral("Ctrl+Meta+F"));
+    const QString tabModifier = QStringLiteral("Meta+");
 #else
     const QKeySequence fullscreen(QStringLiteral("F11"));
+    const QString tabModifier = QStringLiteral("Ctrl+");
 #endif
     const auto add = [this](const char *id, const char *label, const QKeySequence &key) {
         m_bindings.push_back({QString::fromLatin1(id), tr(label), key, key});
@@ -20,7 +22,13 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
     add("stop", "Stop loading", QKeySequence(Qt::Key_Escape));
     add("expand", "Expand / restore window", QKeySequence(QStringLiteral("Ctrl+Meta+M")));
     add("fullscreen", "Enter / exit full screen", fullscreen);
-    add("close", "Close window", QKeySequence(QKeySequence::Close));
+    add("close", "Close tab", QKeySequence(QKeySequence::Close));
+    add("newTab", "New tab", QKeySequence(QStringLiteral("Ctrl+T")));
+    add("tabs", "Show tabs", QKeySequence(QStringLiteral("Ctrl+Shift+A")));
+    add("nextTab", "Next tab", QKeySequence(tabModifier + QStringLiteral("Tab")));
+    add("previousTab", "Previous tab", QKeySequence(tabModifier + QStringLiteral("Shift+Tab")));
+    add("reopenTab", "Reopen closed tab", QKeySequence(QStringLiteral("Ctrl+Shift+T")));
+    add("closeWindow", "Close window", QKeySequence(QStringLiteral("Ctrl+Shift+W")));
     QSettings settings;
     QSet<QKeySequence> used;
     // Load as one set: invalid or duplicate saved shortcuts revert the whole set.

@@ -4,10 +4,10 @@ A distraction-free desktop browser built with C++, QML, and Qt WebEngine (Chromi
 
 The project's primary branch is `master`.
 
-This initial scaffold has a single web view, address/search field, back/forward,
+The browser has tabs, an address/search field, back/forward,
 reload/stop, loading progress, and a persistent local browser profile. It starts
 on a blank page without making a startup network request. Search queries go to
-DuckDuckGo. Workspaces, tabs, extension management, downloads, and password/autofill
+DuckDuckGo. Workspaces, extension management, downloads, and password/autofill
 integration are not implemented yet.
 
 The page fills the window. On macOS, the native frame retains rounded corners
@@ -22,6 +22,15 @@ The macOS bundle registers HTTP and HTTPS URL schemes. Links opened with
 `open -a /path/to/arbiter.app 'https://example.com/'` are delivered to the
 existing window, including when the app is launched by the link. Registration
 does not make Arbiter the default browser.
+
+Each tab keeps its page and navigation history while you switch between tabs.
+Cmd+Shift+A opens a searchable grid of page previews with titles and addresses;
+use the arrow keys and Enter to select a tab, click a card, or use its close button. The start page and native Tabs menu
+also open the switcher. Websites requesting a new tab open separately, and
+external HTTP/HTTPS links open a new tab unless the active tab is empty.
+Tabs share the browser's cookie profile. Open tabs are not restored after
+quitting yet; reopening a closed tab restores its latest URL, not its form
+contents or full navigation history.
 
 Open Settings from the start page or the native Arbiter > Preferences… menu,
 with Cmd+, on macOS / Ctrl+, elsewhere, or by
@@ -83,7 +92,10 @@ helpers, followed by platform signing/notarization.
   page's address field.
 - Platform refresh, back, and forward shortcuts; Escape stops loading.
 - Escape dismisses the address editor without navigating.
-- Cmd+Ctrl+F on macOS toggles full screen; Cmd+W closes the window.
+- Cmd+T opens a new tab; Cmd+W closes the active tab (or the window for the last tab).
+- Cmd+Shift+A opens the tab switcher; Cmd+Shift+T reopens a closed tab.
+- Control+Tab / Control+Shift+Tab select the next / previous tab on macOS.
+- Cmd+Shift+W closes the window; Cmd+Ctrl+F toggles full screen.
 - Cmd+Ctrl+M expands the window to fill the desktop, and restores its previous
   size when pressed again. This is separate from full screen.
 - Option-drag anywhere in the macOS window moves it. Normal page dragging is
@@ -117,6 +129,7 @@ ARBITER_DIAGNOSTICS=1 ./build-qt612/arbiter.app/Contents/MacOS/arbiter
 - `src/main.cpp`: application identity, Qt WebEngine initialization, QML loading.
 - `src/macwindow.mm`: immersive macOS window setup with native corners and shadow.
 - `src/keybindings.*`: shortcut model, validation, defaults, and saved preferences.
+- `src/tabs.*`: tab identity, selection, metadata, and recently closed URLs.
 - `src/browserapplication.h`: receives and queues native HTTP/HTTPS open events.
 - `cmake/Info.plist.in`: macOS bundle metadata and URL-scheme registration.
 - `qml/Main.qml`: minimal browser window and navigation.
@@ -124,7 +137,7 @@ ARBITER_DIAGNOSTICS=1 ./build-qt612/arbiter.app/Contents/MacOS/arbiter
 
 ## Tests
 
-Run the keyboard binding and native URL handling tests independently of the browser:
+Run the keyboard binding, native URL handling, and tab model tests independently of the browser:
 
 ```sh
 cmake -S tests -B build-tests -G Ninja \

@@ -10,6 +10,7 @@
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
 #include "keybindings.h"
 #include "browserapplication.h"
+#include "tabs.h"
 #include <QWindow>
 #ifdef Q_OS_MACOS
 void configureMacWindow(QWindow *window);
@@ -27,6 +28,7 @@ int main(int argc, char *argv[])
 #endif
 
     KeyBindings keyBindings;
+    Tabs tabs;
     QMenuBar nativeMenu;
     QQmlApplicationEngine engine;
     // Keep Chromium's real platform/version tokens, without the embedding-toolkit
@@ -36,6 +38,7 @@ int main(int argc, char *argv[])
     const bool diagnostics = qEnvironmentVariableIsSet("ARBITER_DIAGNOSTICS");
     engine.setInitialProperties({{QStringLiteral("browserUserAgent"), userAgent},
                                  {QStringLiteral("keyBindings"), QVariant::fromValue(&keyBindings)},
+                                 {QStringLiteral("tabs"), QVariant::fromValue(&tabs)},
                                  {QStringLiteral("browserDiagnostics"), diagnostics}});
     if (diagnostics) {
         qInfo().noquote() << "Chromium:" << qWebEngineChromiumVersion();
@@ -47,7 +50,7 @@ int main(int argc, char *argv[])
     if (!engine.rootObjects().isEmpty()) {
         QObject *root = engine.rootObjects().first();
         app.setUrlHandler([root](const QUrl &url) {
-            QMetaObject::invokeMethod(root, "navigate", Q_ARG(QString, url.toString()));
+            QMetaObject::invokeMethod(root, "openExternalUrl", Q_ARG(QString, url.toString()));
             if (auto *window = qobject_cast<QWindow *>(root)) {
                 if (window->visibility() == QWindow::Minimized)
                     window->showNormal();
@@ -68,6 +71,21 @@ int main(int argc, char *argv[])
             QMetaObject::invokeMethod(root, "openSettings");
         });
         QObject::connect(root, SIGNAL(shortcutRecordingChanged(bool)), settingsAction, SLOT(setDisabled(bool)));
+        auto *tabsMenu = nativeMenu.addMenu(QObject::tr("Tabs"));
+        const auto addTabAction = [root, tabsMenu](const QString &label, const char *method) {
+            auto *action = tabsMenu->addAction(label);
+            QObject::connect(action, &QAction::triggered, root, [root, method] {
+                QMetaObject::invokeMethod(root, method);
+            });
+        };
+        addTabAction(QObject::tr("New Tab"), "newTab");
+        addTabAction(QObject::tr("Show Tabs…"), "showTabs");
+        addTabAction(QObject::tr("Close Tab"), "closeCurrentTab");
+        addTabAction(QObject::tr("Reopen Closed Tab"), "reopenTab");
+        tabsMenu->addSeparator();
+        addTabAction(QObject::tr("Next Tab"), "nextTab");
+        addTabAction(QObject::tr("Previous Tab"), "previousTab");
+        QObject::connect(root, SIGNAL(shortcutRecordingChanged(bool)), tabsMenu, SLOT(setDisabled(bool)));
     }
 #ifdef Q_OS_MACOS
     if (!engine.rootObjects().isEmpty()) {
