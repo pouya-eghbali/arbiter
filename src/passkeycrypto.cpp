@@ -108,7 +108,7 @@ QByteArray sign(const QByteArray &der, const QByteArray &message)
 QByteArray authenticatorData(const QString &rp, bool registration)
 {
     auto result = QCryptographicHash::hash(rp.toUtf8(), QCryptographicHash::Sha256);
-    // Software, device-bound authenticator: UP + verified passphrase UV. Never
+    // Software, device-bound authenticator: UP + verified passphrase/biometric UV. Never
     // claim backup eligibility/state. A constant zero counter is permitted by
     // WebAuthn for authenticators without a signature counter.
     result.append(char(registration ? 0x45 : 0x05));

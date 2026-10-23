@@ -36,9 +36,11 @@ The provider is installed only in patched builds. Local credentials are disabled
 for off-the-record contexts. The custom provider handles ordinary modal WebAuthn requests; it does not
 handle secure payment confirmation or internal browser requests. The patch reports conditional
 mediation unavailable until there is a conditional account picker, while
-preserving virtual-authenticator test behavior. The app currently has one
-persistent profile, `Default`. Additional profiles must receive separate vault
-instances and provider routing before they use this integration.
+preserving virtual-authenticator test behavior. Workspace profiles can isolate
+website cookies/storage while sharing the user's explicitly chosen Arbiter vault.
+Only the active foreground tab can present an authentication request; workspace
+switching cancels the previous tab's request. Off-the-record profiles remain
+excluded. Workspaces do not currently provide separate password/passkey vaults.
 
 On Windows the patch retains eligible additional platform discoveries alongside
 the OS WebAuthn API and permits explicit Chromium hybrid configuration. It keeps
@@ -48,8 +50,9 @@ These Windows changes still require native Windows validation.
 ## Local passkeys
 
 Settings offers vault setup in patched builds. The user chooses a passphrase of
-at least 12 Unicode characters and verifies it for each creation/assertion. The
-OS credential store alone is not treated as user verification. A confirmation
+at least 12 Unicode characters. Each creation/assertion verifies that passphrase,
+or uses fresh device verification with an optional, short-lived biometric session.
+The OS credential store alone is not treated as user verification. A confirmation
 click alone never sets the UV flag.
 
 - OpenSSL 3 generates P-256 keys and produces DER-encoded ECDSA/SHA-256 signatures
@@ -85,6 +88,60 @@ authenticator. Interrupted registration can leave an unused local credential.
 The user-verification and authenticator-data model follows
 [WebAuthn](https://www.w3.org/TR/webauthn-3/); the PBKDF2 work factor follows
 [OWASP's guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+
+## Biometric session unlocking
+
+This is optional convenience unlocking for **Arbiter's own passkeys**; it does not
+provide access to Apple Passwords or replace the phone QR flow. Enable it in
+Settings → Passkeys using the vault passphrase and a fresh device verification.
+Existing vaults keep their encrypted header/private records and gain only an
+optional boolean in the public catalog; no vault migration/re-encryption is needed.
+
+- macOS uses a new `LAContext` for each attempt, the biometric-only policy and
+  zero Touch ID reuse. [Apple's LocalAuthentication API](https://developer.apple.com/documentation/LocalAuthentication/LAContext/evaluatePolicy%28_%3AlocalizedReason%3Areply%3A%29)
+  performs verification; there is no Apple browser entitlement or Passwords access.
+- Windows uses HWND-owned `IUserConsentVerifierInterop` and accepts only
+  `UserConsentVerificationResult::Verified`. This is Windows Hello verification,
+  which can include a Hello PIN as well as biometrics. The desktop interop API
+  requires Windows 11 / build 22000 or newer; older/unconfigured systems retain
+  the passphrase path. Builds use MSVC/C++/WinRT, a Windows 11 SDK, Qt Concurrent
+  and `windowsapp`. See [Microsoft's desktop API](https://learn.microsoft.com/en-us/windows/win32/api/userconsentverifierinterop/nf-userconsentverifierinterop-iuserconsentverifierinterop-requestverificationforwindowasync).
+- Linux uses the system D-Bus fprintd service for the current caller: discover a
+  reader, check enrollment, claim it, start verification, accept only `verify-match`,
+  then stop/release it. Attempts have separate signal receivers/tokens, and reader
+  cleanup finishes before another attempt starts. Configure a compatible reader,
+  enroll fingerprints and use the desktop's normal fprintd/PolicyKit policy.
+  Arbiter does not install or change system authentication policies. See the
+  [fprintd device API](https://fprint.freedesktop.org/fprintd-dev/Device.html).
+
+Only the passphrase-derived key is cached, in a dedicated locked memory page
+(`mlock`/`VirtualLock`, with dump exclusion where supported). Failure to lock the
+page prevents biometric enrollment; passphrase operations continue normally.
+Neither the vault passphrase nor a biometric unlock key is written to the catalog,
+QtKeychain, files or credential-provider APIs. Existing encrypted credentials stay
+protected by the passphrase. This is an in-process session, **not** a hardware-bound
+persistent alternative key or protection against a compromised browser process.
+
+The session expires 15 minutes after successful passphrase verification and is
+wiped when Arbiter becomes inactive, on screen-lock/sleep notifications, on shutdown, on loss of availability or with
+Lock now. A native verification dialog may temporarily take focus; authorization
+is delivered only when Arbiter is active again. Every operation still requires a
+new native verification, and re-checks the encrypted vault verifier with the cached
+key before using it. Returning to Arbiter after locking/leaving/restarting requires
+the passphrase to warm the session again. Disabling the option clears the cache.
+
+Cancellation, timeout, navigation, workspace changes and replaced WebAuthn requests
+invalidate in-flight results. Failed/dismissed biometric prompts keep the current
+WebAuthn challenge open for the passphrase fallback. Verification never generates
+WebAuthn output after cancellation. Headless tests inject a verifier and in-memory
+secret store; the production backend never uses those implementations.
+
+The macOS app builds and passes simulated-verifier browser enrollment,
+registration/assertion and fallback tests. Native capability detection and the
+Linux backend's disconnected-D-Bus path have been exercised locally. Real Touch ID,
+Windows Hello and Linux fingerprint matching still require hardware validation;
+Windows builds/runtime validation remain pending. The existing desktop CI matrix
+also compiles/probes the native platform backend without prompting for biometrics.
 
 ## Phone QR transport
 

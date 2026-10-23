@@ -6,6 +6,11 @@
 class PasskeyController final : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(bool biometricAvailable READ biometricAvailable NOTIFY changed)
+    Q_PROPERTY(bool biometricEnabled READ biometricEnabled NOTIFY changed)
+    Q_PROPERTY(bool biometricReady READ biometricReady NOTIFY changed)
+    Q_PROPERTY(QString biometricName READ biometricName NOTIFY changed)
+    Q_PROPERTY(QString biometricStatus READ biometricStatus NOTIFY changed)
     Q_PROPERTY(int abi READ abi CONSTANT)
     Q_PROPERTY(bool enabled READ enabled CONSTANT)
     Q_PROPERTY(bool configured READ configured NOTIFY changed)
@@ -23,7 +28,18 @@ class PasskeyController final : public QObject
     Q_PROPERTY(QUrl qrImage READ qrImage NOTIFY changed)
 public:
     explicit PasskeyController(QObject *parent = nullptr);
+    PasskeyController(SecretStore *store, const QString &directory, BiometricAuth *biometrics, QObject *parent = nullptr);
     ~PasskeyController() override;
+    bool biometricAvailable() const { return m_vault.biometricAvailable(); }
+    bool biometricEnabled() const { return m_vault.biometricEnabled(); }
+    bool biometricReady() const { return m_vault.biometricReady(); }
+    QString biometricName() const { return m_vault.biometricName(); }
+    QString biometricStatus() const { return m_vault.biometricStatus(); }
+    Q_INVOKABLE void refreshBiometrics() { m_biometrics->refresh(); }
+    Q_INVOKABLE void setBiometricEnabled(bool enabled, const QString &phrase) { m_vault.setBiometricEnabled(enabled,phrase); }
+    Q_INVOKABLE void cancelBiometric() { m_vault.cancelBiometric(); }
+    Q_INVOKABLE void lockBiometrics() { m_vault.lockBiometrics(); }
+    Q_INVOKABLE void verifyBiometric(int accountIndex);
     int abi() const { return 1; }
     bool enabled() const;
     bool configured() const { return m_vault.configured(); }
@@ -55,9 +71,12 @@ signals:
 private slots:
     void update();
 private:
+    void verifyLocal(int accountIndex, const QString &phrase, bool biometric);
+    BiometricAuth *m_biometrics;
     KeychainSecretStore m_store;
     PasskeyVault m_vault;
     QPointer<QObject> m_bridge;
     QPointer<QWebEngineWebAuthUxRequest> m_request;
     QUrl m_qr;
+    quint64 m_operationEpoch = 0;
 };

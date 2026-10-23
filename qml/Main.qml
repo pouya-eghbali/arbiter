@@ -103,6 +103,7 @@ Basic.ApplicationWindow {
     }
 
     function prepareForShutdown() {
+        biometricSetup.close()
         workspacePanel.close()
         historyPanel.close()
         addressPopup.close()
@@ -761,6 +762,42 @@ Basic.ApplicationWindow {
                             enabled: !window.passkeys.configured
                             onClicked: passkeySetup.open()
                         }
+                        Basic.Label {
+                            visible: window.passkeys.enabled && window.passkeys.configured
+                            text: window.passkeys.biometricStatus
+                            color: Theme.muted
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
+                        UiButton {
+                            visible: window.passkeys.enabled && window.passkeys.configured
+                            text: window.passkeys.biometricEnabled ? qsTr("Disable biometric unlocking") : qsTr("Enable %1…").arg(window.passkeys.biometricName)
+                            enabled: !window.passkeys.busy && (window.passkeys.biometricEnabled || window.passkeys.biometricAvailable)
+                            onClicked: {
+                                if (window.passkeys.biometricEnabled) window.passkeys.setBiometricEnabled(false, "")
+                                else biometricSetup.open()
+                            }
+                        }
+                        Basic.Label {
+                            visible: window.passkeys.enabled && window.passkeys.configured
+                            text: qsTr("Biometric unlocking lasts up to 15 minutes while Arbiter stays active. Enter your passphrase once after restarting or leaving the app; each later passkey use still asks for device verification.")
+                            color: Theme.muted
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
+                        RowLayout {
+                            visible: window.passkeys.enabled && window.passkeys.configured
+                            UiButton { text: qsTr("Refresh biometric support"); enabled: !window.passkeys.busy; onClicked: window.passkeys.refreshBiometrics() }
+                            UiButton { text: qsTr("Lock now"); enabled: !window.passkeys.busy && window.passkeys.biometricReady; onClicked: window.passkeys.lockBiometrics() }
+                        }
+                        Basic.Label {
+                            visible: window.passkeys.enabled && window.passkeys.error.length > 0
+                            text: window.passkeys.error
+                            textFormat: Text.PlainText
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                            color: Theme.text
+                        }
                     }
                     ColumnLayout {
                         visible: window.settingsCategory === 3
@@ -884,6 +921,7 @@ Basic.ApplicationWindow {
             else window.navigate(url)
         }
     }
+    BiometricSetup { id: biometricSetup; objectName: "biometricSetup"; controller: window.passkeys }
     PasskeySetup { id: passkeySetup; objectName: "passkeySetup"; controller: window.passkeys }
 
     PasswordPanel {

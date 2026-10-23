@@ -15,9 +15,13 @@
 #endif
 
 PasskeyController::PasskeyController(QObject *parent)
-    : QObject(parent), m_store(this, QStringLiteral("Arbiter Passkeys")), m_vault(&m_store,
-        QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + QStringLiteral("/passkeys/Default"), this)
+    : PasskeyController(nullptr,QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+        + QStringLiteral("/passkeys/Default"),nullptr,parent) {}
+PasskeyController::PasskeyController(SecretStore *store, const QString &directory, BiometricAuth *biometrics, QObject *parent)
+    : QObject(parent), m_biometrics(biometrics ? biometrics : createBiometricAuth(this)),
+      m_store(this,QStringLiteral("Arbiter Passkeys")), m_vault(store ? store : &m_store,directory,this,m_biometrics)
 {
+    QTimer::singleShot(0,m_biometrics,&BiometricAuth::refresh);
     connect(&m_vault, &PasskeyVault::changed, this, &PasskeyController::changed);
     if (enabled()) qApp->setProperty("arbiter.passkeys", QVariant::fromValue(static_cast<QObject *>(this)));
 }
@@ -76,6 +80,8 @@ void PasskeyController::handle(QWebEngineWebAuthUxRequest *request)
 void PasskeyController::update() { emit changed(); }
 void PasskeyController::clear()
 {
+    ++m_operationEpoch;
+    m_vault.cancelBiometric();
     if (m_bridge) disconnect(m_bridge, nullptr, this, nullptr);
     if (m_request) disconnect(m_request, nullptr, this, nullptr);
     m_bridge.clear(); m_request.clear(); m_qr.clear(); emit changed();
@@ -104,6 +110,10 @@ void PasskeyController::usePhone()
     emit changed();
 }
 void PasskeyController::verify(int accountIndex, const QString &passphrase)
+{ verifyLocal(accountIndex,passphrase,false); }
+void PasskeyController::verifyBiometric(int accountIndex)
+{ verifyLocal(accountIndex,{},true); }
+void PasskeyController::verifyLocal(int accountIndex, const QString &passphrase, bool biometric)
 {
     if (!verifying() || busy()) return;
     auto entries = accounts();
@@ -111,15 +121,20 @@ void PasskeyController::verify(int accountIndex, const QString &passphrase)
     QByteArray id = registration() ? QByteArray() : entries.at(accountIndex).toMap().value(QStringLiteral("id")).toByteArray();
     QPointer<QObject> bridge = m_bridge;
     QPointer<QWebEngineWebAuthUxRequest> request = m_request;
+    QPointer<PasskeyController> self(this);
+    const auto epoch=m_operationEpoch;
+    const auto current=[self,epoch,bridge,request] {
+        return self && self->m_operationEpoch==epoch && self->m_bridge==bridge && bridge && request
+            && request->state()!=QWebEngineWebAuthUxRequest::WebAuthUxState::Cancelled
+            && request->state()!=QWebEngineWebAuthUxRequest::WebAuthUxState::Completed;
+    };
     m_vault.perform(registration(), bridge->property("payload").toByteArray(), id, passphrase,
-        [bridge, request](int status, const QByteArray &response) {
+        [bridge, current, biometric](int status, const QByteArray &response) {
             // No response is delivered after cancellation, navigation or timeout.
-            if (bridge && request && request->state() != QWebEngineWebAuthUxRequest::WebAuthUxState::Cancelled
-                && request->state() != QWebEngineWebAuthUxRequest::WebAuthUxState::Completed)
+            // A dismissed/failed biometric prompt is not a failed WebAuthn
+            // ceremony. Keep this challenge alive for the passphrase fallback.
+            if (current() && !(biometric && status==1))
                 QMetaObject::invokeMethod(bridge, "complete", Q_ARG(QByteArray, response), Q_ARG(int, status));
-        }, [bridge, request] {
-            return bridge && request && request->state() != QWebEngineWebAuthUxRequest::WebAuthUxState::Cancelled
-                && request->state() != QWebEngineWebAuthUxRequest::WebAuthUxState::Completed;
-        });
+        }, current, biometric);
     emit verificationSubmitted();
 }

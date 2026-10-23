@@ -26,7 +26,7 @@ Basic.Popup {
         spacing: 14
         Basic.Label { text: qsTr("Set up Arbiter passkeys"); font.pixelSize: 22 }
         Basic.Label {
-            text: qsTr("Choose a passphrase of at least 12 characters. Enter it each time you create or use an Arbiter passkey. Private keys are encrypted and kept in your operating system's credential store on this computer. There is no sync or passphrase recovery; losing this profile, its system credentials, or the passphrase can lose access to these passkeys. Keep another sign-in method for your accounts.")
+            text: qsTr("Choose a passphrase of at least 12 characters. Use it to create or use an Arbiter passkey, or enable optional biometric unlocking in Settings. Private keys are encrypted and kept in your operating system's credential store on this computer. There is no sync or passphrase recovery; losing this profile, its system credentials, or the passphrase can lose access to these passkeys. Keep another sign-in method for your accounts.")
             textFormat: Text.PlainText
             Layout.fillWidth: true
             wrapMode: Text.Wrap

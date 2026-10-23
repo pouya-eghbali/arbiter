@@ -47,6 +47,19 @@ navigation headings appear directly in the menu bar; additional headings go in
 More. Pages without navigation links show a disabled placeholder in the tab-title
 menu. Script-only buttons, hidden dropdown contents and frame navigation are
 not included.
+Settings → Passkeys offers optional biometric unlocking for Arbiter's own vault:
+Touch ID on macOS, Windows Hello on Windows 11, and enrolled fprintd fingerprint
+readers on Linux. Windows Hello may offer its PIN as well as biometrics.
+Enable it by entering the vault passphrase and completing device verification.
+After a successful passphrase unlock, each later passkey operation can use fresh
+device verification for up to 15 minutes while Arbiter stays active. Restarting,
+leaving the app, locking/sleeping the session, expiration, or Lock now clears the memory-only session key.
+Native verification dialogs may briefly take focus while authenticating.
+The passphrase remains available as a fallback, including after cancellation or
+failed verification; no persistent biometric bypass key or passphrase is stored.
+Unsupported/unconfigured devices keep the passphrase flow. Windows builds need
+MSVC and a Windows 11 SDK; Linux builds need Qt DBus, with fprintd configured by
+the desktop. See [biometric details](docs/passkey-integration.md#biometric-session-unlocking).
 History is available from History → Show All History, the navigation pill's
 History item, or Cmd+Y on macOS / Ctrl+Y elsewhere. The shortcut can be changed
 in Settings → Keyboard. The searchable history view groups visits by date,

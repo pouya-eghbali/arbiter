@@ -65,7 +65,9 @@ Item {
                 font.weight: Font.DemiBold
             }
             Basic.Label {
-                text: panel.controller.description
+                text: panel.passkeys.verifying
+                    ? panel.passkeys.registration ? qsTr("Verify to create a passkey in Arbiter.") : qsTr("Verify to sign in with your Arbiter passkey.")
+                    : panel.controller.description
                 textFormat: Text.PlainText
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
@@ -110,17 +112,17 @@ Item {
                 wrapMode: Text.Wrap
             }
             UiButton {
-                visible: panel.passkeys.phoneAvailable && panel.passkeys.bluetooth === 1
+                visible: !panel.passkeys.verifying && panel.passkeys.phoneAvailable && panel.passkeys.bluetooth === 1
                 text: qsTr("Turn on Bluetooth")
                 onClicked: panel.passkeys.powerOnBluetooth()
             }
             UiButton {
-                visible: panel.passkeys.phoneAvailable && panel.passkeys.bluetooth === 3
+                visible: !panel.passkeys.verifying && panel.passkeys.phoneAvailable && panel.passkeys.bluetooth === 3
                 text: qsTr("Allow Bluetooth")
                 onClicked: panel.passkeys.requestBluetoothPermission()
             }
             Basic.Label {
-                visible: panel.passkeys.phoneAvailable && panel.passkeys.bluetooth === 2
+                visible: !panel.passkeys.verifying && panel.passkeys.phoneAvailable && panel.passkeys.bluetooth === 2
                 text: qsTr("Bluetooth access was denied. Enable it for Arbiter in system settings to use a phone.")
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
@@ -133,8 +135,27 @@ Item {
                 Layout.fillWidth: true
             }
 
+            UiButton {
+                visible: panel.passkeys.verifying && panel.passkeys.biometricEnabled && panel.passkeys.biometricAvailable
+                text: qsTr("Use %1").arg(panel.passkeys.biometricName)
+                objectName: "verifyBiometricButton"
+                primary: true
+                enabled: !panel.passkeys.busy && panel.passkeys.biometricReady
+                    && (panel.passkeys.registration || localAccount.currentIndex >= 0)
+                onClicked: panel.passkeys.verifyBiometric(localAccount.currentIndex)
+            }
+            Basic.Label {
+                visible: panel.passkeys.verifying && panel.passkeys.biometricEnabled
+                text: panel.passkeys.busy ? panel.passkeys.biometricStatus : panel.passkeys.biometricReady
+                    ? qsTr("Or use your vault passphrase below.")
+                    : qsTr("Use your passphrase once to enable biometric unlocking for this session.")
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.muted
+            }
             UiTextField {
                 id: vaultPhrase
+                objectName: "passkeyVaultPhrase"
                 visible: panel.passkeys.verifying && (panel.passkeys.registration || panel.passkeys.accounts.length > 0)
                 echoMode: TextInput.Password
                 placeholderText: qsTr("Arbiter passkey vault passphrase")
@@ -153,6 +174,7 @@ Item {
             UiButton {
                 visible: panel.passkeys.verifying
                 text: panel.passkeys.registration ? qsTr("Create passkey in Arbiter") : qsTr("Sign in with Arbiter")
+                objectName: "verifyPassphraseButton"
                 enabled: !panel.passkeys.busy && vaultPhrase.text.length > 0
                     && (panel.passkeys.registration || localAccount.currentIndex >= 0)
                 onClicked: panel.passkeys.verify(localAccount.currentIndex, vaultPhrase.text)

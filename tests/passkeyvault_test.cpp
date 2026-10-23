@@ -28,6 +28,21 @@ public:
     }
     void remove(const QString &key, Callback cb) override { items.remove(key); cb({}, {}); }
 };
+class FakeBiometrics : public BiometricAuth {
+public:
+    using BiometricAuth::BiometricAuth;
+    bool automatic=true, success=true;
+    int prompts=0;
+    quint64 pending=0;
+    bool foregroundRequired() const override { return false; }
+    QString name() const override { return QStringLiteral("Test biometrics"); }
+    void refresh() override { availability(true,QStringLiteral("Available")); }
+    void unavailable() { availability(false,QStringLiteral("No hardware")); }
+    void respond(bool ok) { complete(pending,ok,ok ? QString() : QStringLiteral("Not verified")); }
+protected:
+    void startNative(const QString &,quint64 token) override { ++prompts; pending=token; if(automatic) respond(success); }
+    void cancelNative() override { }
+};
 namespace {
 const QString phrase = QStringLiteral("test vault passphrase only");
 QByteArray encode(const QCborMap &map) { return QCborValue(map).toCbor(); }
@@ -42,12 +57,12 @@ QCborMap makeRequest(const QString &rp = QStringLiteral("example.com")) {
 QCborMap getRequest(const QString &rp = QStringLiteral("example.com")) {
     QCborMap request; request.insert(1, rp); request.insert(2, QByteArray(32, 'd')); return request;
 }
-QByteArray perform(PasskeyVault &vault, bool make, const QCborMap &request, const QByteArray &id, int expected, const QString &pass = phrase) {
+QByteArray perform(PasskeyVault &vault, bool make, const QCborMap &request, const QByteArray &id, int expected, const QString &pass = phrase, bool biometric = false) {
     QByteArray result; bool called = false;
     vault.perform(make, encode(request), id, pass, [&](int status, const QByteArray &response) {
         called = true; if (status != expected) QTest::qFail(qPrintable(QStringLiteral("status %1, expected %2; %3").arg(status).arg(expected).arg(vault.error())), __FILE__, __LINE__);
         result = response;
-    });
+    }, {}, biometric);
     if (!called) QTest::qFail("callback was not called", __FILE__, __LINE__);
     return result;
 }
@@ -55,6 +70,102 @@ QByteArray perform(PasskeyVault &vault, bool make, const QCborMap &request, cons
 class PasskeyVaultTest : public QObject {
     Q_OBJECT
 private slots:
+    void biometricEnrollmentAndPerOperationVerification() {
+        QTemporaryDir dir; MemoryStore store; FakeBiometrics auth; auth.refresh();
+        PasskeyVault vault(&store,dir.path(),nullptr,&auth);
+        vault.setup(phrase,phrase); QVERIFY(vault.configured());
+        vault.setBiometricEnabled(true,phrase);
+        QVERIFY2(vault.biometricEnabled(),qPrintable(vault.error())); QVERIFY(vault.biometricReady());
+        QCOMPARE(auth.prompts,1); QCOMPARE(store.items.size(),1); // No persistent bypass key.
+        auto created=perform(vault,true,makeRequest(),{},0,{},true); QVERIFY(!created.isEmpty());
+        QCOMPARE(auth.prompts,2);
+        const auto id=vault.credentials("example.com").first().toMap()["id"].toByteArray();
+        auto assertion=QCborValue::fromCbor(perform(vault,false,getRequest(),id,0,{},true)).toMap();
+        QCOMPARE(auth.prompts,3); QCOMPARE(assertion.value(2).toByteArray().at(32),char(5));
+        auth.success=false;
+        QVERIFY(perform(vault,false,getRequest(),id,1,{},true).isEmpty()); QVERIFY(!vault.busy());
+        QVERIFY(!perform(vault,false,getRequest(),id,0).isEmpty()); // Passphrase fallback still works.
+        vault.setBiometricEnabled(false,{}); QVERIFY(!vault.biometricReady()); QVERIFY(!vault.biometricEnabled());
+        QVERIFY(perform(vault,false,getRequest(),id,1,{},true).isEmpty());
+        QVERIFY(!perform(vault,false,getRequest(),id,0).isEmpty());
+    }
+    void biometricRestartAndExplicitLockRequirePassphrase() {
+        QTemporaryDir dir; MemoryStore store; FakeBiometrics auth; auth.refresh();
+        {
+            PasskeyVault vault(&store,dir.path(),nullptr,&auth);
+            vault.setup(phrase,phrase); vault.setBiometricEnabled(true,phrase); QVERIFY(vault.biometricReady());
+        }
+        const int prompts=auth.prompts;
+        PasskeyVault restored(&store,dir.path(),nullptr,&auth);
+        QVERIFY(restored.biometricEnabled()); QVERIFY(!restored.biometricReady());
+        QVERIFY(perform(restored,true,makeRequest(),{},1,{},true).isEmpty()); QCOMPARE(auth.prompts,prompts);
+        QVERIFY(!perform(restored,true,makeRequest(),{},0).isEmpty()); QVERIFY(restored.biometricReady());
+        restored.lockBiometrics(); QVERIFY(!restored.biometricReady());
+        QVERIFY(perform(restored,true,makeRequest(),{},1,{},true).isEmpty());
+        QVERIFY(!perform(restored,true,makeRequest(),{},0).isEmpty()); QVERIFY(restored.biometricReady());
+        auth.unavailable(); QVERIFY(!restored.biometricReady());
+        QVERIFY(!perform(restored,true,makeRequest(),{},0).isEmpty()); // Missing hardware does not block passwords.
+    }
+    void biometricCancellationAndStaleResultsCannotSign() {
+        QTemporaryDir dir; MemoryStore store; FakeBiometrics auth; auth.refresh();
+        PasskeyVault vault(&store,dir.path(),nullptr,&auth);
+        vault.setup(phrase,phrase); vault.setBiometricEnabled(true,phrase); QVERIFY(vault.biometricReady());
+        auth.automatic=false;
+        int callbacks=0,status=-1; QByteArray response;
+        vault.perform(true,encode(makeRequest()),{}, {},[&](int code,const QByteArray &bytes){ ++callbacks; status=code; response=bytes; },{},true);
+        QVERIFY(vault.busy()); vault.cancelBiometric();
+        QCOMPARE(callbacks,1); QCOMPARE(status,1); QVERIFY(response.isEmpty()); QVERIFY(!vault.busy());
+        auth.respond(true); QCOMPARE(callbacks,1); QVERIFY(vault.credentials("example.com").isEmpty());
+        bool current=true; callbacks=0;
+        vault.perform(true,encode(makeRequest()),{}, {},[&](int code,const QByteArray &bytes){ ++callbacks; status=code; response=bytes; },[&]{return current;},true);
+        current=false; auth.respond(true);
+        QCOMPARE(callbacks,1); QCOMPARE(status,1); QVERIFY(response.isEmpty()); QVERIFY(vault.credentials("example.com").isEmpty());
+        auth.automatic=true; QVERIFY(!perform(vault,true,makeRequest(),{},0).isEmpty());
+    }
+    void biometricEnrollmentFailureDoesNotChangeTheVault() {
+        QTemporaryDir dir; MemoryStore store; FakeBiometrics auth; auth.refresh(); auth.success=false;
+        PasskeyVault vault(&store,dir.path(),nullptr,&auth); vault.setup(phrase,phrase);
+        vault.setBiometricEnabled(true,phrase);
+        QVERIFY(!vault.biometricEnabled()); QVERIFY(!vault.biometricReady()); QVERIFY(!vault.busy());
+        QVERIFY(!perform(vault,true,makeRequest(),{},0).isEmpty());
+        auth.success=true; vault.setBiometricEnabled(true,phrase); QVERIFY(vault.biometricReady());
+        QString header; for(const auto &key:store.items.keys()) if(key.endsWith('/')) header=key;
+        QVERIFY(!header.isEmpty()); const auto original=store.items[header];
+        auto map=QCborValue::fromCbor(original).toMap(); auto sealed=map.value(1).toByteArray(); sealed[14]^=1; map.insert(1,sealed); store.items[header]=encode(map);
+        QVERIFY(perform(vault,true,makeRequest(),{},1,{},true).isEmpty()); QVERIFY(!vault.biometricReady());
+        store.items[header]=original; QVERIFY(!perform(vault,true,makeRequest(),{},0).isEmpty());
+    }
+    void lockedKeyClearsAndRejectsInvalidInput() {
+        LockedKey key; QVERIFY(!key.present()); QVERIFY(key.copy().isEmpty());
+        const auto value=PasskeyCrypto::random(32); QVERIFY(key.set(value)); QCOMPARE(key.copy(),value);
+        key.clear(); QVERIFY(!key.present()); QVERIFY(key.copy().isEmpty());
+        QVERIFY(!key.set("short")); QVERIFY(!key.present());
+    }
+    void biometricCancellationDuringSecureStoreRead() {
+        QTemporaryDir dir; MemoryStore store; FakeBiometrics auth; auth.refresh();
+        PasskeyVault vault(&store,dir.path(),nullptr,&auth); vault.setup(phrase,phrase);
+        store.afterRead=[&] { vault.cancelBiometric(); };
+        vault.setBiometricEnabled(true,phrase);
+        QVERIFY(!vault.biometricEnabled()); QCOMPARE(auth.prompts,0); QVERIFY(!vault.busy());
+        store.afterRead={}; vault.setBiometricEnabled(true,phrase); QVERIFY(vault.biometricReady());
+        store.afterRead=[&] { vault.cancelBiometric(); };
+        QVERIFY(perform(vault,true,makeRequest(),{},1,{},true).isEmpty());
+        QVERIFY(vault.credentials("example.com").isEmpty()); QVERIFY(!vault.busy());
+        store.afterRead={}; QVERIFY(!perform(vault,true,makeRequest(),{},0).isEmpty());
+    }
+    void screenLockCancelsVerificationAndClearsTheKey() {
+        QTemporaryDir dir; MemoryStore store; FakeBiometrics auth; auth.refresh();
+        PasskeyVault vault(&store,dir.path(),nullptr,&auth); vault.setup(phrase,phrase);
+        vault.setBiometricEnabled(true,phrase); QVERIFY(vault.biometricReady());
+        auth.automatic=false; int callbacks=0;
+        vault.perform(true,encode(makeRequest()),{}, {},[&](int status,const QByteArray &response) {
+            ++callbacks; QCOMPARE(status,1); QVERIFY(response.isEmpty());
+        },{},true);
+        emit auth.sessionLocked();
+        QVERIFY(!vault.biometricReady()); QVERIFY(!vault.busy()); QCOMPARE(callbacks,1);
+        auth.respond(true); QCOMPARE(callbacks,1); QVERIFY(vault.credentials("example.com").isEmpty());
+        QVERIFY(!perform(vault,true,makeRequest(),{},0).isEmpty());
+    }
     void authenticatedEncryption() {
         auto key = PasskeyCrypto::random(32); auto sealed = PasskeyCrypto::seal("secret", key, "rp+credential");
         QCOMPARE(PasskeyCrypto::open(sealed, key, "rp+credential"), QByteArray("secret"));
