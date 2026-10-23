@@ -5,10 +5,20 @@ project(Arbiter VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.12 REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick Widgets)
+include(cmake/ArbiterWebEngine.cmake)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick Widgets WebChannel)
 qt_standard_project_setup(REQUIRES 6.12)
+include(cmake/QtKeychain.cmake)
+find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 
-qt_add_executable(arbiter src/main.cpp src/browserapplication.h src/keybindings.cpp src/keybindings.h src/tabs.cpp src/tabs.h)
+qt_add_executable(arbiter src/main.cpp src/browserapplication.h src/keybindings.cpp src/keybindings.h src/tabs.cpp src/tabs.h
+    src/passwordmanager.cpp src/passwordmanager.h src/secretstore.cpp src/secretstore.h
+    src/webauthncontroller.cpp src/webauthncontroller.h
+    src/passkeycontroller.cpp src/passkeycontroller.h src/passkeyvault.cpp src/passkeyvault.h
+    src/passkeycrypto.cpp src/passkeycrypto.h third_party/qrcodegen/qrcodegen.cpp)
+target_include_directories(arbiter PRIVATE third_party/qrcodegen)
+arbiter_configure_webengine_runtime(arbiter)
+qt_add_resources(arbiter password_scripts PREFIX /passwords BASE scripts FILES scripts/passwords.js)
 if(APPLE)
     enable_language(OBJCXX)
     target_sources(arbiter PRIVATE src/macwindow.mm)
@@ -39,20 +49,28 @@ if(APPLE)
         "${ARBITER_ICON_OUTPUT}/Assets.car" "${ARBITER_ICON_OUTPUT}/Arbiter.icns"
         PROPERTIES MACOSX_PACKAGE_LOCATION Resources
     )
+    set_source_files_properties(licenses/QtKeychain.txt licenses/QRCodeGenerator.txt PROPERTIES MACOSX_PACKAGE_LOCATION Resources/licenses)
     target_sources(arbiter PRIVATE
         "${ARBITER_ICON_OUTPUT}/Assets.car" "${ARBITER_ICON_OUTPUT}/Arbiter.icns"
+        licenses/QtKeychain.txt licenses/QRCodeGenerator.txt
     )
 endif()
 qt_add_qml_module(arbiter
+    # Dynamic Qt resolves plugins at runtime. Avoid recursively scanning the
+    # isolated Chromium checkout beneath this source directory.
+    NO_IMPORT_SCAN
     URI Arbiter
     VERSION 1.0
-    QML_FILES qml/Main.qml qml/WebContextMenu.qml
+    QML_FILES qml/Main.qml qml/WebContextMenu.qml qml/PasswordPanel.qml qml/WebAuthnPanel.qml qml/PasskeySetup.qml
 )
 target_link_libraries(arbiter PRIVATE
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::WebEngineQuick
     Qt6::Widgets
+    Qt6::WebChannel
+    qt6keychain
+    OpenSSL::Crypto
 )
 set_target_properties(arbiter PROPERTIES
     MACOSX_BUNDLE TRUE
@@ -69,3 +87,6 @@ install(TARGETS arbiter
     BUNDLE DESTINATION .
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+if(NOT APPLE)
+    install(FILES licenses/QtKeychain.txt licenses/QRCodeGenerator.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/arbiter/licenses)
+endif()

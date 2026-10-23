@@ -4,6 +4,8 @@ import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 import QtWebEngine
+import QtWebChannel
+import Arbiter.Credentials 1.0
 
 Basic.ApplicationWindow {
     id: window
@@ -12,6 +14,9 @@ Basic.ApplicationWindow {
     required property var tabs
     property var webView: null
     required property var keyBindings
+    required property var passwords
+    required property var passkeys
+    required property var webauthn
     readonly property var bindings: keyBindings.bindings
     property bool settingsOpen: false
     property int recordingIndex: -1
@@ -83,6 +88,7 @@ Basic.ApplicationWindow {
     }
 
     Shortcut { sequence: window.bindings.address; enabled: window.recordingIndex < 0; onActivated: window.focusAddress() }
+    Shortcut { sequence: window.bindings.passwords; enabled: window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.openPasswords() }
     Shortcut { sequence: window.bindings.reload; enabled: window.webView && window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.webView.reload() }
     Shortcut { sequence: window.bindings.back; enabled: window.webView && window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.webView.goBack() }
     Shortcut { sequence: window.bindings.forward; enabled: window.webView && window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.webView.goForward() }
@@ -116,6 +122,8 @@ Basic.ApplicationWindow {
     }
 
     function syncActiveView() {
+        if (webView) webAuthnPanel.cancelFor(webView)
+        if (webView) passwordPanel.cancelFor(webView)
         webView = tabViews.itemAt(tabs.currentIndex)
         homeAddress.text = ""
         Qt.callLater(focusPage)
@@ -193,6 +201,7 @@ Basic.ApplicationWindow {
     }
 
     function toggleSettings() {
+        if (webView) webAuthnPanel.cancelFor(webView)
         addressPopup.close()
         tabsPopup.close()
         recordingIndex = -1
@@ -210,6 +219,14 @@ Basic.ApplicationWindow {
         if (!settingsOpen)
             toggleSettings()
     }
+
+    function openPasswords() {
+        addressPopup.close()
+        tabsPopup.close()
+        if (!settingsOpen) passwordPanel.openFor(webView)
+    }
+
+    function openPasswordSettings() { passwordPanel.openManager() }
 
     function toggleExpanded() {
         if (visibility === Window.Maximized || visibility === Window.FullScreen)
@@ -243,6 +260,7 @@ Basic.ApplicationWindow {
             required property int tabId
             required property url initialUrl
             property string errorText: ""
+            readonly property var passwordAgent: passwordSession
             anchors.fill: parent
             visible: tabsPopup.visible || (index === window.tabs.currentIndex && !window.settingsOpen && !window.emptyPage)
             z: index === window.tabs.currentIndex ? 0 : -1
@@ -250,15 +268,52 @@ Basic.ApplicationWindow {
             url: initialUrl
             backgroundColor: window.color
             profile: browserProfile
+            webChannel: passwordChannel
+            webChannelWorld: 1
+            userScripts.collection: [{
+                name: "Arbiter password forms",
+                injectionPoint: WebEngineScript.DocumentReady,
+                worldId: WebEngineScript.ApplicationWorld,
+                runsOnSubFrames: false,
+                sourceCode: window.passwords.captureScript
+            }]
+            WebChannel {
+                id: passwordChannel
+                Component.onCompleted: registerObject("passwordCapture", passwordSession.capture)
+            }
+            PasswordSession {
+                id: passwordSession
+                manager: window.passwords
+                onCaptureNeedsValidation: passwordSession.validateCapture(page.mainFrame.url, page.profile.offTheRecord)
+                onRunFillScript: function(script) {
+                    if (page !== window.webView || window.settingsOpen || !window.passwords.enabled) return
+                    page.mainFrame.runJavaScript(script, 1, function(filled) {
+                        window.passwords.reportFillResult(filled === true)
+                    })
+                }
+            }
             WebContextMenu {
                 id: pageContextMenu
                 view: page
+                passwordsEnabled: window.passwords.enabled
+                onPasswordsRequested: Qt.callLater(window.openPasswords)
             }
             onContextMenuRequested: function(request) { pageContextMenu.show(request) }
             onNewWindowRequested: function(request) { window.openWebRequest(request) }
             onWindowCloseRequested: window.finishClosingTab(index)
+            onWebAuthUxRequested: function(request) {
+                if (page !== window.webView || window.settingsOpen) request.cancel()
+                else webAuthnPanel.show(page, request)
+            }
+            Component.onDestruction: {
+                webAuthnPanel.cancelFor(page)
+                passwordPanel.cancelFor(page)
+            }
             onTitleChanged: window.tabs.update(tabId, title, url)
             onUrlChanged: {
+                webAuthnPanel.cancelFor(page)
+                passwordSession.invalidate()
+                passwordPanel.cancelFor(page)
                 window.tabs.update(tabId, title, url)
                 if (page === window.webView && window.emptyPage) {
                     homeAddress.text = ""
@@ -270,6 +325,11 @@ Basic.ApplicationWindow {
                     console.log("Page console:", level, sourceID, lineNumber, message)
             }
             onLoadingChanged: function(request) {
+                if (request.status === WebEngineView.LoadStartedStatus) {
+                    webAuthnPanel.cancelFor(page)
+                    passwordSession.invalidate()
+                    passwordPanel.cancelFor(page)
+                }
                 if (window.browserDiagnostics) {
                     console.log("Load:", request.url, request.status,
                                 request.errorDomain, request.errorCode, request.errorString)
@@ -417,6 +477,13 @@ Basic.ApplicationWindow {
                     Basic.Label { text: qsTr("Settings"); font.pixelSize: 28; Layout.fillWidth: true }
                     SurfaceButton { text: qsTr("Done"); onClicked: window.toggleSettings() }
                 }
+                SurfaceButton { text: qsTr("Manage passwords…"); onClicked: window.openPasswordSettings() }
+                SurfaceButton {
+                    text: window.passkeys.configured ? qsTr("Passkey vault is configured") : qsTr("Set up passkey vault…")
+                    visible: window.passkeys.enabled
+                    enabled: !window.passkeys.configured
+                    onClicked: passkeySetup.open()
+                }
                 Basic.Label { text: qsTr("Keyboard bindings"); font.pixelSize: 20; font.weight: Font.Medium }
                 Rectangle { Layout.fillWidth: true; height: 1; color: window.subtleLine }
                 Basic.Label {
@@ -497,6 +564,23 @@ Basic.ApplicationWindow {
     }
 
     // Window movement remains available above every website without a toolbar.
+    PasskeySetup { id: passkeySetup; controller: window.passkeys }
+
+    PasswordPanel {
+        id: passwordPanel
+        anchors.fill: parent
+        z: 30
+        manager: window.passwords
+        activeView: window.webView
+    }
+    WebAuthnPanel {
+        id: webAuthnPanel
+        anchors.fill: parent
+        z: 31
+        controller: window.webauthn
+        passkeys: window.passkeys
+    }
+
     MouseArea {
         id: windowHandle
         anchors.left: parent.left

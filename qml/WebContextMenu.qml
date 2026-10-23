@@ -6,6 +6,8 @@ import QtWebEngine
 Controls.Menu {
     id: contextMenu
     required property WebEngineView view
+    property bool passwordsEnabled: true
+    signal passwordsRequested()
     popupType: Qt.platform.os === "osx" ? Controls.Popup.Native : Controls.Popup.Window
 
     Component {
@@ -27,6 +29,14 @@ Controls.Menu {
     Component {
         id: separatorItem
         Controls.MenuSeparator { }
+    }
+    Component {
+        id: passwordsItem
+        Controls.MenuItem {
+            text: qsTr("Fill or Save Login…")
+            enabled: contextMenu.passwordsEnabled && contextMenu.view.url.toString().startsWith("https://")
+            onTriggered: contextMenu.passwordsRequested()
+        }
     }
 
     function addWebAction(command: int, allowed = true) {
@@ -94,6 +104,8 @@ Controls.Menu {
             addWebAction(WebEngineView.Forward)
             addWebAction(WebEngineView.Reload)
         }
+        separator()
+        addItem(passwordsItem.createObject(contextMenu.contentItem))
         request.accepted = true
         popup(view, request.position)
     }

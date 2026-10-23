@@ -5,10 +5,19 @@ A distraction-free desktop browser built with C++, QML, and Qt WebEngine (Chromi
 The project's primary branch is `master`.
 
 The browser has tabs, an address/search field, back/forward,
-reload/stop, loading progress, and a persistent local browser profile. It starts
+reload/stop, loading progress, a persistent local browser profile, and a local
+password manager backed by QtKeychain. It starts
 on a blank page without making a startup network request. Search queries go to
-DuckDuckGo. Workspaces, extension management, downloads, and password/autofill
-integration are not implemented yet.
+DuckDuckGo. Workspaces, extension management, downloads, and credential sync
+are not implemented yet. An opt-in patched-engine integration adds Arbiter
+passkeys and Chromium's phone QR transport. The custom runtime builds on Apple
+Silicon macOS and passes browser passkey registration/sign-in tests; phone
+sign-in on GitHub was also confirmed manually with an iPhone. Windows/Linux
+runtime validation remains pending. See
+[passkey integration](docs/passkey-integration.md) for build instructions and
+current limitations. Stock Qt builds keep those features disabled.
+Standard Qt WebAuthn requests have native account-selection, security-key PIN,
+error, and cancellation UI; actual authenticator availability depends on Qt/OS.
 
 The page fills the window. On macOS, the native frame retains rounded corners
 and shadows while its title text, background, and window buttons are hidden.
@@ -43,6 +52,11 @@ rejected, and Reset to defaults restores the original bindings.
 - Qt **6.12.0 or newer**, including Qt Quick, Quick Controls, **Qt WebEngine**,
   **Qt WebChannel**, and **Qt Positioning**.
 - CMake 3.24+, Ninja, and a C++20 compiler.
+- QtKeychain 0.14.2+ built with Qt 6. CMake prefers an installed package; otherwise
+  it downloads and statically builds the pinned 0.14.2 archive after SHA-256
+  verification. The initial configure needs network access or a local source override.
+- Linux: Qt DBus, pkg-config, libsecret development headers (for example,
+  `sudo apt install libsecret-1-dev pkg-config`), and a supported keyring session at runtime.
 - On macOS, full Xcode 26+ with Icon Composer and `actool` to compile the layered app icon.
 
 On macOS, use the Qt Online Installer / MaintenanceTool to install the Qt 6.12
@@ -109,8 +123,32 @@ Keyboard shortcuts above are defaults and can be changed in Settings.
 
 Browser cookies and cache use Qt's platform-local application data/cache paths
 under the `Arbiter` application identity and `Default` profile. This is not a
-password vault or a sync service. Chromium's sandbox and normal TLS certificate
+sync service. Password secrets are stored separately in the OS credential store;
+the local password index contains sites and usernames, but no passwords.
+Chromium's sandbox and normal TLS certificate
 validation remain enabled.
+
+## Passwords
+
+Press Cmd+Shift+P on macOS / Ctrl+Shift+P elsewhere on an HTTPS login page, then
+choose an account to fill. Arbiter never submits a login automatically. The
+page context menu exposes the same action, alongside the native Passwords menu
+on macOS. Supported form submissions offer
+a native save/update prompt. If a website does not trigger one, use **Save current
+login** from the password picker. Dismiss the prompt if sign-in failed.
+
+Open **Settings → Manage passwords…** (or **Passwords → Manage Passwords…**) to
+search, add, replace, generate, or delete logins. The manager does not reveal
+existing saved passwords. Show reveals only a newly entered/generated password.
+
+The first version supports exact HTTPS origins and main-frame forms. It does not
+fill embedded frames, hidden fields, ambiguous forms without a focused login
+field, or forms posting to another origin. Private profiles do not offer saving.
+Usernames can be corrected in the save prompt, including on multi-page sign-ins.
+Credentials are local to this profile/device and do not appear in Apple Passwords.
+
+See [password manager architecture and platform validation](docs/password-manager.md)
+for storage details, limitations, and runtime checks.
 
 The browser uses Qt WebEngine's Chromium user agent with the QtWebEngine and
 Arbiter product tokens removed for website compatibility. Chromium's real
@@ -131,6 +169,13 @@ ARBITER_DIAGNOSTICS=1 ./build-qt612/arbiter.app/Contents/MacOS/arbiter
 - `src/macwindow.mm`: immersive macOS window setup with native corners and shadow.
 - `src/keybindings.*`: shortcut model, validation, defaults, and saved preferences.
 - `src/tabs.*`: tab identity, selection, metadata, and recently closed URLs.
+- `src/passwordmanager.*`: credential index, save/update flow, and per-tab fill authorization.
+- `src/secretstore.*`: asynchronous QtKeychain adapter with plaintext fallback disabled.
+- `scripts/passwords.js`: isolated main-frame form detection, capture, and fill.
+- `qml/PasswordPanel.qml`: account picker, prompts, generator, and management UI.
+- `engine/`: pinned Qt/Chromium patches and isolated SDK build tooling.
+- `src/passkey*`: encrypted QtKeychain vault, OpenSSL authenticator operations and native transport UI.
+- `src/webauthncontroller.*` and `qml/WebAuthnPanel.qml`: standard Qt WebAuthn request UI and lifecycle.
 - `src/browserapplication.h`: receives and queues native HTTP/HTTPS open events.
 - `cmake/Info.plist.in`: macOS bundle metadata and URL-scheme registration.
 - `assets/icon/Arbiter.icon`: editable Icon Composer source; the macOS build compiles its Liquid Glass asset catalog and compatibility icon.
@@ -139,7 +184,9 @@ ARBITER_DIAGNOSTICS=1 ./build-qt612/arbiter.app/Contents/MacOS/arbiter
 
 ## Tests
 
-Run the keyboard binding, native URL handling, and tab model tests independently of the browser:
+Run the keyboard binding, native URL handling, tab model, password controller,
+WebEngine password-form integration, passkey vault, and WebAuthn controller tests
+(OpenSSL 3 development files are required):
 
 ```sh
 cmake -S tests -B build-tests -G Ninja \
@@ -147,3 +194,10 @@ cmake -S tests -B build-tests -G Ninja \
 cmake --build build-tests --parallel
 ctest --test-dir build-tests --output-on-failure
 ```
+
+The actual OS credential-store round trip is opt-in: run with
+`ARBITER_TEST_KEYCHAIN=1` in an unlocked desktop session. It uses a disposable
+synthetic credentials, including encrypted passkey registration/assertion. The
+patched-engine browser fixture skips on stock Qt. On macOS use Cocoa, not the offscreen platform plugin,
+because QtKeychain completes operations on Apple's main dispatch queue.
+The cross-platform workflow is `.github/workflows/password-manager.yml`.

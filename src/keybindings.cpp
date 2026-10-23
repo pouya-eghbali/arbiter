@@ -16,6 +16,7 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
     };
     add("address", "Edit address", QKeySequence(QStringLiteral("Ctrl+L")));
     add("settings", "Settings", QKeySequence(QStringLiteral("Ctrl+,")));
+    add("passwords", "Fill or save login", QKeySequence(QStringLiteral("Ctrl+Shift+P")));
     add("reload", "Reload page", QKeySequence(QKeySequence::Refresh));
     add("back", "Go back", QKeySequence(QKeySequence::Back));
     add("forward", "Go forward", QKeySequence(QKeySequence::Forward));

@@ -1,0 +1,89 @@
+diff --git a/chromium/content/browser/webauth/authenticator_common_impl.cc b/chromium/content/browser/webauth/authenticator_common_impl.cc
+index 5afe519671..f4689d2c79 100644
+--- a/chromium/content/browser/webauth/authenticator_common_impl.cc
++++ b/chromium/content/browser/webauth/authenticator_common_impl.cc
+@@ -36,6 +36,7 @@
+ #include "base/metrics/user_metrics.h"
+ #include "base/metrics/user_metrics_action.h"
+ #include "base/notreached.h"
++#include "base/process/process_info.h"
+ #include "base/stl_util.h"
+ #include "base/strings/string_view_util.h"
+ #include "base/task/sequenced_task_runner.h"
+@@ -1840,6 +1841,13 @@ void AuthenticatorCommonImpl::GetClientCapabilities(
+ 
+ void AuthenticatorCommonImpl::IsHybridTransportSupported(
+     base::OnceCallback<void(bool)> callback) {
++#if BUILDFLAG(IS_QTWEBENGINE) && BUILDFLAG(IS_MAC)
++  // Match discovery's safety check before probing Bluetooth capabilities.
++  if (!base::DoesResponsibleProcessHaveBluetoothMetadata()) {
++    std::move(callback).Run(false);
++    return;
++  }
++#endif
+   if (!device::BluetoothAdapterFactory::Get()->IsLowEnergySupported()) {
+     std::move(callback).Run(false);
+     return;
+@@ -1921,6 +1929,15 @@ void AuthenticatorCommonImpl::IsConditionalMediationAvailable(
+     url::Origin caller_origin,
+     blink::mojom::Authenticator::IsConditionalMediationAvailableCallback
+         callback) {
++#if BUILDFLAG(IS_QTWEBENGINE)
++  // Qt does not provide a conditional passkey account picker. Do not advertise
++  // it simply because Arbiter's modal platform authenticator supports UV.
++  if (!AuthenticatorEnvironment::GetInstance()->IsVirtualAuthenticatorEnabledFor(
++          static_cast<RenderFrameHostImpl*>(GetRenderFrameHost())->frame_tree_node())) {
++    std::move(callback).Run(false);
++    return;
++  }
++#endif
+   // Conditional mediation is always supported if the virtual environment is
+   // providing a platform authenticator.
+   GetWebAuthenticationDelegate()
+diff --git a/chromium/device/fido/fido_discovery_factory.cc b/chromium/device/fido/fido_discovery_factory.cc
+index 479cafbfb8..7c4118f04c 100644
+--- a/chromium/device/fido/fido_discovery_factory.cc
++++ b/chromium/device/fido/fido_discovery_factory.cc
+@@ -76,7 +76,11 @@ std::vector<std::unique_ptr<FidoDiscoveryBase>> FidoDiscoveryFactory::Create(
+       {
+         device::WinWebAuthnApi* const webauthn_api =
+             device::WinWebAuthnApi::GetDefault();
+-        if (webauthn_api && webauthn_api->SupportsHybrid() &&
++        if (
++#if BUILDFLAG(IS_QTWEBENGINE)
++            !qr_generator_key_.has_value() &&
++#endif
++            webauthn_api && webauthn_api->SupportsHybrid() &&
+             base::FeatureList::IsEnabled(
+                 device::kWebAuthnSkipHybridConfigIfSystemSupported)) {
+           FIDO_LOG(EVENT) << "Not starting hybrid because Windows handles it.";
+diff --git a/chromium/device/fido/fido_request_handler_base.cc b/chromium/device/fido/fido_request_handler_base.cc
+index 90f7f44943..1965132ead 100644
+--- a/chromium/device/fido/fido_request_handler_base.cc
++++ b/chromium/device/fido/fido_request_handler_base.cc
+@@ -193,6 +193,12 @@ void FidoRequestHandlerBase::InitDiscoveries(
+     base::flat_set<FidoTransportProtocol> available_transports,
+     bool consider_enclave) {
+   FIDO_LOG(DEBUG) << "Initializing FIDO discoveries";
++#if BUILDFLAG(IS_QTWEBENGINE)
++  // Preserve the RP's original transport filtering when Windows later removes
++  // direct device transports from the native discovery set.
++  const bool embedder_platform_allowed =
++      available_transports.contains(FidoTransportProtocol::kInternal);
++#endif
+ #if BUILDFLAG(IS_WIN)
+   // Try to instantiate the discovery for proxying requests to the native
+   // Windows WebAuthn API; or fall back to using the regular device transport
+@@ -253,7 +259,11 @@ void FidoRequestHandlerBase::InitDiscoveries(
+   for (auto& discovery : additional_discoveries) {
+     // TODO: Make this work better for non-standard discoveries like Windows,
+     // which currently pretends to be `kInternal`.
+-    if (!base::Contains(available_transports, discovery->transport())) {
++    if (!base::Contains(available_transports, discovery->transport())
++#if BUILDFLAG(IS_QTWEBENGINE)
++        && !(embedder_platform_allowed && discovery->transport() == FidoTransportProtocol::kInternal)
++#endif
++        ) {
+       continue;
+     }
+     discovery->set_observer(this);

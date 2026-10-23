@@ -1,0 +1,231 @@
+diff --git a/src/core/CMakeLists.txt b/src/core/CMakeLists.txt
+index e24c961..f9a1ae6 100644
+--- a/src/core/CMakeLists.txt
++++ b/src/core/CMakeLists.txt
+@@ -200,6 +200,7 @@ foreach(arch ${archs})
+                 web_engine_settings.cpp web_engine_settings.h
+                 web_event_factory.cpp web_event_factory.h
+                 web_usb_detector_qt.cpp web_usb_detector_qt.h
++                arbiter_webauthn.cpp arbiter_webauthn.h
+                 authenticator_request_client_delegate_qt.cpp authenticator_request_client_delegate_qt.h
+                 authenticator_request_dialog_controller.cpp authenticator_request_dialog_controller.h authenticator_request_dialog_controller_p.h
+                 content_settings_manager_qt.cpp content_settings_manager_qt.h
+diff --git a/src/core/api/qtwebenginecoreglobal.h b/src/core/api/qtwebenginecoreglobal.h
+index 334d53d..3b51b78 100644
+--- a/src/core/api/qtwebenginecoreglobal.h
++++ b/src/core/api/qtwebenginecoreglobal.h
+@@ -9,9 +9,12 @@
+ #include <QtWebEngineCore/qtwebenginecore-config.h>
+ #include <QtWebEngineCore/qtwebenginecoreexports.h>
+ 
++#define QT_ARBITER_WEBAUTHN_ABI 1
++
+ QT_BEGIN_NAMESPACE
+ 
+ class QUrl;
++Q_WEBENGINECORE_EXPORT int qWebEngineArbiterWebAuthnAbi() noexcept;
+ 
+ #define ASSERT_ENUMS_MATCH(A, B) Q_STATIC_ASSERT_X(static_cast<int>(A) == static_cast<int>(B), "The enum values must match");
+ 
+diff --git a/src/core/authenticator_request_client_delegate_qt.cpp b/src/core/authenticator_request_client_delegate_qt.cpp
+index 0c09849..0de59eb 100644
+--- a/src/core/authenticator_request_client_delegate_qt.cpp
++++ b/src/core/authenticator_request_client_delegate_qt.cpp
+@@ -11,6 +11,13 @@
+ #include "content/public/browser/web_contents.h"
+ #include "web_contents_delegate_qt.h"
+ #include "type_conversion.h"
++#include <QVariant>
++#include "base/rand_util.h"
++#include "content/public/browser/browser_context.h"
++#include "content/public/browser/storage_partition.h"
++#include "device/fido/fido_discovery_factory.h"
++#include "device/fido/fido_authenticator.h"
++#include "device/fido/cable/v2_handshake.h"
+ 
+ namespace QtWebEngineCore {
+ 
+@@ -118,6 +125,7 @@ void AuthenticatorRequestClientDelegateQt::RegisterActionCallbacks(
+                 void(device::FidoRequestHandlerBase::BlePermissionCallback)>
+                         request_ble_permission_callback)
+ {
++    m_blePermission = std::move(request_ble_permission_callback);
+     m_cancelCallback = std::move(cancel_callback);
+     m_startOverCallback = std::move(start_over_callback);
+     m_accountPreselectedCallback = std::move(account_preselected_callback);
+@@ -174,6 +182,11 @@ void AuthenticatorRequestClientDelegateQt::OnTransportAvailabilityEnumerated(
+         || m_dialogController->state() != QWebEngineWebAuthUxRequest::WebAuthUxState::NotStarted)
+         return;
+ 
++    if (m_arbiter) {
++        m_arbiter->phoneAvailable = data.available_transports.contains(device::FidoTransportProtocol::kHybrid);
++        m_arbiter->bluetooth = static_cast<int>(data.ble_status);
++        m_dialogController->setProperty("arbiterRequest", QVariant::fromValue(static_cast<QObject *>(m_arbiter.get())));
++    }
+     // Start WebAuth UX
+     // we may need to pass data as well. for SelectAccount and SupportPin it is not required,
+     // skipping that for the time being.
+@@ -237,4 +250,90 @@ void AuthenticatorRequestClientDelegateQt::onRetryRequest()
+     DCHECK(m_startOverCallback);
+     m_startOverCallback.Run();
+ }
++void WebAuthenticationDelegateQt::IsUserVerifyingPlatformAuthenticatorAvailableOverride(
++        content::RenderFrameHost *frame, base::OnceCallback<void(std::optional<bool>)> callback)
++{
++    auto *provider = arbiterPasskeyProvider();
++    if (provider && provider->property("configured").toBool() && !frame->GetBrowserContext()->IsOffTheRecord())
++        std::move(callback).Run(true);
++    else
++        std::move(callback).Run(std::nullopt);
++}
++
++void AuthenticatorRequestClientDelegateQt::ConfigureDiscoveries(
++        const url::Origin &origin, const std::string &rp, RequestSource source,
++        device::FidoRequestType type, std::optional<device::ResidentKeyRequirement> resident,
++        device::UserVerificationRequirement uv, std::optional<std::string_view> user,
++        base::span<const device::CableDiscoveryData> pairings, bool enclave,
++        device::FidoDiscoveryFactory *factory)
++{
++    auto *provider = arbiterPasskeyProvider();
++    // Conditional/virtual requests retain stock behavior until the app implements
++    // conditional account UI. No renderer can install this browser-process hook.
++    if (!provider || source != RequestSource::kWebAuthentication
++        || m_isUiDisabled || IsVirtualEnvironmentEnabled()
++        || m_dialogController->uiPresentation() != UIPresentation::kModal) return;
++    m_arbiter = std::make_unique<ArbiterWebAuthnRequest>();
++    m_arbiter->origin = QString::fromStdString(origin.Serialize());
++    m_arbiter->rp = QString::fromStdString(rp);
++    m_arbiter->registration = type == device::FidoRequestType::kMakeCredential;
++    m_localConfigured = provider->property("configured").toBool()
++        && !m_renderFrameHost->GetBrowserContext()->IsOffTheRecord();
++    auto weak = m_weakFactory.GetWeakPtr();
++    m_arbiter->dispatchLocal = [weak] {
++        if (weak && weak->m_requestCallback && weak->m_arbiter->localAvailable)
++            weak->m_requestCallback.Run("arbiter-local-v1");
++    };
++    m_arbiter->dispatchSystem = [weak] {
++        if (weak && weak->m_requestCallback && !weak->m_systemAuthenticator.empty())
++            weak->m_requestCallback.Run(weak->m_systemAuthenticator);
++    };
++    m_arbiter->powerBluetooth = [weak] {
++        if (weak && weak->m_bluetoothAdapterPowerOnCallback) weak->m_bluetoothAdapterPowerOnCallback.Run();
++    };
++    m_arbiter->permitBluetooth = [weak] {
++        if (weak && weak->m_blePermission)
++            weak->m_blePermission.Run(base::BindOnce([](base::WeakPtr<AuthenticatorRequestClientDelegateQt> delegate,
++                    device::FidoRequestHandlerBase::BleStatus status) {
++                if (delegate) delegate->BluetoothAdapterStatusChanged(status);
++            }, weak));
++    };
++    std::array<uint8_t, device::cablev2::kQRKeySize> qrKey;
++    base::RandBytes(qrKey);
++    m_arbiter->qrPayload = QString::fromStdString(device::cablev2::qr::Encode(qrKey, type));
++    factory->set_cable_data(type, {}, qrKey);
++    factory->set_network_context_factory(base::BindRepeating([](
++            base::WeakPtr<AuthenticatorRequestClientDelegateQt> delegate) -> network::mojom::NetworkContext * {
++        return delegate ? delegate->m_renderFrameHost->GetBrowserContext()->GetDefaultStoragePartition()->GetNetworkContext() : nullptr;
++    }, weak));
++}
++
++std::vector<std::unique_ptr<device::FidoDiscoveryBase>> AuthenticatorRequestClientDelegateQt::CreatePlatformDiscoveries()
++{
++    std::vector<std::unique_ptr<device::FidoDiscoveryBase>> result;
++    if (m_arbiter && m_localConfigured) result.push_back(createArbiterDiscovery(m_arbiter.get()));
++    return result;
++}
++bool AuthenticatorRequestClientDelegateQt::EmbedderControlsAuthenticatorDispatch(const device::FidoAuthenticator &authenticator)
++{
++    if (!m_arbiter) return content::AuthenticatorRequestClientDelegate::EmbedderControlsAuthenticatorDispatch(authenticator);
++    return authenticator.GetId() == "arbiter-local-v1" || authenticator.GetType() == device::AuthenticatorType::kWinNative;
++}
++void AuthenticatorRequestClientDelegateQt::FidoAuthenticatorAdded(const device::FidoAuthenticator &authenticator)
++{
++    if (m_arbiter && authenticator.GetId() == "arbiter-local-v1") {
++        m_arbiter->localAvailable = true;
++        Q_EMIT m_arbiter->changed();
++    }
++    if (m_arbiter && authenticator.GetType() == device::AuthenticatorType::kWinNative) {
++        m_systemAuthenticator = authenticator.GetId();
++        m_arbiter->systemAvailable = true;
++        Q_EMIT m_arbiter->changed();
++    }
++}
++void AuthenticatorRequestClientDelegateQt::BluetoothAdapterStatusChanged(device::FidoRequestHandlerBase::BleStatus status)
++{
++    if (m_arbiter) { m_arbiter->bluetooth = static_cast<int>(status); Q_EMIT m_arbiter->changed(); }
++}
++
+ }
+diff --git a/src/core/authenticator_request_client_delegate_qt.h b/src/core/authenticator_request_client_delegate_qt.h
+index 8a4a73d..61783bb 100644
+--- a/src/core/authenticator_request_client_delegate_qt.h
++++ b/src/core/authenticator_request_client_delegate_qt.h
+@@ -10,6 +10,7 @@
+ #include "content/public/browser/web_authentication_delegate.h"
+ #include <unordered_map>
+ #include <QSharedPointer>
++#include "arbiter_webauthn.h"
+ 
+ namespace QtWebEngineCore {
+ 
+@@ -22,6 +23,8 @@ public:
+     virtual ~WebAuthenticationDelegateQt();
+ 
+     bool SupportsResidentKeys(content::RenderFrameHost *render_frame_host) override;
++    void IsUserVerifyingPlatformAuthenticatorAvailableOverride(content::RenderFrameHost *,
++        base::OnceCallback<void(std::optional<bool>)>) override;
+ };
+ 
+ class AuthenticatorRequestClientDelegateQt : public content::AuthenticatorRequestClientDelegate
+@@ -63,6 +66,15 @@ public:
+                     base::OnceCallback<void(std::u16string)> provide_pin_cb) override;
+     void FinishCollectToken() override;
+ 
++    void ConfigureDiscoveries(const url::Origin &, const std::string &, RequestSource,
++        device::FidoRequestType, std::optional<device::ResidentKeyRequirement>,
++        device::UserVerificationRequirement, std::optional<std::string_view>,
++        base::span<const device::CableDiscoveryData>, bool, device::FidoDiscoveryFactory *) override;
++    std::vector<std::unique_ptr<device::FidoDiscoveryBase>> CreatePlatformDiscoveries() override;
++    bool EmbedderControlsAuthenticatorDispatch(const device::FidoAuthenticator &) override;
++    void FidoAuthenticatorAdded(const device::FidoAuthenticator &) override;
++    void BluetoothAdapterStatusChanged(device::FidoRequestHandlerBase::BleStatus) override;
++
+     // Dialog helper
+     void onCancelRequest();
+     void onSelectAccount(const QString &selectedAccount);
+@@ -70,6 +82,10 @@ public:
+     void onRetryRequest();
+ 
+ private:
++    std::unique_ptr<ArbiterWebAuthnRequest> m_arbiter;
++    base::RepeatingCallback<void(device::FidoRequestHandlerBase::BlePermissionCallback)> m_blePermission;
++    std::string m_systemAuthenticator;
++    bool m_localConfigured = false;
+     content::RenderFrameHost *m_renderFrameHost;
+     bool m_isUiDisabled = false;
+ 
+diff --git a/src/core/authenticator_request_dialog_controller.cpp b/src/core/authenticator_request_dialog_controller.cpp
+index 668a248..d9baf91 100644
+--- a/src/core/authenticator_request_dialog_controller.cpp
++++ b/src/core/authenticator_request_dialog_controller.cpp
+@@ -64,6 +64,7 @@ void AuthenticatorRequestDialogControllerPrivate::showWebAuthDialog()
+ 
+         m_request = new QWebEngineWebAuthUxRequest(itemPrivate);
+ 
++        m_request->setProperty("arbiterRequest", q_ptr->property("arbiterRequest"));
+         adapterClient->showWebAuthDialog(m_request);
+         m_isDialogCreated = true;
+     } else {
+diff --git a/src/core/web_engine_context.cpp b/src/core/web_engine_context.cpp
+index 76ea59c..180cd3d 100644
+--- a/src/core/web_engine_context.cpp
++++ b/src/core/web_engine_context.cpp
+@@ -1025,6 +1025,8 @@ const char *qWebEngineProcessName() noexcept
+     return STRINGIFY_EXPANDED(QTWEBENGINEPROCESS_NAME);
+ }
+ 
++int qWebEngineArbiterWebAuthnAbi() noexcept { return 1; }
++
+ const char *qWebEngineChromiumVersion() noexcept
+ {
+     return STRINGIFY_EXPANDED(CHROMIUM_VERSION);

@@ -11,6 +11,9 @@
 #include "keybindings.h"
 #include "browserapplication.h"
 #include "tabs.h"
+#include "passwordmanager.h"
+#include "webauthncontroller.h"
+#include "passkeycontroller.h"
 #include <QWindow>
 #ifdef Q_OS_MACOS
 void configureMacWindow(QWindow *window);
@@ -29,8 +32,17 @@ int main(int argc, char *argv[])
 
     KeyBindings keyBindings;
     Tabs tabs;
+    PasswordManager passwords;
+    WebAuthnController webauthn;
+    PasskeyController passkeys;
+    qmlRegisterType<PasswordSession>("Arbiter.Credentials", 1, 0, "PasswordSession");
     QMenuBar nativeMenu;
     QQmlApplicationEngine engine;
+#ifdef ARBITER_WEBENGINE_QML_PATH
+    // A split development SDK must supply its matching QML plugin as well as
+    // its C++ libraries. Packaged builds must deploy this module with the app.
+    engine.addImportPath(QString::fromUtf8(ARBITER_WEBENGINE_QML_PATH));
+#endif
     // Keep Chromium's real platform/version tokens, without the embedding-toolkit
     // and application products that sites can mistake for an unsupported browser.
     QString userAgent = QWebEngineProfile::defaultProfile()->httpUserAgent();
@@ -39,6 +51,9 @@ int main(int argc, char *argv[])
     engine.setInitialProperties({{QStringLiteral("browserUserAgent"), userAgent},
                                  {QStringLiteral("keyBindings"), QVariant::fromValue(&keyBindings)},
                                  {QStringLiteral("tabs"), QVariant::fromValue(&tabs)},
+                                 {QStringLiteral("passwords"), QVariant::fromValue(&passwords)},
+                                 {QStringLiteral("webauthn"), QVariant::fromValue(&webauthn)},
+                                 {QStringLiteral("passkeys"), QVariant::fromValue(&passkeys)},
                                  {QStringLiteral("browserDiagnostics"), diagnostics}});
     if (diagnostics) {
         qInfo().noquote() << "Chromium:" << qWebEngineChromiumVersion();
@@ -86,6 +101,16 @@ int main(int argc, char *argv[])
         addTabAction(QObject::tr("Next Tab"), "nextTab");
         addTabAction(QObject::tr("Previous Tab"), "previousTab");
         QObject::connect(root, SIGNAL(shortcutRecordingChanged(bool)), tabsMenu, SLOT(setDisabled(bool)));
+        auto *passwordsMenu = nativeMenu.addMenu(QObject::tr("Passwords"));
+        auto *fillAction = passwordsMenu->addAction(QObject::tr("Fill or Save Login…"));
+        QObject::connect(fillAction, &QAction::triggered, root, [root] {
+            QMetaObject::invokeMethod(root, "openPasswords");
+        });
+        auto *manageAction = passwordsMenu->addAction(QObject::tr("Manage Passwords…"));
+        QObject::connect(manageAction, &QAction::triggered, root, [root] {
+            QMetaObject::invokeMethod(root, "openPasswordSettings");
+        });
+        QObject::connect(root, SIGNAL(shortcutRecordingChanged(bool)), passwordsMenu, SLOT(setDisabled(bool)));
     }
 #ifdef Q_OS_MACOS
     if (!engine.rootObjects().isEmpty()) {

@@ -11,6 +11,7 @@
     <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
     <key>CFBundleShortVersionString</key><string>${MACOSX_BUNDLE_SHORT_VERSION_STRING}</string>
     <key>CFBundleVersion</key><string>${MACOSX_BUNDLE_BUNDLE_VERSION}</string>
+    <key>NSBluetoothAlwaysUsageDescription</key><string>Arbiter uses Bluetooth to securely connect to a nearby phone for passkey authentication.</string>
     <key>NSPrincipalClass</key><string>NSApplication</string>
     <key>CFBundleAllowMixedLocalizations</key><true/>
     <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
