@@ -1,5 +1,5 @@
 #include "keybindings.h"
-#include <QSettings>
+#include "settings.h"
 #include <QSet>
 
 KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
@@ -45,7 +45,7 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
     add("previousPane", "Focus previous pane", QKeySequence(QStringLiteral("Ctrl+Alt+[")));
     add("nextHiddenTab", "Show next hidden tab in active pane", QKeySequence(QStringLiteral("Ctrl+Alt+N")));
     add("history", "Show history", QKeySequence(QStringLiteral("Ctrl+Y")));
-    QSettings settings;
+    Settings settings;
     QSet<QKeySequence> used;
     // Load as one set: invalid or duplicate saved shortcuts revert the whole set.
     bool valid = true;
@@ -117,7 +117,7 @@ void KeyBindings::resetDefaults()
 }
 void KeyBindings::save()
 {
-    QSettings settings;
+    Settings settings;
     for (const auto &binding : m_bindings)
         settings.setValue(QStringLiteral("KeyboardBindings/") + binding.id,
                           binding.value.toString(QKeySequence::PortableText));

@@ -1,7 +1,7 @@
 #include "../src/history.h"
 #include <QAbstractItemModelTester>
 #include <QFile>
-#include <QSettings>
+#include "../src/settings.h"
 #include <QSqlQuery>
 #include <QTemporaryDir>
 #include <QtTest>
@@ -13,10 +13,10 @@ private slots:
     void initTestCase() {
         QCoreApplication::setOrganizationName("ArbiterTests");
         QCoreApplication::setApplicationName("History");
-        QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settings.path());
+        qputenv("XDG_CONFIG_HOME", settings.path().toUtf8());
+        qputenv("XDG_CONFIG_DIRS", settings.path().toUtf8());
     }
-    void init() { QSettings().clear(); }
+    void init() { Settings().clear(); }
     void recordsPersistsAndSearches() {
         QTemporaryDir directory;
         {

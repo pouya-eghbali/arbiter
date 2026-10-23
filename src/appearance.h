@@ -1,6 +1,6 @@
 #pragma once
 #include <QObject>
-#include <QSettings>
+#include "settings.h"
 #include <QUrl>
 #include <QColor>
 
@@ -44,7 +44,7 @@ private:
     void applyTheme();
     QColor savedColor(const QString &key, const QColor &fallback) const;
     void setAccent(const QString &key, const QColor &color, const QColor &current);
-    QSettings m_settings;
+    Settings m_settings;
     QString m_theme;
     bool m_navigationPill;
 };

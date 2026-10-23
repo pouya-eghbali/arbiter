@@ -9,6 +9,7 @@
 #include <QtWebEngineCore/qtwebenginecoreglobal.h>
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
 #include "keybindings.h"
+#include "settings.h"
 #include "browserapplication.h"
 #include "tabs.h"
 #include "splitswapgesture.h"
@@ -21,6 +22,7 @@
 #include "history.h"
 #include "sitenavigation.h"
 #include <QWindow>
+#include <QFileInfo>
 #ifdef Q_OS_MACOS
 void configureMacWindow(QWindow *window);
 #endif
@@ -36,6 +38,7 @@ int main(int argc, char *argv[])
     QQuickStyle::setStyle(QStringLiteral("macOS"));
 #endif
 
+    const QString settingsError=Settings::initialize();
     KeyBindings keyBindings;
     Appearance appearance;
     Tabs tabs;
@@ -62,6 +65,9 @@ int main(int argc, char *argv[])
     webProfiles.userAgent = userAgent;
     const bool diagnostics = qEnvironmentVariableIsSet("ARBITER_DIAGNOSTICS");
     engine.setInitialProperties({{QStringLiteral("browserUserAgent"), userAgent},
+                                 {QStringLiteral("settingsFile"), Settings::configFile()},
+                                 {QStringLiteral("settingsDirectoryUrl"), QUrl::fromLocalFile(QFileInfo(Settings::configFile()).absolutePath())},
+                                 {QStringLiteral("settingsError"), settingsError},
                                  {QStringLiteral("appearance"), QVariant::fromValue(&appearance)},
                                  {QStringLiteral("siteNavigation"), QVariant::fromValue(&siteNavigation)},
                                  {QStringLiteral("keyBindings"), QVariant::fromValue(&keyBindings)},

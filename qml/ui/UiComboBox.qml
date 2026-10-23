@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Shapes
 import Arbiter
 import QtQuick.Controls.Basic as Basic
 
@@ -23,12 +24,25 @@ Basic.ComboBox {
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
     }
-    indicator: Basic.Label {
+    indicator: Item {
+        implicitWidth: 20
+        implicitHeight: 20
         x: control.width - width - 14
         y: (control.height - height) / 2
-        text: "⌄"
-        font.pixelSize: 18
-        color: Theme.muted
+        Shape {
+            anchors.fill: parent
+            ShapePath {
+                strokeWidth: 2
+                strokeColor: Theme.muted
+                fillColor: "transparent"
+                capStyle: ShapePath.RoundCap
+                joinStyle: ShapePath.RoundJoin
+                startX: 3
+                startY: 6.5
+                PathLine { x: 10; y: 13.5 }
+                PathLine { x: 17; y: 6.5 }
+            }
+        }
     }
     delegate: Basic.ItemDelegate {
         id: option

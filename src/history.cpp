@@ -2,7 +2,7 @@
 #include <QDir>
 #include <QFile>
 #include <QLocale>
-#include <QSettings>
+#include "settings.h"
 #include <QSqlQuery>
 #include <QStandardPaths>
 #include <QUuid>
@@ -18,7 +18,7 @@ QUrl historyUrl(QUrl url) {
 History::History(QObject *parent) : History(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
     + QStringLiteral("/history/Default"), parent) {}
 History::History(const QString &directory, QObject *parent) : QAbstractListModel(parent) {
-    m_enabled = QSettings().value("History/enabled", true).toBool();
+    m_enabled = Settings().value("History/enabled", true).toBool();
     if (!QDir().mkpath(directory)) { fail(tr("Could not create history storage.")); return; }
     QFile::setPermissions(directory, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
     m_db = QSqlDatabase::addDatabase("QSQLITE", QUuid::createUuid().toString(QUuid::WithoutBraces));
@@ -79,7 +79,7 @@ void History::setSearch(const QString &value) {
 }
 void History::setEnabled(bool value) {
     if (value == m_enabled) return;
-    m_enabled = value; QSettings().setValue("History/enabled", value); emit enabledChanged();
+    m_enabled = value; Settings().setValue("History/enabled", value); emit enabledChanged();
 }
 QString History::record(const QUrl &input, const QString &title, bool offTheRecord) {
     const auto url = historyUrl(input);

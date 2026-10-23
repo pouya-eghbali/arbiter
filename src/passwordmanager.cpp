@@ -12,7 +12,7 @@
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QSet>
-#include <QSettings>
+#include "settings.h"
 #include <QStandardPaths>
 #include <QUuid>
 
@@ -37,7 +37,7 @@ PasswordManager::PasswordManager(QObject *parent)
     : PasswordManager(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
                           + QStringLiteral("/passwords/Default"), QStringLiteral("Default"), nullptr, parent)
 {
-    m_enabled = QSettings().value(QStringLiteral("Passwords/enabled"), true).toBool();
+    m_enabled = Settings().value(QStringLiteral("Passwords/enabled"), true).toBool();
 }
 
 PasswordManager::PasswordManager(const QString &directory, const QString &profile,
@@ -133,7 +133,7 @@ void PasswordManager::setEnabled(bool enabled)
 {
     if (m_enabled == enabled) return;
     m_enabled = enabled;
-    QSettings().setValue(QStringLiteral("Passwords/enabled"), enabled);
+    Settings().setValue(QStringLiteral("Passwords/enabled"), enabled);
     if (!enabled) dismissPending();
     emit stateChanged();
 }

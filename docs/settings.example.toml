@@ -1,0 +1,28 @@
+# Copy to $XDG_CONFIG_HOME/arbiter/settings.toml (default ~/.config/arbiter/settings.toml).
+# Restart Arbiter after editing. Omitted keys use shared or built-in defaults.
+# UI changes save here; the TOML writer removes comments and normalizes ordering.
+
+[appearance]
+theme = "system"
+navigationPill = true
+siteMenuMode = "title"
+lightAccent = "#2868b8"
+darkAccent = "#8dbbff"
+lightBackground = "#edf2f7"
+darkBackground = "#11161e"
+
+[History]
+enabled = true
+
+[Passwords]
+enabled = true
+
+# Qt PortableText shortcuts: Ctrl means Command on macOS, Control elsewhere.
+# Meta means Control on macOS. Shortcuts must be unique.
+# Omit KeyboardBindings to use the platform's default shortcuts.
+# [KeyboardBindings]
+# address = "Ctrl+L"
+# settings = "Ctrl+,"
+# nextHiddenTab = "Ctrl+Alt+N"
+# pageTop = "Ctrl+Up"
+# pageBottom = "Ctrl+Down"

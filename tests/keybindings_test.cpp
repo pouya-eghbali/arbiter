@@ -1,5 +1,5 @@
 #include "../src/keybindings.h"
-#include <QSettings>
+#include "../src/settings.h"
 #include <QSet>
 #include <QTemporaryDir>
 #include <QtTest>
@@ -13,10 +13,10 @@ private slots:
         QVERIFY(directory.isValid());
         QCoreApplication::setOrganizationName("ArbiterTests");
         QCoreApplication::setApplicationName("KeyBindings");
-        QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, directory.path());
+        qputenv("XDG_CONFIG_HOME", directory.path().toUtf8());
+        qputenv("XDG_CONFIG_DIRS", directory.path().toUtf8());
     }
-    void init() { QSettings().clear(); }
+    void init() { Settings().clear(); }
     void rejectsConflicts() {
         KeyBindings keys;
         const auto before = keys.bindings();
@@ -42,7 +42,7 @@ private slots:
         QCOMPARE(reset.bindings(), defaults);
     }
     void recoversFromDuplicateSavedBindings() {
-        QSettings().setValue("KeyboardBindings/address", "Ctrl+,");
+        Settings().setValue("KeyboardBindings/address", "Ctrl+,");
         KeyBindings keys;
         QCOMPARE(keys.bindings()["address"].toString(), QString("Ctrl+L"));
     }
@@ -59,8 +59,8 @@ private slots:
         KeyBindings restored;
         QCOMPARE(restored.bindings(),keys.bindings());
         // Introducing new page actions must not replace saved navigation keys.
-        QSettings().remove("KeyboardBindings/pageTop");
-        QSettings().remove("KeyboardBindings/pageBottom");
+        Settings().remove("KeyboardBindings/pageTop");
+        Settings().remove("KeyboardBindings/pageBottom");
         KeyBindings upgraded;
         QCOMPARE(upgraded.bindings()["back"],keys.bindings()["back"]);
         QCOMPARE(upgraded.bindings()["forward"],keys.bindings()["forward"]);

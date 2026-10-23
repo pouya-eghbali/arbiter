@@ -293,3 +293,33 @@ synthetic credentials, including encrypted passkey registration/assertion. The
 patched-engine browser fixture skips on stock Qt. On macOS use Cocoa, not the offscreen platform plugin,
 because QtKeychain completes operations on Apple's main dispatch queue.
 The cross-platform workflow is `.github/workflows/password-manager.yml`.
+
+### Portable settings / dotfiles
+
+Preferences and keyboard shortcuts use UTF-8 TOML at
+`$XDG_CONFIG_HOME/arbiter/settings.toml`, defaulting to
+`~/.config/arbiter/settings.toml` on macOS, Windows and Linux (on Windows, `~`
+is your user profile directory). See **Settings → Configuration** for the actual
+path and an open-folder button. Copy the file to back up, restore or share it;
+restart Arbiter after external edits. A [sample file](docs/settings.example.toml)
+shows the available appearance and privacy preferences and shortcut syntax.
+Settings made through the UI are written to the same file. The TOML writer
+normalizes formatting and key ordering and removes comments; unknown TOML values
+are preserved.
+
+Arbiter follows the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir/latest/)
+for configuration: only absolute environment paths are accepted. Shared defaults
+are read from `arbiter/settings.toml` under each `XDG_CONFIG_DIRS` entry, in order
+(default `/etc/xdg`). Entries use the platform's path-list separator (`:` on
+Unix, `;` on Windows). Each key uses the user's value first, then the first
+shared file that supplies it, then the built-in default. Shared files are never
+modified. Relative `XDG_CONFIG_HOME` values fall back to `~/.config`; relative
+`XDG_CONFIG_DIRS` entries are ignored.
+
+On first launch without a user settings file, existing native Qt preferences
+are copied into it, preserving the original preferences. An existing dotfile is
+always authoritative. `settings.ini` is ignored and is not migrated. Malformed
+configuration is preserved instead of being
+overwritten. Passwords and passkey secrets remain in their existing protected
+storage; history, sessions, browser profiles and caches retain their existing
+locations and are not included in this portable preferences file.

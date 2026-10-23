@@ -3,7 +3,7 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QSettings>
+#include "../src/settings.h"
 #include <QTemporaryDir>
 #include <QUuid>
 #include <utility>
@@ -41,10 +41,10 @@ private slots:
     void initTestCase() {
         QCoreApplication::setOrganizationName("ArbiterTests");
         QCoreApplication::setApplicationName("Passwords");
-        QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settings.path());
+        qputenv("XDG_CONFIG_HOME", settings.path().toUtf8());
+        qputenv("XDG_CONFIG_DIRS", settings.path().toUtf8());
     }
-    void init() { QSettings().clear(); }
+    void init() { Settings().clear(); }
     void exactHttpsOrigins() {
         QCOMPARE(PasswordManager::originFor(QUrl("https://EXAMPLE.com:443/login?q=1#x")), QString("https://example.com"));
         QCOMPARE(PasswordManager::originFor(QUrl("https://example.com:8443/")), QString("https://example.com:8443"));

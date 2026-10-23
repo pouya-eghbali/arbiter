@@ -29,6 +29,9 @@ Basic.ApplicationWindow {
     required property var passwords
     required property var passkeys
     required property var webauthn
+    property string settingsFile: ""
+    property url settingsDirectoryUrl
+    property string settingsError: ""
     readonly property var bindings: keyBindings.bindings
     property bool settingsOpen: false
     property int settingsCategory: 0
@@ -747,7 +750,7 @@ Basic.ApplicationWindow {
                 }
                 Repeater {
                     id: settingsNavigation
-                    model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard")]
+                    model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration")]
                     delegate: UiButton {
                         id: categoryButton
                         required property int index
@@ -775,7 +778,7 @@ Basic.ApplicationWindow {
                             window.bindingError = ""
                             window.settingsCategory = index
                         }
-                        Keys.onDownPressed: settingsNavigation.itemAt(Math.min(3, index + 1)).forceActiveFocus()
+                        Keys.onDownPressed: settingsNavigation.itemAt(Math.min(settingsNavigation.count - 1, index + 1)).forceActiveFocus()
                         Keys.onUpPressed: settingsNavigation.itemAt(Math.max(0, index - 1)).forceActiveFocus()
                     }
                 }
@@ -793,7 +796,7 @@ Basic.ApplicationWindow {
                     width: Math.min(720, settingsScroll.availableWidth)
                     spacing: 24
                     Basic.Label {
-                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard")][window.settingsCategory]
+                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration")][window.settingsCategory]
                         font.pixelSize: 28
                         font.weight: Font.DemiBold
                         color: Theme.text
@@ -1035,6 +1038,53 @@ Basic.ApplicationWindow {
                         : qsTr("Move the window by dragging the empty start-page background.")
                     color: window.mutedText
                 }
+                    }
+                    ColumnLayout {
+                        visible: window.settingsCategory === 4
+                        Layout.fillWidth: true
+                        spacing: 16
+                        Basic.Label {
+                            text: qsTr("Keep your preferences in your dotfiles.")
+                            color: Theme.text
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
+                        Basic.Label {
+                            text: qsTr("Copy this TOML file to back up, restore, or share your settings. Changes made in Settings are saved here. Restart Arbiter after editing or replacing the file externally.")
+                            color: Theme.muted
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
+                        UiTextField {
+                            objectName: "configurationPath"
+                            Layout.fillWidth: true
+                            readOnly: true
+                            text: window.settingsFile
+                            Accessible.name: qsTr("Settings file location")
+                        }
+                        UiButton {
+                            text: qsTr("Open settings folder")
+                            onClicked: Qt.openUrlExternally(window.settingsDirectoryUrl)
+                        }
+                        Basic.Label {
+                            text: qsTr("The location follows XDG_CONFIG_HOME, or ~/.config by default. Files under XDG_CONFIG_DIRS can provide shared defaults; your settings take precedence.")
+                            color: Theme.muted
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
+                        Basic.Label {
+                            text: qsTr("This file contains preferences and keyboard shortcuts. Passwords, passkey keys, browsing history, tabs, and site data are stored separately.")
+                            color: Theme.muted
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
+                        Basic.Label {
+                            text: window.settingsError
+                            visible: text.length > 0
+                            color: Theme.text
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
                     }
                 }
             }

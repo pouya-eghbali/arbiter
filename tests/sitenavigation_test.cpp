@@ -1,3 +1,4 @@
+#include "../src/settings.h"
 #include "../src/sitenavigation.h"
 #include "../src/appearance.h"
 #include <QApplication>
@@ -38,8 +39,8 @@ class SiteNavigationTest : public QObject {
     QMenu *menu() { return bar.actions().first()->menu(); }
 private slots:
     void initTestCase() {
-        QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settings.path());
+        qputenv("XDG_CONFIG_HOME", settings.path().toUtf8());
+        qputenv("XDG_CONFIG_DIRS", settings.path().toUtf8());
         QCoreApplication::setOrganizationName("ArbiterSiteMenuTest");
         QCoreApplication::setApplicationName("Tests");
         view.resize(900, 600); view.show();
