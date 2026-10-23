@@ -12,6 +12,7 @@ Basic.ApplicationWindow {
     required property string browserUserAgent
     required property bool browserDiagnostics
     required property var tabs
+    required property var appearance
     property var webView: null
     required property var keyBindings
     required property var passwords
@@ -19,6 +20,7 @@ Basic.ApplicationWindow {
     required property var webauthn
     readonly property var bindings: keyBindings.bindings
     property bool settingsOpen: false
+    property int settingsCategory: 0
     property int recordingIndex: -1
     property string bindingError: ""
     signal shortcutRecordingChanged(bool recording)
@@ -32,23 +34,47 @@ Basic.ApplicationWindow {
     topPadding: 0
     title: settingsOpen ? qsTr("Settings — Arbiter") : !emptyPage && webView && webView.title ? webView.title + " — Arbiter" : "Arbiter"
     color: palette.window
-    palette.window: "#0c0c0c"
-    palette.base: "#111111"
-    palette.alternateBase: "#181818"
-    palette.text: "#eeeeee"
-    palette.windowText: "#eeeeee"
-    palette.button: "#181818"
-    palette.buttonText: "#eeeeee"
-    palette.placeholderText: "#777777"
-    palette.highlight: "#484848"
-    palette.highlightedText: "#ffffff"
-    palette.mid: "#333333"
-    readonly property color subtleLine: "#1affffff"
-    readonly property color mutedText: "#999999"
-    readonly property color fieldFill: "#1c1c1c"
-    readonly property color accent: "#bdbdbd"
+    palette.window: Theme.window
+    palette.base: Theme.window
+    palette.alternateBase: Theme.field
+    palette.text: Theme.text
+    palette.windowText: Theme.text
+    palette.button: Theme.field
+    palette.buttonText: Theme.text
+    palette.placeholderText: Theme.muted
+    palette.highlight: Theme.selection
+    palette.highlightedText: Theme.text
+    palette.mid: Theme.border
+    readonly property color subtleLine: Theme.border
+    readonly property color mutedText: Theme.muted
+    readonly property color fieldFill: Theme.field
+    readonly property color accent: Theme.accent
+    Binding { target: Theme; property: "dark"; value: window.appearance.dark }
+    Binding { target: Theme; property: "lightAccent"; value: window.appearance.lightAccent }
+    Binding { target: Theme; property: "darkAccent"; value: window.appearance.darkAccent }
+    Binding { target: Theme; property: "lightBackground"; value: window.appearance.lightBackground }
+    Binding { target: Theme; property: "darkBackground"; value: window.appearance.darkBackground }
+    Binding { target: Theme; property: "backdrop"; value: !window.emptyPage && !window.settingsOpen ? window.webView : null }
 
     readonly property bool emptyPage: !webView || webView.url.toString() === "about:blank"
+
+    function prepareForShutdown() {
+        addressPopup.close()
+        tabsPopup.close()
+        if (webView) {
+            webAuthnPanel.cancelFor(webView)
+            passwordPanel.cancelFor(webView)
+        }
+        for (let i = 0; i < tabViews.count; ++i) {
+            const view = tabViews.itemAt(i) as WebEngineView
+            if (view) view.focus = false
+        }
+        webView = null
+        homeAddress.forceActiveFocus()
+        // Release views while their profile and the window's focus delivery
+        // agent are still alive, before ApplicationWindow starts destruction.
+        tabViews.model = null
+    }
 
     function focusAddress() {
         if (emptyPage && !settingsOpen) {
@@ -348,65 +374,18 @@ Basic.ApplicationWindow {
         }
     }
 
-    component RoundedField: Basic.TextField {
-        id: field
+    component AddressField: UiTextField {
         implicitHeight: 46
-        height: implicitHeight
-        leftPadding: 16
-        rightPadding: 18
-        topPadding: 0
-        bottomPadding: 0
         font.pixelSize: 15
-        verticalAlignment: TextInput.AlignVCenter
-        color: window.palette.text
-        placeholderTextColor: window.palette.placeholderText
-        selectionColor: "#484848"
-        selectedTextColor: window.palette.highlightedText
         placeholderText: qsTr("Search or enter address")
         Accessible.name: qsTr("Address and search")
-        selectByMouse: true
-        background: Rectangle {
-            radius: 8
-            color: field.activeFocus ? "#242424" : window.fieldFill
-            Behavior on color { ColorAnimation { duration: 120 } }
-        }
-    }
-
-    component AddressField: RoundedField {
         onAccepted: window.navigate(text)
     }
 
-    component SurfaceButton: Basic.Button {
-        id: button
-        implicitHeight: 34
-        implicitWidth: Math.max(34, implicitContentWidth + 28)
-        padding: 8
-        horizontalPadding: 14
-        hoverEnabled: true
-        contentItem: Basic.Label {
-            text: button.text
-            color: button.enabled ? window.palette.text : window.mutedText
-            font: button.font
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
-        }
-        background: Rectangle {
-            radius: 6
-            color: button.down ? "#383838"
-                : button.hovered || button.highlighted || button.activeFocus ? "#2c2c2c"
-                : button.flat ? "transparent" : window.fieldFill
-            Behavior on color { ColorAnimation { duration: 120 } }
-        }
-    }
-
-    component ModalPanel: Rectangle {
-        radius: 12
-        color: "#141414"
-    }
+    component ModalPanel: GlassSurface { radius: 18 }
 
     component ModalBackdrop: Rectangle {
-        color: "#b3000000"
+        color: Theme.scrim
     }
 
     Rectangle {
@@ -444,12 +423,12 @@ Basic.ApplicationWindow {
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: 8
-                SurfaceButton {
+                UiButton {
                     text: qsTr("Tabs · %1").arg(window.keyBindings.nativeSequence(window.bindings.tabs))
                     flat: true
                     onClicked: window.showTabs()
                 }
-                SurfaceButton {
+                UiButton {
                     text: qsTr("Settings")
                     flat: true
                     onClicked: window.toggleSettings()
@@ -462,30 +441,183 @@ Basic.ApplicationWindow {
         id: settingsPage
         anchors.fill: parent
         visible: window.settingsOpen
-        color: window.palette.window
+        color: Theme.window
         z: 10
-        Basic.ScrollView {
+        RowLayout {
             anchors.fill: parent
-            anchors.margins: 40
-            contentWidth: availableWidth
+            anchors.margins: window.width < 800 ? 24 : 40
+            spacing: window.width < 800 ? 24 : 40
             ColumnLayout {
-                width: Math.min(720, settingsPage.width - 80)
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 16
-                RowLayout {
-                    Layout.fillWidth: true
-                    Basic.Label { text: qsTr("Settings"); font.pixelSize: 28; Layout.fillWidth: true }
-                    SurfaceButton { text: qsTr("Done"); onClicked: window.toggleSettings() }
+                Layout.preferredWidth: window.width < 800 ? 150 : 190
+                Layout.fillHeight: true
+                spacing: 8
+                Basic.Label {
+                    text: qsTr("Settings")
+                    font.pixelSize: 26
+                    font.weight: Font.DemiBold
+                    color: Theme.text
+                    Layout.leftMargin: 16
+                    Layout.bottomMargin: 24
                 }
-                SurfaceButton { text: qsTr("Manage passwords…"); onClicked: window.openPasswordSettings() }
-                SurfaceButton {
-                    text: window.passkeys.configured ? qsTr("Passkey vault is configured") : qsTr("Set up passkey vault…")
-                    visible: window.passkeys.enabled
-                    enabled: !window.passkeys.configured
-                    onClicked: passkeySetup.open()
+                Repeater {
+                    id: settingsNavigation
+                    model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard")]
+                    delegate: UiButton {
+                        id: categoryButton
+                        required property int index
+                        required property string modelData
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 44
+                        text: modelData
+                        highlighted: window.settingsCategory === index
+                        Accessible.role: Accessible.PageTab
+                        Accessible.name: modelData
+                        Accessible.selected: highlighted
+                        contentItem: Basic.Label {
+                            text: categoryButton.text
+                            color: categoryButton.highlighted ? Theme.text : Theme.muted
+                            font.pixelSize: 14
+                            font.weight: categoryButton.highlighted ? Font.DemiBold : Font.Normal
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            radius: height / 2
+                            color: categoryButton.highlighted ? Theme.selection : categoryButton.hovered || categoryButton.activeFocus ? Theme.hover : "transparent"
+                        }
+                        onClicked: {
+                            window.recordingIndex = -1
+                            window.bindingError = ""
+                            window.settingsCategory = index
+                        }
+                        Keys.onDownPressed: settingsNavigation.itemAt(Math.min(3, index + 1)).forceActiveFocus()
+                        Keys.onUpPressed: settingsNavigation.itemAt(Math.max(0, index - 1)).forceActiveFocus()
+                    }
                 }
-                Basic.Label { text: qsTr("Keyboard bindings"); font.pixelSize: 20; font.weight: Font.Medium }
-                Rectangle { Layout.fillWidth: true; height: 1; color: window.subtleLine }
+                Item { Layout.fillHeight: true }
+                UiButton { text: qsTr("Done"); Layout.fillWidth: true; onClicked: window.toggleSettings() }
+            }
+            Rectangle { Layout.preferredWidth: 1; Layout.fillHeight: true; color: Theme.border }
+            Basic.ScrollView {
+                id: settingsScroll
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                contentWidth: availableWidth
+                clip: true
+                ColumnLayout {
+                    width: Math.min(720, settingsScroll.availableWidth)
+                    spacing: 24
+                    Basic.Label {
+                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard")][window.settingsCategory]
+                        font.pixelSize: 28
+                        font.weight: Font.DemiBold
+                        color: Theme.text
+                        Layout.bottomMargin: 4
+                    }
+                    ColumnLayout {
+                        visible: window.settingsCategory === 0
+                        Layout.fillWidth: true
+                        spacing: 20
+                        Basic.Label { text: qsTr("Make Arbiter feel at home."); color: Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Basic.Label { text: qsTr("Color theme"); Layout.fillWidth: true; color: Theme.text }
+                            UiComboBox {
+                                id: themeChoice
+                                objectName: "themeChoice"
+                                model: [qsTr("System"), qsTr("Dark"), qsTr("Light")]
+                                currentIndex: ["system", "dark", "light"].indexOf(window.appearance.theme)
+                                Accessible.name: qsTr("Color theme")
+                                onActivated: window.appearance.theme = ["system", "dark", "light"][currentIndex]
+                            }
+                        }
+                        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.border }
+                        UiColorPicker {
+                            objectName: "lightAccentPicker"
+                            Layout.fillWidth: true
+                            title: qsTr("Light accent")
+                            value: window.appearance.lightAccent
+                            defaultColor: "#2868b8"
+                            onColorSelected: color => window.appearance.lightAccent = color
+                        }
+                        UiColorPicker {
+                            objectName: "darkAccentPicker"
+                            Layout.fillWidth: true
+                            title: qsTr("Dark accent")
+                            value: window.appearance.darkAccent
+                            defaultColor: "#8dbbff"
+                            onColorSelected: color => window.appearance.darkAccent = color
+                        }
+                        UiColorPicker {
+                            objectName: "lightBackgroundPicker"
+                            Layout.fillWidth: true
+                            title: qsTr("Light background")
+                            value: window.appearance.lightBackground
+                            defaultColor: "#edf2f7"
+                            presets: ["#edf2f7", "#f7f3ed", "#f1f5ed", "#f4eff7", "#eef6f6", "#ffffff", "#e3e7ed", "#f4eeee"]
+                            onColorSelected: color => window.appearance.lightBackground = color
+                        }
+                        UiColorPicker {
+                            objectName: "darkBackgroundPicker"
+                            Layout.fillWidth: true
+                            title: qsTr("Dark background")
+                            value: window.appearance.darkBackground
+                            defaultColor: "#11161e"
+                            presets: ["#11161e", "#19181d", "#181d19", "#1e1820", "#142023", "#121212", "#202530", "#211b18"]
+                            onColorSelected: color => window.appearance.darkBackground = color
+                        }
+                        UiCheckBox {
+                            objectName: "navigationPillToggle"
+                            text: qsTr("Show navigation pill")
+                            checked: window.appearance.navigationPill
+                            onToggled: window.appearance.navigationPill = checked
+                        }
+                        Basic.Label {
+                            text: qsTr("Navigation appears when you hover over the small handle. Keyboard shortcuts remain available when the pill is hidden.")
+                            color: Theme.muted
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
+                    }
+                    ColumnLayout {
+                        visible: window.settingsCategory === 1
+                        Layout.fillWidth: true
+                        spacing: 20
+                        Basic.Label {
+                            text: qsTr("Keep your saved logins on this computer, protected by your system credential store.")
+                            color: Theme.muted
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
+                        UiCheckBox {
+                            text: qsTr("Offer to save and fill passwords")
+                            checked: window.passwords.enabled
+                            onToggled: window.passwords.enabled = checked
+                        }
+                        UiButton { text: qsTr("Manage saved passwords…"); onClicked: window.openPasswordSettings() }
+                    }
+                    ColumnLayout {
+                        visible: window.settingsCategory === 2
+                        Layout.fillWidth: true
+                        spacing: 20
+                        Basic.Label {
+                            text: window.passkeys.enabled
+                                ? qsTr("Use a passkey saved in Arbiter, or scan a QR code with your phone when a website asks you to sign in.")
+                                : qsTr("Arbiter's passkey vault and phone QR flow require the patched WebEngine build.")
+                            color: Theme.muted
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
+                        UiButton {
+                            text: window.passkeys.configured ? qsTr("Passkey vault is configured") : qsTr("Set up passkey vault…")
+                            visible: window.passkeys.enabled
+                            enabled: !window.passkeys.configured
+                            onClicked: passkeySetup.open()
+                        }
+                    }
+                    ColumnLayout {
+                        visible: window.settingsCategory === 3
+                        Layout.fillWidth: true
+                        spacing: 16
                 Basic.Label {
                     text: qsTr("Click a shortcut, then press the new combination. Changes save automatically. Escape cancels recording.")
                     wrapMode: Text.Wrap
@@ -502,7 +634,7 @@ Basic.ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.minimumHeight: 36
                         Basic.Label { text: bindingRow.actionLabel; Layout.fillWidth: true; font.pixelSize: 14 }
-                        SurfaceButton {
+                        UiButton {
                             id: recordButton
                             Layout.preferredWidth: 132
                             text: window.recordingIndex === bindingRow.index ? qsTr("Press shortcut…") : bindingRow.keyLabel
@@ -543,7 +675,7 @@ Basic.ApplicationWindow {
                     wrapMode: Text.Wrap
                     color: window.palette.text
                 }
-                SurfaceButton {
+                UiButton {
                     text: qsTr("Reset to defaults")
                     onClicked: {
                         window.recordingIndex = -1
@@ -559,12 +691,30 @@ Basic.ApplicationWindow {
                         : qsTr("Move the window by dragging the empty start-page background.")
                     color: window.mutedText
                 }
+                    }
+                }
             }
         }
     }
 
     // Window movement remains available above every website without a toolbar.
-    PasskeySetup { id: passkeySetup; controller: window.passkeys }
+    NavigationPill {
+        objectName: "navigationPill"
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 12
+        z: 21
+        visible: window.appearance.navigationPill && !window.emptyPage && !window.settingsOpen
+            && !window.webauthn.active && !addressPopup.visible && !tabsPopup.visible
+        view: window.webView
+        appearance: window.appearance
+        tabCount: window.tabs.count
+        onAddressRequested: window.focusAddress()
+        onTabsRequested: window.showTabs()
+        onPasswordsRequested: window.openPasswords()
+        onSettingsRequested: window.openSettings()
+    }
+    PasskeySetup { id: passkeySetup; objectName: "passkeySetup"; controller: window.passkeys }
 
     PasswordPanel {
         id: passwordPanel
@@ -630,9 +780,9 @@ Basic.ApplicationWindow {
                     Basic.Label { text: qsTr("%1 open · Pick up where you left off").arg(window.tabs.count); color: window.mutedText; font.pixelSize: 12 }
                 }
                 Item { Layout.fillWidth: true }
-                SurfaceButton { text: qsTr("New tab"); onClicked: window.newTab() }
+                UiButton { text: qsTr("New tab"); onClicked: window.newTab() }
             }
-            RoundedField {
+            UiTextField {
                 id: tabSearch
                 Layout.fillWidth: true
                 placeholderText: qsTr("Search open tabs")
@@ -685,8 +835,8 @@ Basic.ApplicationWindow {
                     onActiveFocusChanged: if (activeFocus) tabList.currentIndex = index
                     background: Rectangle {
                         radius: 10
-                        color: tabChoice.highlighted ? "#303030"
-                            : tabChoice.hovered ? "#242424" : "transparent"
+                        color: tabChoice.highlighted ? Theme.selection
+                            : tabChoice.hovered ? Theme.hover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
                     }
                     contentItem: ColumnLayout {
@@ -765,7 +915,7 @@ Basic.ApplicationWindow {
                                 elide: Text.ElideRight
                                 font.weight: Font.Medium
                             }
-                            SurfaceButton {
+                            UiButton {
                                 text: "×"
                                 flat: true
                                 Layout.preferredWidth: 26
@@ -844,7 +994,8 @@ Basic.ApplicationWindow {
     Basic.Popup {
         id: addressPopup
         parent: Basic.Overlay.overlay
-        anchors.centerIn: parent
+        x: (window.width - width) / 2
+        y: Math.max(24, Math.min(100, window.height * 0.12))
         width: Math.min(600, window.width - 48)
         padding: 20
         modal: true
@@ -881,7 +1032,7 @@ Basic.ApplicationWindow {
                 settingsPage.forceActiveFocus()
             else if (window.emptyPage)
                 homeAddress.forceActiveFocus()
-            else
+            else if (window.webView)
                 window.webView.forceActiveFocus()
         }
     }

@@ -14,6 +14,7 @@
 #include "passwordmanager.h"
 #include "webauthncontroller.h"
 #include "passkeycontroller.h"
+#include "appearance.h"
 #include <QWindow>
 #ifdef Q_OS_MACOS
 void configureMacWindow(QWindow *window);
@@ -31,6 +32,7 @@ int main(int argc, char *argv[])
 #endif
 
     KeyBindings keyBindings;
+    Appearance appearance;
     Tabs tabs;
     PasswordManager passwords;
     WebAuthnController webauthn;
@@ -49,6 +51,7 @@ int main(int argc, char *argv[])
     userAgent.remove(QRegularExpression(QStringLiteral("\\s+(?:QtWebEngine|Arbiter)/[^\\s]+")));
     const bool diagnostics = qEnvironmentVariableIsSet("ARBITER_DIAGNOSTICS");
     engine.setInitialProperties({{QStringLiteral("browserUserAgent"), userAgent},
+                                 {QStringLiteral("appearance"), QVariant::fromValue(&appearance)},
                                  {QStringLiteral("keyBindings"), QVariant::fromValue(&keyBindings)},
                                  {QStringLiteral("tabs"), QVariant::fromValue(&tabs)},
                                  {QStringLiteral("passwords"), QVariant::fromValue(&passwords)},
@@ -64,6 +67,9 @@ int main(int argc, char *argv[])
     engine.loadFromModule(QStringLiteral("Arbiter"), QStringLiteral("Main"));
     if (!engine.rootObjects().isEmpty()) {
         QObject *root = engine.rootObjects().first();
+        QObject::connect(&app, &QCoreApplication::aboutToQuit, root, [root] {
+            QMetaObject::invokeMethod(root, "prepareForShutdown");
+        });
         app.setUrlHandler([root](const QUrl &url) {
             QMetaObject::invokeMethod(root, "openExternalUrl", Q_ARG(QString, url.toString()));
             if (auto *window = qobject_cast<QWindow *>(root)) {

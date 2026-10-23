@@ -21,8 +21,24 @@ error, and cancellation UI; actual authenticator availability depends on Qt/OS.
 
 The page fills the window. On macOS, the native frame retains rounded corners
 and shadows while its title text, background, and window buttons are hidden.
-There is no persistent toolbar or address bar over websites. Cmd+L opens a
-centered address editor with the full URL selected; Enter navigates, and Escape
+The Glacier interface uses frosted overlays with subtle borders and defaults to
+the system color theme. Settings → Appearance offers System, Dark and Light;
+the selection is saved and System follows changes to the OS appearance.
+Settings uses vertical category tabs for Appearance, Passwords, Passkeys and
+Keyboard. Checkboxes, dropdown menus and navigation tooltips share rounded,
+theme-aware styling.
+Appearance saves independent Light and Dark accent and background colors. Choose
+a preset or open the centered in-app color picker; Reset restores each color's default.
+Background colors tint the browser surfaces, with foreground colors adapting for
+readability. The color picker applies changes on confirmation; Cancel preserves
+the existing color.
+Buttons, fields and other shared controls live in [`qml/ui`](qml/ui/README.md)
+and are reused across Settings, navigation and credential dialogs.
+A bottom navigation pill expands on hover or click, then shrinks to a tiny
+handle after the pointer leaves. It stays open while using its keyboard controls
+or menu. Settings → Appearance → Show navigation pill turns it off completely;
+keyboard shortcuts and native menus remain available.
+Cmd+L opens a floating address editor with the full URL selected; Enter navigates, and Escape
 or a click outside dismisses the editor. The default empty page has a centered
 address/search field, focused on startup. Drag the empty page background to move
 the window.

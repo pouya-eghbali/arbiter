@@ -14,7 +14,7 @@ Basic.Popup {
     focus: true
     closePolicy: controller.busy ? Basic.Popup.NoAutoClose : Basic.Popup.CloseOnEscape
     onClosed: { phrase.text = ""; confirmation.text = "" }
-    background: Rectangle { radius: 12; color: "#191919"; border.color: "#444444" }
+    background: GlassSurface { dense: true }
     Connections {
         target: setup.controller
         function onChanged() {
@@ -31,14 +31,15 @@ Basic.Popup {
             Layout.fillWidth: true
             wrapMode: Text.Wrap
         }
-        Basic.TextField { id: phrase; Layout.fillWidth: true; echoMode: TextInput.Password; placeholderText: qsTr("Vault passphrase"); enabled: !setup.controller.busy }
-        Basic.TextField { id: confirmation; Layout.fillWidth: true; echoMode: TextInput.Password; placeholderText: qsTr("Confirm vault passphrase"); enabled: !setup.controller.busy }
+        UiTextField { id: phrase; Layout.fillWidth: true; echoMode: TextInput.Password; placeholderText: qsTr("Vault passphrase"); enabled: !setup.controller.busy }
+        UiTextField { id: confirmation; Layout.fillWidth: true; echoMode: TextInput.Password; placeholderText: qsTr("Confirm vault passphrase"); enabled: !setup.controller.busy }
         Basic.Label { text: setup.controller.error; visible: text.length > 0; textFormat: Text.PlainText; Layout.fillWidth: true; wrapMode: Text.Wrap }
         RowLayout {
-            Basic.Button { text: qsTr("Cancel"); enabled: !setup.controller.busy; onClicked: setup.close() }
+            UiButton { text: qsTr("Cancel"); enabled: !setup.controller.busy; onClicked: setup.close() }
             Item { Layout.fillWidth: true }
-            Basic.Button {
+            UiButton {
                 text: qsTr("Create vault")
+                primary: true
                 enabled: !setup.controller.busy && phrase.text.length >= 12 && phrase.text === confirmation.text
                 onClicked: { setup.controller.setup(phrase.text, confirmation.text); phrase.text = ""; confirmation.text = "" }
             }

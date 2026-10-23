@@ -49,10 +49,11 @@ Item {
         padding: 24
         modal: true
         dim: true
+        Basic.Overlay.modal: Rectangle { color: Theme.scrim }
         focus: true
         closePolicy: Basic.Popup.CloseOnEscape
         onClosed: { vaultPhrase.text = ""; if (panel.controller.active) panel.controller.cancel() }
-        background: Rectangle { radius: 12; color: "#191919"; border.color: "#444444" }
+        background: GlassSurface { dense: true }
         contentItem: ColumnLayout {
             spacing: 14
             Basic.Label { text: qsTr("Website authentication"); font.pixelSize: 22 }
@@ -68,7 +69,7 @@ Item {
                 textFormat: Text.PlainText
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
-                color: "#aaaaaa"
+                color: Theme.muted
             }
             Basic.Label {
                 visible: panel.passkeys.active
@@ -80,9 +81,9 @@ Item {
             RowLayout {
                 visible: panel.passkeys.active && !panel.passkeys.verifying
                     && panel.controller.state === WebEngineWebAuthUxRequest.WebAuthUxState.Discovery
-                Basic.Button { text: qsTr("Use Arbiter passkey"); visible: panel.passkeys.localAvailable; onClicked: panel.passkeys.useLocal() }
-                Basic.Button { text: qsTr("Use a phone"); visible: panel.passkeys.phoneAvailable; onClicked: panel.passkeys.usePhone() }
-                Basic.Button { text: qsTr("Windows Hello / security key"); visible: panel.passkeys.systemAvailable; onClicked: panel.passkeys.useSystem() }
+                UiButton { text: qsTr("Use Arbiter passkey"); visible: panel.passkeys.localAvailable; onClicked: panel.passkeys.useLocal() }
+                UiButton { text: qsTr("Use a phone"); visible: panel.passkeys.phoneAvailable; onClicked: panel.passkeys.usePhone() }
+                UiButton { text: qsTr("Windows Hello / security key"); visible: panel.passkeys.systemAvailable; onClicked: panel.passkeys.useSystem() }
             }
             Basic.Label {
                 visible: panel.passkeys.active && !panel.passkeys.configured
@@ -108,12 +109,12 @@ Item {
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
             }
-            Basic.Button {
+            UiButton {
                 visible: panel.passkeys.phoneAvailable && panel.passkeys.bluetooth === 1
                 text: qsTr("Turn on Bluetooth")
                 onClicked: panel.passkeys.powerOnBluetooth()
             }
-            Basic.Button {
+            UiButton {
                 visible: panel.passkeys.phoneAvailable && panel.passkeys.bluetooth === 3
                 text: qsTr("Allow Bluetooth")
                 onClicked: panel.passkeys.requestBluetoothPermission()
@@ -124,30 +125,15 @@ Item {
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
             }
-            Basic.ComboBox {
+            UiComboBox {
                 id: localAccount
                 visible: panel.passkeys.verifying && !panel.passkeys.registration
                 model: panel.passkeys.accounts
                 textRole: "name"
                 Layout.fillWidth: true
-                contentItem: Basic.Label {
-                    text: localAccount.displayText
-                    textFormat: Text.PlainText
-                    elide: Text.ElideRight
-                    verticalAlignment: Text.AlignVCenter
-                }
-                delegate: Basic.ItemDelegate {
-                    id: passkeyAccountDelegate
-                    required property var modelData
-                    width: localAccount.width
-                    contentItem: Basic.Label {
-                        text: passkeyAccountDelegate.modelData.name
-                        textFormat: Text.PlainText
-                        elide: Text.ElideRight
-                    }
-                }
             }
-            Basic.TextField {
+
+            UiTextField {
                 id: vaultPhrase
                 visible: panel.passkeys.verifying && (panel.passkeys.registration || panel.passkeys.accounts.length > 0)
                 echoMode: TextInput.Password
@@ -164,7 +150,7 @@ Item {
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
             }
-            Basic.Button {
+            UiButton {
                 visible: panel.passkeys.verifying
                 text: panel.passkeys.registration ? qsTr("Create passkey in Arbiter") : qsTr("Sign in with Arbiter")
                 enabled: !panel.passkeys.busy && vaultPhrase.text.length > 0
@@ -188,7 +174,7 @@ Item {
                     width: parent.width
                     Repeater {
                         model: panel.controller.accounts
-                        delegate: Basic.Button {
+                        delegate: UiButton {
                             id: accountButton
                             required property string modelData
                             text: modelData || qsTr("Unnamed account")
@@ -203,7 +189,7 @@ Item {
                     }
                 }
             }
-            Basic.TextField {
+            UiTextField {
                 id: pinField
                 visible: panel.controller.state === WebEngineWebAuthUxRequest.WebAuthUxState.CollectPin
                 Layout.fillWidth: true
@@ -215,7 +201,7 @@ Item {
                     else panel.controller.submitPin(text, "")
                 }
             }
-            Basic.TextField {
+            UiTextField {
                 id: confirmationField
                 visible: pinField.visible && panel.controller.confirmPin
                 Layout.fillWidth: true
@@ -232,10 +218,10 @@ Item {
                 wrapMode: Text.Wrap
             }
             RowLayout {
-                Basic.Button { text: qsTr("Cancel"); onClicked: panel.controller.cancel() }
+                UiButton { text: qsTr("Cancel"); onClicked: panel.controller.cancel() }
                 Item { Layout.fillWidth: true }
-                Basic.Button { text: qsTr("Retry"); visible: panel.controller.canRetry; onClicked: panel.controller.retry() }
-                Basic.Button {
+                UiButton { text: qsTr("Retry"); visible: panel.controller.canRetry; onClicked: panel.controller.retry() }
+                UiButton {
                     text: qsTr("Continue")
                     visible: pinField.visible
                     enabled: pinField.text.length > 0

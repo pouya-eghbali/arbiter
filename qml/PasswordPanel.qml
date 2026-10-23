@@ -75,21 +75,6 @@ Item {
         }
     }
 
-    component Button: Basic.Button {
-        id: control
-        padding: 10
-        horizontalPadding: 16
-        background: Rectangle { radius: 7; color: control.down ? "#444444" : "#292929"; border.color: "#444444" }
-        contentItem: Basic.Label { text: control.text; color: control.enabled ? "#eeeeee" : "#777777"; horizontalAlignment: Text.AlignHCenter; textFormat: Text.PlainText }
-    }
-    component Field: Basic.TextField {
-        id: control
-        implicitHeight: 42
-        padding: 12
-        selectByMouse: true
-        color: "#eeeeee"
-        background: Rectangle { color: "#111111"; radius: 7; border.color: control.activeFocus ? "#888888" : "#444444" }
-    }
     component Popup: Basic.Popup {
         parent: Basic.Overlay.overlay
         anchors.centerIn: parent
@@ -97,9 +82,10 @@ Item {
         padding: 24
         modal: true
         dim: true
+        Basic.Overlay.modal: Rectangle { color: Theme.scrim }
         focus: true
         closePolicy: Basic.Popup.CloseOnEscape | Basic.Popup.CloseOnPressOutside
-        background: Rectangle { color: "#191919"; radius: 12; border.color: "#444444" }
+        background: GlassSurface { dense: true }
     }
 
     Popup {
@@ -117,7 +103,7 @@ Item {
                 wrapMode: Text.Wrap
                 text: !panel.formAvailable ? qsTr("Focus a login field on an HTTPS page, then open Passwords again. Embedded frames and forms that submit to another website are not filled.")
                     : panel.accounts.length === 0 ? qsTr("No saved accounts for this website.") : qsTr("Choose an account to fill. Arbiter will not submit the form.")
-                color: "#aaaaaa"
+                color: Theme.muted
             }
             Basic.ScrollView {
                 visible: panel.accounts.length > 0
@@ -129,7 +115,7 @@ Item {
                     width: parent.width
                     Repeater {
                         model: panel.accounts
-                        delegate: Button {
+                        delegate: UiButton {
                             required property var modelData
                             Layout.fillWidth: true
                             text: modelData.username || qsTr("No username")
@@ -145,7 +131,7 @@ Item {
                 }
             }
             RowLayout {
-                Button {
+                UiButton {
                     text: qsTr("Save current login")
                     enabled: panel.formAvailable && !panel.manager.busy && panel.target && !panel.target.profile.offTheRecord
                     onClicked: {
@@ -153,7 +139,7 @@ Item {
                         fillPopup.close()
                     }
                 }
-                Button { text: qsTr("Manage passwords"); onClicked: { fillPopup.close(); panel.openManager() } }
+                UiButton { text: qsTr("Manage passwords"); onClicked: { fillPopup.close(); panel.openManager() } }
             }
         }
     }
@@ -175,14 +161,14 @@ Item {
                 text: qsTr("Save the submitted password in your system credential store. If sign-in failed, dismiss this prompt.")
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
-                color: "#aaaaaa"
+                color: Theme.muted
             }
-            Field { id: saveUsername; Layout.fillWidth: true; placeholderText: qsTr("Username (optional)"); Accessible.name: qsTr("Username to save") }
+            UiTextField { id: saveUsername; Layout.fillWidth: true; placeholderText: qsTr("Username (optional)"); Accessible.name: qsTr("Username to save") }
             Basic.Label { text: panel.manager.error; visible: text.length > 0; Layout.fillWidth: true; wrapMode: Text.Wrap }
             RowLayout {
-                Button { text: qsTr("Not now"); enabled: !panel.manager.busy; onClicked: panel.manager.dismissPending() }
+                UiButton { text: qsTr("Not now"); enabled: !panel.manager.busy; onClicked: panel.manager.dismissPending() }
                 Item { Layout.fillWidth: true }
-                Button { text: qsTr("Save"); enabled: !panel.manager.busy; onClicked: panel.manager.acceptPending(saveUsername.text) }
+                UiButton { text: qsTr("Save"); enabled: !panel.manager.busy; onClicked: panel.manager.acceptPending(saveUsername.text) }
             }
         }
     }
@@ -194,9 +180,9 @@ Item {
             spacing: 14
             RowLayout {
                 Basic.Label { text: qsTr("Saved passwords"); font.pixelSize: 22; Layout.fillWidth: true }
-                Button { text: qsTr("Done"); onClicked: managePopup.close() }
+                UiButton { text: qsTr("Done"); onClicked: managePopup.close() }
             }
-            Basic.CheckBox {
+            UiCheckBox {
                 text: qsTr("Offer to save and fill passwords")
                 checked: panel.manager.enabled
                 onToggled: panel.manager.enabled = checked
@@ -205,9 +191,9 @@ Item {
                 text: qsTr("Passwords use macOS Keychain, Windows Credential Manager, or a Linux keyring. Websites and usernames are indexed locally. Credentials do not sync between devices.")
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
-                color: "#aaaaaa"
+                color: Theme.muted
             }
-            Field { id: searchField; Layout.fillWidth: true; placeholderText: qsTr("Search sites and usernames"); Accessible.name: qsTr("Search saved passwords") }
+            UiTextField { id: searchField; Layout.fillWidth: true; placeholderText: qsTr("Search sites and usernames"); Accessible.name: qsTr("Search saved passwords") }
             Basic.ScrollView {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -224,14 +210,14 @@ Item {
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 Basic.Label { text: credentialRow.modelData.origin; textFormat: Text.PlainText; Layout.fillWidth: true; elide: Text.ElideMiddle }
-                                Basic.Label { text: credentialRow.modelData.username || qsTr("No username"); textFormat: Text.PlainText; Layout.fillWidth: true; elide: Text.ElideRight; color: "#aaaaaa" }
+                                Basic.Label { text: credentialRow.modelData.username || qsTr("No username"); textFormat: Text.PlainText; Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.muted }
                             }
-                            Button {
+                            UiButton {
                                 text: qsTr("Update")
                                 enabled: !panel.manager.busy && panel.manager.enabled
                                 onClicked: panel.edit(credentialRow.modelData.origin, credentialRow.modelData.username)
                             }
-                            Button {
+                            UiButton {
                                 text: qsTr("Delete")
                                 enabled: !panel.manager.busy
                                 onClicked: {
@@ -242,11 +228,11 @@ Item {
                             }
                         }
                     }
-                    Basic.Label { visible: panel.manager.entries.length === 0; text: qsTr("No saved passwords yet."); color: "#aaaaaa" }
+                    Basic.Label { visible: panel.manager.entries.length === 0; text: qsTr("No saved passwords yet."); color: Theme.muted }
                 }
             }
             Basic.Label { text: panel.manager.error; visible: text.length > 0; Layout.fillWidth: true; wrapMode: Text.Wrap }
-            Button { text: qsTr("Add login"); enabled: !panel.manager.busy && panel.manager.enabled; onClicked: panel.edit("", "") }
+            UiButton { text: qsTr("Add login"); enabled: !panel.manager.busy && panel.manager.enabled; onClicked: panel.edit("", "") }
         }
     }
 
@@ -258,22 +244,22 @@ Item {
         contentItem: ColumnLayout {
             spacing: 14
             Basic.Label { text: panel.editing ? qsTr("Replace saved password") : qsTr("Add login"); font.pixelSize: 22 }
-            Field { id: siteField; Layout.fillWidth: true; placeholderText: qsTr("https://example.com"); readOnly: panel.editing; Accessible.name: qsTr("Website") }
-            Field { id: usernameField; Layout.fillWidth: true; placeholderText: qsTr("Username (optional)"); readOnly: panel.editing; Accessible.name: qsTr("Username") }
-            Field { id: passwordField; Layout.fillWidth: true; placeholderText: qsTr("Password"); echoMode: TextInput.Password; Accessible.name: qsTr("Password") }
+            UiTextField { id: siteField; Layout.fillWidth: true; placeholderText: qsTr("https://example.com"); readOnly: panel.editing; Accessible.name: qsTr("Website") }
+            UiTextField { id: usernameField; Layout.fillWidth: true; placeholderText: qsTr("Username (optional)"); readOnly: panel.editing; Accessible.name: qsTr("Username") }
+            UiTextField { id: passwordField; Layout.fillWidth: true; placeholderText: qsTr("Password"); echoMode: TextInput.Password; Accessible.name: qsTr("Password") }
             Basic.Label {
                 text: qsTr("Saving here does not change the password on the website. Use the same password when creating or updating your website account.")
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
-                color: "#aaaaaa"
+                color: Theme.muted
             }
             Basic.Label { text: panel.manager.error; visible: text.length > 0; Layout.fillWidth: true; wrapMode: Text.Wrap }
             RowLayout {
-                Button { text: qsTr("Generate"); onClicked: passwordField.text = panel.manager.generatePassword() }
-                Button { id: showPassword; text: qsTr("Show"); checkable: true; onToggled: passwordField.echoMode = checked ? TextInput.Normal : TextInput.Password }
+                UiButton { text: qsTr("Generate"); onClicked: passwordField.text = panel.manager.generatePassword() }
+                UiButton { id: showPassword; text: qsTr("Show"); checkable: true; onToggled: passwordField.echoMode = checked ? TextInput.Normal : TextInput.Password }
                 Item { Layout.fillWidth: true }
-                Button { text: qsTr("Cancel"); enabled: !panel.manager.busy; onClicked: editPopup.close() }
-                Button {
+                UiButton { text: qsTr("Cancel"); enabled: !panel.manager.busy; onClicked: editPopup.close() }
+                UiButton {
                     text: qsTr("Save")
                     enabled: !panel.manager.busy && siteField.text.length > 0 && passwordField.text.length > 0
                     onClicked: panel.manager.save(siteField.text, usernameField.text, passwordField.text)
@@ -288,8 +274,8 @@ Item {
             Basic.Label { text: qsTr("Delete this password?"); font.pixelSize: 22 }
             Basic.Label { text: panel.deleteLabel; textFormat: Text.PlainText; Layout.fillWidth: true; wrapMode: Text.WrapAnywhere }
             RowLayout {
-                Button { text: qsTr("Cancel"); onClicked: deletePopup.close() }
-                Button { text: qsTr("Delete"); enabled: !panel.manager.busy; onClicked: { panel.manager.remove(panel.deleteId); deletePopup.close() } }
+                UiButton { text: qsTr("Cancel"); onClicked: deletePopup.close() }
+                UiButton { text: qsTr("Delete"); enabled: !panel.manager.busy; onClicked: { panel.manager.remove(panel.deleteId); deletePopup.close() } }
             }
         }
     }
@@ -305,6 +291,6 @@ Item {
         visible: text.length > 0 && !managePopup.visible && !editPopup.visible && !savePopup.visible
         wrapMode: Text.Wrap
         textFormat: Text.PlainText
-        background: Rectangle { radius: 10; color: "#292929"; border.color: "#555555" }
+        background: GlassSurface { dense: true; radius: 12 }
     }
 }
