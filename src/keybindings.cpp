@@ -30,6 +30,9 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
     add("previousTab", "Previous tab", QKeySequence(tabModifier + QStringLiteral("Shift+Tab")));
     add("reopenTab", "Reopen closed tab", QKeySequence(QStringLiteral("Ctrl+Shift+T")));
     add("closeWindow", "Close window", QKeySequence(QStringLiteral("Ctrl+Shift+W")));
+    add("workspaces", "Show workspaces", QKeySequence(QStringLiteral("Ctrl+Shift+E")));
+    add("nextWorkspace", "Next workspace", QKeySequence(QStringLiteral("Ctrl+Alt+Right")));
+    add("previousWorkspace", "Previous workspace", QKeySequence(QStringLiteral("Ctrl+Alt+Left")));
     add("history", "Show history", QKeySequence(QStringLiteral("Ctrl+Y")));
     QSettings settings;
     QSet<QKeySequence> used;

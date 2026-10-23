@@ -11,6 +11,8 @@ Basic.ApplicationWindow {
     id: window
     required property string browserUserAgent
     required property bool browserDiagnostics
+    required property var workspaces
+    required property var webProfiles
     required property var tabs
     required property var history
     required property var appearance
@@ -101,6 +103,7 @@ Basic.ApplicationWindow {
     }
 
     function prepareForShutdown() {
+        workspacePanel.close()
         historyPanel.close()
         addressPopup.close()
         tabsPopup.close()
@@ -120,6 +123,7 @@ Basic.ApplicationWindow {
     }
 
     function focusAddress() {
+        workspacePanel.close()
         historyPanel.close()
         if (emptyPage && !settingsOpen) {
             homeAddress.forceActiveFocus()
@@ -137,6 +141,7 @@ Basic.ApplicationWindow {
     }
 
     function navigate(input: string) {
+        workspacePanel.close()
         if (!webView)
             return
         const text = input.trim()
@@ -159,6 +164,9 @@ Basic.ApplicationWindow {
     }
 
     Shortcut { sequence: window.bindings.address; enabled: window.recordingIndex < 0; onActivated: window.focusAddress() }
+    Shortcut { sequence: window.bindings.workspaces; enabled: window.recordingIndex < 0; onActivated: window.openWorkspaces() }
+    Shortcut { sequence: window.bindings.nextWorkspace; enabled: window.recordingIndex < 0; onActivated: window.workspaces.cycle(1) }
+    Shortcut { sequence: window.bindings.previousWorkspace; enabled: window.recordingIndex < 0; onActivated: window.workspaces.cycle(-1) }
     Shortcut { sequence: window.bindings.history; enabled: window.recordingIndex < 0; onActivated: window.openHistory() }
     Shortcut { sequence: window.bindings.passwords; enabled: window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.openPasswords() }
     Shortcut { sequence: window.bindings.reload; enabled: window.webView && window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.webView.reload() }
@@ -166,7 +174,7 @@ Basic.ApplicationWindow {
     Shortcut { sequence: window.bindings.forward; enabled: window.webView && window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.webView.goForward() }
     Shortcut {
         sequence: window.bindings.stop
-        enabled: !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && window.recordingIndex < 0 && !window.settingsOpen
+        enabled: !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible && window.recordingIndex < 0 && !window.settingsOpen
         onActivated: { window.webView.stop(); window.webView.forceActiveFocus() }
     }
     Shortcut { sequence: window.bindings.close; enabled: window.recordingIndex < 0; onActivated: window.closeCurrentTab() }
@@ -181,7 +189,9 @@ Basic.ApplicationWindow {
     Shortcut { sequence: window.bindings.closeWindow; enabled: window.recordingIndex < 0; onActivated: window.close() }
 
     function focusPage() {
-        if (historyPanel.visible)
+        if (workspacePanel.visible)
+            workspacePanel.focusSearch()
+        else if (historyPanel.visible)
             historyPanel.focusSearch()
         else if (tabsPopup.visible)
             tabSearch.forceActiveFocus()
@@ -204,6 +214,7 @@ Basic.ApplicationWindow {
     }
 
     function selectTab(index: int) {
+        workspacePanel.close()
         historyPanel.close()
         addressPopup.close()
         tabsPopup.close()
@@ -234,12 +245,15 @@ Basic.ApplicationWindow {
     }
 
     function finishClosingTab(index: int) {
-        if (tabs.count === 1) {
+        if (tabs.workspaceCount === 1 && workspaces.count === 1) {
+            tabs.close(index)
+            tabs.add("about:blank")
             window.close()
             return
         }
         addressPopup.close()
         tabs.close(index)
+        if (tabs.workspaceCount === 0) tabs.add("about:blank")
         syncActiveView()
         if (tabsPopup.visible)
             tabSearch.forceActiveFocus()
@@ -248,7 +262,7 @@ Basic.ApplicationWindow {
     function nextTab() { tabs.cycle(1); selectTab(tabs.currentIndex) }
     function previousTab() { tabs.cycle(-1); selectTab(tabs.currentIndex) }
     function reopenTab() { if (tabs.reopen()) selectTab(tabs.currentIndex) }
-    function showTabs() { historyPanel.close(); addressPopup.close(); tabsPopup.open() }
+    function showTabs() { workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.open() }
 
     function openExternalUrl(url: string) {
         syncActiveView()
@@ -259,15 +273,16 @@ Basic.ApplicationWindow {
         }
     }
 
-    function openWebRequest(request: var) {
+    function openWebRequest(request: var, sourceWorkspace: string) {
         // Preserve background-tab requests and keep the request's opener and
         // pending navigation by handing it directly to the new engine view.
         const background = request.destination === WebEngineView.NewViewInBackgroundTab
-        const index = tabs.add("about:blank", !background)
+        const activate = !background && sourceWorkspace === workspaces.currentId
+        const index = workspaces.addTab(sourceWorkspace, "about:blank", activate)
         const view = tabViews.itemAt(index) as WebEngineView
         if (view)
             view.acceptAsNewWindow(request)
-        if (!background)
+        if (activate)
             selectTab(index)
     }
 
@@ -275,8 +290,21 @@ Basic.ApplicationWindow {
         target: window.tabs
         function onCurrentIndexChanged() { window.syncActiveView() }
     }
+    Connections {
+        target: window.workspaces
+        function onCurrentChanged() {
+            window.settingsOpen = false
+            window.recordingIndex = -1
+            addressPopup.close()
+            historyPanel.close()
+            tabsPopup.close()
+            tabSearch.text = ""
+            Qt.callLater(window.focusPage)
+        }
+    }
 
     function toggleSettings() {
+        workspacePanel.close()
         historyPanel.close()
         if (webView) webAuthnPanel.cancelFor(webView)
         addressPopup.close()
@@ -305,7 +333,18 @@ Basic.ApplicationWindow {
     }
 
     function openPasswordSettings() { historyPanel.close(); passwordPanel.openManager() }
+    function openWorkspaces() {
+        if (webView) {
+            webAuthnPanel.cancelFor(webView)
+            passwordPanel.cancelFor(webView)
+        }
+        addressPopup.close()
+        tabsPopup.close()
+        historyPanel.close()
+        workspacePanel.open()
+    }
     function openHistory() {
+        workspacePanel.close()
         if (webView) {
             webAuthnPanel.cancelFor(webView)
             passwordPanel.cancelFor(webView)
@@ -329,12 +368,6 @@ Basic.ApplicationWindow {
             showFullScreen()
     }
 
-    WebEngineProfile {
-        id: browserProfile
-        storageName: "Default"
-        offTheRecord: false
-        httpUserAgent: window.browserUserAgent
-    }
 
     Repeater {
         id: tabViews
@@ -344,6 +377,8 @@ Basic.ApplicationWindow {
         delegate: WebEngineView {
             id: page
             required property int index
+            required property string workspaceId
+            required property string profileId
             required property int tabId
             required property url initialUrl
             property string errorText: ""
@@ -360,12 +395,12 @@ Basic.ApplicationWindow {
             }
             readonly property var passwordAgent: passwordSession
             anchors.fill: parent
-            visible: tabsPopup.visible || (index === window.tabs.currentIndex && !window.settingsOpen && !window.emptyPage)
+            visible: (tabsPopup.visible && workspaceId === window.workspaces.currentId) || (index === window.tabs.currentIndex && !window.settingsOpen && !window.emptyPage)
             z: index === window.tabs.currentIndex ? 0 : -1
             settings.focusOnNavigationEnabled: index === window.tabs.currentIndex
             url: initialUrl
             backgroundColor: window.color
-            profile: browserProfile
+            profile: window.webProfiles.profile(profileId)
             webChannel: passwordChannel
             webChannelWorld: 1
             userScripts.collection: [{
@@ -397,7 +432,7 @@ Basic.ApplicationWindow {
                 onPasswordsRequested: Qt.callLater(window.openPasswords)
             }
             onContextMenuRequested: function(request) { pageContextMenu.show(request) }
-            onNewWindowRequested: function(request) { window.openWebRequest(request) }
+            onNewWindowRequested: function(request) { window.openWebRequest(request, workspaceId) }
             onWindowCloseRequested: window.finishClosingTab(index)
             onWebAuthUxRequested: function(request) {
                 if (page !== window.webView || window.settingsOpen) request.cancel()
@@ -818,15 +853,25 @@ Basic.ApplicationWindow {
         anchors.bottomMargin: 12
         z: 21
         visible: window.appearance.navigationPill && !window.emptyPage && !window.settingsOpen
-            && !window.webauthn.active && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible
+            && !window.webauthn.active && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible
         view: window.webView
         appearance: window.appearance
-        tabCount: window.tabs.count
+        tabCount: window.tabs.workspaceCount
+        workspaceName: window.workspaces.currentName
+        workspaceColor: window.workspaces.currentColor
         onAddressRequested: window.focusAddress()
         onTabsRequested: window.showTabs()
         onPasswordsRequested: window.openPasswords()
         onSettingsRequested: window.openSettings()
         onHistoryRequested: window.openHistory()
+        onWorkspacesRequested: window.openWorkspaces()
+    }
+    WorkspacePanel {
+        id: workspacePanel
+        objectName: "workspacePanel"
+        manager: window.workspaces
+        tabs: window.tabs
+        onClosed: Qt.callLater(window.focusPage)
     }
     HistoryPanel {
         id: historyPanel
@@ -901,10 +946,11 @@ Basic.ApplicationWindow {
                 Layout.fillWidth: true
                 ColumnLayout {
                     spacing: 3
-                    Basic.Label { text: qsTr("Your tabs"); font.pixelSize: 22; font.weight: Font.DemiBold }
-                    Basic.Label { text: qsTr("%1 open · Pick up where you left off").arg(window.tabs.count); color: window.mutedText; font.pixelSize: 12 }
+                    Basic.Label { text: window.workspaces.currentName; textFormat: Text.PlainText; font.pixelSize: 22; font.weight: Font.DemiBold }
+                    Basic.Label { text: qsTr("%1 open · Pick up where you left off").arg(window.tabs.workspaceCount); color: window.mutedText; font.pixelSize: 12 }
                 }
                 Item { Layout.fillWidth: true }
+                UiButton { text: qsTr("Workspaces…"); onClicked: window.openWorkspaces() }
                 UiButton { text: qsTr("New tab"); onClicked: window.newTab() }
             }
             UiTextField {
@@ -930,6 +976,7 @@ Basic.ApplicationWindow {
             }
             GridView {
                 id: tabList
+                objectName: "tabsGrid"
                 readonly property int columns: Math.max(1, Math.ceil(width / 220))
                 readonly property real gutter: 12
                 Layout.fillWidth: true
@@ -950,6 +997,7 @@ Basic.ApplicationWindow {
                     required property int sourceIndex
                     required property string pageTitle
                     required property string pageUrl
+                    required property bool pinned
                     width: tabList.cellWidth - tabList.gutter
                     height: tabList.cellHeight - tabList.gutter
                     padding: 8
@@ -1041,6 +1089,16 @@ Basic.ApplicationWindow {
                                 font.weight: Font.Medium
                             }
                             UiButton {
+                                text: tabChoice.pinned ? "◆" : "◇"
+                                flat: true
+                                Layout.preferredWidth: 26
+                                Layout.preferredHeight: 24
+                                padding: 0
+                                horizontalPadding: 0
+                                Accessible.name: tabChoice.pinned ? qsTr("Unpin tab") : qsTr("Pin tab")
+                                onClicked: window.tabs.togglePinned(tabChoice.sourceIndex)
+                            }
+                            UiButton {
                                 text: "×"
                                 flat: true
                                 Layout.preferredWidth: 26
@@ -1095,16 +1153,20 @@ Basic.ApplicationWindow {
             return
         const query = tabSearch.text.toLowerCase().trim()
         tabChoices.clear()
-        for (let i = 0; i < tabViews.count; ++i) {
-            const view = tabViews.itemAt(i) as WebEngineView
-            if (!view)
-                continue
-            const url = view.url.toString()
-            const title = url === "about:blank" ? qsTr("New tab") : (view.title || url)
-            if (!query || (title + " " + url).toLowerCase().includes(query))
-                tabChoices.append({sourceIndex: i, pageTitle: title, pageUrl: url === "about:blank" ? qsTr("Start page") : url})
+        let selected = 0
+        for (const pinned of [true, false]) {
+            for (let i = 0; i < tabViews.count; ++i) {
+                const view = tabViews.itemAt(i) as WebEngineView
+                if (!view || window.tabs.workspaceAt(i) !== window.workspaces.currentId || window.tabs.pinnedAt(i) !== pinned) continue
+                const url = view.url.toString()
+                const title = url === "about:blank" ? qsTr("New tab") : (view.title || url)
+                if (!query || (title + " " + url).toLowerCase().includes(query)) {
+                    if (i === window.tabs.currentIndex) selected = tabChoices.count
+                    tabChoices.append({sourceIndex: i, pageTitle: title, pageUrl: url === "about:blank" ? qsTr("Start page") : url, pinned: pinned})
+                }
+            }
         }
-        tabList.currentIndex = query ? 0 : tabs.currentIndex
+        tabList.currentIndex = query ? 0 : selected
     }
     Connections {
         target: tabSearch
@@ -1114,6 +1176,7 @@ Basic.ApplicationWindow {
         target: window.tabs
         function onDataChanged() { window.refreshTabChoices() }
         function onCountChanged() { Qt.callLater(window.refreshTabChoices) }
+        function onWorkspaceChanged() { Qt.callLater(window.refreshTabChoices) }
     }
 
     Basic.Popup {

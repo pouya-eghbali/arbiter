@@ -7,6 +7,8 @@ FocusScope {
     id: pill
     required property var view
     required property var appearance
+    required property string workspaceName
+    required property color workspaceColor
     required property int tabCount
     property bool revealed: false
     readonly property bool expanded: revealed || activeFocus || more.visible
@@ -15,6 +17,7 @@ FocusScope {
     signal passwordsRequested()
     signal settingsRequested()
     signal historyRequested()
+    signal workspacesRequested()
     readonly property real expandedWidth: Math.min(560, parent.width - 32)
     property real revealProgress: expanded ? 1 : 0
     width: expanded ? expandedWidth : 76
@@ -96,6 +99,12 @@ FocusScope {
             onClicked: pill.addressRequested()
         }
         Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 20; color: Theme.border }
+        NavButton {
+            text: "●"
+            Accessible.name: qsTr("Workspaces: %1").arg(pill.workspaceName)
+            contentItem: Basic.Label { text: "●"; color: pill.workspaceColor; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            onClicked: pill.workspacesRequested()
+        }
         NavButton { objectName: "navigationTabsButton"; text: String(pill.tabCount); font.pixelSize: 13; Accessible.name: pill.tabCount === 1 ? qsTr("Show 1 tab") : qsTr("Show %1 tabs").arg(pill.tabCount); onClicked: pill.tabsRequested() }
         NavButton { text: "⋯"; Accessible.name: qsTr("More browser controls"); onClicked: more.open() }
     }
@@ -112,6 +121,7 @@ FocusScope {
         background: GlassSurface { dense: true }
         onOpened: pill.revealed = true
         onClosed: collapse.restart()
+        UiMenuItem { text: qsTr("Workspaces…"); onTriggered: pill.workspacesRequested() }
         UiMenuItem { text: qsTr("History…"); onTriggered: pill.historyRequested() }
         UiMenuItem { text: qsTr("Passwords…"); onTriggered: pill.passwordsRequested() }
         UiMenuItem { text: qsTr("Settings…"); onTriggered: pill.settingsRequested() }

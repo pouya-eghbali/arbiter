@@ -71,3 +71,7 @@ find_package(Qt6 6.12 REQUIRED COMPONENTS Sql)
 add_executable(history_test history_test.cpp ../src/history.cpp ../src/history.h)
 target_link_libraries(history_test PRIVATE Qt6::Sql Qt6::Test)
 add_test(NAME history COMMAND history_test)
+
+add_executable(workspaces_test workspaces_test.cpp ../src/workspaces.cpp ../src/workspaces.h ../src/tabs.cpp ../src/tabs.h)
+target_link_libraries(workspaces_test PRIVATE Qt6::Gui Qt6::Test)
+add_test(NAME workspaces COMMAND workspaces_test)

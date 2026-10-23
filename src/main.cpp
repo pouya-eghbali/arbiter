@@ -11,6 +11,8 @@
 #include "keybindings.h"
 #include "browserapplication.h"
 #include "tabs.h"
+#include "workspaces.h"
+#include "webprofiles.h"
 #include "passwordmanager.h"
 #include "webauthncontroller.h"
 #include "passkeycontroller.h"
@@ -36,6 +38,8 @@ int main(int argc, char *argv[])
     KeyBindings keyBindings;
     Appearance appearance;
     Tabs tabs;
+    Workspaces workspaces(&tabs);
+    WebProfiles webProfiles;
     History history;
     PasswordManager passwords;
     WebAuthnController webauthn;
@@ -53,12 +57,15 @@ int main(int argc, char *argv[])
     // and application products that sites can mistake for an unsupported browser.
     QString userAgent = QWebEngineProfile::defaultProfile()->httpUserAgent();
     userAgent.remove(QRegularExpression(QStringLiteral("\\s+(?:QtWebEngine|Arbiter)/[^\\s]+")));
+    webProfiles.userAgent = userAgent;
     const bool diagnostics = qEnvironmentVariableIsSet("ARBITER_DIAGNOSTICS");
     engine.setInitialProperties({{QStringLiteral("browserUserAgent"), userAgent},
                                  {QStringLiteral("appearance"), QVariant::fromValue(&appearance)},
                                  {QStringLiteral("siteNavigation"), QVariant::fromValue(&siteNavigation)},
                                  {QStringLiteral("keyBindings"), QVariant::fromValue(&keyBindings)},
                                  {QStringLiteral("tabs"), QVariant::fromValue(&tabs)},
+                                 {QStringLiteral("workspaces"), QVariant::fromValue(&workspaces)},
+                                 {QStringLiteral("webProfiles"), QVariant::fromValue(&webProfiles)},
                                  {QStringLiteral("history"), QVariant::fromValue(&history)},
                                  {QStringLiteral("passwords"), QVariant::fromValue(&passwords)},
                                  {QStringLiteral("webauthn"), QVariant::fromValue(&webauthn)},
@@ -113,6 +120,23 @@ int main(int argc, char *argv[])
         addTabAction(QObject::tr("Next Tab"), "nextTab");
         addTabAction(QObject::tr("Previous Tab"), "previousTab");
         QObject::connect(root, SIGNAL(shortcutRecordingChanged(bool)), tabsMenu, SLOT(setDisabled(bool)));
+        auto *workspacesMenu = nativeMenu.addMenu(QObject::tr("Workspaces"));
+        QObject::connect(workspacesMenu, &QMenu::aboutToShow, root, [root, workspacesMenu, &workspaces] {
+            workspacesMenu->clear();
+            auto *show = workspacesMenu->addAction(QObject::tr("Show Workspaces…"));
+            QObject::connect(show, &QAction::triggered, root, [root] { QMetaObject::invokeMethod(root,"openWorkspaces"); });
+            auto *next = workspacesMenu->addAction(QObject::tr("Next Workspace"));
+            QObject::connect(next, &QAction::triggered, &workspaces, [&workspaces] { workspaces.cycle(1); });
+            auto *previous = workspacesMenu->addAction(QObject::tr("Previous Workspace"));
+            QObject::connect(previous, &QAction::triggered, &workspaces, [&workspaces] { workspaces.cycle(-1); });
+            workspacesMenu->addSeparator();
+            for(const auto &value : workspaces.choices()) {
+                const auto space=value.toMap(); const auto id=space.value("id").toString();
+                auto *action=workspacesMenu->addAction(space.value("name").toString().replace('&',"&&"));
+                action->setMenuRole(QAction::NoRole); action->setCheckable(true); action->setChecked(id==workspaces.currentId());
+                QObject::connect(action,&QAction::triggered,&workspaces,[&workspaces,id] { workspaces.activate(id); });
+            }
+        });
         auto *historyMenu = nativeMenu.addMenu(QObject::tr("History"));
         auto *showHistory = historyMenu->addAction(QObject::tr("Show All History…"));
         const auto updateHistoryShortcut = [&keyBindings, showHistory] {

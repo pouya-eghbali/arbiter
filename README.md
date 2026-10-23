@@ -58,6 +58,26 @@ database under the Default profile's application-data directory. Private pages,
 failed loads, internal pages and local files are excluded; URL usernames and
 passwords are removed. Clearing saved history leaves open tabs and their
 Back/Forward lists intact. Deployments must include Qt Sql and its QSQLITE driver.
+Workspaces keep named, colored tab collections with their own selected tab and
+pinned tabs. Open the switcher through the Workspaces menu, the tab overview,
+the pill's workspace dot/menu, or Cmd+Shift+E / Ctrl+Shift+E. Next/previous
+workspace defaults to Cmd+Option+Right/Left on macOS and Ctrl+Alt+Right/Left
+elsewhere. All three shortcuts can be changed in Settings → Keyboard, and
+switching remains available when the pill is disabled.
+The switcher supports creating, renaming, coloring, reordering and deleting
+workspaces. Tabs stay alive while switching; workspace names, order, colors,
+tabs, pins and selection are saved locally and restored at startup. Restarting
+restores page addresses, not unsaved form contents or per-tab Back/Forward lists.
+Pin/unpin tabs with the diamond button in the tab overview; pinned tabs appear
+first. Move the active tab using Move tab here in another shared-session workspace.
+New workspaces can optionally use separate persistent cookies and website
+storage. This choice is fixed at creation; passwords, passkeys and browsing
+history remain shared across workspaces. Across different sign-in sessions,
+Open copy here opens the address in the destination session and preserves the
+original tab. Deleting a workspace requires confirmation and discards its tabs;
+website sign-in data is retained. At least one workspace remains available.
+Session metadata uses an atomic JSON file and a process lock. Unreadable files
+are preserved and concurrent instances cannot overwrite the session.
 Cmd+L opens a floating address editor with the full URL selected; Enter navigates, and Escape
 or a click outside dismisses the editor. The default empty page has a centered
 address/search field, focused on startup. Drag the empty page background to move
