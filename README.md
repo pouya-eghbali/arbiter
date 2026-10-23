@@ -47,6 +47,17 @@ navigation headings appear directly in the menu bar; additional headings go in
 More. Pages without navigation links show a disabled placeholder in the tab-title
 menu. Script-only buttons, hidden dropdown contents and frame navigation are
 not included.
+History is available from History → Show All History, the navigation pill's
+History item, or Cmd+Y on macOS / Ctrl+Y elsewhere. The shortcut can be changed
+in Settings → Keyboard. The searchable history view groups visits by date,
+opens entries in the current or a new tab, and supports individual deletion
+and clearing all saved history with confirmation. Save browsing history can be
+turned off in that view without deleting existing entries.
+History stores up to 10,000 recent successful HTTP/HTTPS visits in a local SQLite
+database under the Default profile's application-data directory. Private pages,
+failed loads, internal pages and local files are excluded; URL usernames and
+passwords are removed. Clearing saved history leaves open tabs and their
+Back/Forward lists intact. Deployments must include Qt Sql and its QSQLITE driver.
 Cmd+L opens a floating address editor with the full URL selected; Enter navigates, and Escape
 or a click outside dismisses the editor. The default empty page has a centered
 address/search field, focused on startup. Drag the empty page background to move

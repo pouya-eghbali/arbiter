@@ -14,6 +14,7 @@ FocusScope {
     signal tabsRequested()
     signal passwordsRequested()
     signal settingsRequested()
+    signal historyRequested()
     readonly property real expandedWidth: Math.min(560, parent.width - 32)
     property real revealProgress: expanded ? 1 : 0
     width: expanded ? expandedWidth : 76
@@ -111,6 +112,7 @@ FocusScope {
         background: GlassSurface { dense: true }
         onOpened: pill.revealed = true
         onClosed: collapse.restart()
+        UiMenuItem { text: qsTr("History…"); onTriggered: pill.historyRequested() }
         UiMenuItem { text: qsTr("Passwords…"); onTriggered: pill.passwordsRequested() }
         UiMenuItem { text: qsTr("Settings…"); onTriggered: pill.settingsRequested() }
     }

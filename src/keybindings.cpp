@@ -30,6 +30,7 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
     add("previousTab", "Previous tab", QKeySequence(tabModifier + QStringLiteral("Shift+Tab")));
     add("reopenTab", "Reopen closed tab", QKeySequence(QStringLiteral("Ctrl+Shift+T")));
     add("closeWindow", "Close window", QKeySequence(QStringLiteral("Ctrl+Shift+W")));
+    add("history", "Show history", QKeySequence(QStringLiteral("Ctrl+Y")));
     QSettings settings;
     QSet<QKeySequence> used;
     // Load as one set: invalid or duplicate saved shortcuts revert the whole set.

@@ -12,6 +12,7 @@ Basic.ApplicationWindow {
     required property string browserUserAgent
     required property bool browserDiagnostics
     required property var tabs
+    required property var history
     required property var appearance
     required property var siteNavigation
     property int siteNavigationGeneration: 0
@@ -100,6 +101,7 @@ Basic.ApplicationWindow {
     }
 
     function prepareForShutdown() {
+        historyPanel.close()
         addressPopup.close()
         tabsPopup.close()
         if (webView) {
@@ -118,6 +120,7 @@ Basic.ApplicationWindow {
     }
 
     function focusAddress() {
+        historyPanel.close()
         if (emptyPage && !settingsOpen) {
             homeAddress.forceActiveFocus()
             homeAddress.selectAll()
@@ -140,6 +143,7 @@ Basic.ApplicationWindow {
         if (!text)
             return
         addressPopup.close()
+        historyPanel.close()
         if (text.toLowerCase() === "arbiter://settings") {
             window.settingsOpen = true
             return
@@ -155,13 +159,14 @@ Basic.ApplicationWindow {
     }
 
     Shortcut { sequence: window.bindings.address; enabled: window.recordingIndex < 0; onActivated: window.focusAddress() }
+    Shortcut { sequence: window.bindings.history; enabled: window.recordingIndex < 0; onActivated: window.openHistory() }
     Shortcut { sequence: window.bindings.passwords; enabled: window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.openPasswords() }
     Shortcut { sequence: window.bindings.reload; enabled: window.webView && window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.webView.reload() }
     Shortcut { sequence: window.bindings.back; enabled: window.webView && window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.webView.goBack() }
     Shortcut { sequence: window.bindings.forward; enabled: window.webView && window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.webView.goForward() }
     Shortcut {
         sequence: window.bindings.stop
-        enabled: !addressPopup.visible && !tabsPopup.visible && window.recordingIndex < 0 && !window.settingsOpen
+        enabled: !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && window.recordingIndex < 0 && !window.settingsOpen
         onActivated: { window.webView.stop(); window.webView.forceActiveFocus() }
     }
     Shortcut { sequence: window.bindings.close; enabled: window.recordingIndex < 0; onActivated: window.closeCurrentTab() }
@@ -176,7 +181,9 @@ Basic.ApplicationWindow {
     Shortcut { sequence: window.bindings.closeWindow; enabled: window.recordingIndex < 0; onActivated: window.close() }
 
     function focusPage() {
-        if (tabsPopup.visible)
+        if (historyPanel.visible)
+            historyPanel.focusSearch()
+        else if (tabsPopup.visible)
             tabSearch.forceActiveFocus()
         else if (addressPopup.visible)
             popupAddress.forceActiveFocus()
@@ -197,6 +204,7 @@ Basic.ApplicationWindow {
     }
 
     function selectTab(index: int) {
+        historyPanel.close()
         addressPopup.close()
         tabsPopup.close()
         settingsOpen = false
@@ -217,6 +225,7 @@ Basic.ApplicationWindow {
         const view = tabViews.itemAt(index) as WebEngineView
         if (!view)
             return
+        historyPanel.close()
         // Let Chromium run beforeunload and show its confirmation before
         // destroying a page with unsaved work.
         addressPopup.close()
@@ -239,7 +248,7 @@ Basic.ApplicationWindow {
     function nextTab() { tabs.cycle(1); selectTab(tabs.currentIndex) }
     function previousTab() { tabs.cycle(-1); selectTab(tabs.currentIndex) }
     function reopenTab() { if (tabs.reopen()) selectTab(tabs.currentIndex) }
-    function showTabs() { addressPopup.close(); tabsPopup.open() }
+    function showTabs() { historyPanel.close(); addressPopup.close(); tabsPopup.open() }
 
     function openExternalUrl(url: string) {
         syncActiveView()
@@ -268,6 +277,7 @@ Basic.ApplicationWindow {
     }
 
     function toggleSettings() {
+        historyPanel.close()
         if (webView) webAuthnPanel.cancelFor(webView)
         addressPopup.close()
         tabsPopup.close()
@@ -288,12 +298,22 @@ Basic.ApplicationWindow {
     }
 
     function openPasswords() {
+        historyPanel.close()
         addressPopup.close()
         tabsPopup.close()
         if (!settingsOpen) passwordPanel.openFor(webView)
     }
 
-    function openPasswordSettings() { passwordPanel.openManager() }
+    function openPasswordSettings() { historyPanel.close(); passwordPanel.openManager() }
+    function openHistory() {
+        if (webView) {
+            webAuthnPanel.cancelFor(webView)
+            passwordPanel.cancelFor(webView)
+        }
+        addressPopup.close()
+        tabsPopup.close()
+        historyPanel.open()
+    }
 
     function toggleExpanded() {
         if (visibility === Window.Maximized || visibility === Window.FullScreen)
@@ -327,6 +347,17 @@ Basic.ApplicationWindow {
             required property int tabId
             required property url initialUrl
             property string errorText: ""
+            property bool historyReady: false
+            property string historyVisitId: ""
+            property string historyUrl: ""
+            function recordHistory() {
+                // url may expose a pending destination before LoadStarted.
+                // Only save the committed document, including same-document changes.
+                const committed = mainFrame.url.toString()
+                if (!historyReady || loading || profile.offTheRecord || url.toString() !== committed || committed === historyUrl) return
+                historyUrl = committed
+                historyVisitId = window.history.record(mainFrame.url, title, profile.offTheRecord)
+            }
             readonly property var passwordAgent: passwordSession
             anchors.fill: parent
             visible: tabsPopup.visible || (index === window.tabs.currentIndex && !window.settingsOpen && !window.emptyPage)
@@ -378,9 +409,12 @@ Basic.ApplicationWindow {
             }
             onTitleChanged: {
                 window.tabs.update(tabId, title, url)
+                if (!profile.offTheRecord && historyVisitId.length > 0)
+                    window.history.updateTitle(historyVisitId, url, title)
                 if (page === window.webView) window.siteNavigation.setTitle(title)
             }
             onUrlChanged: {
+                Qt.callLater(page.recordHistory)
                 if (page === window.webView) window.resetSiteNavigation()
                 webAuthnPanel.cancelFor(page)
                 passwordSession.invalidate()
@@ -397,10 +431,19 @@ Basic.ApplicationWindow {
             }
             onLoadingChanged: function(request) {
                 if (request.status === WebEngineView.LoadStartedStatus) {
+                    historyReady = false
+                    historyVisitId = ""
+                    historyUrl = ""
                     if (page === window.webView) window.resetSiteNavigation()
                     webAuthnPanel.cancelFor(page)
                     passwordSession.invalidate()
                     passwordPanel.cancelFor(page)
+                }
+                if (request.status === WebEngineView.LoadSucceededStatus) {
+                    if (request.url.toString() === page.mainFrame.url.toString()) {
+                        historyReady = true
+                        recordHistory()
+                    }
                 }
                 if (page === window.webView && request.status === WebEngineView.LoadSucceededStatus)
                     window.refreshSiteNavigation()
@@ -775,7 +818,7 @@ Basic.ApplicationWindow {
         anchors.bottomMargin: 12
         z: 21
         visible: window.appearance.navigationPill && !window.emptyPage && !window.settingsOpen
-            && !window.webauthn.active && !addressPopup.visible && !tabsPopup.visible
+            && !window.webauthn.active && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible
         view: window.webView
         appearance: window.appearance
         tabCount: window.tabs.count
@@ -783,6 +826,18 @@ Basic.ApplicationWindow {
         onTabsRequested: window.showTabs()
         onPasswordsRequested: window.openPasswords()
         onSettingsRequested: window.openSettings()
+        onHistoryRequested: window.openHistory()
+    }
+    HistoryPanel {
+        id: historyPanel
+        objectName: "historyPanel"
+        manager: window.history
+        onClosed: Qt.callLater(window.focusPage)
+        onVisitRequested: function(url, newTab) {
+            close()
+            if (newTab) window.selectTab(window.tabs.add(url))
+            else window.navigate(url)
+        }
     }
     PasskeySetup { id: passkeySetup; objectName: "passkeySetup"; controller: window.passkeys }
 

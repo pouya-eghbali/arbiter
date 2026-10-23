@@ -15,6 +15,7 @@
 #include "webauthncontroller.h"
 #include "passkeycontroller.h"
 #include "appearance.h"
+#include "history.h"
 #include "sitenavigation.h"
 #include <QWindow>
 #ifdef Q_OS_MACOS
@@ -35,6 +36,7 @@ int main(int argc, char *argv[])
     KeyBindings keyBindings;
     Appearance appearance;
     Tabs tabs;
+    History history;
     PasswordManager passwords;
     WebAuthnController webauthn;
     PasskeyController passkeys;
@@ -57,6 +59,7 @@ int main(int argc, char *argv[])
                                  {QStringLiteral("siteNavigation"), QVariant::fromValue(&siteNavigation)},
                                  {QStringLiteral("keyBindings"), QVariant::fromValue(&keyBindings)},
                                  {QStringLiteral("tabs"), QVariant::fromValue(&tabs)},
+                                 {QStringLiteral("history"), QVariant::fromValue(&history)},
                                  {QStringLiteral("passwords"), QVariant::fromValue(&passwords)},
                                  {QStringLiteral("webauthn"), QVariant::fromValue(&webauthn)},
                                  {QStringLiteral("passkeys"), QVariant::fromValue(&passkeys)},
@@ -110,6 +113,14 @@ int main(int argc, char *argv[])
         addTabAction(QObject::tr("Next Tab"), "nextTab");
         addTabAction(QObject::tr("Previous Tab"), "previousTab");
         QObject::connect(root, SIGNAL(shortcutRecordingChanged(bool)), tabsMenu, SLOT(setDisabled(bool)));
+        auto *historyMenu = nativeMenu.addMenu(QObject::tr("History"));
+        auto *showHistory = historyMenu->addAction(QObject::tr("Show All History…"));
+        const auto updateHistoryShortcut = [&keyBindings, showHistory] {
+            showHistory->setShortcut(QKeySequence::fromString(keyBindings.bindings().value("history").toString(), QKeySequence::PortableText));
+        };
+        updateHistoryShortcut();
+        QObject::connect(&keyBindings, &KeyBindings::bindingsChanged, showHistory, updateHistoryShortcut);
+        QObject::connect(showHistory, &QAction::triggered, root, [root] { QMetaObject::invokeMethod(root, "openHistory"); });
         auto *passwordsMenu = nativeMenu.addMenu(QObject::tr("Passwords"));
         auto *fillAction = passwordsMenu->addAction(QObject::tr("Fill or Save Login…"));
         QObject::connect(fillAction, &QAction::triggered, root, [root] {

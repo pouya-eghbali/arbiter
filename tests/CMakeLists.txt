@@ -66,3 +66,8 @@ if(ARBITER_WEBENGINE_TESTS)
     add_test(NAME sitenavigation COMMAND sitenavigation_test)
     set_tests_properties(sitenavigation PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
+
+find_package(Qt6 6.12 REQUIRED COMPONENTS Sql)
+add_executable(history_test history_test.cpp ../src/history.cpp ../src/history.h)
+target_link_libraries(history_test PRIVATE Qt6::Sql Qt6::Test)
+add_test(NAME history COMMAND history_test)
