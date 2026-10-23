@@ -5,6 +5,7 @@
 #include <QLockFile>
 #include <memory>
 #include "tabs.h"
+#include "splitlayout.h"
 
 class Workspaces final : public QObject {
     Q_OBJECT
@@ -14,6 +15,7 @@ class Workspaces final : public QObject {
     Q_PROPERTY(QString currentName READ currentName NOTIFY changed)
     Q_PROPERTY(QColor currentColor READ currentColor NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
+    Q_PROPERTY(QObject *splits READ splits CONSTANT)
 public:
     explicit Workspaces(Tabs *tabs, QObject *parent = nullptr);
     Workspaces(Tabs *tabs, const QString &directory, QObject *parent = nullptr);
@@ -24,6 +26,8 @@ public:
     QString currentName() const;
     QColor currentColor() const;
     QString error() const { return m_error; }
+    QObject *splits() { return &m_splits; }
+    SplitLayout *splitLayout() { return &m_splits; }
     Q_INVOKABLE void activate(const QString &id);
     Q_INVOKABLE void cycle(int direction);
     Q_INVOKABLE QString create(const QString &name, const QColor &color, bool isolated);
@@ -44,6 +48,7 @@ private:
     bool fail(const QString &error);
     void scheduleSave();
     Tabs *m_tabs;
+    SplitLayout m_splits;
     QList<Space> m_spaces;
     QString m_current, m_directory, m_error;
     std::unique_ptr<QLockFile> m_lock;

@@ -11,6 +11,7 @@
 #include "keybindings.h"
 #include "browserapplication.h"
 #include "tabs.h"
+#include "splitswapgesture.h"
 #include "workspaces.h"
 #include "webprofiles.h"
 #include "passwordmanager.h"
@@ -44,6 +45,7 @@ int main(int argc, char *argv[])
     PasswordManager passwords;
     WebAuthnController webauthn;
     PasskeyController passkeys;
+    qmlRegisterType<SplitSwapGesture>("Arbiter.Input", 1, 0, "SplitSwapGesture");
     qmlRegisterType<PasswordSession>("Arbiter.Credentials", 1, 0, "PasswordSession");
     QMenuBar nativeMenu;
     SiteNavigation siteNavigation(&nativeMenu);
@@ -119,6 +121,13 @@ int main(int argc, char *argv[])
         tabsMenu->addSeparator();
         addTabAction(QObject::tr("Next Tab"), "nextTab");
         addTabAction(QObject::tr("Previous Tab"), "previousTab");
+        tabsMenu->addSeparator();
+        addTabAction(QObject::tr("Split Left / Right"), "splitHorizontal");
+        addTabAction(QObject::tr("Split Top / Bottom"), "splitVertical");
+        addTabAction(QObject::tr("Focus Next Pane"), "nextPane");
+        addTabAction(QObject::tr("Focus Previous Pane"), "previousPane");
+        addTabAction(QObject::tr("Show Next Hidden Tab in Active Pane"), "nextHiddenTab");
+        addTabAction(QObject::tr("Keep Only Active Pane"), "singlePane");
         QObject::connect(root, SIGNAL(shortcutRecordingChanged(bool)), tabsMenu, SLOT(setDisabled(bool)));
         auto *workspacesMenu = nativeMenu.addMenu(QObject::tr("Workspaces"));
         QObject::connect(workspacesMenu, &QMenu::aboutToShow, root, [root, workspacesMenu, &workspaces] {

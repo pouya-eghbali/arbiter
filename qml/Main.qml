@@ -11,6 +11,8 @@ Basic.ApplicationWindow {
     id: window
     required property string browserUserAgent
     required property bool browserDiagnostics
+    readonly property var splits: workspaces.splits
+    property int splitRevision: 0
     required property var workspaces
     required property var webProfiles
     required property var tabs
@@ -19,7 +21,10 @@ Basic.ApplicationWindow {
     required property var siteNavigation
     property int siteNavigationGeneration: 0
     readonly property bool siteNavigationEnabled: Qt.platform.os === "osx" && appearance.siteMenuMode !== "off" && !settingsOpen
+    readonly property var homeAddress: homeStart.addressField
     property var webView: null
+    property bool changingTabs: false
+    property bool shuttingDown: false
     required property var keyBindings
     required property var passwords
     required property var passkeys
@@ -103,6 +108,7 @@ Basic.ApplicationWindow {
     }
 
     function prepareForShutdown() {
+        shuttingDown = true
         biometricSetup.close()
         workspacePanel.close()
         historyPanel.close()
@@ -114,10 +120,10 @@ Basic.ApplicationWindow {
         }
         for (let i = 0; i < tabViews.count; ++i) {
             const view = tabViews.itemAt(i) as WebEngineView
-            if (view) view.focus = false
+            if (view) { view.startPage.focus = false; view.focus = false }
         }
         webView = null
-        homeAddress.forceActiveFocus()
+        contentItem.forceActiveFocus()
         // Release views while their profile and the window's focus delivery
         // agent are still alive, before ApplicationWindow starts destruction.
         tabViews.model = null
@@ -126,9 +132,9 @@ Basic.ApplicationWindow {
     function focusAddress() {
         workspacePanel.close()
         historyPanel.close()
-        if (emptyPage && !settingsOpen) {
-            homeAddress.forceActiveFocus()
-            homeAddress.selectAll()
+        if (emptyPage && !settingsOpen && webView) {
+            if (splits.multiple) webView.startPage.focusAddress(true)
+            else homeStart.focusAddress(true)
         } else {
             if (!addressPopup.visible) {
                 tabsPopup.close()
@@ -187,6 +193,11 @@ Basic.ApplicationWindow {
     Shortcut { sequence: window.bindings.nextTab; enabled: window.recordingIndex < 0; onActivated: window.nextTab() }
     Shortcut { sequence: window.bindings.previousTab; enabled: window.recordingIndex < 0; onActivated: window.previousTab() }
     Shortcut { sequence: window.bindings.reopenTab; enabled: window.recordingIndex < 0; onActivated: window.reopenTab() }
+    Shortcut { sequence: window.bindings.splitHorizontal; enabled: window.recordingIndex < 0; onActivated: window.splitHorizontal() }
+    Shortcut { sequence: window.bindings.splitVertical; enabled: window.recordingIndex < 0; onActivated: window.splitVertical() }
+    Shortcut { sequence: window.bindings.nextPane; enabled: window.recordingIndex < 0; onActivated: window.nextPane() }
+    Shortcut { sequence: window.bindings.previousPane; enabled: window.recordingIndex < 0; onActivated: window.previousPane() }
+    Shortcut { sequence: window.bindings.nextHiddenTab; enabled: window.recordingIndex < 0; onActivated: window.nextHiddenTab() }
     Shortcut { sequence: window.bindings.closeWindow; enabled: window.recordingIndex < 0; onActivated: window.close() }
 
     function focusPage() {
@@ -200,17 +211,20 @@ Basic.ApplicationWindow {
             popupAddress.forceActiveFocus()
         else if (settingsOpen)
             settingsPage.forceActiveFocus()
-        else if (emptyPage)
-            homeAddress.forceActiveFocus()
-        else if (webView)
+        else if (emptyPage) {
+            if (splits.multiple && webView) webView.startPage.focusAddress(false)
+            else homeStart.focusAddress(false)
+        } else if (webView)
             webView.forceActiveFocus()
     }
 
     function syncActiveView() {
+        if (changingTabs || shuttingDown) return
         if (webView) webAuthnPanel.cancelFor(webView)
         if (webView) passwordPanel.cancelFor(webView)
         webView = tabViews.itemAt(tabs.currentIndex)
         homeAddress.text = ""
+        Qt.callLater(revealActivePane)
         Qt.callLater(focusPage)
     }
 
@@ -225,8 +239,66 @@ Basic.ApplicationWindow {
         syncActiveView()
     }
 
+    function splitHorizontal() { closeSplitPopups(); splits.split(true) }
+    function splitVertical() { closeSplitPopups(); splits.split(false) }
+    function closeSplitPopups() {
+        settingsOpen = false
+        recordingIndex = -1
+        tabsPopup.close()
+        addressPopup.close()
+        historyPanel.close()
+        workspacePanel.close()
+    }
+    function revealActivePane() {
+        if (!webView || !splits.multiple) return
+        // A split changes the viewport inset. Publish its settled size before
+        // calculating focus scrolling, and never scroll outside actual bounds.
+        splitViewport.updateViewport()
+        const p = splits.geometry(webView.tabId)
+        if (p.paneId === undefined) return
+        let x = Math.max(0, Math.min(splitViewport.contentX, p.x))
+        let y = Math.max(0, Math.min(splitViewport.contentY, p.y))
+        if (p.x + p.width > x + splitViewport.width)
+            x = p.x + Math.min(p.width, splitViewport.width) - splitViewport.width
+        if (p.y + p.height > y + splitViewport.height)
+            y = p.y + Math.min(p.height, splitViewport.height) - splitViewport.height
+        splitViewport.contentX = Math.max(0, Math.min(x, splitViewport.contentWidth - splitViewport.width))
+        splitViewport.contentY = Math.max(0, Math.min(y, splitViewport.contentHeight - splitViewport.height))
+    }
+    function singlePane() { splits.single(); focusPage() }
+    function nextPane() { splits.cycle(1); focusPage() }
+    function previousPane() { splits.cycle(-1); focusPage() }
+    function nextHiddenTab() { if (splits.nextHiddenTab()) selectTab(tabs.currentIndex) }
+
+    Connections {
+        target: window.splits
+        function onChanged() { ++window.splitRevision }
+    }
+
     function newTab() {
         selectTab(tabs.add("about:blank"))
+    }
+
+    function prepareTabRemoval(first: int, last: int) {
+        changingTabs = true
+        for (let i = first; i <= last; ++i) {
+            const view = tabViews.itemAt(i) as WebEngineView
+            if (!view) continue
+            webAuthnPanel.cancelFor(view)
+            passwordPanel.cancelFor(view)
+            // Repeater detaches delegates before their deferred destruction.
+            // Clear the WebEngine focus scope while its parent is still alive.
+            view.startPage.focus = false
+            view.focus = false
+            if (view === webView) {
+                webView = null
+                contentItem.forceActiveFocus()
+            }
+        }
+    }
+    function finishTabRemoval() {
+        changingTabs = false
+        syncActiveView()
     }
 
     function closeCurrentTab() {
@@ -235,7 +307,7 @@ Basic.ApplicationWindow {
 
     function closeTab(index: int) {
         const view = tabViews.itemAt(index) as WebEngineView
-        if (!view)
+        if (!view || view.closeQueued)
             return
         historyPanel.close()
         // Let Chromium run beforeunload and show its confirmation before
@@ -245,7 +317,13 @@ Basic.ApplicationWindow {
         view.triggerWebAction(WebEngineView.RequestClose)
     }
 
-    function finishClosingTab(index: int) {
+    function finishClosingTab(tabId: int) {
+        // Rows can change while Chromium finishes beforeunload or another tab
+        // closes. Resolve the stable ID only after the request callback returns.
+        let index = -1
+        for (let i = 0; i < tabs.count; ++i)
+            if (tabs.idAt(i) === tabId) { index = i; break }
+        if (index < 0 || shuttingDown) return
         if (tabs.workspaceCount === 1 && workspaces.count === 1) {
             tabs.close(index)
             tabs.add("about:blank")
@@ -290,6 +368,10 @@ Basic.ApplicationWindow {
     Connections {
         target: window.tabs
         function onCurrentIndexChanged() { window.syncActiveView() }
+        function onRowsAboutToBeRemoved(parent, first, last) { window.prepareTabRemoval(first, last) }
+        function onRowsRemoved() { Qt.callLater(window.finishTabRemoval) }
+        function onModelAboutToBeReset() { window.prepareTabRemoval(0, window.tabs.count - 1) }
+        function onModelReset() { Qt.callLater(window.finishTabRemoval) }
     }
     Connections {
         target: window.workspaces
@@ -315,10 +397,8 @@ Basic.ApplicationWindow {
         settingsOpen = !settingsOpen
         if (settingsOpen)
             settingsPage.forceActiveFocus()
-        else if (emptyPage)
-            homeAddress.forceActiveFocus()
         else
-            webView.forceActiveFocus()
+            focusPage()
     }
 
     function openSettings() {
@@ -370,133 +450,227 @@ Basic.ApplicationWindow {
     }
 
 
-    Repeater {
-        id: tabViews
-        model: window.tabs
-        onItemAdded: Qt.callLater(window.syncActiveView)
-        onItemRemoved: Qt.callLater(window.syncActiveView)
-        delegate: WebEngineView {
-            id: page
-            required property int index
-            required property string workspaceId
-            required property string profileId
-            required property int tabId
-            required property url initialUrl
-            property string errorText: ""
-            property bool historyReady: false
-            property string historyVisitId: ""
-            property string historyUrl: ""
-            function recordHistory() {
-                // url may expose a pending destination before LoadStarted.
-                // Only save the committed document, including same-document changes.
-                const committed = mainFrame.url.toString()
-                if (!historyReady || loading || profile.offTheRecord || url.toString() !== committed || committed === historyUrl) return
-                historyUrl = committed
-                historyVisitId = window.history.record(mainFrame.url, title, profile.offTheRecord)
-            }
-            readonly property var passwordAgent: passwordSession
-            anchors.fill: parent
-            visible: (tabsPopup.visible && workspaceId === window.workspaces.currentId) || (index === window.tabs.currentIndex && !window.settingsOpen && !window.emptyPage)
-            z: index === window.tabs.currentIndex ? 0 : -1
-            settings.focusOnNavigationEnabled: index === window.tabs.currentIndex
-            url: initialUrl
-            backgroundColor: window.color
-            profile: window.webProfiles.profile(profileId)
-            webChannel: passwordChannel
-            webChannelWorld: 1
-            userScripts.collection: [{
-                name: "Arbiter password forms",
-                injectionPoint: WebEngineScript.DocumentReady,
-                worldId: WebEngineScript.ApplicationWorld,
-                runsOnSubFrames: false,
-                sourceCode: window.passwords.captureScript
-            }]
-            WebChannel {
-                id: passwordChannel
-                Component.onCompleted: registerObject("passwordCapture", passwordSession.capture)
-            }
-            PasswordSession {
-                id: passwordSession
-                manager: window.passwords
-                onCaptureNeedsValidation: passwordSession.validateCapture(page.mainFrame.url, page.profile.offTheRecord)
-                onRunFillScript: function(script) {
-                    if (page !== window.webView || window.settingsOpen || !window.passwords.enabled) return
-                    page.mainFrame.runJavaScript(script, 1, function(filled) {
-                        window.passwords.reportFillResult(filled === true)
-                    })
-                }
-            }
-            WebContextMenu {
-                id: pageContextMenu
-                view: page
-                passwordsEnabled: window.passwords.enabled
-                onPasswordsRequested: Qt.callLater(window.openPasswords)
-            }
-            onContextMenuRequested: function(request) { pageContextMenu.show(request) }
-            onNewWindowRequested: function(request) { window.openWebRequest(request, workspaceId) }
-            onWindowCloseRequested: window.finishClosingTab(index)
-            onWebAuthUxRequested: function(request) {
-                if (page !== window.webView || window.settingsOpen) request.cancel()
-                else webAuthnPanel.show(page, request)
-            }
-            Component.onDestruction: {
-                webAuthnPanel.cancelFor(page)
-                passwordPanel.cancelFor(page)
-            }
-            onTitleChanged: {
-                window.tabs.update(tabId, title, url)
-                if (!profile.offTheRecord && historyVisitId.length > 0)
-                    window.history.updateTitle(historyVisitId, url, title)
-                if (page === window.webView) window.siteNavigation.setTitle(title)
-            }
-            onUrlChanged: {
-                Qt.callLater(page.recordHistory)
-                if (page === window.webView) window.resetSiteNavigation()
-                webAuthnPanel.cancelFor(page)
-                passwordSession.invalidate()
-                passwordPanel.cancelFor(page)
-                window.tabs.update(tabId, title, url)
-                if (page === window.webView && window.emptyPage) {
-                    homeAddress.text = ""
-                    Qt.callLater(window.focusPage)
-                }
-            }
-            onJavaScriptConsoleMessage: function(level, message, lineNumber, sourceID) {
-                if (window.browserDiagnostics)
-                    console.log("Page console:", level, sourceID, lineNumber, message)
-            }
-            onLoadingChanged: function(request) {
-                if (request.status === WebEngineView.LoadStartedStatus) {
-                    historyReady = false
-                    historyVisitId = ""
-                    historyUrl = ""
-                    if (page === window.webView) window.resetSiteNavigation()
-                    webAuthnPanel.cancelFor(page)
-                    passwordSession.invalidate()
-                    passwordPanel.cancelFor(page)
-                }
-                if (request.status === WebEngineView.LoadSucceededStatus) {
-                    if (request.url.toString() === page.mainFrame.url.toString()) {
-                        historyReady = true
-                        recordHistory()
+    Flickable {
+        id: splitViewport
+        objectName: "splitViewport"
+        anchors.fill: parent
+        // Half the divider width keeps the complete pane stroke inside the
+        // native window curve, with the same spacing around the whole layout.
+        anchors.margins: window.splits.multiple ? 4 : 0
+        visible: !window.settingsOpen
+        clip: true
+        contentWidth: Math.max(width, window.splits.minimumWidth)
+        contentHeight: Math.max(height, window.splits.minimumHeight)
+        // Scrolling the canvas must not steal gestures from websites.
+        interactive: false
+        Basic.ScrollBar.horizontal: Basic.ScrollBar { policy: splitViewport.contentWidth > splitViewport.width ? Basic.ScrollBar.AlwaysOn : Basic.ScrollBar.AlwaysOff }
+        Basic.ScrollBar.vertical: Basic.ScrollBar { policy: splitViewport.contentHeight > splitViewport.height ? Basic.ScrollBar.AlwaysOn : Basic.ScrollBar.AlwaysOff }
+        function clampOffsets() {
+            contentX = Math.max(0, Math.min(contentX, contentWidth - width))
+            contentY = Math.max(0, Math.min(contentY, contentHeight - height))
+        }
+        function updateViewport() {
+            window.splits.setViewport(width, height)
+            clampOffsets()
+        }
+        onContentWidthChanged: Qt.callLater(splitViewport.clampOffsets)
+        onContentHeightChanged: Qt.callLater(splitViewport.clampOffsets)
+        // Wait for anchor margins to settle before publishing new geometry.
+        onWidthChanged: Qt.callLater(splitViewport.updateViewport)
+        onHeightChanged: Qt.callLater(splitViewport.updateViewport)
+        Component.onCompleted: updateViewport()
+        Item {
+            id: paneCanvas
+            objectName: "paneCanvas"
+            width: splitViewport.contentWidth
+            height: splitViewport.contentHeight
+            Repeater {
+                id: tabViews
+                model: window.tabs
+                onItemAdded: Qt.callLater(window.syncActiveView)
+                onItemRemoved: Qt.callLater(window.syncActiveView)
+                delegate: WebEngineView {
+                    id: page
+                    required property int index
+                    required property string workspaceId
+                    required property string profileId
+                    required property int tabId
+                    required property url initialUrl
+                    property bool closeQueued: false
+                    property string errorText: ""
+                    property bool historyReady: false
+                    property string historyVisitId: ""
+                    property string historyUrl: ""
+                    function recordHistory() {
+                        // url may expose a pending destination before LoadStarted.
+                        // Only save the committed document, including same-document changes.
+                        const committed = mainFrame.url.toString()
+                        if (!historyReady || loading || profile.offTheRecord || url.toString() !== committed || committed === historyUrl) return
+                        historyUrl = committed
+                        historyVisitId = window.history.record(mainFrame.url, title, profile.offTheRecord)
+                    }
+                    readonly property var passwordAgent: passwordSession
+                    readonly property var startPage: paneStart
+                    StartPage {
+                        id: paneStart
+                        objectName: "paneStart" + page.tabId
+                        // A stable sibling of the engine item, owned by this tab:
+                        // an invisible about:blank view must not hide its start page.
+                        parent: paneCanvas
+                        x: page.x
+                        y: page.y
+                        width: page.width
+                        height: page.height
+                        z: 1
+                        visible: page.inSplit && window.splits.multiple && !window.settingsOpen && page.url.toString() === "about:blank"
+                        addressShortcut: window.keyBindings.nativeSequence(window.bindings.address)
+                        tabsShortcut: window.keyBindings.nativeSequence(window.bindings.tabs)
+                        onActiveFocusChanged: if (activeFocus && visible && !window.changingTabs && !window.shuttingDown) window.splits.activate(page.paneGeometry.paneId)
+                        onNavigateRequested: function(text) { window.splits.activate(page.paneGeometry.paneId); window.navigate(text) }
+                        onTabsRequested: { window.splits.activate(page.paneGeometry.paneId); window.showTabs() }
+                        onSettingsRequested: window.openSettings()
+                    }
+                    readonly property var paneGeometry: {
+                        const revision = window.splitRevision
+                        return window.splits.geometry(tabId)
+                    }
+                    readonly property bool inSplit: paneGeometry.paneId !== undefined
+                    x: inSplit ? paneGeometry.x : 0
+                    y: inSplit ? paneGeometry.y : 0
+                    width: inSplit ? Math.max(0, paneGeometry.width) : window.width
+                    height: inSplit ? Math.max(0, paneGeometry.height) : window.height
+                    onActiveFocusChanged: if (activeFocus && inSplit && !window.settingsOpen && !window.changingTabs && !window.shuttingDown) window.splits.activate(paneGeometry.paneId)
+                    visible: (tabsPopup.visible && workspaceId === window.workspaces.currentId) || (inSplit && !window.settingsOpen && url.toString() !== "about:blank")
+                    z: 1
+                    layer.enabled: inSplit && window.splits.multiple
+                    layer.effect: MultiEffect {
+                        maskEnabled: true
+                        maskSource: paneMask
+                    }
+                    PaneShape {
+                        id: paneMask
+                        objectName: "paneMask" + page.tabId
+                        anchors.fill: parent
+                        color: "white"
+                        layer.enabled: true
+                        visible: false
+                    }
+                    settings.focusOnNavigationEnabled: index === window.tabs.currentIndex && url.toString() !== "about:blank"
+                    url: initialUrl
+                    backgroundColor: window.color
+                    profile: window.webProfiles.profile(profileId)
+                    webChannel: passwordChannel
+                    webChannelWorld: 1
+                    userScripts.collection: [{
+                        name: "Arbiter password forms",
+                        injectionPoint: WebEngineScript.DocumentReady,
+                        worldId: WebEngineScript.ApplicationWorld,
+                        runsOnSubFrames: false,
+                        sourceCode: window.passwords.captureScript
+                    }]
+                    WebChannel {
+                        id: passwordChannel
+                        Component.onCompleted: registerObject("passwordCapture", passwordSession.capture)
+                    }
+                    PasswordSession {
+                        id: passwordSession
+                        manager: window.passwords
+                        onCaptureNeedsValidation: passwordSession.validateCapture(page.mainFrame.url, page.profile.offTheRecord)
+                        onRunFillScript: function(script) {
+                            if (page !== window.webView || window.settingsOpen || !window.passwords.enabled) return
+                            page.mainFrame.runJavaScript(script, 1, function(filled) {
+                                window.passwords.reportFillResult(filled === true)
+                            })
+                        }
+                    }
+                    WebContextMenu {
+                        id: pageContextMenu
+                        view: page
+                        passwordsEnabled: window.passwords.enabled
+                        onPasswordsRequested: Qt.callLater(window.openPasswords)
+                    }
+                    onContextMenuRequested: function(request) { pageContextMenu.show(request) }
+                    onNewWindowRequested: function(request) { window.openWebRequest(request, workspaceId) }
+                    onWindowCloseRequested: {
+                        if (closeQueued) return
+                        closeQueued = true
+                        const closingId = tabId
+                        Qt.callLater(function() { window.finishClosingTab(closingId) })
+                    }
+                    onWebAuthUxRequested: function(request) {
+                        if (page !== window.webView || window.settingsOpen) request.cancel()
+                        else webAuthnPanel.show(page, request)
+                    }
+                    Component.onDestruction: {
+                        webAuthnPanel.cancelFor(page)
+                        passwordPanel.cancelFor(page)
+                    }
+                    onTitleChanged: {
+                        window.tabs.update(tabId, title, url)
+                        if (!profile.offTheRecord && historyVisitId.length > 0)
+                            window.history.updateTitle(historyVisitId, url, title)
+                        if (page === window.webView) window.siteNavigation.setTitle(title)
+                    }
+                    onUrlChanged: {
+                        Qt.callLater(page.recordHistory)
+                        if (page === window.webView) window.resetSiteNavigation()
+                        webAuthnPanel.cancelFor(page)
+                        passwordSession.invalidate()
+                        passwordPanel.cancelFor(page)
+                        window.tabs.update(tabId, title, url)
+                        if (page === window.webView && window.emptyPage) {
+                            window.homeAddress.text = ""
+                            Qt.callLater(window.focusPage)
+                        }
+                    }
+                    onJavaScriptConsoleMessage: function(level, message, lineNumber, sourceID) {
+                        if (window.browserDiagnostics)
+                            console.log("Page console:", level, sourceID, lineNumber, message)
+                    }
+                    onLoadingChanged: function(request) {
+                        if (request.status === WebEngineView.LoadStartedStatus) {
+                            historyReady = false
+                            historyVisitId = ""
+                            historyUrl = ""
+                            if (page === window.webView) window.resetSiteNavigation()
+                            webAuthnPanel.cancelFor(page)
+                            passwordSession.invalidate()
+                            passwordPanel.cancelFor(page)
+                        }
+                        if (request.status === WebEngineView.LoadSucceededStatus) {
+                            if (request.url.toString() === page.mainFrame.url.toString()) {
+                                historyReady = true
+                                recordHistory()
+                            }
+                        }
+                        if (page === window.webView && request.status === WebEngineView.LoadSucceededStatus)
+                            window.refreshSiteNavigation()
+                        if (window.browserDiagnostics) {
+                            console.log("Load:", request.url, request.status,
+                                        request.errorDomain, request.errorCode, request.errorString)
+                            if (request.status === WebEngineView.LoadSucceededStatus
+                                    || request.status === WebEngineView.LoadFailedStatus) {
+                                runJavaScript("JSON.stringify({userAgent:navigator.userAgent,secureContext:isSecureContext,workers:typeof Worker,webAssembly:typeof WebAssembly,crypto:typeof crypto.subtle,cookies:navigator.cookieEnabled,cores:navigator.hardwareConcurrency})",
+                                              function(result) { console.log("Browser features:", result) })
+                            }
+                        }
+                        if (request.status === WebEngineView.LoadFailedStatus)
+                            errorText = request.isErrorPage ? request.errorString : ""
+                        else if (request.status === WebEngineView.LoadStartedStatus
+                                 || request.status === WebEngineView.LoadSucceededStatus)
+                            errorText = ""
                     }
                 }
-                if (page === window.webView && request.status === WebEngineView.LoadSucceededStatus)
-                    window.refreshSiteNavigation()
-                if (window.browserDiagnostics) {
-                    console.log("Load:", request.url, request.status,
-                                request.errorDomain, request.errorCode, request.errorString)
-                    if (request.status === WebEngineView.LoadSucceededStatus
-                            || request.status === WebEngineView.LoadFailedStatus) {
-                        runJavaScript("JSON.stringify({userAgent:navigator.userAgent,secureContext:isSecureContext,workers:typeof Worker,webAssembly:typeof WebAssembly,crypto:typeof crypto.subtle,cookies:navigator.cookieEnabled,cores:navigator.hardwareConcurrency})",
-                                      function(result) { console.log("Browser features:", result) })
-                    }
-                }
-                if (request.status === WebEngineView.LoadFailedStatus)
-                    errorText = request.isErrorPage ? request.errorString : ""
-                else if (request.status === WebEngineView.LoadStartedStatus
-                         || request.status === WebEngineView.LoadSucceededStatus)
-                    errorText = ""
+            }
+
+            SplitOverlay {
+                z: 2
+                id: splitOverlay
+                objectName: "splitOverlay"
+                anchors.fill: parent
+                layout: window.splits
+                enabled: !window.settingsOpen && (!Basic.Overlay.overlay || !Basic.Overlay.overlay.visible)
+                onFocusRequested: window.focusPage()
             }
         }
     }
@@ -518,49 +692,21 @@ Basic.ApplicationWindow {
     Rectangle {
         id: homePage
         anchors.fill: parent
-        visible: window.emptyPage && !window.settingsOpen
+        visible: window.emptyPage && !window.settingsOpen && !window.splits.multiple
         color: window.palette.window
 
         MouseArea {
             anchors.fill: parent
             onPressed: window.startSystemMove()
         }
-        Column {
-            anchors.centerIn: parent
-            width: Math.min(560, window.width - 64)
-            spacing: 16
-            Basic.Label {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Arbiter")
-                font.pixelSize: 38
-                font.weight: Font.Medium
-                color: window.palette.text
-            }
-            AddressField {
-                id: homeAddress
-                width: parent.width
-                Component.onCompleted: forceActiveFocus()
-            }
-            Basic.Label {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("%1 to go anywhere").arg(window.keyBindings.nativeSequence(window.bindings.address))
-                font.pixelSize: 12
-                color: window.mutedText
-            }
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 8
-                UiButton {
-                    text: qsTr("Tabs · %1").arg(window.keyBindings.nativeSequence(window.bindings.tabs))
-                    flat: true
-                    onClicked: window.showTabs()
-                }
-                UiButton {
-                    text: qsTr("Settings")
-                    flat: true
-                    onClicked: window.toggleSettings()
-                }
-            }
+        StartPage {
+            id: homeStart
+            anchors.fill: parent
+            addressShortcut: window.keyBindings.nativeSequence(window.bindings.address)
+            tabsShortcut: window.keyBindings.nativeSequence(window.bindings.tabs)
+            onNavigateRequested: function(text) { window.navigate(text) }
+            onTabsRequested: window.showTabs()
+            onSettingsRequested: window.toggleSettings()
         }
     }
 
@@ -902,6 +1048,8 @@ Basic.ApplicationWindow {
         onSettingsRequested: window.openSettings()
         onHistoryRequested: window.openHistory()
         onWorkspacesRequested: window.openWorkspaces()
+        onSplitHorizontalRequested: window.splitHorizontal()
+        onSplitVerticalRequested: window.splitVertical()
     }
     WorkspacePanel {
         id: workspacePanel
@@ -990,6 +1138,13 @@ Basic.ApplicationWindow {
                 Item { Layout.fillWidth: true }
                 UiButton { text: qsTr("Workspaces…"); onClicked: window.openWorkspaces() }
                 UiButton { text: qsTr("New tab"); onClicked: window.newTab() }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                UiButton { text: qsTr("Split left / right"); onClicked: window.splitHorizontal() }
+                UiButton { text: qsTr("Split top / bottom"); onClicked: window.splitVertical() }
+                Item { Layout.fillWidth: true }
+                UiButton { visible: window.splits.multiple; text: qsTr("Single pane"); onClicked: { tabsPopup.close(); window.singlePane() } }
             }
             UiTextField {
                 id: tabSearch
@@ -1253,14 +1408,7 @@ Basic.ApplicationWindow {
             popupAddress.forceActiveFocus()
             popupAddress.selectAll()
         })
-        onClosed: {
-            if (window.settingsOpen)
-                settingsPage.forceActiveFocus()
-            else if (window.emptyPage)
-                homeAddress.forceActiveFocus()
-            else if (window.webView)
-                window.webView.forceActiveFocus()
-        }
+        onClosed: Qt.callLater(window.focusPage)
     }
 
     Basic.Label {

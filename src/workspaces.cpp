@@ -12,7 +12,9 @@
 Workspaces::Workspaces(Tabs *tabs, QObject *parent) : Workspaces(tabs,
     QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/workspaces",parent) {}
 Workspaces::Workspaces(Tabs *tabs, const QString &directory, QObject *parent)
-    : QObject(parent), m_tabs(tabs), m_directory(directory) {
+    : QObject(parent), m_tabs(tabs), m_splits(tabs), m_directory(directory) {
+    m_splits.suspend();
+    QVariantMap savedSplits;
     m_spaces.append({"main",tr("Personal"),QColor("#8dbbff"),false}); m_current="main";
     if (!QDir().mkpath(directory)) { m_writable=false; m_error=tr("Workspaces cannot be saved: could not create storage."); }
     else {
@@ -43,13 +45,16 @@ Workspaces::Workspaces(Tabs *tabs, const QString &directory, QObject *parent)
                 m_spaces=spaces; m_current=object.value("current").toString();
                 if(indexOf(m_current)<0) m_current=m_spaces.first().id;
                 m_tabs->restore(object.value("tabs").toArray().toVariantList(),profiles,object.value("selected").toObject().toVariantMap());
+                savedSplits=object.value("splits").toObject().toVariantMap();
             }
         }
     }
     m_tabs->setWorkspace(m_current,profile(m_spaces[indexOf(m_current)]));
+    m_splits.restore(savedSplits);
     m_save.setSingleShot(true); m_save.setInterval(350);
     connect(&m_save,&QTimer::timeout,this,&Workspaces::flush);
     connect(m_tabs,&Tabs::sessionChanged,this,&Workspaces::scheduleSave);
+    connect(&m_splits,&SplitLayout::sessionChanged,this,&Workspaces::scheduleSave);
     connect(qApp,&QCoreApplication::aboutToQuit,this,&Workspaces::flush);
 }
 Workspaces::~Workspaces() { if(m_save.isActive()) flush(); }
@@ -116,7 +121,8 @@ void Workspaces::flush() {
     QJsonArray spaces;
     for(const auto &s:m_spaces) spaces.append(QJsonObject{{"id",s.id},{"name",s.name},{"color",s.color.name()},{"isolated",s.isolated}});
     const QJsonDocument document(QJsonObject{{"version",1},{"current",m_current},{"workspaces",spaces},
-        {"tabs",QJsonArray::fromVariantList(m_tabs->snapshot())},{"selected",QJsonObject::fromVariantMap(m_tabs->selections())}});
+        {"tabs",QJsonArray::fromVariantList(m_tabs->snapshot())},{"selected",QJsonObject::fromVariantMap(m_tabs->selections())},
+        {"splits",QJsonObject::fromVariantMap(m_splits.snapshot())}});
     QSaveFile file(m_directory+"/session.json");
     if(!file.open(QIODevice::WriteOnly)) { fail(tr("Could not save workspaces.")); return; }
     file.setPermissions(QFileDevice::ReadOwner|QFileDevice::WriteOwner);

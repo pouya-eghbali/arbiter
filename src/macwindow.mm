@@ -39,6 +39,10 @@ void configureMacWindow(QWindow *window)
             if (event.type != NSEventTypeLeftMouseDown || event.window != nativeWindow
                 || (nativeWindow.styleMask & NSWindowStyleMaskFullScreen))
                 return event;
+            // Let Qt handle pane swapping even in the window's drag strip.
+            const auto modifiers = event.modifierFlags & NSEventModifierFlagDeviceIndependentFlagsMask;
+            if (modifiers == (NSEventModifierFlagCommand | NSEventModifierFlagShift))
+                return event;
             const bool topEdge = event.locationInWindow.y >= NSHeight(nativeWindow.contentView.bounds) - 10;
             const bool optionDrag = (event.modifierFlags & NSEventModifierFlagDeviceIndependentFlagsMask) == NSEventModifierFlagOption;
             if (!topEdge && !optionDrag)

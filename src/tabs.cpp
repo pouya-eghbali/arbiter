@@ -160,3 +160,5 @@ void Tabs::restore(const QVariantList &entries, const QHash<QString,QString> &pr
     for(auto i=selected.cbegin();i!=selected.cend();++i) m_selected[i.key()]=i.value().toInt();
     endResetModel(); emit countChanged(); emit workspaceChanged(); emit currentIndexChanged();
 }
+
+int Tabs::idAt(int row) const { return row>=0 && row<count() ? m_tabs[row].id : 0; }

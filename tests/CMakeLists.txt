@@ -72,7 +72,7 @@ add_executable(history_test history_test.cpp ../src/history.cpp ../src/history.h
 target_link_libraries(history_test PRIVATE Qt6::Sql Qt6::Test)
 add_test(NAME history COMMAND history_test)
 
-add_executable(workspaces_test workspaces_test.cpp ../src/workspaces.cpp ../src/workspaces.h ../src/tabs.cpp ../src/tabs.h)
+add_executable(workspaces_test workspaces_test.cpp ../src/splitlayout.cpp ../src/splitlayout.h ../src/workspaces.cpp ../src/workspaces.h ../src/tabs.cpp ../src/tabs.h)
 target_link_libraries(workspaces_test PRIVATE Qt6::Gui Qt6::Test)
 add_test(NAME workspaces COMMAND workspaces_test)
 
@@ -103,3 +103,13 @@ if(ARBITER_WEBENGINE_TESTS)
     add_test(NAME passkeycontroller COMMAND passkeycontroller_test)
     set_tests_properties(passkeycontroller PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
+
+add_executable(splitlayout_test splitlayout_test.cpp ../src/splitlayout.cpp ../src/splitlayout.h ../src/tabs.cpp ../src/tabs.h ../src/workspaces.cpp ../src/workspaces.h)
+target_link_libraries(splitlayout_test PRIVATE Qt6::Gui Qt6::Test)
+add_test(NAME splitlayout COMMAND splitlayout_test)
+
+find_package(Qt6 6.12 REQUIRED COMPONENTS Quick)
+add_executable(splitswapgesture_test splitswapgesture_test.cpp ../src/splitswapgesture.cpp ../src/splitswapgesture.h)
+target_link_libraries(splitswapgesture_test PRIVATE Qt6::Quick Qt6::Test)
+add_test(NAME splitswapgesture COMMAND splitswapgesture_test)
+set_tests_properties(splitswapgesture PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")

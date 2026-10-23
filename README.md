@@ -4,11 +4,11 @@ A distraction-free desktop browser built with C++, QML, and Qt WebEngine (Chromi
 
 The project's primary branch is `master`.
 
-The browser has tabs, an address/search field, back/forward,
+The browser has tabs, workspaces, nested split views, an address/search field, back/forward,
 reload/stop, loading progress, a persistent local browser profile, and a local
 password manager backed by QtKeychain. It starts
 on a blank page without making a startup network request. Search queries go to
-DuckDuckGo. Workspaces, extension management, downloads, and credential sync
+DuckDuckGo. Extension management, downloads, and credential sync
 are not implemented yet. An opt-in patched-engine integration adds Arbiter
 passkeys and Chromium's phone QR transport. The custom runtime builds on Apple
 Silicon macOS and passes browser passkey registration/sign-in tests; phone
@@ -91,6 +91,24 @@ original tab. Deleting a workspace requires confirmation and discards its tabs;
 website sign-in data is retained. At least one workspace remains available.
 Session metadata uses an atomic JSON file and a process lock. Unreadable files
 are preserved and concurrent instances cannot overwrite the session.
+Split view supports nested left/right and top/bottom splits in any pane. Start
+from the tab overview, the pill's menu, the native Tabs menu, or the configurable
+Cmd+Option+S / V shortcuts on macOS (Ctrl+Alt+S / V elsewhere). Splitting opens a
+new pane with the start page's address field focused, ready to type a URL or
+search. The tab overview can also choose its page. Selecting a visible tab
+focuses its pane; another tab replaces the active pane.
+Drag the divider to resize, or double-click it to balance the split. Hold
+Cmd+Shift on macOS (Ctrl+Shift on Windows/Linux) and drag anywhere in a page
+onto another pane to swap them without reloading. Release the modifiers or press
+Escape to cancel. Pages fill their panes, with a faint accent edge for the active
+pane. Cmd+Option+] / [ (Ctrl+Alt+] / [ elsewhere) cycles pane focus.
+Cmd+Option+N (Ctrl+Alt+N elsewhere) replaces the active pane with the next tab
+in this workspace that isn't already visible, wrapping around the tab list.
+This shortcut is configurable in Settings. The tab
+overview and native Tabs menu can keep only the active pane. Closing a tab
+collapses its pane. Nested layouts and divider proportions are restored per workspace; if a
+layout becomes larger than the window, scrollbars keep every pane accessible.
+
 Cmd+L opens a floating address editor with the full URL selected; Enter navigates, and Escape
 or a click outside dismisses the editor. The default empty page has a centered
 address/search field, focused on startup. Drag the empty page background to move
@@ -106,9 +124,8 @@ Cmd+Shift+A opens a searchable grid of page previews with titles and addresses;
 use the arrow keys and Enter to select a tab, click a card, or use its close button. The start page and native Tabs menu
 also open the switcher. Websites requesting a new tab open separately, and
 external HTTP/HTTPS links open a new tab unless the active tab is empty.
-Tabs share the browser's cookie profile. Open tabs are not restored after
-quitting yet; reopening a closed tab restores its latest URL, not its form
-contents or full navigation history.
+Tabs use their workspace's cookie profile. Reopening a closed tab restores its
+latest URL, not its form contents or full navigation history.
 
 Open Settings from the start page or the native Arbiter > Preferences… menu,
 with Cmd+, on macOS / Ctrl+, elsewhere, or by

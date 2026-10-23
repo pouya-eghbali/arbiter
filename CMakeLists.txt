@@ -11,7 +11,7 @@ qt_standard_project_setup(REQUIRES 6.12)
 include(cmake/QtKeychain.cmake)
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 
-qt_add_executable(arbiter src/workspaces.cpp src/workspaces.h src/webprofiles.h src/history.cpp src/history.h src/main.cpp src/appearance.cpp src/appearance.h src/sitenavigation.cpp src/sitenavigation.h src/browserapplication.h src/keybindings.cpp src/keybindings.h src/tabs.cpp src/tabs.h
+qt_add_executable(arbiter src/splitswapgesture.cpp src/splitswapgesture.h src/splitlayout.cpp src/splitlayout.h src/workspaces.cpp src/workspaces.h src/webprofiles.h src/history.cpp src/history.h src/main.cpp src/appearance.cpp src/appearance.h src/sitenavigation.cpp src/sitenavigation.h src/browserapplication.h src/keybindings.cpp src/keybindings.h src/tabs.cpp src/tabs.h
     src/passwordmanager.cpp src/passwordmanager.h src/secretstore.cpp src/secretstore.h
     src/webauthncontroller.cpp src/webauthncontroller.h
     src/passkeycontroller.cpp src/passkeycontroller.h src/passkeyvault.cpp src/passkeyvault.h src/lockedkey.cpp src/lockedkey.h
@@ -65,7 +65,7 @@ qt_add_qml_module(arbiter
     NO_IMPORT_SCAN
     URI Arbiter
     VERSION 1.0
-    QML_FILES qml/BiometricSetup.qml qml/WorkspacePanel.qml qml/HistoryPanel.qml qml/Main.qml qml/Theme.qml qml/ui/UiButton.qml qml/ui/UiTextField.qml qml/ui/UiCheckBox.qml qml/ui/UiComboBox.qml qml/ui/UiToolTip.qml qml/ui/UiMenuItem.qml qml/ui/UiColorPicker.qml qml/GlassSurface.qml qml/NavigationPill.qml qml/WebContextMenu.qml qml/PasswordPanel.qml qml/WebAuthnPanel.qml qml/PasskeySetup.qml
+    QML_FILES qml/StartPage.qml qml/PaneShape.qml qml/SplitOverlay.qml qml/BiometricSetup.qml qml/WorkspacePanel.qml qml/HistoryPanel.qml qml/Main.qml qml/Theme.qml qml/ui/UiButton.qml qml/ui/UiTextField.qml qml/ui/UiCheckBox.qml qml/ui/UiComboBox.qml qml/ui/UiToolTip.qml qml/ui/UiMenuItem.qml qml/ui/UiColorPicker.qml qml/GlassSurface.qml qml/NavigationPill.qml qml/WebContextMenu.qml qml/PasswordPanel.qml qml/WebAuthnPanel.qml qml/PasskeySetup.qml
 )
 target_link_libraries(arbiter PRIVATE
     Qt6::Quick
