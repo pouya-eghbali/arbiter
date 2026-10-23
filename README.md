@@ -114,6 +114,12 @@ or a click outside dismisses the editor. The default empty page has a centered
 address/search field, focused on startup. Drag the empty page background to move
 the window.
 
+On macOS, Cmd+Left / Right navigates back / forward and Cmd+Up / Down jumps to
+the top / bottom of the active page. Windows/Linux use Alt+Left / Right and
+Ctrl+Home / End. Native text editing takes priority when a text field has focus.
+All four actions are customizable in Settings → Keyboard; existing
+saved shortcuts are retained.
+
 The macOS bundle registers HTTP and HTTPS URL schemes. Links opened with
 `open -a /path/to/arbiter.app 'https://example.com/'` are delivered to the
 existing window, including when the app is launched by the link. Registration

@@ -1,5 +1,6 @@
 #include "../src/keybindings.h"
 #include <QSettings>
+#include <QSet>
 #include <QTemporaryDir>
 #include <QtTest>
 
@@ -44,6 +45,30 @@ private slots:
         QSettings().setValue("KeyboardBindings/address", "Ctrl+,");
         KeyBindings keys;
         QCOMPARE(keys.bindings()["address"].toString(), QString("Ctrl+L"));
+    }
+    void navigationBindingsPersistIndependently() {
+        KeyBindings keys;
+        const QStringList actions{"back", "forward", "pageTop", "pageBottom"};
+        for(int i=0;i<actions.size();++i) {
+            int row=-1;
+            for(int j=0;j<keys.rowCount();++j)
+                if(keys.data(keys.index(j),Qt::UserRole).toString()==actions[i]) row=j;
+            QVERIFY(row>=0);
+            QVERIFY(keys.assign(row,Qt::Key_F6+i,Qt::AltModifier).isEmpty());
+        }
+        KeyBindings restored;
+        QCOMPARE(restored.bindings(),keys.bindings());
+        // Introducing new page actions must not replace saved navigation keys.
+        QSettings().remove("KeyboardBindings/pageTop");
+        QSettings().remove("KeyboardBindings/pageBottom");
+        KeyBindings upgraded;
+        QCOMPARE(upgraded.bindings()["back"],keys.bindings()["back"]);
+        QCOMPARE(upgraded.bindings()["forward"],keys.bindings()["forward"]);
+        QVERIFY(!upgraded.bindings()["pageTop"].toString().isEmpty());
+        QVERIFY(!upgraded.bindings()["pageBottom"].toString().isEmpty());
+        QSet<QString> unique;
+        for(const auto &sequence:upgraded.bindings()) unique.insert(sequence.toString());
+        QCOMPARE(unique.size(),upgraded.rowCount());
     }
 };
 QTEST_MAIN(KeyBindingsTest)

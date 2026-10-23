@@ -68,6 +68,7 @@ Basic.ApplicationWindow {
     Binding { target: Theme; property: "backdrop"; value: !window.emptyPage && !window.settingsOpen ? window.webView : null }
 
     readonly property bool emptyPage: !webView || webView.url.toString() === "about:blank"
+    readonly property bool pageNavigationEnabled: webView !== null && webView.activeFocus && !settingsOpen && recordingIndex < 0 && !changingTabs && !shuttingDown
 
     function resetSiteNavigation() {
         ++siteNavigationGeneration
@@ -177,8 +178,13 @@ Basic.ApplicationWindow {
     Shortcut { sequence: window.bindings.history; enabled: window.recordingIndex < 0; onActivated: window.openHistory() }
     Shortcut { sequence: window.bindings.passwords; enabled: window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.openPasswords() }
     Shortcut { sequence: window.bindings.reload; enabled: window.webView && window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.webView.reload() }
-    Shortcut { sequence: window.bindings.back; enabled: window.webView && window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.webView.goBack() }
-    Shortcut { sequence: window.bindings.forward; enabled: window.webView && window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.webView.goForward() }
+    Shortcut { sequence: window.bindings.back; enabled: window.pageNavigationEnabled; onActivated: window.webView.goBack() }
+    Shortcut { sequence: window.bindings.forward; enabled: window.pageNavigationEnabled; onActivated: window.webView.goForward() }
+    // WebEngine's ShortcutOverride preserves native cursor movement in inputs,
+    // textareas and contenteditable (including child frames). Only page focus
+    // enables scrolling; address fields and other browser controls keep their keys.
+    Shortcut { sequence: window.bindings.pageTop; enabled: window.pageNavigationEnabled; onActivated: window.scrollPage(false) }
+    Shortcut { sequence: window.bindings.pageBottom; enabled: window.pageNavigationEnabled; onActivated: window.scrollPage(true) }
     Shortcut {
         sequence: window.bindings.stop
         enabled: !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible && window.recordingIndex < 0 && !window.settingsOpen
@@ -199,6 +205,13 @@ Basic.ApplicationWindow {
     Shortcut { sequence: window.bindings.previousPane; enabled: window.recordingIndex < 0; onActivated: window.previousPane() }
     Shortcut { sequence: window.bindings.nextHiddenTab; enabled: window.recordingIndex < 0; onActivated: window.nextHiddenTab() }
     Shortcut { sequence: window.bindings.closeWindow; enabled: window.recordingIndex < 0; onActivated: window.close() }
+
+    function scrollPage(bottom: bool) {
+        if (!pageNavigationEnabled) return
+        webView.mainFrame.runJavaScript(bottom
+            ? "window.scrollTo({left:window.scrollX,top:document.scrollingElement.scrollHeight,behavior:'instant'})"
+            : "window.scrollTo({left:window.scrollX,top:0,behavior:'instant'})", 1)
+    }
 
     function focusPage() {
         if (workspacePanel.visible)

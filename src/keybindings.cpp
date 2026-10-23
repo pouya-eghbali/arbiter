@@ -7,9 +7,13 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
 #ifdef Q_OS_MACOS
     const QKeySequence fullscreen(QStringLiteral("Ctrl+Meta+F"));
     const QString tabModifier = QStringLiteral("Meta+");
+    const QKeySequence back(QStringLiteral("Ctrl+Left")), forward(QStringLiteral("Ctrl+Right"));
+    const QKeySequence pageTop(QStringLiteral("Ctrl+Up")), pageBottom(QStringLiteral("Ctrl+Down"));
 #else
     const QKeySequence fullscreen(QStringLiteral("F11"));
     const QString tabModifier = QStringLiteral("Ctrl+");
+    const QKeySequence back(QKeySequence::Back), forward(QKeySequence::Forward);
+    const QKeySequence pageTop(QStringLiteral("Ctrl+Home")), pageBottom(QStringLiteral("Ctrl+End"));
 #endif
     const auto add = [this](const char *id, const char *label, const QKeySequence &key) {
         m_bindings.push_back({QString::fromLatin1(id), tr(label), key, key});
@@ -18,8 +22,10 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
     add("settings", "Settings", QKeySequence(QStringLiteral("Ctrl+,")));
     add("passwords", "Fill or save login", QKeySequence(QStringLiteral("Ctrl+Shift+P")));
     add("reload", "Reload page", QKeySequence(QKeySequence::Refresh));
-    add("back", "Go back", QKeySequence(QKeySequence::Back));
-    add("forward", "Go forward", QKeySequence(QKeySequence::Forward));
+    add("back", "Go back", back);
+    add("forward", "Go forward", forward);
+    add("pageTop", "Go to top of page", pageTop);
+    add("pageBottom", "Go to bottom of page", pageBottom);
     add("stop", "Stop loading", QKeySequence(Qt::Key_Escape));
     add("expand", "Expand / restore window", QKeySequence(QStringLiteral("Ctrl+Meta+M")));
     add("fullscreen", "Enter / exit full screen", fullscreen);
