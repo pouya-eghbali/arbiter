@@ -53,6 +53,17 @@ QString Appearance::displayAddress(const QUrl &url) const
             | QUrl::RemoveFragment | QUrl::StripTrailingSlash);
     return url.scheme() == "about" ? tr("New tab") : url.toDisplayString(QUrl::RemoveUserInfo);
 }
+QString Appearance::siteMenuMode() const
+{
+    const auto mode = m_settings.value(QStringLiteral("appearance/siteMenuMode"), QStringLiteral("title")).toString();
+    return mode == "navigation" || mode == "off" ? mode : QStringLiteral("title");
+}
+void Appearance::setSiteMenuMode(const QString &mode)
+{
+    if ((mode != "title" && mode != "navigation" && mode != "off") || mode == siteMenuMode()) return;
+    m_settings.setValue(QStringLiteral("appearance/siteMenuMode"), mode);
+    emit siteMenuModeChanged();
+}
 QColor Appearance::savedColor(const QString &key, const QColor &fallback) const
 {
     const QColor saved(m_settings.value(key).toString());

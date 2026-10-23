@@ -11,7 +11,7 @@ qt_standard_project_setup(REQUIRES 6.12)
 include(cmake/QtKeychain.cmake)
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 
-qt_add_executable(arbiter src/main.cpp src/appearance.cpp src/appearance.h src/browserapplication.h src/keybindings.cpp src/keybindings.h src/tabs.cpp src/tabs.h
+qt_add_executable(arbiter src/main.cpp src/appearance.cpp src/appearance.h src/sitenavigation.cpp src/sitenavigation.h src/browserapplication.h src/keybindings.cpp src/keybindings.h src/tabs.cpp src/tabs.h
     src/passwordmanager.cpp src/passwordmanager.h src/secretstore.cpp src/secretstore.h
     src/webauthncontroller.cpp src/webauthncontroller.h
     src/passkeycontroller.cpp src/passkeycontroller.h src/passkeyvault.cpp src/passkeyvault.h
@@ -19,6 +19,7 @@ qt_add_executable(arbiter src/main.cpp src/appearance.cpp src/appearance.h src/b
 target_include_directories(arbiter PRIVATE third_party/qrcodegen)
 arbiter_configure_webengine_runtime(arbiter)
 qt_add_resources(arbiter password_scripts PREFIX /passwords BASE scripts FILES scripts/passwords.js)
+qt_add_resources(arbiter navigation_scripts PREFIX /navigation BASE scripts FILES scripts/navigation.js)
 if(APPLE)
     enable_language(OBJCXX)
     target_sources(arbiter PRIVATE src/macwindow.mm)

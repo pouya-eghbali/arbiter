@@ -56,3 +56,13 @@ if(ARBITER_WEBENGINE_TESTS)
     add_test(NAME webauthncontroller COMMAND webauthncontroller_test)
     set_tests_properties(webauthncontroller PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
+
+if(ARBITER_WEBENGINE_TESTS)
+    add_executable(sitenavigation_test sitenavigation_test.cpp
+        ../src/sitenavigation.cpp ../src/sitenavigation.h ../src/appearance.cpp ../src/appearance.h)
+    qt_add_resources(sitenavigation_test navigation_scripts PREFIX /navigation BASE ../scripts FILES ../scripts/navigation.js)
+    target_link_libraries(sitenavigation_test PRIVATE Qt6::WebEngineWidgets Qt6::Test)
+    arbiter_configure_webengine_runtime(sitenavigation_test)
+    add_test(NAME sitenavigation COMMAND sitenavigation_test)
+    set_tests_properties(sitenavigation PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endif()

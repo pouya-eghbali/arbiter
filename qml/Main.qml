@@ -13,6 +13,9 @@ Basic.ApplicationWindow {
     required property bool browserDiagnostics
     required property var tabs
     required property var appearance
+    required property var siteNavigation
+    property int siteNavigationGeneration: 0
+    readonly property bool siteNavigationEnabled: Qt.platform.os === "osx" && appearance.siteMenuMode !== "off" && !settingsOpen
     property var webView: null
     required property var keyBindings
     required property var passwords
@@ -57,6 +60,44 @@ Basic.ApplicationWindow {
     Binding { target: Theme; property: "backdrop"; value: !window.emptyPage && !window.settingsOpen ? window.webView : null }
 
     readonly property bool emptyPage: !webView || webView.url.toString() === "about:blank"
+
+    function resetSiteNavigation() {
+        ++siteNavigationGeneration
+        siteNavigation.reset(webView ? webView.url : "", webView ? webView.title : "",
+                             siteNavigationEnabled ? appearance.siteMenuMode : "off")
+        refreshSiteNavigation()
+    }
+    function refreshSiteNavigation() {
+        if (!siteNavigationEnabled || !webView || webView.loading || emptyPage) return
+        const view = webView
+        const generation = siteNavigationGeneration
+        const url = view.url.toString()
+        view.mainFrame.runJavaScript(siteNavigation.extractionScript, 1, function(snapshot) {
+            if (generation === window.siteNavigationGeneration && view === window.webView
+                    && url === view.url.toString() && snapshot)
+                window.siteNavigation.update(url, snapshot)
+        })
+    }
+    onWebViewChanged: resetSiteNavigation()
+    onSiteNavigationEnabledChanged: resetSiteNavigation()
+    Connections {
+        target: window.appearance
+        function onSiteMenuModeChanged() { window.resetSiteNavigation() }
+    }
+    Connections {
+        target: window.siteNavigation
+        function onLinkActivated(url: url) {
+            if (!window.siteNavigationEnabled || !window.webView) return
+            window.webView.url = url
+            window.focusPage()
+        }
+    }
+    Timer {
+        interval: 2000
+        repeat: true
+        running: window.siteNavigationEnabled && !window.emptyPage
+        onTriggered: window.refreshSiteNavigation()
+    }
 
     function prepareForShutdown() {
         addressPopup.close()
@@ -335,8 +376,12 @@ Basic.ApplicationWindow {
                 webAuthnPanel.cancelFor(page)
                 passwordPanel.cancelFor(page)
             }
-            onTitleChanged: window.tabs.update(tabId, title, url)
+            onTitleChanged: {
+                window.tabs.update(tabId, title, url)
+                if (page === window.webView) window.siteNavigation.setTitle(title)
+            }
             onUrlChanged: {
+                if (page === window.webView) window.resetSiteNavigation()
                 webAuthnPanel.cancelFor(page)
                 passwordSession.invalidate()
                 passwordPanel.cancelFor(page)
@@ -352,10 +397,13 @@ Basic.ApplicationWindow {
             }
             onLoadingChanged: function(request) {
                 if (request.status === WebEngineView.LoadStartedStatus) {
+                    if (page === window.webView) window.resetSiteNavigation()
                     webAuthnPanel.cancelFor(page)
                     passwordSession.invalidate()
                     passwordPanel.cancelFor(page)
                 }
+                if (page === window.webView && request.status === WebEngineView.LoadSucceededStatus)
+                    window.refreshSiteNavigation()
                 if (window.browserDiagnostics) {
                     console.log("Load:", request.url, request.status,
                                 request.errorDomain, request.errorCode, request.errorString)
@@ -573,6 +621,28 @@ Basic.ApplicationWindow {
                         }
                         Basic.Label {
                             text: qsTr("Navigation appears when you hover over the small handle. Keyboard shortcuts remain available when the pill is hidden.")
+                            color: Theme.muted
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
+                        Basic.Label {
+                            visible: Qt.platform.os === "osx"
+                            text: qsTr("Website navigation in the menu bar")
+                            color: Theme.text
+                            font.weight: Font.Medium
+                        }
+                        UiComboBox {
+                            objectName: "siteMenuModeChoice"
+                            visible: Qt.platform.os === "osx"
+                            Layout.fillWidth: true
+                            model: [qsTr("Tab title"), qsTr("Top-level navigation"), qsTr("Off")]
+                            currentIndex: ["title", "navigation", "off"].indexOf(window.appearance.siteMenuMode)
+                            Accessible.name: qsTr("Website navigation in the menu bar")
+                            onActivated: window.appearance.siteMenuMode = ["title", "navigation", "off"][currentIndex]
+                        }
+                        Basic.Label {
+                            visible: Qt.platform.os === "osx"
+                            text: qsTr("Add the active website's navigation links to the macOS menu bar. Use its tab title as one menu, show navigation sections as separate menus, or turn this off.")
                             color: Theme.muted
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap

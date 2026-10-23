@@ -38,6 +38,15 @@ A bottom navigation pill expands on hover or click, then shrinks to a tiny
 handle after the pointer leaves. It stays open while using its keyboard controls
 or menu. Settings → Appearance → Show navigation pill turns it off completely;
 keyboard shortcuts and native menus remain available.
+On macOS, Appearance → Website navigation in the menu bar offers Tab title
+(the default), Top-level navigation, or Off. Arbiter reads visible links from
+the active page's `<nav>` and `[role="navigation"]` regions, including nested
+list navigation, and opens selected links in that tab. Menus refresh after
+navigation and tab switches, and every two seconds for dynamic pages. Up to six
+navigation headings appear directly in the menu bar; additional headings go in
+More. Pages without navigation links show a disabled placeholder in the tab-title
+menu. Script-only buttons, hidden dropdown contents and frame navigation are
+not included.
 Cmd+L opens a floating address editor with the full URL selected; Enter navigates, and Escape
 or a click outside dismisses the editor. The default empty page has a centered
 address/search field, focused on startup. Drag the empty page background to move

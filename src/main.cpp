@@ -15,6 +15,7 @@
 #include "webauthncontroller.h"
 #include "passkeycontroller.h"
 #include "appearance.h"
+#include "sitenavigation.h"
 #include <QWindow>
 #ifdef Q_OS_MACOS
 void configureMacWindow(QWindow *window);
@@ -39,6 +40,7 @@ int main(int argc, char *argv[])
     PasskeyController passkeys;
     qmlRegisterType<PasswordSession>("Arbiter.Credentials", 1, 0, "PasswordSession");
     QMenuBar nativeMenu;
+    SiteNavigation siteNavigation(&nativeMenu);
     QQmlApplicationEngine engine;
 #ifdef ARBITER_WEBENGINE_QML_PATH
     // A split development SDK must supply its matching QML plugin as well as
@@ -52,6 +54,7 @@ int main(int argc, char *argv[])
     const bool diagnostics = qEnvironmentVariableIsSet("ARBITER_DIAGNOSTICS");
     engine.setInitialProperties({{QStringLiteral("browserUserAgent"), userAgent},
                                  {QStringLiteral("appearance"), QVariant::fromValue(&appearance)},
+                                 {QStringLiteral("siteNavigation"), QVariant::fromValue(&siteNavigation)},
                                  {QStringLiteral("keyBindings"), QVariant::fromValue(&keyBindings)},
                                  {QStringLiteral("tabs"), QVariant::fromValue(&tabs)},
                                  {QStringLiteral("passwords"), QVariant::fromValue(&passwords)},
@@ -117,6 +120,7 @@ int main(int argc, char *argv[])
             QMetaObject::invokeMethod(root, "openPasswordSettings");
         });
         QObject::connect(root, SIGNAL(shortcutRecordingChanged(bool)), passwordsMenu, SLOT(setDisabled(bool)));
+        QObject::connect(root, SIGNAL(shortcutRecordingChanged(bool)), &nativeMenu, SLOT(setDisabled(bool)));
     }
 #ifdef Q_OS_MACOS
     if (!engine.rootObjects().isEmpty()) {
