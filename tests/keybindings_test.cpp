@@ -17,6 +17,16 @@ private slots:
         QVERIFY(row>=0); QVERIFY(keys.assign(row,Qt::Key_F10,Qt::AltModifier).isEmpty());
         KeyBindings restored; QCOMPARE(restored.bindings().value("splitWith"),keys.bindings().value("splitWith"));
     }
+    void privateWindowBindingsAreCustomizable() {
+        KeyBindings keys;
+        const QStringList actions{"privateWindow","lockPrivate"};
+        for(int i=0;i<actions.size();++i) {
+            int row=-1;
+            for(int j=0;j<keys.rowCount();++j) if(keys.data(keys.index(j),Qt::UserRole).toString()==actions[i]) row=j;
+            QVERIFY(row>=0); QVERIFY(keys.assign(row,Qt::Key_F8+i,Qt::AltModifier).isEmpty());
+        }
+        KeyBindings restored; QCOMPARE(restored.bindings(),keys.bindings());
+    }
     void initTestCase() {
         QVERIFY(directory.isValid());
         QCoreApplication::setOrganizationName("ArbiterTests");

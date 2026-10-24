@@ -141,3 +141,17 @@ find_package(Qt6 6.12 REQUIRED COMPONENTS Network)
 add_executable(browserinstance_test browserinstance_test.cpp ../src/browserinstance.cpp ../src/browserinstance.h)
 target_link_libraries(browserinstance_test PRIVATE Qt6::Network Qt6::Concurrent Qt6::Test)
 add_test(NAME browserinstance COMMAND browserinstance_test)
+
+add_executable(privatebrowsing_test privatebrowsing_test.cpp ../src/privatebrowsing.cpp ../src/privatebrowsing.h
+    ../src/workspaces.cpp ../src/workspaces.h ../src/tabs.cpp ../src/tabs.h
+    ../src/splitlayout.cpp ../src/splitlayout.h ../src/history.cpp ../src/history.h)
+target_link_libraries(privatebrowsing_test PRIVATE passkey_core arbiter_settings Qt6::Widgets Qt6::Sql Qt6::Concurrent Qt6::Test)
+add_test(NAME privatebrowsing COMMAND privatebrowsing_test)
+set_tests_properties(privatebrowsing PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+if(ARBITER_WEBENGINE_TESTS)
+    target_sources(privatebrowsing_test PRIVATE ../src/webprofiles.h)
+    target_compile_definitions(privatebrowsing_test PRIVATE ARBITER_TEST_PRIVATE_PROFILES)
+    target_link_libraries(privatebrowsing_test PRIVATE Qt6::Quick Qt6::WebEngineQuick)
+    arbiter_configure_webengine_runtime(privatebrowsing_test)
+endif()

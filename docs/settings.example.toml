@@ -33,6 +33,8 @@ verificationCooldown = 300
 # settings = "Ctrl+,"
 # nextHiddenTab = "Ctrl+Alt+N"
 # splitWith = "Ctrl+Alt+Shift+S"
+# privateWindow = "Ctrl+Shift+N"
+# lockPrivate = "Ctrl+Alt+L"
 # pageTop = "Ctrl+Up"
 # pageBottom = "Ctrl+Down"
 
@@ -40,3 +42,8 @@ verificationCooldown = 300
 # [onboarding]
 # version = 1
 # tutorialPending = false
+
+[Privacy]
+# Lock private windows after this many seconds without keyboard, mouse, or touch input.
+# Window deactivation, minimization, screen lock, and system sleep always lock immediately.
+lockTimeout = 300

@@ -9,9 +9,10 @@ class WebProfiles final : public QObject {
 public:
     using QObject::QObject;
     QString userAgent;
+    bool privateMode = false;
     Q_INVOKABLE QQuickWebEngineProfile *profile(const QString &name) {
         if (m_profiles.contains(name)) return m_profiles.value(name);
-        auto *profile = new QQuickWebEngineProfile(name, this);
+        auto *profile = privateMode ? new QQuickWebEngineProfile(this) : new QQuickWebEngineProfile(name, this);
         profile->setHttpUserAgent(userAgent);
         m_profiles.insert(name, profile);
         return profile;

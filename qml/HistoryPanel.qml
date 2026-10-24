@@ -6,6 +6,7 @@ import Arbiter
 
 Basic.Popup {
     id: panel
+    property bool privateMode: false
     required property var manager
     property bool confirmingClear: false
     signal visitRequested(string url, bool newTab)
@@ -41,7 +42,15 @@ Basic.Popup {
             onAccepted: if (visits.count > 0) { visits.currentIndex = 0; visits.forceActiveFocus() }
             Keys.onDownPressed: if (visits.count > 0) { visits.currentIndex = 0; visits.forceActiveFocus() }
         }
+        Basic.Label {
+            visible: panel.privateMode
+            text: qsTr("Private browsing history is never saved.")
+            color: Theme.muted
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+        }
         UiCheckBox {
+            visible: !panel.privateMode
             text: qsTr("Save browsing history")
             checked: panel.manager.enabled
             onToggled: panel.manager.enabled = checked

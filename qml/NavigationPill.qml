@@ -4,6 +4,10 @@ import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 
 FocusScope {
+    property bool privateMode: false
+    function dismissMenu() { more.close() }
+    signal privateWindowRequested()
+    signal lockPrivateRequested()
     id: pill
     required property var view
     required property var appearance
@@ -130,6 +134,8 @@ FocusScope {
         UiMenuItem { text: qsTr("Workspaces…"); onTriggered: pill.workspacesRequested() }
         UiMenuItem { text: qsTr("History…"); onTriggered: pill.historyRequested() }
         UiMenuItem { text: qsTr("Passwords…"); onTriggered: pill.passwordsRequested() }
+        UiMenuItem { text: qsTr("New private window"); onTriggered: pill.privateWindowRequested() }
+        UiMenuItem { visible: pill.privateMode; text: qsTr("Lock private window"); onTriggered: pill.lockPrivateRequested() }
         UiMenuItem { text: qsTr("Settings…"); onTriggered: pill.settingsRequested() }
     }
 }

@@ -437,3 +437,11 @@ dates, deduplicates URL/time pairs and retains the newest 10,000 visits across
 existing and imported history. Import does not turn on paused history recording
 or disabled autofill. Stop import finishes the current credential-store write;
 completed entries are retained and the result reports partial progress.
+
+### Private browsing
+
+Open a private window from the pill's More menu, the macOS application menu, or **Cmd+Shift+N** on macOS (**Ctrl+Shift+N** on Windows/Linux). The shortcut is customizable in Settings → Keyboard. Each private window has independent, off-the-record cookies, cache, permissions, and site storage. Its tabs, workspaces, and history are never saved or restored, and closing the window destroys that session. Password capture is disabled for private pages; existing saved credentials can still be used. Downloads you explicitly save and passkeys you explicitly create remain on your device. Private browsing does not hide network traffic from websites or network operators, and this visual lock does not encrypt the live renderer's memory.
+
+Choose a private-session password on first opening a private window (minimum eight characters). Only its random salt and PBKDF2-SHA256 verifier are held in memory; nothing is stored in TOML or Keychain. Unlock with Touch ID, Windows Hello (including its PIN), or an enrolled fprintd fingerprint, with the session password as fallback on every platform. Forgotten passwords can be cleared by closing the private window, which also clears its session.
+
+Private windows heavily blur and darken their contents, and mute audio after five minutes without input, immediately when backgrounded/minimized, and on screen lock/system sleep. Every split pane and popup is protected together. They stay locked after returning or waking; cancelled, failed, or stale authentication cannot reveal them. **Settings → Privacy** configures the inactivity timeout; TOML `[Privacy] lockTimeout` accepts 1–86400 seconds. **Cmd+Option+L** / **Ctrl+Alt+L** locks manually, and is customizable too.

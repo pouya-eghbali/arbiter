@@ -30,6 +30,8 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
     add("expand", "Expand / restore window", QKeySequence(QStringLiteral("Ctrl+Meta+M")));
     add("fullscreen", "Enter / exit full screen", fullscreen);
     add("close", "Close tab", QKeySequence(QKeySequence::Close));
+    add("privateWindow", "New private window", QKeySequence(QStringLiteral("Ctrl+Shift+N")));
+    add("lockPrivate", "Lock private window", QKeySequence(QStringLiteral("Ctrl+Alt+L")));
     add("newTab", "New tab", QKeySequence(QStringLiteral("Ctrl+T")));
     add("tabs", "Show tabs", QKeySequence(QStringLiteral("Ctrl+Shift+A")));
     add("nextTab", "Next tab", QKeySequence(tabModifier + QStringLiteral("Tab")));

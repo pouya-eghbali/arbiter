@@ -9,6 +9,33 @@ import Arbiter.Credentials 1.0
 
 Basic.ApplicationWindow {
     id: window
+    property var privacy: null
+    property var privateSession: null
+    property bool privateMode: false
+    readonly property bool privateCovered: privateMode && (!privateSession || privateSession.locked)
+    signal preferencesRequested()
+    function newPrivateWindow() { if (privacy) privacy.open() }
+    function lockPrivateWindow() { if (privateSession) privateSession.lock() }
+    property bool uiReady: false
+    Component.onCompleted: { uiReady = true; if (privateCovered) privateShield.forceActiveFocus() }
+    onPrivateCoveredChanged: {
+        if (!uiReady) return
+        if (privateCovered) {
+            splitWithPicker.close(); workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.close()
+            biometricSetup.close(); passkeySetup.close(); tutorial.close()
+            if (webView) { webAuthnPanel.cancelFor(webView); passwordPanel.cancelFor(webView) }
+            for (let i = 0; i < tabViews.count; ++i) {
+                const view = tabViews.itemAt(i) as WebEngineView
+                if (view) view.cancelPrivateInteraction()
+            }
+            navigationPill.dismissMenu()
+            recordingIndex = -1
+            privateShield.forceActiveFocus()
+        } else Qt.callLater(window.focusPage)
+    }
+    Binding { target: Basic.Overlay.overlay; property: "opacity"; value: 0; when: window.privateCovered }
+    Binding { target: Basic.Overlay.overlay; property: "enabled"; value: false; when: window.privateCovered }
+    onClosing: if (privateMode) prepareForShutdown()
     required property string browserUserAgent
     required property bool browserDiagnostics
     readonly property var splits: workspaces.splits
@@ -30,7 +57,7 @@ Basic.ApplicationWindow {
     required property bool windowDecorations
     required property var siteNavigation
     property int siteNavigationGeneration: 0
-    readonly property bool siteNavigationEnabled: Qt.platform.os === "osx" && appearance.siteMenuMode !== "off" && !settingsOpen
+    readonly property bool siteNavigationEnabled: !privateMode && active && Qt.platform.os === "osx" && appearance.siteMenuMode !== "off" && !settingsOpen
     readonly property var homeAddress: homeStart.addressField
     property var webView: null
     property bool changingTabs: false
@@ -62,7 +89,7 @@ Basic.ApplicationWindow {
     visible: true
     flags: windowDecorations ? Qt.Window : Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint
     topPadding: 0
-    title: settingsOpen ? qsTr("Settings — Arbiter") : !emptyPage && webView && webView.title ? webView.title + " — Arbiter" : "Arbiter"
+    title: privateMode ? qsTr("Private browsing — Arbiter") : settingsOpen ? qsTr("Settings — Arbiter") : !emptyPage && webView && webView.title ? webView.title + " — Arbiter" : "Arbiter"
     color: palette.window
     palette.window: Theme.window
     palette.base: Theme.window
@@ -90,6 +117,7 @@ Basic.ApplicationWindow {
     readonly property bool pageNavigationEnabled: webView !== null && webView.activeFocus && !settingsOpen && recordingIndex < 0 && !changingTabs && !shuttingDown
 
     function resetSiteNavigation() {
+        if (privateMode) return
         ++siteNavigationGeneration
         siteNavigation.reset(webView ? webView.url : "", webView ? webView.title : "",
                              siteNavigationEnabled ? appearance.siteMenuMode : "off")
@@ -151,6 +179,7 @@ Basic.ApplicationWindow {
     }
 
     function focusAddress() {
+        if (privateCovered) return;
         splitWithPicker.close()
         workspacePanel.close()
         historyPanel.close()
@@ -170,6 +199,7 @@ Basic.ApplicationWindow {
     }
 
     function navigate(input: string) {
+        if (privateCovered) return;
         workspacePanel.close()
         if (!webView)
             return
@@ -192,41 +222,45 @@ Basic.ApplicationWindow {
         webView.forceActiveFocus()
     }
 
-    Shortcut { sequence: window.bindings.address; enabled: window.recordingIndex < 0; onActivated: window.focusAddress() }
-    Shortcut { sequence: window.bindings.workspaces; enabled: window.recordingIndex < 0; onActivated: window.openWorkspaces() }
-    Shortcut { sequence: window.bindings.nextWorkspace; enabled: window.recordingIndex < 0; onActivated: window.workspaces.cycle(1) }
-    Shortcut { sequence: window.bindings.previousWorkspace; enabled: window.recordingIndex < 0; onActivated: window.workspaces.cycle(-1) }
-    Shortcut { sequence: window.bindings.history; enabled: window.recordingIndex < 0; onActivated: window.openHistory() }
-    Shortcut { sequence: window.bindings.passwords; enabled: window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.openPasswords() }
-    Shortcut { sequence: window.bindings.reload; enabled: window.webView && window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.webView.reload() }
-    Shortcut { sequence: window.bindings.back; enabled: window.pageNavigationEnabled; onActivated: window.webView.goBack() }
-    Shortcut { sequence: window.bindings.forward; enabled: window.pageNavigationEnabled; onActivated: window.webView.goForward() }
+    Shortcut { sequence: window.bindings.address; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.focusAddress() }
+    Shortcut { sequence: window.bindings.workspaces; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.openWorkspaces() }
+    Shortcut { sequence: window.bindings.nextWorkspace; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.workspaces.cycle(1) }
+    Shortcut { sequence: window.bindings.previousWorkspace; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.workspaces.cycle(-1) }
+    Shortcut { sequence: window.bindings.history; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.openHistory() }
+    Shortcut { sequence: window.bindings.passwords; enabled: !window.privateCovered && window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.openPasswords() }
+    Shortcut { sequence: window.bindings.reload; enabled: !window.privateCovered && window.webView && window.recordingIndex < 0 && !window.settingsOpen; onActivated: window.webView.reload() }
+    Shortcut { sequence: window.bindings.back; enabled: !window.privateCovered && window.pageNavigationEnabled; onActivated: window.webView.goBack() }
+    Shortcut { sequence: window.bindings.forward; enabled: !window.privateCovered && window.pageNavigationEnabled; onActivated: window.webView.goForward() }
     // WebEngine's ShortcutOverride preserves native cursor movement in inputs,
     // textareas and contenteditable (including child frames). Only page focus
     // enables scrolling; address fields and other browser controls keep their keys.
-    Shortcut { sequence: window.bindings.pageTop; enabled: window.pageNavigationEnabled; onActivated: window.scrollPage(false) }
-    Shortcut { sequence: window.bindings.pageBottom; enabled: window.pageNavigationEnabled; onActivated: window.scrollPage(true) }
+    Shortcut { sequence: window.bindings.pageTop; enabled: !window.privateCovered && window.pageNavigationEnabled; onActivated: window.scrollPage(false) }
+    Shortcut { sequence: window.bindings.pageBottom; enabled: !window.privateCovered && window.pageNavigationEnabled; onActivated: window.scrollPage(true) }
     Shortcut {
         sequence: window.bindings.stop
-        enabled: !splitWithPicker.visible && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible && window.recordingIndex < 0 && !window.settingsOpen
+        enabled: !window.privateCovered && !splitWithPicker.visible && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible && window.recordingIndex < 0 && !window.settingsOpen
         onActivated: { window.webView.stop(); window.webView.forceActiveFocus() }
     }
-    Shortcut { sequence: window.bindings.close; enabled: window.recordingIndex < 0; onActivated: window.closeCurrentTab() }
-    Shortcut { sequence: window.bindings.fullscreen; enabled: window.recordingIndex < 0; onActivated: window.toggleFullScreen() }
-    Shortcut { sequence: window.bindings.expand; enabled: window.recordingIndex < 0; onActivated: window.toggleExpanded() }
+    Shortcut { sequence: window.bindings.close; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.closeCurrentTab() }
+    Shortcut { sequence: window.bindings.fullscreen; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.toggleFullScreen() }
+    Shortcut { sequence: window.bindings.expand; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.toggleExpanded() }
 
-    Shortcut { sequence: window.bindings.newTab; enabled: window.recordingIndex < 0; onActivated: window.newTab() }
-    Shortcut { sequence: window.bindings.tabs; enabled: window.recordingIndex < 0; onActivated: window.showTabs() }
-    Shortcut { sequence: window.bindings.nextTab; enabled: window.recordingIndex < 0; onActivated: window.nextTab() }
-    Shortcut { sequence: window.bindings.previousTab; enabled: window.recordingIndex < 0; onActivated: window.previousTab() }
-    Shortcut { sequence: window.bindings.reopenTab; enabled: window.recordingIndex < 0; onActivated: window.reopenTab() }
-    Shortcut { sequence: window.bindings.splitHorizontal; enabled: window.recordingIndex < 0; onActivated: window.splitHorizontal() }
-    Shortcut { sequence: window.bindings.splitVertical; enabled: window.recordingIndex < 0; onActivated: window.splitVertical() }
-    Shortcut { sequence: window.bindings.splitWith; enabled: window.recordingIndex < 0; onActivated: window.openSplitWith() }
-    Shortcut { sequence: window.bindings.nextPane; enabled: window.recordingIndex < 0; onActivated: window.nextPane() }
-    Shortcut { sequence: window.bindings.previousPane; enabled: window.recordingIndex < 0; onActivated: window.previousPane() }
-    Shortcut { sequence: window.bindings.nextHiddenTab; enabled: window.recordingIndex < 0; onActivated: window.nextHiddenTab() }
-    Shortcut { sequence: window.bindings.closeWindow; enabled: window.recordingIndex < 0; onActivated: window.close() }
+    Shortcut { sequence: window.bindings.newTab; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.newTab() }
+    Shortcut { sequence: window.bindings.tabs; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.showTabs() }
+    Shortcut { sequence: window.bindings.nextTab; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.nextTab() }
+    Shortcut { sequence: window.bindings.previousTab; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.previousTab() }
+    Shortcut { sequence: window.bindings.reopenTab; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.reopenTab() }
+    Shortcut { sequence: window.bindings.splitHorizontal; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.splitHorizontal() }
+    Shortcut { sequence: window.bindings.splitVertical; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.splitVertical() }
+    Shortcut { sequence: window.bindings.splitWith; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.openSplitWith() }
+    Shortcut { sequence: window.bindings.nextPane; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.nextPane() }
+    Shortcut { sequence: window.bindings.previousPane; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.previousPane() }
+    Shortcut { sequence: window.bindings.nextHiddenTab; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.nextHiddenTab() }
+    Shortcut { sequence: window.bindings.closeWindow; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.close() }
+
+    Shortcut { sequence: window.bindings.privateWindow || ""; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.newPrivateWindow() }
+    Shortcut { sequence: window.bindings.lockPrivate || ""; enabled: window.privateMode && !window.privateCovered; onActivated: window.lockPrivateWindow() }
+    Shortcut { sequence: window.bindings.closeWindow; enabled: window.privateCovered; onActivated: window.close() }
 
     function scrollPage(bottom: bool) {
         if (!pageNavigationEnabled) return
@@ -236,6 +270,7 @@ Basic.ApplicationWindow {
     }
 
     function focusPage() {
+        if (privateCovered) return;
         if (splitWithPicker.visible)
             return
         else if (workspacePanel.visible)
@@ -276,9 +311,12 @@ Basic.ApplicationWindow {
         syncActiveView()
     }
 
-    function splitHorizontal() { closeSplitPopups(); splits.split(true) }
-    function splitVertical() { closeSplitPopups(); splits.split(false) }
-    function openSplitWith() { closeSplitPopups(); splitWithPicker.openFor() }
+    function splitHorizontal() {
+        if (privateCovered) return; closeSplitPopups(); splits.split(true) }
+    function splitVertical() {
+        if (privateCovered) return; closeSplitPopups(); splits.split(false) }
+    function openSplitWith() {
+        if (privateCovered) return; closeSplitPopups(); splitWithPicker.openFor() }
     function closeSplitPopups() {
         splitWithPicker.close()
         settingsOpen = false
@@ -304,10 +342,14 @@ Basic.ApplicationWindow {
         splitViewport.contentX = Math.max(0, Math.min(x, splitViewport.contentWidth - splitViewport.width))
         splitViewport.contentY = Math.max(0, Math.min(y, splitViewport.contentHeight - splitViewport.height))
     }
-    function singlePane() { splits.single(); focusPage() }
-    function nextPane() { splits.cycle(1); focusPage() }
-    function previousPane() { splits.cycle(-1); focusPage() }
-    function nextHiddenTab() { if (splits.nextHiddenTab()) selectTab(tabs.currentIndex) }
+    function singlePane() {
+        if (privateCovered) return; splits.single(); focusPage() }
+    function nextPane() {
+        if (privateCovered) return; splits.cycle(1); focusPage() }
+    function previousPane() {
+        if (privateCovered) return; splits.cycle(-1); focusPage() }
+    function nextHiddenTab() {
+        if (privateCovered) return; if (splits.nextHiddenTab()) selectTab(tabs.currentIndex) }
 
     Connections {
         target: window.splits
@@ -315,6 +357,7 @@ Basic.ApplicationWindow {
     }
 
     function newTab() {
+        if (privateCovered) return;
         selectTab(workspaces.addTab(focusedWorkspaceId, "about:blank", false))
     }
 
@@ -341,6 +384,7 @@ Basic.ApplicationWindow {
     }
 
     function closeCurrentTab() {
+        if (privateCovered) return;
         closeTab(tabs.currentIndex)
     }
 
@@ -377,10 +421,14 @@ Basic.ApplicationWindow {
             tabSearch.forceActiveFocus()
     }
 
-    function nextTab() { if (splits.cycleTab(1)) selectTab(tabs.currentIndex) }
-    function previousTab() { if (splits.cycleTab(-1)) selectTab(tabs.currentIndex) }
-    function reopenTab() { if (tabs.reopen()) selectTab(tabs.currentIndex) }
-    function showTabs() { splitWithPicker.close(); workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.open() }
+    function nextTab() {
+        if (privateCovered) return; if (splits.cycleTab(1)) selectTab(tabs.currentIndex) }
+    function previousTab() {
+        if (privateCovered) return; if (splits.cycleTab(-1)) selectTab(tabs.currentIndex) }
+    function reopenTab() {
+        if (privateCovered) return; if (tabs.reopen()) selectTab(tabs.currentIndex) }
+    function showTabs() {
+        if (privateCovered) return; splitWithPicker.close(); workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.open() }
 
     function openExternalUrl(url: string) {
         syncActiveView()
@@ -392,6 +440,7 @@ Basic.ApplicationWindow {
     }
 
     function openWebRequest(request: var, sourceWorkspace: string) {
+        if (privateCovered) return;
         // Preserve background-tab requests and keep the request's opener and
         // pending navigation by handing it directly to the new engine view.
         const background = request.destination === WebEngineView.NewViewInBackgroundTab
@@ -426,6 +475,8 @@ Basic.ApplicationWindow {
     }
 
     function toggleSettings() {
+        if (privateCovered) return;
+        if (privateMode) { preferencesRequested(); return }
         splitWithPicker.close()
         workspacePanel.close()
         historyPanel.close()
@@ -447,6 +498,7 @@ Basic.ApplicationWindow {
     }
 
     function openPasswords() {
+        if (privateCovered) return;
         splitWithPicker.close()
         historyPanel.close()
         addressPopup.close()
@@ -454,8 +506,9 @@ Basic.ApplicationWindow {
         if (!settingsOpen) passwordPanel.openFor(webView)
     }
 
-    function openPasswordSettings() { historyPanel.close(); passwordPanel.openManager() }
+    function openPasswordSettings() { if (privateCovered) return; historyPanel.close(); passwordPanel.openManager() }
     function openWorkspaces() {
+        if (privateCovered) return;
         splitWithPicker.close()
         if (webView) {
             webAuthnPanel.cancelFor(webView)
@@ -467,6 +520,7 @@ Basic.ApplicationWindow {
         workspacePanel.open()
     }
     function openHistory() {
+        if (privateCovered) return;
         splitWithPicker.close()
         workspacePanel.close()
         if (webView) {
@@ -479,6 +533,7 @@ Basic.ApplicationWindow {
     }
 
     function toggleExpanded() {
+        if (privateCovered) return;
         if (visibility === Window.Maximized || visibility === Window.FullScreen)
             showNormal()
         else
@@ -486,6 +541,7 @@ Basic.ApplicationWindow {
     }
 
     function toggleFullScreen() {
+        if (privateCovered) return;
         if (visibility === Window.FullScreen)
             showNormal()
         else
@@ -493,6 +549,36 @@ Basic.ApplicationWindow {
     }
 
 
+    function moveTabSelection(delta: int) {
+        tabList.currentIndex = Math.max(0, Math.min(tabChoices.count - 1, tabList.currentIndex + delta))
+        tabList.positionViewAtIndex(tabList.currentIndex, GridView.Contain)
+    }
+
+    function refreshTabChoices() {
+        if (!tabsPopup.visible)
+            return
+        const query = tabSearch.text.toLowerCase().trim()
+        tabChoices.clear()
+        let selected = 0
+        for (const pinned of [true, false]) {
+            for (let i = 0; i < tabViews.count; ++i) {
+                const view = tabViews.itemAt(i) as WebEngineView
+                if (!view || window.tabs.workspaceAt(i) !== window.focusedWorkspaceId || window.tabs.pinnedAt(i) !== pinned) continue
+                const url = view.url.toString()
+                const title = url === "about:blank" ? qsTr("New tab") : (view.title || url)
+                if (!query || (title + " " + url).toLowerCase().includes(query)) {
+                    if (i === window.tabs.currentIndex) selected = tabChoices.count
+                    tabChoices.append({sourceIndex: i, pageTitle: title, pageUrl: url === "about:blank" ? qsTr("Start page") : url, pinned: pinned})
+                }
+            }
+        }
+        tabList.currentIndex = query ? 0 : selected
+    }
+
+    Item {
+        id: browsingContent
+        anchors.fill: parent
+        enabled: !window.privateCovered
     Flickable {
         id: splitViewport
         objectName: "splitViewport"
@@ -534,6 +620,12 @@ Basic.ApplicationWindow {
                 onItemRemoved: Qt.callLater(window.syncActiveView)
                 delegate: WebEngineView {
                     id: page
+                    function cancelPrivateInteraction() {
+                        pageContextMenu.close()
+                        passwordSession.invalidate()
+                        startPage.focus = false
+                        focus = false
+                    }
                     required property int index
                     required property string workspaceId
                     required property string profileId
@@ -635,6 +727,7 @@ Basic.ApplicationWindow {
                     settings.focusOnNavigationEnabled: index === window.tabs.currentIndex && url.toString() !== "about:blank"
                     url: initialUrl
                     backgroundColor: window.color
+                    audioMuted: window.privateCovered
                     profile: window.webProfiles.profile(profileId)
                     webChannel: passwordChannel
                     webChannelWorld: 1
@@ -653,19 +746,19 @@ Basic.ApplicationWindow {
                         id: passwordSession
                         manager: window.passwords
                         onFocusNeedsValidation: {
-                            if (page === window.webView && !window.settingsOpen && window.passwords.enabled)
+                            if (page === window.webView && !window.privateCovered && !window.settingsOpen && window.passwords.enabled)
                                 passwordSession.validateFocus(page.mainFrame.url)
                         }
                         onFocused: function(origin, rect) { passwordPanel.offerFor(page, origin, rect) }
-                        onCaptureNeedsValidation: { if (page === window.webView && !window.settingsOpen) passwordSession.validateCapture(page.mainFrame.url, page.profile.offTheRecord) }
+                        onCaptureNeedsValidation: { if (page === window.webView && !window.privateCovered && !window.settingsOpen) passwordSession.validateCapture(page.mainFrame.url, page.profile.offTheRecord) }
                         onRunFillScript: function(script) {
-                            if (page !== window.webView || window.settingsOpen || !window.passwords.enabled) return
+                            if (page !== window.webView || window.privateCovered || window.settingsOpen || !window.passwords.enabled) return
                             page.mainFrame.runJavaScript(script, 1, function(filled) {
                                 window.passwords.reportFillResult(filled === true)
                             })
                         }
                         onRunPasswordSuggestionScript: function(script) {
-                            if (page !== window.webView || window.settingsOpen || !window.passwords.enabled) return
+                            if (page !== window.webView || window.privateCovered || window.settingsOpen || !window.passwords.enabled) return
                             page.mainFrame.runJavaScript(script, 1, function(filled) {
                                 window.passwords.reportSuggestionResult(filled === true)
                             })
@@ -677,7 +770,7 @@ Basic.ApplicationWindow {
                         passwordsEnabled: window.passwords.enabled
                         onPasswordsRequested: Qt.callLater(window.openPasswords)
                         onPasswordSuggestionRequested: function(field) {
-                            if (page === window.webView && !window.settingsOpen)
+                            if (page === window.webView && !window.privateCovered && !window.settingsOpen)
                                 passwordSession.suggestPassword(page.mainFrame.url, field)
                         }
                     }
@@ -690,7 +783,7 @@ Basic.ApplicationWindow {
                         Qt.callLater(function() { window.finishClosingTab(closingId) })
                     }
                     onWebAuthUxRequested: function(request) {
-                        if (page !== window.webView || window.settingsOpen) request.cancel()
+                        if (page !== window.webView || window.privateCovered || window.settingsOpen) request.cancel()
                         else webAuthnPanel.show(page, request)
                     }
                     Component.onDestruction: {
@@ -701,7 +794,7 @@ Basic.ApplicationWindow {
                         window.tabs.update(tabId, title, url)
                         if (!profile.offTheRecord && historyVisitId.length > 0)
                             window.history.updateTitle(historyVisitId, url, title)
-                        if (page === window.webView) window.siteNavigation.setTitle(title)
+                        if (page === window.webView && !window.privateMode) window.siteNavigation.setTitle(title)
                     }
                     onUrlChanged: {
                         Qt.callLater(page.recordHistory)
@@ -843,7 +936,7 @@ Basic.ApplicationWindow {
                         spacing: 8
                         Repeater {
                             id: settingsNavigation
-                            model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance")]
+                            model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy")]
                             delegate: UiButton {
                                 id: categoryButton
                                 required property int index
@@ -891,7 +984,7 @@ Basic.ApplicationWindow {
                     width: Math.min(720, settingsScroll.availableWidth)
                     spacing: 24
                     Basic.Label {
-                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance")][window.settingsCategory]
+                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy")][window.settingsCategory]
                         font.pixelSize: 28
                         font.weight: Font.DemiBold
                         color: Theme.text
@@ -1259,6 +1352,36 @@ Basic.ApplicationWindow {
                             wrapMode: Text.Wrap
                         }
                     }
+                    ColumnLayout {
+                        visible: window.settingsCategory === 7
+                        spacing: 16
+                        Layout.fillWidth: true
+                        Basic.Label {
+                            Layout.fillWidth: true
+                            text: qsTr("Private windows keep cookies and site storage in memory and do not save browsing history or restore tabs. Each private window has its own session. Downloads you save and credentials you explicitly create remain on your device.")
+                            color: Theme.muted
+                            wrapMode: Text.Wrap
+                        }
+                        UiButton { text: qsTr("New private window"); onClicked: window.newPrivateWindow() }
+                        Basic.Label { text: qsTr("Lock after no activity for"); color: Theme.text }
+                        UiComboBox {
+                            objectName: "privateLockTimeout"
+                            implicitWidth: 240
+                            readonly property var durations: [60, 120, 300, 600, 900, 1800, 3600]
+                            model: [qsTr("1 minute"), qsTr("2 minutes"), qsTr("5 minutes"), qsTr("10 minutes"), qsTr("15 minutes"), qsTr("30 minutes"), qsTr("1 hour")]
+                            currentIndex: window.privacy ? durations.indexOf(window.privacy.timeoutSeconds) : -1
+                            displayText: currentIndex < 0 && window.privacy ? qsTr("%1 seconds").arg(window.privacy.timeoutSeconds) : currentText
+                            onActivated: function(index) { if (window.privacy) window.privacy.timeoutSeconds = durations[index] }
+                            Accessible.name: qsTr("Private browsing lock timeout")
+                        }
+                        Basic.Label {
+                            Layout.fillWidth: true
+                            text: qsTr("Private windows also lock immediately when switched to the background, minimized, or when your computer locks or sleeps. Use biometrics (or a Windows Hello PIN), or the private-session password to unlock. Forgot it? Close the private window and start a new session.")
+                            color: Theme.muted
+                            wrapMode: Text.Wrap
+                        }
+                        Item { Layout.fillHeight: true }
+                    }
                 }
             }
         }
@@ -1266,6 +1389,7 @@ Basic.ApplicationWindow {
 
     // Window movement remains available above every website without a toolbar.
     NavigationPill {
+        id: navigationPill
         objectName: "navigationPill"
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
@@ -1287,6 +1411,9 @@ Basic.ApplicationWindow {
         onSplitHorizontalRequested: window.splitHorizontal()
         onSplitVerticalRequested: window.splitVertical()
         onSplitWithRequested: window.openSplitWith()
+        privateMode: window.privateMode
+        onPrivateWindowRequested: window.newPrivateWindow()
+        onLockPrivateRequested: window.lockPrivateWindow()
     }
     WorkspacePanel {
         id: workspacePanel
@@ -1297,6 +1424,7 @@ Basic.ApplicationWindow {
     }
     HistoryPanel {
         id: historyPanel
+        privateMode: window.privateMode
         objectName: "historyPanel"
         manager: window.history
         onClosed: Qt.callLater(window.focusPage)
@@ -1370,18 +1498,19 @@ Basic.ApplicationWindow {
     Connections {
         target: window.onboarding
         function onChanged() {
-            if (window.onboarding.tutorialPending && !window.settingsOpen) tutorial.open()
+            if (!window.privateMode && window.onboarding.tutorialPending && !window.settingsOpen) tutorial.open()
             else if (!window.onboarding.tutorialPending) tutorial.close()
         }
     }
     Timer {
         interval: 250
-        running: window.onboarding.tutorialPending && !window.settingsOpen
+        running: !window.privateMode && window.onboarding.tutorialPending && !window.settingsOpen
         onTriggered: tutorial.open()
     }
 
     Basic.Popup {
         id: tabsPopup
+        objectName: "tabsPopup"
         parent: Basic.Overlay.overlay
         anchors.centerIn: parent
         width: Math.min(1080, window.width - 48)
@@ -1605,32 +1734,7 @@ Basic.ApplicationWindow {
         onClosed: Qt.callLater(window.focusPage)
     }
 
-    function moveTabSelection(delta: int) {
-        tabList.currentIndex = Math.max(0, Math.min(tabChoices.count - 1, tabList.currentIndex + delta))
-        tabList.positionViewAtIndex(tabList.currentIndex, GridView.Contain)
-    }
-
     ListModel { id: tabChoices }
-    function refreshTabChoices() {
-        if (!tabsPopup.visible)
-            return
-        const query = tabSearch.text.toLowerCase().trim()
-        tabChoices.clear()
-        let selected = 0
-        for (const pinned of [true, false]) {
-            for (let i = 0; i < tabViews.count; ++i) {
-                const view = tabViews.itemAt(i) as WebEngineView
-                if (!view || window.tabs.workspaceAt(i) !== window.focusedWorkspaceId || window.tabs.pinnedAt(i) !== pinned) continue
-                const url = view.url.toString()
-                const title = url === "about:blank" ? qsTr("New tab") : (view.title || url)
-                if (!query || (title + " " + url).toLowerCase().includes(query)) {
-                    if (i === window.tabs.currentIndex) selected = tabChoices.count
-                    tabChoices.append({sourceIndex: i, pageTitle: title, pageUrl: url === "about:blank" ? qsTr("Start page") : url, pinned: pinned})
-                }
-            }
-        }
-        tabList.currentIndex = query ? 0 : selected
-    }
     Connections {
         target: tabSearch
         function onTextChanged() { window.refreshTabChoices() }
@@ -1694,4 +1798,45 @@ Basic.ApplicationWindow {
         color: window.palette.text
         background: Rectangle { radius: 12; color: window.palette.base }
     }
+    }
+    ShaderEffectSource {
+        id: privacyCapture
+        sourceItem: window.privateCovered ? browsingContent : null
+        // Downsample heavily before blurring to remove legible page detail.
+        textureSize: Qt.size(Math.max(1, Math.ceil(window.width / 24)), Math.max(1, Math.ceil(window.height / 24)))
+        hideSource: window.privateCovered
+        live: window.privateCovered
+        visible: false
+    }
+    MultiEffect {
+        anchors.fill: parent
+        z: 998
+        visible: window.privateCovered
+        source: privacyCapture
+        blurEnabled: true
+        blurMax: 64
+        blurMultiplier: 2
+        blur: 1
+        saturation: -0.5
+        autoPaddingEnabled: false
+    }
+    PrivateShield {
+        id: privateShield
+        objectName: "privateShield"
+        session: window.privateSession
+        onCloseRequested: window.close()
+    }
+    Basic.Label {
+        visible: window.privateMode && !window.privateCovered && !window.settingsOpen
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.margins: 12
+        z: 22
+        text: qsTr("Private")
+        color: Theme.muted
+        font.pixelSize: 11
+        background: Rectangle { color: Theme.window; radius: 6 }
+        padding: 6
+    }
+
 }

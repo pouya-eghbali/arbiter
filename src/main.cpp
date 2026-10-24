@@ -15,6 +15,8 @@
 #include <QStandardPaths>
 #include "tabs.h"
 #include "tabsleepsettings.h"
+#include "privatebrowsing.h"
+#include <QPointer>
 #include "splitswapgesture.h"
 #include "workspaces.h"
 #include "webprofiles.h"
@@ -35,6 +37,26 @@
 #ifdef Q_OS_MACOS
 void configureMacWindow(QWindow *window);
 #endif
+
+// Declare the engine last: it releases every page before its models/profiles.
+struct PrivateWindowState final : QObject {
+    explicit PrivateWindowState(PrivateBrowsing *privacy, QObject *parent) : QObject(parent),
+        workspaces(&tabs,QString()), history(QString()) {
+        profiles.privateMode=true;
+        auto *auth=createBiometricAuth(this);
+        session=new PrivateSession(privacy,auth,this);
+        auth->setParent(session);
+        QTimer::singleShot(0,auth,&BiometricAuth::refresh);
+    }
+    Tabs tabs;
+    Workspaces workspaces;
+    WebProfiles profiles;
+    History history;
+    WebAuthnController webauthn;
+    PasskeyController passkeys;
+    PrivateSession *session;
+    QQmlApplicationEngine engine;
+};
 
 int main(int argc, char *argv[])
 {
@@ -60,6 +82,7 @@ int main(int argc, char *argv[])
     SystemIntegration systemIntegration;
     Tabs tabs;
     TabSleepSettings tabSleep;
+    PrivateBrowsing privacy;
     Workspaces workspaces(&tabs);
     WebProfiles webProfiles;
     History history;
@@ -85,6 +108,7 @@ int main(int argc, char *argv[])
     QMenuBar nativeMenu;
     SiteNavigation siteNavigation(&nativeMenu);
     QQmlApplicationEngine engine;
+    QObject privateWindows;
 #ifdef ARBITER_WEBENGINE_QML_PATH
     // A split development SDK must supply its matching QML plugin as well as
     // its C++ libraries. Packaged builds must deploy this module with the app.
@@ -116,7 +140,8 @@ int main(int argc, char *argv[])
     userAgent.remove(QRegularExpression(QStringLiteral("\\s+(?:QtWebEngine|Arbiter)/[^\\s]+")));
     webProfiles.userAgent = userAgent;
     const bool diagnostics = qEnvironmentVariableIsSet("ARBITER_DIAGNOSTICS");
-    engine.setInitialProperties({{QStringLiteral("browserUserAgent"), userAgent},
+    const QVariantMap initialProperties{{QStringLiteral("privacy"), QVariant::fromValue(&privacy)},
+                                 {QStringLiteral("browserUserAgent"), userAgent},
                                  {QStringLiteral("settingsFile"), Settings::configFile()},
                                  {QStringLiteral("settingsDirectoryUrl"), QUrl::fromLocalFile(QFileInfo(Settings::configFile()).absolutePath())},
                                  {QStringLiteral("settingsError"), settingsError},
@@ -134,7 +159,8 @@ int main(int argc, char *argv[])
                                  {QStringLiteral("importer"), QVariant::fromValue(&importer)},
                                  {QStringLiteral("webauthn"), QVariant::fromValue(&webauthn)},
                                  {QStringLiteral("passkeys"), QVariant::fromValue(&passkeys)},
-                                 {QStringLiteral("browserDiagnostics"), diagnostics}});
+                                 {QStringLiteral("browserDiagnostics"), diagnostics}};
+    engine.setInitialProperties(initialProperties);
     if (diagnostics) {
         qInfo().noquote() << "Chromium:" << qWebEngineChromiumVersion();
         qInfo().noquote() << "User agent:" << userAgent;
@@ -144,6 +170,43 @@ int main(int argc, char *argv[])
     engine.loadFromModule(QStringLiteral("Arbiter"), QStringLiteral("Main"));
     if (!engine.rootObjects().isEmpty()) {
         QObject *root = engine.rootObjects().first();
+        QObject::connect(root,SIGNAL(preferencesRequested()),root,SLOT(openSettings()));
+        QObject::connect(&privacy,&PrivateBrowsing::openRequested,&app,[&,root,initialProperties] {
+            auto *state=new PrivateWindowState(&privacy,&privateWindows);
+            state->profiles.userAgent=userAgent;
+#ifdef ARBITER_WEBENGINE_QML_PATH
+            state->engine.addImportPath(QString::fromUtf8(ARBITER_WEBENGINE_QML_PATH));
+#endif
+            auto properties=initialProperties;
+            properties["privateMode"]=true;
+            properties["privateSession"]=QVariant::fromValue(state->session);
+            properties["tabs"]=QVariant::fromValue(&state->tabs);
+            properties["workspaces"]=QVariant::fromValue(&state->workspaces);
+            properties["webProfiles"]=QVariant::fromValue(&state->profiles);
+            properties["history"]=QVariant::fromValue(&state->history);
+            properties["webauthn"]=QVariant::fromValue(&state->webauthn);
+            properties["passkeys"]=QVariant::fromValue(&state->passkeys);
+            properties["browserDiagnostics"]=false;
+            state->engine.setInitialProperties(properties);
+            state->engine.loadFromModule(QStringLiteral("Arbiter"),QStringLiteral("Main"));
+            if(state->engine.rootObjects().isEmpty()) { state->deleteLater(); return; }
+            auto *window=qobject_cast<QWindow *>(state->engine.rootObjects().first());
+            if(!window) { state->deleteLater(); return; }
+            state->session->setWindow(window);
+            QObject::connect(window,SIGNAL(preferencesRequested()),root,SLOT(openSettings()));
+            // Opening preferences deliberately returns to the regular window.
+            QObject::connect(window,SIGNAL(preferencesRequested()),root,SLOT(show()));
+            QObject::connect(window,SIGNAL(preferencesRequested()),root,SLOT(raise()));
+            QObject::connect(window,SIGNAL(preferencesRequested()),root,SLOT(requestActivate()));
+            QObject::connect(window,&QWindow::visibleChanged,state,[state,window](bool visible) {
+                if(!visible) { QMetaObject::invokeMethod(window,"prepareForShutdown"); state->deleteLater(); }
+            });
+            QObject::connect(&app,&QCoreApplication::aboutToQuit,window,[window] { QMetaObject::invokeMethod(window,"prepareForShutdown"); });
+#ifdef Q_OS_MACOS
+            configureMacWindow(window);
+#endif
+            window->raise(); window->requestActivate();
+        });
         QObject::connect(&app, &QCoreApplication::aboutToQuit, root, [root] {
             QMetaObject::invokeMethod(root, "prepareForShutdown");
         });
@@ -174,11 +237,13 @@ int main(int argc, char *argv[])
             QMetaObject::invokeMethod(root, "openSettings");
         });
         QObject::connect(root, SIGNAL(shortcutRecordingChanged(bool)), settingsAction, SLOT(setDisabled(bool)));
+        auto *privateAction=applicationMenu->addAction(QObject::tr("New Private Window"));
+        QObject::connect(privateAction,&QAction::triggered,&privacy,&PrivateBrowsing::open);
         auto *tabsMenu = nativeMenu.addMenu(QObject::tr("Tabs"));
         const auto addTabAction = [root, tabsMenu](const QString &label, const char *method) {
             auto *action = tabsMenu->addAction(label);
             QObject::connect(action, &QAction::triggered, root, [root, method] {
-                QMetaObject::invokeMethod(root, method);
+                QMetaObject::invokeMethod(QGuiApplication::focusWindow() ? static_cast<QObject *>(QGuiApplication::focusWindow()) : root, method);
             });
         };
         addTabAction(QObject::tr("New Tab"), "newTab");
@@ -214,6 +279,9 @@ int main(int argc, char *argv[])
                 QObject::connect(action,&QAction::triggered,&workspaces,[&workspaces,id] { workspaces.activate(id); });
             }
         });
+        QObject::connect(&app,&QGuiApplication::focusWindowChanged,workspacesMenu,[workspacesMenu](QWindow *window) {
+            workspacesMenu->setEnabled(!window || !window->property("privateMode").toBool());
+        });
         auto *historyMenu = nativeMenu.addMenu(QObject::tr("History"));
         auto *showHistory = historyMenu->addAction(QObject::tr("Show All History…"));
         const auto updateHistoryShortcut = [&keyBindings, showHistory] {
@@ -221,15 +289,15 @@ int main(int argc, char *argv[])
         };
         updateHistoryShortcut();
         QObject::connect(&keyBindings, &KeyBindings::bindingsChanged, showHistory, updateHistoryShortcut);
-        QObject::connect(showHistory, &QAction::triggered, root, [root] { QMetaObject::invokeMethod(root, "openHistory"); });
+        QObject::connect(showHistory, &QAction::triggered, root, [root] { QMetaObject::invokeMethod(QGuiApplication::focusWindow() ? static_cast<QObject *>(QGuiApplication::focusWindow()) : root, "openHistory"); });
         auto *passwordsMenu = nativeMenu.addMenu(QObject::tr("Passwords"));
         auto *fillAction = passwordsMenu->addAction(QObject::tr("Fill Saved Login…"));
         QObject::connect(fillAction, &QAction::triggered, root, [root] {
-            QMetaObject::invokeMethod(root, "openPasswords");
+            QMetaObject::invokeMethod(QGuiApplication::focusWindow() ? static_cast<QObject *>(QGuiApplication::focusWindow()) : root, "openPasswords");
         });
         auto *manageAction = passwordsMenu->addAction(QObject::tr("Manage Passwords…"));
         QObject::connect(manageAction, &QAction::triggered, root, [root] {
-            QMetaObject::invokeMethod(root, "openPasswordSettings");
+            QMetaObject::invokeMethod(QGuiApplication::focusWindow() ? static_cast<QObject *>(QGuiApplication::focusWindow()) : root, "openPasswordSettings");
         });
         QObject::connect(root, SIGNAL(shortcutRecordingChanged(bool)), passwordsMenu, SLOT(setDisabled(bool)));
         QObject::connect(root, SIGNAL(shortcutRecordingChanged(bool)), &nativeMenu, SLOT(setDisabled(bool)));

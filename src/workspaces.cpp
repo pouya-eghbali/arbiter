@@ -16,6 +16,14 @@ Workspaces::Workspaces(Tabs *tabs, const QString &directory, QObject *parent)
     m_splits.suspend();
     QVariantMap savedSplits;
     m_spaces.append({"main",tr("Personal"),QColor("#8dbbff"),false}); m_current="main";
+    if (directory.isEmpty()) {
+        m_writable=false;
+        m_tabs->setWorkspace(m_current,profile(m_spaces.first()));
+        m_splits.restore({});
+        connect(m_tabs,&Tabs::sessionChanged,this,&Workspaces::changed);
+        connect(&m_splits,&SplitLayout::sessionChanged,this,&Workspaces::changed);
+        return; // Private sessions never create a directory, lock, or session file.
+    }
     if (!QDir().mkpath(directory)) { m_writable=false; m_error=tr("Workspaces cannot be saved: could not create storage."); }
     else {
         QFile::setPermissions(directory,QFileDevice::ReadOwner|QFileDevice::WriteOwner|QFileDevice::ExeOwner);
@@ -74,7 +82,7 @@ QVariantList Workspaces::choices() const {
     return result;
 }
 bool Workspaces::fail(const QString &error) { m_error=error; emit changed(); return false; }
-void Workspaces::scheduleSave() { m_save.start(); emit changed(); }
+void Workspaces::scheduleSave() { if(m_writable) m_save.start(); emit changed(); }
 void Workspaces::activate(const QString &id) {
     const int i=indexOf(id); if(i<0) return;
     const bool switching=m_current!=id;

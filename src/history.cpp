@@ -18,6 +18,7 @@ QUrl historyUrl(QUrl url) {
 History::History(QObject *parent) : History(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
     + QStringLiteral("/history/Default"), parent) {}
 History::History(const QString &directory, QObject *parent) : QAbstractListModel(parent) {
+    if (directory.isEmpty()) { m_enabled=false; return; } // Private windows have no history database.
     m_enabled = Settings().value("History/enabled", true).toBool();
     if (!QDir().mkpath(directory)) { fail(tr("Could not create history storage.")); return; }
     QFile::setPermissions(directory, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
@@ -79,6 +80,7 @@ void History::setSearch(const QString &value) {
     m_search = value; filter(); emit searchChanged();
 }
 void History::setEnabled(bool value) {
+    if (!m_db.isValid()) return; // In-memory private-session placeholder is always disabled.
     if (value == m_enabled) return;
     m_enabled = value; Settings().setValue("History/enabled", value); emit enabledChanged();
 }
