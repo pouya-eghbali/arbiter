@@ -31,7 +31,7 @@ Basic.Popup {
             Layout.fillWidth: true
             Basic.Label { text: qsTr("History"); font.pixelSize: 26; font.weight: Font.DemiBold; color: Theme.text; Layout.fillWidth: true }
             UiButton { text: qsTr("Clear all…"); enabled: panel.manager.totalCount > 0; onClicked: panel.confirmingClear = true }
-            UiButton { text: qsTr("Done"); onClicked: panel.close() }
+            UiIconButton { label: qsTr("Close"); iconName: "x"; onClicked: panel.close() }
         }
         UiTextField {
             id: search

@@ -14,6 +14,8 @@
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include <QApplication>
+#include <QImage>
 #ifdef Q_OS_MACOS
 #include <sys/xattr.h>
 #endif
@@ -29,6 +31,39 @@ void DownloadsTest::namesAndReservations() {
         const auto second=Downloads::reservePath(directory.path(),"report.txt"); QVERIFY(second.endsWith("report (1).txt"));
         QVERIFY(existing.open(QIODevice::ReadOnly)); QCOMPARE(existing.readAll(),QByteArray("keep me"));
     }
+void DownloadsTest::transferRates() {
+    DownloadEntry entry(nullptr);
+    entry.state = QWebEngineDownloadRequest::DownloadInProgress;
+    entry.total = 10000;
+    entry.sampleTransfer(0);
+    QCOMPARE(entry.secondsRemaining(), -1);
+    entry.received = 1000; entry.sampleTransfer(1000);
+    QCOMPARE(entry.bytesPerSecond(), 1000.0); QCOMPARE(entry.secondsRemaining(), 9);
+    entry.paused = true; entry.sampleTransfer(1100);
+    QCOMPARE(entry.bytesPerSecond(), 0.0); QCOMPARE(entry.secondsRemaining(), -1);
+    entry.paused = false; entry.sampleTransfer(10000);
+    entry.received = 2000; entry.sampleTransfer(11000);
+    QCOMPARE(entry.bytesPerSecond(), 1000.0); QCOMPARE(entry.secondsRemaining(), 8);
+    entry.total = -1; QCOMPARE(entry.secondsRemaining(), -1);
+    entry.total = 10000;
+    entry.sampleTransfer(15000); QCOMPARE(entry.bytesPerSecond(), 0.0); QCOMPARE(entry.secondsRemaining(), -1);
+    entry.received = 4000; entry.sampleTransfer(16000); QVERIFY(entry.bytesPerSecond() > 0);
+    entry.received = 10; entry.sampleTransfer(17000); QCOMPARE(entry.bytesPerSecond(), 0.0);
+    entry.state = QWebEngineDownloadRequest::DownloadCompleted; entry.sampleTransfer(18000);
+    QCOMPARE(entry.secondsRemaining(), -1); QCOMPARE(entry.bytesPerSecond(), 0.0);
+}
+void DownloadsTest::fileTypeIcons() {
+    DownloadEntry entry(nullptr);
+    for (const auto &name : {"archive.zip", "document.pdf", "photo.png", "unknown.arbiter-unknown-type", "file"}) {
+        entry.fileName = QString::fromLatin1(name);
+        const auto url = entry.iconSource().toString();
+        QVERIFY(url.startsWith("data:image/png;base64,"));
+        QVERIFY(!QImage::fromData(QByteArray::fromBase64(url.mid(url.indexOf(',')+1).toLatin1())).isNull());
+        QCOMPARE(entry.iconSource().toString(), url);
+    }
+    entry.fileName = "report.PDF"; const auto upper = entry.iconSource();
+    entry.fileName = "other.pdf"; QCOMPARE(entry.iconSource(), upper);
+}
 void DownloadsTest::actualTransfers() {
         QTemporaryDir directory; QVERIFY(directory.isValid());
         qputenv("XDG_CONFIG_HOME",directory.path().toUtf8()); qputenv("XDG_CONFIG_DIRS",directory.path().toUtf8());
@@ -108,7 +143,9 @@ Window {
         QTRY_COMPARE_WITH_TIMEOUT(downloads.items().size(),3,10000);
         auto *slow=downloads.items().first().value<DownloadEntry *>();
         QTRY_VERIFY_WITH_TIMEOUT(slow->received>0 && slow->active(),10000); QCOMPARE(downloads.activeCount(),1);
-        downloads.pause(slow->id); QTRY_VERIFY(slow->paused); downloads.resume(slow->id); QTRY_VERIFY(!slow->paused);
+        QTRY_VERIFY_WITH_TIMEOUT(slow->bytesPerSecond()>0 && slow->secondsRemaining()>0,10000);
+        downloads.pause(slow->id); QTRY_VERIFY(slow->paused); QCOMPARE(slow->bytesPerSecond(),0.0); QCOMPARE(slow->secondsRemaining(),-1);
+        downloads.resume(slow->id); QTRY_VERIFY(!slow->paused);
         downloads.cancel(slow->id); QTRY_COMPARE(slow->state,QWebEngineDownloadRequest::DownloadCancelled);
         QTRY_COMPARE(downloads.activeCount(),0);
         QVERIFY(QMetaObject::invokeMethod(root,"retryDownload"));
@@ -140,7 +177,7 @@ Window {
         downloads.clearFinished(); QVERIFY(downloads.items().isEmpty()); QVERIFY(QFileInfo::exists(completedPath));
     }
 int main(int argc,char **argv) {
-    QtWebEngineQuick::initialize(); QGuiApplication app(argc,argv); QStandardPaths::setTestModeEnabled(true);
+    QtWebEngineQuick::initialize(); QApplication app(argc,argv); QStandardPaths::setTestModeEnabled(true);
     QCoreApplication::setOrganizationName("ArbiterTests"); QCoreApplication::setApplicationName("DownloadsTests");
     DownloadsTest test; return QTest::qExec(&test,argc,argv);
 }

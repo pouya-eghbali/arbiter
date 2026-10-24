@@ -1,5 +1,6 @@
 #include "downloads.h"
 #include "downloadfileactions.h"
+#include "fileicons.h"
 #include "settings.h"
 #include <QtWebEngineQuick/QQuickWebEngineDownloadRequest>
 #include <QDateTime>
@@ -14,6 +15,7 @@
 #include <QSaveFile>
 #include <QStandardPaths>
 #include <QUuid>
+#include <cmath>
 
 namespace {
 QUrl storedUrl(const QUrl &url) {
@@ -47,10 +49,38 @@ QString DownloadEntry::status() const {
     }
     return {};
 }
+QUrl DownloadEntry::iconSource() const { return fileTypeIcon(fileName); }
+qint64 DownloadEntry::secondsRemaining() const {
+    if (!active() || paused || total < 0 || m_bytesPerSecond <= 0) return -1;
+    return qint64(std::ceil(qMax(qint64(0), total - received) / m_bytesPerSecond));
+}
+void DownloadEntry::sampleTransfer(qint64 nowMs) {
+    const bool running = active() && !paused;
+    if (!running || !m_wasRunning || m_sampleTime < 0 || received < m_sampleBytes) {
+        m_bytesPerSecond = 0; m_sampleTime = m_progressTime = nowMs; m_sampleBytes = received;
+        m_wasRunning = running; return;
+    }
+    const qint64 elapsed = nowMs - m_sampleTime;
+    if (elapsed < 500) return;
+    const qint64 delta = received - m_sampleBytes;
+    if (delta > 0) m_progressTime = nowMs;
+    const double rate = delta * 1000.0 / elapsed;
+    m_bytesPerSecond = nowMs - m_progressTime >= 3000 ? 0
+        : m_bytesPerSecond <= 0 ? rate : 0.5 * rate + 0.5 * m_bytesPerSecond;
+    m_sampleTime = nowMs; m_sampleBytes = received;
+}
 Downloads::Downloads(DownloadSettings *preferences, QObject *parent)
     : Downloads(preferences, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/downloads.json", parent) {}
 Downloads::Downloads(DownloadSettings *preferences, const QString &historyPath, QObject *parent)
     : QObject(parent), m_preferences(preferences), m_historyPath(historyPath) {
+    m_clock.start();
+    m_rateTimer.setInterval(1000);
+    connect(&m_rateTimer, &QTimer::timeout, this, [this] {
+        for (auto *entry : m_items) if (entry->active()) {
+            entry->sampleTransfer(m_clock.elapsed()); emit entry->changed();
+        }
+        if (!activeCount()) m_rateTimer.stop();
+    });
     m_saveTimer.setSingleShot(true); m_saveTimer.setInterval(500);
     connect(&m_saveTimer, &QTimer::timeout, this, &Downloads::save);
     if (m_historyPath.isEmpty()) return;
@@ -142,6 +172,7 @@ void Downloads::receive(QWebEngineDownloadRequest *request) {
             entry->reserved = false;
         }
         if (entry->active()) { entry->state = QWebEngineDownloadRequest::DownloadInterrupted; entry->error = tr("The browser profile was closed before the download finished."); }
+        entry->sampleTransfer(m_clock.elapsed());
         emit entry->changed(); emit changed(); m_saveTimer.start();
     });
     emit itemsChanged();
@@ -160,6 +191,8 @@ void Downloads::update(DownloadEntry *entry) {
     const auto previous = entry->state;
     entry->state = entry->request->state(); entry->received = entry->request->receivedBytes(); entry->total = entry->request->totalBytes();
     entry->paused = entry->request->isPaused(); entry->error = entry->request->interruptReasonString();
+    entry->sampleTransfer(m_clock.elapsed());
+    if (entry->active() && !m_rateTimer.isActive()) m_rateTimer.start();
     if (entry->state != QWebEngineDownloadRequest::DownloadInterrupted) entry->error.clear();
     if (entry->completed() && previous != entry->state) entry->warning = markDownloadedFile(entry->path, storedUrl(entry->url));
     if (!entry->active() && !entry->completed() && !entry->canRetry() && entry->reserved) {

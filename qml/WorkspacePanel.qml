@@ -46,7 +46,7 @@ Basic.Popup {
             Layout.fillWidth: true
             Basic.Label { text: qsTr("Workspaces"); color: Theme.text; font.pixelSize: 24; font.weight: Font.DemiBold; Layout.fillWidth: true }
             UiButton { text: qsTr("New…"); onClicked: panel.editWorkspace(null) }
-            UiButton { text: qsTr("Done"); onClicked: panel.close() }
+            UiIconButton { label: qsTr("Close"); iconName: "x"; onClicked: panel.close() }
         }
         Basic.Label {
             visible: panel.manager.error.length > 0

@@ -1,7 +1,7 @@
 # Shared UI controls
 
 These components are exported by the application's `Arbiter` QML module. Use
-`UiButton`, `UiTextField`, `UiCheckBox`, `UiComboBox`, `UiMenuItem`, `UiToolTip`
+`UiButton`, `UiIconButton`, `UiTextField`, `UiCheckBox`, `UiComboBox`, `UiMenuItem`, `UiToolTip`
 `UiMenu`, `UiColorPicker` and `UiImagePicker` in browser surfaces instead of styling Basic controls in
 individual screens. `Theme` is the shared color source and `GlassSurface`
 provides popup material.
@@ -34,6 +34,9 @@ aliases for existing credential cards. `UiButton` supports `iconName`, `iconSize
 (default 20), and `iconColor`, with or without a text label. Icon-only buttons must
 set a descriptive `Accessible.name`; decorative icons are ignored by screen readers.
 Use the shared control instead of text glyphs or bespoke drawings for UI actions.
+`UiIconButton` is the compact 32-pixel action control. Supply `iconName` and the
+required `label`, which provides both its tooltip and accessible name. Keep text
+buttons for actions whose meaning needs a visible label, such as confirmations.
 
 Lucide sources, pinned revision, and regeneration instructions are in
 `assets/icons/lucide/README.md`. The full ISC/Feather MIT notices ship in

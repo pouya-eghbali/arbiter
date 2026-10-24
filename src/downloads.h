@@ -2,6 +2,7 @@
 #include <QObject>
 #include <QPointer>
 #include <QTimer>
+#include <QElapsedTimer>
 #include <QUrl>
 #include <QVariantList>
 #include <QtWebEngineCore/QWebEngineDownloadRequest>
@@ -37,6 +38,9 @@ class DownloadEntry final : public QObject {
     Q_PROPERTY(bool paused MEMBER paused NOTIFY changed)
     Q_PROPERTY(bool completed READ completed NOTIFY changed)
     Q_PROPERTY(bool canRetry READ canRetry NOTIFY changed)
+    Q_PROPERTY(double bytesPerSecond READ bytesPerSecond NOTIFY changed)
+    Q_PROPERTY(qint64 secondsRemaining READ secondsRemaining NOTIFY changed)
+    Q_PROPERTY(QUrl iconSource READ iconSource NOTIFY changed)
 public:
     explicit DownloadEntry(QObject *parent) : QObject(parent) {}
     QString id, fileName, path, error, warning;
@@ -51,8 +55,16 @@ public:
     bool canRetry() const { return state == QWebEngineDownloadRequest::DownloadInterrupted && request && !request->isFinished(); }
     QString source() const;
     QString status() const;
+    double bytesPerSecond() const { return m_bytesPerSecond; }
+    qint64 secondsRemaining() const;
+    QUrl iconSource() const;
+    void sampleTransfer(qint64 nowMs);
 signals:
     void changed();
+private:
+    double m_bytesPerSecond = 0;
+    qint64 m_sampleTime = -1, m_sampleBytes = 0, m_progressTime = 0;
+    bool m_wasRunning = false;
 };
 
 class Downloads final : public QObject {
@@ -95,5 +107,7 @@ private:
     QString m_historyPath, m_error;
     QList<DownloadEntry *> m_items;
     QTimer m_saveTimer;
+    QTimer m_rateTimer;
+    QElapsedTimer m_clock;
     bool m_blocked = false;
 };

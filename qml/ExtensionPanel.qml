@@ -47,7 +47,7 @@ Basic.Popup {
         RowLayout {
             Layout.fillWidth: true
             Basic.Label { Layout.fillWidth: true; text: panel.pageTitle; textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 20; elide: Text.ElideRight }
-            UiButton { text: qsTr("Close"); onClicked: panel.close() }
+            UiIconButton { label: qsTr("Close"); iconName: "x"; onClicked: panel.close() }
         }
         Basic.ScrollView {
             visible: !panel.extensionId.length

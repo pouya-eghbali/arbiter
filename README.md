@@ -576,6 +576,12 @@ cancels preparation; submitted jobs are managed through the OS print queue.
 Use the pill’s **Downloads…** menu or **Cmd+Shift+J** on macOS / **Ctrl+J** on
 Windows/Linux (customizable in Keyboard settings). Downloads show progress,
 pause/resume, cancel, retry for resumable interruptions, Open, and Show in folder.
+Compact rows include native file-type icons and icon actions with tooltips and
+keyboard labels. Active transfers show smoothed download speed and estimated time
+remaining. Estimates reset after pausing/resuming, disappear for unknown sizes,
+and return to “Estimating…” when a transfer stalls. File-type icons are resolved
+from the OS (or the desktop MIME icon theme on Linux), cached by extension, and
+do not inspect downloaded contents.
 **Settings → Downloads** chooses the destination; the default is the OS Downloads
 folder. Existing files receive numbered alternatives. Completed files never open
 automatically. Regular history survives restarts; private lists belong only to
