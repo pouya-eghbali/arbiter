@@ -56,7 +56,7 @@ rechecking after username input handlers run. It never submits forms.
 
 Non-HTTPS origins, cross-origin form actions, subframes, hidden/disabled/read-only
 inputs, and ambiguous unfocused forms are not filled. Existing passwords are not
-filled into new-password fields. Ordinary and dynamic forms and explicit capture
+filled into new-password fields. Ordinary and dynamic forms and submission capture
 of form-less fields are supported. Username-first fields require
 `autocomplete="username"` for filling; capture does not carry usernames between
 separate documents, so users can correct the native save prompt. Closed shadow
@@ -64,12 +64,31 @@ DOM/custom widgets and HTTP authentication dialogs are not integrated.
 
 Supported submissions offer Save/Update, suppressing unchanged saved passwords.
 A submission is not proof of success; the prompt says to dismiss it if sign-in
-failed. Users can explicitly capture unsupported submissions with Save current
-login. Disabling saving/filling retains credentials and still allows deletion.
+failed. Sign-up/new-password forms participate in automatic submission capture;
+there is no manual-save action in the account picker. Disabling saving/filling
+retains credentials and still allows deletion.
+
+The password-field context menu offers Suggest password. An isolated-world hit
+test binds the clicked field to a document UUID, form token, and field token.
+Native code validates the committed HTTPS origin and generates the password.
+The script rejects stale documents, cross-origin actions, detached inputs, and
+changed field/form associations. It fills only the chosen password field and,
+when explicitly marked new-password, matching new-password confirmation fields.
+It never overwrites current-password fields as part of a new-password suggestion.
+Generation does not submit or save; normal submission capture offers to save.
 
 Isolation does not hide filled field values from the website. Management does
 not reveal existing passwords; Show reveals only a newly entered/generated value.
-Access relies on OS account/keyring policy, with no additional application lock.
+OS account/keyring policy still controls reads. Fingerprint verification defaults
+on (`Passwords.biometricEnabled=true`) and is configurable only in Passwords
+settings. When supported, Arbiter additionally verifies the user before autofill. Successful
+verification can be reused for `Passwords.verificationCooldown` seconds (default
+300, range 0–3600; 0 verifies every time), configurable in Passwords settings.
+The interval starts at the successful verification, not the most recent fill.
+Only a monotonic timestamp is held in memory. Restart, session lock/sleep,
+disabling passwords, changing the cooldown, or biometric availability changes
+invalidate it. Late verification/read callbacks cannot authorize fills after
+invalidation. Disabling biometric verification clears its remembered approval.
 Qt strings and DOM values cannot be guaranteed to be securely erased. Pending
 capture data expires after two minutes or dismissal. There is no decrypted vault
 cache.
@@ -85,6 +104,14 @@ Linux needs Qt DBus, pkg-config, libsecret development headers, and a working
 Secret Service or supported KWallet session. Missing/locked keyrings produce
 errors rather than plaintext storage. macOS packaging should keep a stable signing
 identity for consistent Keychain access decisions.
+
+macOS builds sign and verify the complete app bundle after linking. The default
+ad-hoc signature (`ARBITER_MACOS_SIGNING_IDENTITY=-`) supports local development;
+its identity changes when the executable changes. Set
+`-DARBITER_MACOS_SIGNING_IDENTITY="<certificate name or SHA-1>"` to use a
+certificate identity across builds. Packaging must sign again after deployment
+changes the bundle. Signing does not merge the separate application Touch ID
+check with login-Keychain authorization, or unlock a locked Keychain.
 
 Tests cover persistence, failures, origin binding, index tampering/corruption,
 concurrent access, private/disabled capture, size limits, generation, navigation

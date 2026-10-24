@@ -12,10 +12,12 @@ Basic.Button {
     horizontalPadding: 16
     hoverEnabled: true
     opacity: enabled ? 1 : 0.45
-    contentItem: Basic.Label {
+    palette.buttonText: primary ? Theme.accentText : Theme.text
+    palette.highlightedText: Theme.accentText
+    contentItem: Text {
         text: control.text
         textFormat: Text.PlainText
-        color: control.primary ? Theme.onAccent : Theme.text
+        color: control.primary ? Theme.accentText : Theme.text
         font: control.font
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
@@ -27,7 +29,7 @@ Basic.Button {
             : control.down ? Theme.pressed : control.checked || control.highlighted ? Theme.selection
             : control.hovered || control.activeFocus ? Theme.hover : control.flat ? "transparent" : Theme.field
         border.width: control.activeFocus || control.primary && (control.hovered || control.down) ? 1 : 0
-        border.color: control.primary ? Theme.onAccent : Theme.accent
+        border.color: control.primary ? Theme.accentText : Theme.accent
         Behavior on color { ColorAnimation { duration: 100 } }
     }
 }

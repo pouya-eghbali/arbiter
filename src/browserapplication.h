@@ -17,6 +17,10 @@ public:
         const auto pending = std::exchange(m_pending, {});
         for (const QUrl &url : pending) m_handler(url);
     }
+    void receiveUrl(const QUrl &url) {
+        if (m_handler) m_handler(url);
+        else m_pending.append(url);
+    }
 protected:
     bool event(QEvent *event) override
     {
@@ -26,8 +30,7 @@ protected:
         if (!url.isValid() || url.host().isEmpty()
             || (url.scheme() != QStringLiteral("http") && url.scheme() != QStringLiteral("https")))
             return false;
-        if (m_handler) m_handler(url);
-        else m_pending.append(url);
+        receiveUrl(url);
         event->accept();
         return true;
     }

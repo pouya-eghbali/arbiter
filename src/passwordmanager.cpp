@@ -12,6 +12,9 @@
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QSet>
+#include <cmath>
+#include <chrono>
+#include <algorithm>
 #include "settings.h"
 #include <QStandardPaths>
 #include <QUuid>
@@ -41,9 +44,15 @@ PasswordManager::PasswordManager(QObject *parent)
 }
 
 PasswordManager::PasswordManager(const QString &directory, const QString &profile,
-                                 SecretStore *store, QObject *parent)
-    : QObject(parent), m_directory(directory), m_profile(profile), m_store(store)
+                                 SecretStore *store, QObject *parent, VerificationClock clock)
+    : QObject(parent), m_verificationClock(clock ? std::move(clock) : VerificationClock([] {
+          return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+      })), m_directory(directory), m_profile(profile), m_store(store)
 {
+    bool valid=false;
+    const int cooldown=Settings().value(QStringLiteral("Passwords/verificationCooldown"),300).toInt(&valid);
+    m_verificationCooldown=valid ? std::clamp(cooldown,0,3600) : 300;
+    m_biometricEnabled=Settings().value(QStringLiteral("Passwords/biometricEnabled"),true).toBool();
     if (!m_store) m_store = new KeychainSecretStore(this);
     m_pendingTimer.setSingleShot(true);
     m_pendingTimer.setInterval(120000);
@@ -133,6 +142,7 @@ void PasswordManager::setEnabled(bool enabled)
 {
     if (m_enabled == enabled) return;
     m_enabled = enabled;
+    clearUserVerification();
     Settings().setValue(QStringLiteral("Passwords/enabled"), enabled);
     if (!enabled) dismissPending();
     emit stateChanged();
@@ -157,6 +167,12 @@ void PasswordManager::reportFillResult(bool filled)
 {
     m_error = filled ? QString() : tr("The login form changed or cannot be filled safely. Open Passwords again.");
     m_message = filled ? tr("Login filled. Review it before signing in.") : QString();
+    emit stateChanged();
+}
+void PasswordManager::reportSuggestionResult(bool filled)
+{
+    m_error=filled ? QString() : tr("The password field changed or cannot be filled safely. Right-click the field and try again.");
+    m_message=filled ? tr("Suggested password inserted. Arbiter will offer to save it when you submit.") : QString();
     emit stateChanged();
 }
 
@@ -274,7 +290,30 @@ void PasswordManager::remove(const QString &id)
     });
 }
 
-void PasswordManager::readForFill(const QString &id, const QString &origin, SecretStore::Callback callback)
+void PasswordManager::setUserVerification(const QString &name,bool available,VerifyUser verify) {
+    if(m_biometricName!=name || m_biometricAvailable!=available) clearUserVerification();
+    m_biometricName=name; m_biometricAvailable=available; m_verifyUser=std::move(verify); emit stateChanged();
+}
+void PasswordManager::clearUserVerification() {
+    m_verifiedAt=-1;
+    ++m_verificationEpoch;
+}
+void PasswordManager::setBiometricEnabled(bool enabled) {
+    if(m_biometricEnabled==enabled) return;
+    m_biometricEnabled=enabled;
+    clearUserVerification();
+    Settings().setValue(QStringLiteral("Passwords/biometricEnabled"),enabled);
+    emit stateChanged();
+}
+void PasswordManager::setVerificationCooldown(int seconds) {
+    seconds=std::clamp(seconds,0,3600);
+    if(m_verificationCooldown==seconds) return;
+    m_verificationCooldown=seconds;
+    clearUserVerification();
+    Settings().setValue(QStringLiteral("Passwords/verificationCooldown"),seconds);
+    emit stateChanged();
+}
+void PasswordManager::readForFill(const QString &id, const QString &origin, SecretStore::Callback callback,bool biometric,std::function<bool()> current)
 {
     if (m_busy || !m_writable || !m_enabled || origin.isEmpty()) {
         callback(tr("Password storage is unavailable or busy."), {});
@@ -291,19 +330,41 @@ void PasswordManager::readForFill(const QString &id, const QString &origin, Secr
     m_message.clear();
     emit stateChanged();
     const QPointer<PasswordManager> guard(this);
-    m_store->read(secretKey(id), [guard, match, callback](const QString &error, const QByteArray &data) {
-        if (!guard) return;
-        QString resultError = error;
-        const auto map = QCborValue::fromCbor(data).toMap();
-        if (resultError.isEmpty() && (map.value(QStringLiteral("version")).toInteger() != 1
-            || map.value(QStringLiteral("origin")).toString() != match.value("origin").toString()
-            || map.value(QStringLiteral("username")).toString() != match.value("username").toString()
-            || !map.value(QStringLiteral("password")).isString()
-            || map.value(QStringLiteral("password")).toString().isEmpty()))
-            resultError = tr("The stored password does not match its index entry. It was not filled.");
-        if (!guard->m_enabled) resultError = tr("Password filling is disabled.");
-        guard->finish(resultError);
-        callback(resultError, resultError.isEmpty() ? data : QByteArray());
+    const auto epoch=m_verificationEpoch;
+    const auto read=[guard,match,id,callback,current,epoch] {
+        if(!guard) return;
+        if(epoch!=guard->m_verificationEpoch || (current && !current())) { guard->finish({}); callback(tr("Password request cancelled."),{}); return; }
+        if(!guard->m_enabled) { const auto error=tr("Password filling is disabled."); guard->finish(error); callback(error,{}); return; }
+        const auto completed=[guard,match,callback,current,epoch](const QString &error,const QByteArray &data) {
+            if(!guard) return;
+            QString resultError=error;
+            const auto map=QCborValue::fromCbor(data).toMap();
+            if(resultError.isEmpty() && (map.value(QStringLiteral("version")).toInteger()!=1
+                || map.value(QStringLiteral("origin")).toString()!=match.value("origin").toString()
+                || map.value(QStringLiteral("username")).toString()!=match.value("username").toString()
+                || !map.value(QStringLiteral("password")).isString() || map.value(QStringLiteral("password")).toString().isEmpty()))
+                resultError=tr("The stored password does not match its index entry. It was not filled.");
+            if(!guard->m_enabled) resultError=tr("Password filling is disabled.");
+            if(epoch!=guard->m_verificationEpoch || (current && !current())) resultError=tr("Password request cancelled.");
+            guard->finish(resultError);
+            callback(resultError,resultError.isEmpty() ? data : QByteArray());
+        };
+        guard->m_store->read(guard->secretKey(id),completed);
+    };
+    if(!biometric) { read(); return; }
+    if(!m_biometricAvailable || !m_verifyUser) {
+        const auto error=tr("Fingerprint verification is unavailable. Check verification preferences in Settings → Passwords.");
+        finish(error); callback(error,{}); return;
+    }
+    const qint64 elapsed=m_verifiedAt<0 ? -1 : m_verificationClock()-m_verifiedAt;
+    if(m_verificationCooldown>0 && elapsed>=0 && elapsed<qint64(m_verificationCooldown)*1000) { read(); return; }
+    m_verifiedAt=-1;
+    m_verifyUser(tr("Fill your saved password for %1").arg(origin),[guard,read,callback,current,epoch](bool approved,const QString &) {
+        if(!guard) return;
+        if(!approved) { const auto message=tr("%1 verification was cancelled or unsuccessful. Try again, or review verification preferences in Settings → Passwords.").arg(guard->m_biometricName); guard->finish(message); callback(message,{}); return; }
+        if(epoch==guard->m_verificationEpoch && guard->m_enabled && (!current || current()) && guard->m_verificationCooldown>0)
+            guard->m_verifiedAt=guard->m_verificationClock();
+        read();
     });
 }
 
@@ -384,6 +445,12 @@ QString PasswordManager::fillScript(const QString &origin, const QString &docume
     return QStringLiteral("globalThis.__arbiterPasswords?.fill(%1,%2,%3,%4,%5) === true")
         .arg(quoted(origin), quoted(document), quoted(form), quoted(username), quoted(password));
 }
+QString PasswordManager::suggestionScript(const QString &origin, const QString &document,
+                                          const QString &form, const QString &field, const QString &password)
+{
+    return QStringLiteral("globalThis.__arbiterPasswords?.suggestPassword(%1,%2,%3,%4,%5) === true")
+        .arg(quoted(origin),quoted(document),quoted(form),quoted(field),quoted(password));
+}
 
 void PasswordCapture::submit(const QString &origin, const QString &username, const QString &password)
 {
@@ -393,6 +460,7 @@ void PasswordCapture::submit(const QString &origin, const QString &username, con
 
 PasswordSession::PasswordSession(QObject *parent) : QObject(parent), m_capture(this)
 {
+    m_capture.focusReceiver=[this](const QVariantMap &document) { m_focusDocument=document; emit focusNeedsValidation(); m_focusDocument.clear(); };
     m_capture.receiver = [this](const QString &origin, const QString &username, const QString &password) {
         m_captureOrigin = origin;
         m_captureUsername = username;
@@ -405,6 +473,20 @@ PasswordSession::PasswordSession(QObject *parent) : QObject(parent), m_capture(t
     };
 }
 
+void PasswordCapture::focus(const QVariantMap &document) {
+    if(focusReceiver && document.size()<=8 && document.value("origin").toString().size()<=2048
+        && document.value("document").toString().size()==36 && document.value("form").toString().size()<=16) focusReceiver(document);
+}
+void PasswordSession::validateFocus(const QUrl &committedUrl) {
+    if(m_focusDocument.isEmpty()) return;
+    prepare(committedUrl,m_focusDocument);
+    if(m_origin.isEmpty()) return;
+    const QRectF rect(m_focusDocument.value("x").toDouble(),m_focusDocument.value("y").toDouble(),
+        m_focusDocument.value("width").toDouble(),m_focusDocument.value("height").toDouble());
+    if(!std::isfinite(rect.x()) || !std::isfinite(rect.y()) || !std::isfinite(rect.width()) || !std::isfinite(rect.height())
+        || rect.width()<=0 || rect.height()<=0 || rect.width()>10000 || rect.height()>10000) { invalidate(); return; }
+    emit focused(m_origin,rect);
+}
 void PasswordSession::validateCapture(const QUrl &committedUrl, bool privateBrowsing)
 {
     if (m_manager)
@@ -446,5 +528,15 @@ void PasswordSession::fill(const QString &id, const QUrl &committedUrl)
         const auto map = QCborValue::fromCbor(data).toMap();
         emit guard->runFillScript(PasswordManager::fillScript(guard->m_origin, guard->m_document, guard->m_form,
             map.value(QStringLiteral("username")).toString(), map.value(QStringLiteral("password")).toString()));
-    });
+    },m_manager->biometricEnabled() && m_manager->biometricAvailable(),[guard,generation] { return guard && guard->m_generation==generation; });
+}
+void PasswordSession::suggestPassword(const QUrl &committedUrl, const QVariantMap &field)
+{
+    if(!m_manager || !m_manager->enabled() || m_manager->busy() || field.size()!=4
+        || field.value("form").toString().size()>16 || field.value("field").toString().isEmpty()
+        || field.value("field").toString().size()>16 || QUuid(field.value("document").toString()).isNull()) return;
+    prepare(committedUrl,field);
+    if(m_origin.isEmpty()) return;
+    emit runPasswordSuggestionScript(PasswordManager::suggestionScript(m_origin,m_document,m_form,
+        field.value("field").toString(),m_manager->generatePassword()));
 }

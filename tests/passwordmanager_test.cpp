@@ -38,6 +38,132 @@ class PasswordManagerTest : public QObject
     Q_OBJECT
     QTemporaryDir settings;
 private slots:
+    void biometricPreferenceDefaultsOnAndControlsSessionFill() {
+        QTemporaryDir dir; MemoryStore store;
+        PasswordManager manager(dir.path(),"Test",&store);
+        QVERIFY(manager.biometricEnabled());
+        manager.save(QUrl("https://example.test"),"alice","test-secret");
+        int prompts=0;
+        manager.setUserVerification("Test fingerprint",true,[&](const QString &,PasswordManager::VerifyCallback cb) { ++prompts; cb(true,{}); });
+        PasswordSession session; session.setProperty("manager",QVariant::fromValue(&manager));
+        session.prepare(QUrl("https://example.test"),{{"origin","https://example.test"},
+            {"document",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"form","1"}});
+        QSignalSpy filled(&session,&PasswordSession::runFillScript);
+        const auto id=manager.entries().first().toMap().value("id").toString();
+        session.fill(id,QUrl("https://example.test")); QCOMPARE(prompts,1); QCOMPARE(filled.size(),1);
+        manager.setBiometricEnabled(false);
+        QTemporaryDir other;
+        PasswordManager restored(other.path(),"Test",&store); QVERIFY(!restored.biometricEnabled());
+        session.fill(id,QUrl("https://example.test")); QCOMPARE(prompts,1); QCOMPARE(filled.size(),2);
+        manager.setBiometricEnabled(true);
+        session.fill(id,QUrl("https://example.test")); QCOMPARE(prompts,2); QCOMPARE(filled.size(),3);
+    }
+    void passwordSuggestionRequiresMatchingSecureDocument() {
+        QTemporaryDir dir; MemoryStore store; PasswordManager manager(dir.path(),"Test",&store);
+        PasswordSession session; session.setProperty("manager",QVariant::fromValue(&manager));
+        QSignalSpy generated(&session,&PasswordSession::runPasswordSuggestionScript);
+        QVariantMap field{{"origin","https://example.test"},{"document",QUuid::createUuid().toString(QUuid::WithoutBraces)},
+            {"form","1"},{"field","1"}};
+        session.suggestPassword(QUrl("https://evil.test"),field); QCOMPARE(generated.size(),0);
+        session.suggestPassword(QUrl("http://example.test"),field); QCOMPARE(generated.size(),0);
+        session.suggestPassword(QUrl("https://example.test"),field); QCOMPARE(generated.size(),1);
+        QVERIFY(generated.first().first().toString().contains(".suggestPassword("));
+        manager.setEnabled(false);
+        session.suggestPassword(QUrl("https://example.test"),field); QCOMPARE(generated.size(),1);
+        QCOMPARE(store.reads,0);
+    }
+    void verificationCooldownIsFixedAndCanBeDisabled() {
+        QTemporaryDir dir; MemoryStore store; qint64 now=0;
+        PasswordManager manager(dir.path(),"Test",&store,nullptr,[&]{return now;});
+        manager.save(QUrl("https://example.test"),"alice","test-secret");
+        const auto id=manager.entries().first().toMap().value("id").toString();
+        int verifications=0;
+        manager.setUserVerification("Test fingerprint",true,[&](const QString &,PasswordManager::VerifyCallback cb) { ++verifications; cb(true,{}); });
+        const auto fill=[&](const QString &origin="https://example.test",bool biometric=true) {
+            manager.readForFill(id,origin,[](const QString &error,const QByteArray &data) { QVERIFY(error.isEmpty()); QVERIFY(!data.isEmpty()); },biometric);
+        };
+        QCOMPARE(manager.verificationCooldown(),300);
+        fill(); QCOMPARE(verifications,1);
+        now=299999; fill(); QCOMPARE(verifications,1);
+        now=300000; fill(); QCOMPARE(verifications,2); // A recent fill did not extend it.
+        manager.setVerificationCooldown(0); fill(); fill(); QCOMPARE(verifications,4);
+        manager.setVerificationCooldown(60); fill(); QCOMPARE(verifications,5);
+        manager.clearUserVerification(); fill(); QCOMPARE(verifications,6);
+        manager.setEnabled(false); manager.setEnabled(true); fill(); QCOMPARE(verifications,7);
+        manager.setUserVerification("Test fingerprint",false,{});
+        manager.setUserVerification("Test fingerprint",true,[&](const QString &,PasswordManager::VerifyCallback cb) { ++verifications; cb(true,{}); });
+        fill(); QCOMPARE(verifications,8);
+        manager.clearUserVerification(); fill("https://example.test",false); fill(); QCOMPARE(verifications,9); // OS access is not biometric verification.
+        manager.readForFill(id,"https://evil.test",[](const QString &error,const QByteArray &data) { QVERIFY(!error.isEmpty()); QVERIFY(data.isEmpty()); },true);
+        QCOMPARE(verifications,9);
+    }
+    void lockInvalidatesPendingVerificationAndRead() {
+        QTemporaryDir dir; MemoryStore store; qint64 now=0;
+        PasswordManager manager(dir.path(),"Test",&store,nullptr,[&]{return now;});
+        manager.save(QUrl("https://example.test"),"alice","test-secret");
+        const auto id=manager.entries().first().toMap().value("id").toString();
+        PasswordManager::VerifyCallback approve; int prompts=0;
+        manager.setUserVerification("Test fingerprint",true,[&](const QString &,PasswordManager::VerifyCallback cb) { ++prompts; approve=std::move(cb); });
+        const auto fillRejected=[&] { manager.readForFill(id,"https://example.test",[](const QString &error,const QByteArray &data) { QVERIFY(!error.isEmpty()); QVERIFY(data.isEmpty()); },true); };
+        fillRejected(); manager.clearUserVerification(); approve(true,{}); QCOMPARE(store.reads,0);
+        fillRejected(); QCOMPARE(prompts,2); approve(false,"Cancelled"); QCOMPARE(store.reads,0);
+        fillRejected(); QCOMPARE(prompts,3); store.delayed=true; approve(true,{}); QCOMPARE(store.reads,1);
+        manager.clearUserVerification(); auto finish=std::exchange(store.pending,{}); QVERIFY(finish); finish(); QVERIFY(!manager.busy());
+        fillRejected(); QCOMPARE(prompts,4); approve(false,"Cancelled");
+    }
+    void cooldownPreferencePersistsButApprovalDoesNot() {
+        QTemporaryDir dir; MemoryStore store; qint64 now=0; int prompts=0;
+        {
+            PasswordManager manager(dir.path(),"Test",&store,nullptr,[&]{return now;});
+            manager.setVerificationCooldown(900);
+            manager.save(QUrl("https://example.test"),"alice","test-secret");
+            manager.setUserVerification("Test fingerprint",true,[&](const QString &,PasswordManager::VerifyCallback cb) { ++prompts; cb(true,{}); });
+            manager.readForFill(manager.entries().first().toMap().value("id").toString(),"https://example.test",[](const QString &error,const QByteArray &) { QVERIFY(error.isEmpty()); },true);
+        }
+        PasswordManager restored(dir.path(),"Test",&store,nullptr,[&]{return now;});
+        QCOMPARE(restored.verificationCooldown(),900);
+        restored.setUserVerification("Test fingerprint",true,[&](const QString &,PasswordManager::VerifyCallback cb) { ++prompts; cb(true,{}); });
+        restored.readForFill(restored.entries().first().toMap().value("id").toString(),"https://example.test",[](const QString &error,const QByteArray &) { QVERIFY(error.isEmpty()); },true);
+        QCOMPARE(prompts,2);
+        restored.setVerificationCooldown(-1); QCOMPARE(restored.verificationCooldown(),0);
+        restored.setVerificationCooldown(100000); QCOMPARE(restored.verificationCooldown(),3600);
+    }
+    void focusMetadataMustMatchCommittedOrigin() {
+        QTemporaryDir dir; MemoryStore store; PasswordManager manager(dir.path(),"Test",&store);
+        PasswordSession session; session.setProperty("manager",QVariant::fromValue(&manager));
+        auto *capture=qobject_cast<PasswordCapture *>(session.capture()); QVERIFY(capture);
+        connect(&session,&PasswordSession::focusNeedsValidation,&session,[&]{session.validateFocus(QUrl("https://example.test/login"));});
+        QSignalSpy focused(&session,&PasswordSession::focused);
+        QVariantMap document{{"origin","https://evil.test"},{"document",QUuid::createUuid().toString(QUuid::WithoutBraces)},
+            {"form","1"},{"x",20},{"y",30},{"width",200},{"height",30}};
+        capture->focus(document); QCOMPARE(focused.size(),0);
+        document["origin"]="https://example.test";
+        capture->focus(document); QCOMPARE(focused.size(),1);
+        session.validateFocus(QUrl("https://example.test/login")); QCOMPARE(focused.size(),1);
+        document["width"]=-1; capture->focus(document); QCOMPARE(focused.size(),1);
+        document["width"]=200; document["document"]="invalid"; capture->focus(document); QCOMPARE(focused.size(),1);
+        QCOMPARE(store.reads,0);
+    }
+    void biometricFillRequiresApprovalAndCurrentRequest() {
+        QTemporaryDir dir; MemoryStore store; PasswordManager manager(dir.path(),"Test",&store);
+        manager.save(QUrl("https://example.test"),"alice","test-secret");
+        const auto id=manager.entries().first().toMap().value("id").toString();
+        PasswordManager::VerifyCallback verify;
+        manager.setUserVerification("Test fingerprint",true,[&](const QString &,PasswordManager::VerifyCallback cb) { verify=std::move(cb); });
+        bool replied=false;
+        manager.readForFill(id,"https://example.test",[&](const QString &error,const QByteArray &data) { replied=true; QVERIFY(!error.isEmpty()); QVERIFY(data.isEmpty()); },true);
+        QCOMPARE(store.reads,0); QVERIFY(manager.busy());
+        verify(false,"Cancelled"); QVERIFY(replied); QCOMPARE(store.reads,0); QVERIFY(!manager.busy());
+        bool current=true; replied=false;
+        manager.readForFill(id,"https://example.test",[&](const QString &error,const QByteArray &data) { replied=true; QVERIFY(!error.isEmpty()); QVERIFY(data.isEmpty()); },true,[&]{return current;});
+        current=false; verify(true,{}); QVERIFY(replied); QCOMPARE(store.reads,0);
+        replied=false;
+        manager.readForFill(id,"https://example.test",[&](const QString &error,const QByteArray &data) { replied=true; QVERIFY(error.isEmpty()); QVERIFY(!data.isEmpty()); },true);
+        verify(true,{}); QVERIFY(replied); QCOMPARE(store.reads,1);
+        manager.readForFill(id,"https://evil.test",[](const QString &error,const QByteArray &data) { QVERIFY(!error.isEmpty()); QVERIFY(data.isEmpty()); },true);
+        QCOMPARE(store.reads,1);
+    }
+
     void initTestCase() {
         QCoreApplication::setOrganizationName("ArbiterTests");
         QCoreApplication::setApplicationName("Passwords");

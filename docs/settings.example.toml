@@ -17,6 +17,9 @@ enabled = true
 
 [Passwords]
 enabled = true
+biometricEnabled = true
+# Seconds after successful fingerprint verification; 0 asks every time, maximum 3600.
+verificationCooldown = 300
 
 # Qt PortableText shortcuts: Ctrl means Command on macOS, Control elsewhere.
 # Meta means Control on macOS. Shortcuts must be unique.
@@ -27,3 +30,8 @@ enabled = true
 # nextHiddenTab = "Ctrl+Alt+N"
 # pageTop = "Ctrl+Up"
 # pageBottom = "Ctrl+Down"
+
+# Setup state is saved automatically. Dotfile-managed installs can skip setup:
+# [onboarding]
+# version = 1
+# tutorialPending = false

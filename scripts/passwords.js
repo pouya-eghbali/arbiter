@@ -7,10 +7,14 @@
     const documentId = crypto.randomUUID();
     const forms = new Map();
     const ids = new WeakMap();
+    const passwordFields = new Map();
+    const passwordFieldIds = new WeakMap();
     let nextId = 0;
     let bridge = null;
     let lastCapture = "";
     let lastCaptureTime = 0;
+
+    const hasAutocomplete = (input, token) => input.autocomplete.split(/\s+/).includes(token);
 
     const visible = input => input instanceof HTMLInputElement && !input.disabled
         && !input.readOnly && input.getClientRects().length > 0
@@ -26,23 +30,24 @@
             .filter(input => visible(input) && (form instanceof HTMLFormElement
                 ? input.form === form : input.form === null));
         const passwords = inputs.filter(input => input.type === "password");
-        const password = passwords.find(input => input.autocomplete === "current-password")
-            || passwords.find(input => input.autocomplete !== "new-password");
+        const password = passwords.find(input => hasAutocomplete(input, "current-password"))
+            || passwords.find(input => !hasAutocomplete(input, "new-password"));
         const texts = inputs.filter(input => ["text", "email", "tel"].includes(input.type));
         const username = texts.find(input => input.autocomplete.split(/\s+/).includes("username"))
             || texts.find(input => input.type === "email")
             || texts.filter(input => !password || inputs.indexOf(input) < inputs.indexOf(password)).at(-1);
         return {username, password, passwords};
     }
-    function candidates() {
+    function candidates(includeNew = false) {
         return [...Array.from(document.forms), document].filter(form => {
             if (!safeAction(form)) return false;
             const f = fields(form);
-            return f.password || (f.username && f.username.autocomplete.split(/\s+/).includes("username"));
+            return f.password || (includeNew && f.passwords.length > 0)
+                || (f.username && hasAutocomplete(f.username, "username"));
         });
     }
-    function selected() {
-        const available = candidates();
+    function selected(includeNew = false) {
+        const available = candidates(includeNew);
         const active = document.activeElement;
         const activeForm = active instanceof HTMLInputElement ? (active.form || document) : null;
         if (activeForm && available.includes(activeForm)) return activeForm;
@@ -60,10 +65,10 @@
         const form = selected();
         return form ? {origin: location.origin, document: documentId, form: formId(form)} : null;
     }
-    function capture(form = selected()) {
+    function capture(form = selected(true)) {
         if (!bridge || !form || !safeAction(form)) return false;
         const f = fields(form);
-        const newPasswords = f.passwords.filter(input => input.autocomplete === "new-password" && input.value);
+        const newPasswords = f.passwords.filter(input => hasAutocomplete(input, "new-password") && input.value);
         if (newPasswords.length > 1 && newPasswords.some(input => input.value !== newPasswords[0].value))
             return false;
         const password = newPasswords[0] || f.password;
@@ -101,17 +106,71 @@
         }
         return true;
     }
-    globalThis.__arbiterPasswords = Object.freeze({inspect, capture: () => capture(), fill});
+    function inspectPasswordAt(x, y) {
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+        const input = document.elementFromPoint(x, y);
+        if (!visible(input) || input.type !== "password") return null;
+        const form = input.form || document;
+        if (!safeAction(form)) return null;
+        if (!passwordFieldIds.has(input)) {
+            const id = String(passwordFields.size + 1);
+            passwordFieldIds.set(input, id);
+            passwordFields.set(id, input);
+        }
+        return {origin: location.origin, document: documentId, form: formId(form), field: passwordFieldIds.get(input)};
+    }
+    function suggestPassword(origin, expectedDocument, formToken, fieldToken, password) {
+        if (location.origin !== origin || documentId !== expectedDocument || !isSecureContext
+            || typeof password !== "string" || password.length < 12 || password.length > 2560) return false;
+        const form = forms.get(formToken);
+        const input = passwordFields.get(fieldToken);
+        const valid = field => visible(field) && field.isConnected && field.type === "password"
+            && (field.form || document) === form && safeAction(form)
+            && (form === document || form.isConnected) && location.origin === origin;
+        if (!input || !form || !valid(input)) return false;
+        // Only explicit new-password fields can be paired with confirmation.
+        // A change-password form's current-password field must stay untouched.
+        const targets = hasAutocomplete(input, "new-password")
+            ? fields(form).passwords.filter(field => hasAutocomplete(field, "new-password")) : [input];
+        for (const field of targets) {
+            if (!valid(field)) return false;
+            setValue(field, password);
+        }
+        return true;
+    }
+    globalThis.__arbiterPasswords = Object.freeze({inspect, capture: () => capture(), fill, inspectPasswordAt, suggestPassword});
     if (typeof qt === "undefined" || !qt.webChannelTransport) return;
     new QWebChannel(qt.webChannelTransport, channel => { bridge = channel.objects.passwordCapture; });
+    let userGesture = -Infinity;
+    function suggest(input) {
+        if (!bridge || !visible(input) || !["text", "email", "tel", "password"].includes(input.type)
+            || hasAutocomplete(input, "new-password")) return;
+        const form = input.form || document;
+        if (!safeAction(form) || !candidates().includes(form)) return;
+        const f = fields(form);
+        if (input !== f.username && input !== f.password) return;
+        const rect = input.getBoundingClientRect();
+        bridge.focus({origin: location.origin, document: documentId, form: formId(form),
+            x: rect.x, y: rect.y, width: rect.width, height: rect.height});
+    }
+    document.addEventListener("pointerdown", event => {
+        if (!event.isTrusted || event.button !== 0) return;
+        userGesture = performance.now();
+        if (event.target instanceof HTMLInputElement) suggest(event.target);
+    }, true);
+    document.addEventListener("keydown", event => { if (event.isTrusted) userGesture = performance.now(); }, true);
+    document.addEventListener("focusin", event => {
+        if (event.isTrusted && performance.now() - userGesture < 500 && event.target instanceof HTMLInputElement)
+            suggest(event.target);
+    }, true);
     document.addEventListener("submit", event => {
         if (event.target instanceof HTMLFormElement) capture(event.target);
     }, true);
     // Covers JS-driven sign-in buttons on forms that don't dispatch submit.
     document.addEventListener("click", event => {
         if (!event.isTrusted || !(event.target instanceof Element)) return;
-        const button = event.target.closest("button,input[type=submit]");
-        if (button && button.form && (button.type === "submit" || /sign.?in|log.?in/i.test(button.textContent)))
-            capture(button.form);
+        const button = event.target.closest("button,input[type=submit],input[type=button],[role=button]");
+        if (button && (button.type === "submit" || /sign.?in|log.?in|sign.?up|create.?account|register/i.test(button.textContent || button.value || "")))
+            capture(button.form || selected(true));
     }, true);
 })();

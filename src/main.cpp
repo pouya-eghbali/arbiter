@@ -11,6 +11,8 @@
 #include "keybindings.h"
 #include "settings.h"
 #include "browserapplication.h"
+#include "browserinstance.h"
+#include <QStandardPaths>
 #include "tabs.h"
 #include "splitswapgesture.h"
 #include "workspaces.h"
@@ -19,8 +21,13 @@
 #include "webauthncontroller.h"
 #include "passkeycontroller.h"
 #include "appearance.h"
+#include "onboarding.h"
+#include "systemintegration.h"
+#include <QEventLoop>
 #include "history.h"
 #include "browserimporter.h"
+#include "browserimportselection.h"
+#include "browsericons.h"
 #include "sitenavigation.h"
 #include <QWindow>
 #include <QFileInfo>
@@ -39,17 +46,38 @@ int main(int argc, char *argv[])
     QQuickStyle::setStyle(QStringLiteral("macOS"));
 #endif
 
+    BrowserInstance instance(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+    const auto instanceResult=instance.start(app.arguments().mid(1));
+    if (instanceResult==BrowserInstance::Forwarded) return 0;
+    if (instanceResult==BrowserInstance::Failed) { qCritical().noquote()<<instance.error(); return 1; }
+    QObject::connect(&instance, &BrowserInstance::urlReceived, &app, &BrowserApplication::receiveUrl);
+    QObject::connect(&instance, &BrowserInstance::activationRequested, &app, [&app] { app.receiveUrl(QUrl()); });
     const QString settingsError=Settings::initialize();
     KeyBindings keyBindings;
     Appearance appearance;
+    Onboarding onboarding(&appearance);
+    SystemIntegration systemIntegration;
     Tabs tabs;
     Workspaces workspaces(&tabs);
     WebProfiles webProfiles;
     History history;
     PasswordManager passwords;
     BrowserImporter importer(&passwords,&history);
+    BrowserImportSelection importSelection(&importer);
     WebAuthnController webauthn;
     PasskeyController passkeys;
+    auto *passwordBiometrics=createBiometricAuth(&passwords);
+    const auto updatePasswordBiometrics=[&passwords,passwordBiometrics] {
+        passwords.setUserVerification(passwordBiometrics->name(),passwordBiometrics->available(),
+            [passwordBiometrics](const QString &reason,PasswordManager::VerifyCallback callback) { passwordBiometrics->authenticate(reason,std::move(callback)); });
+    };
+    QObject::connect(passwordBiometrics,&BiometricAuth::changed,&passwords,updatePasswordBiometrics);
+    QObject::connect(passwordBiometrics,&BiometricAuth::sessionLocked,&passwords,[&passwords,passwordBiometrics] {
+        passwords.clearUserVerification();
+        passwordBiometrics->cancel();
+    });
+    updatePasswordBiometrics();
+    QTimer::singleShot(0,passwordBiometrics,&BiometricAuth::refresh);
     qmlRegisterType<SplitSwapGesture>("Arbiter.Input", 1, 0, "SplitSwapGesture");
     qmlRegisterType<PasswordSession>("Arbiter.Credentials", 1, 0, "PasswordSession");
     QMenuBar nativeMenu;
@@ -60,6 +88,26 @@ int main(int argc, char *argv[])
     // its C++ libraries. Packaged builds must deploy this module with the app.
     engine.addImportPath(QString::fromUtf8(ARBITER_WEBENGINE_QML_PATH));
 #endif
+    if (!onboarding.completed()) {
+        // Finish setup before constructing WebEngine views or choosing native flags.
+        app.setQuitOnLastWindowClosed(false);
+        QEventLoop setupLoop;
+        QQmlApplicationEngine setupEngine;
+        setupEngine.addImageProvider(QStringLiteral("browsers"), createBrowserIconProvider());
+        setupEngine.setInitialProperties({{QStringLiteral("controller"), QVariant::fromValue(&onboarding)},
+                                          {QStringLiteral("appearance"), QVariant::fromValue(&appearance)},
+                                          {QStringLiteral("importer"), QVariant::fromValue(&importer)},
+                                          {QStringLiteral("importSelection"), QVariant::fromValue(&importSelection)},
+                                          {QStringLiteral("systemIntegration"), QVariant::fromValue(&systemIntegration)}});
+        QObject::connect(&onboarding, &Onboarding::finished, &setupLoop, &QEventLoop::quit);
+        QObject::connect(&onboarding, &Onboarding::aborted, &setupLoop, &QEventLoop::quit);
+        QObject::connect(&app, &QCoreApplication::aboutToQuit, &setupLoop, &QEventLoop::quit);
+        setupEngine.loadFromModule(QStringLiteral("Arbiter"), QStringLiteral("Onboarding"));
+        if (setupEngine.rootObjects().isEmpty()) return 1;
+        setupLoop.exec();
+        if (!onboarding.completed()) return 0;
+    }
+    app.setQuitOnLastWindowClosed(true);
     // Keep Chromium's real platform/version tokens, without the embedding-toolkit
     // and application products that sites can mistake for an unsupported browser.
     QString userAgent = QWebEngineProfile::defaultProfile()->httpUserAgent();
@@ -71,6 +119,7 @@ int main(int argc, char *argv[])
                                  {QStringLiteral("settingsDirectoryUrl"), QUrl::fromLocalFile(QFileInfo(Settings::configFile()).absolutePath())},
                                  {QStringLiteral("settingsError"), settingsError},
                                  {QStringLiteral("appearance"), QVariant::fromValue(&appearance)},
+                                 {QStringLiteral("onboarding"), QVariant::fromValue(&onboarding)},
                                  {QStringLiteral("windowDecorations"), appearance.windowDecorations()},
                                  {QStringLiteral("siteNavigation"), QVariant::fromValue(&siteNavigation)},
                                  {QStringLiteral("keyBindings"), QVariant::fromValue(&keyBindings)},
@@ -96,7 +145,7 @@ int main(int argc, char *argv[])
             QMetaObject::invokeMethod(root, "prepareForShutdown");
         });
         app.setUrlHandler([root](const QUrl &url) {
-            QMetaObject::invokeMethod(root, "openExternalUrl", Q_ARG(QString, url.toString()));
+            if (!url.isEmpty()) QMetaObject::invokeMethod(root, "openExternalUrl", Q_ARG(QString, url.toString()));
             if (auto *window = qobject_cast<QWindow *>(root)) {
                 if (window->visibility() == QWindow::Minimized)
                     window->showNormal();
@@ -104,6 +153,11 @@ int main(int argc, char *argv[])
                 window->requestActivate();
             }
         });
+        for (const auto &argument : app.arguments().mid(1)) {
+            const QUrl url(argument);
+            if ((url.scheme() == "http" || url.scheme() == "https") && !url.host().isEmpty())
+                QMetaObject::invokeMethod(root, "openExternalUrl", Q_ARG(QString, url.toString()));
+        }
         auto *applicationMenu = nativeMenu.addMenu(QStringLiteral("Arbiter"));
         auto *settingsAction = applicationMenu->addAction(QObject::tr("Settings…"));
         settingsAction->setMenuRole(QAction::PreferencesRole);
@@ -165,7 +219,7 @@ int main(int argc, char *argv[])
         QObject::connect(&keyBindings, &KeyBindings::bindingsChanged, showHistory, updateHistoryShortcut);
         QObject::connect(showHistory, &QAction::triggered, root, [root] { QMetaObject::invokeMethod(root, "openHistory"); });
         auto *passwordsMenu = nativeMenu.addMenu(QObject::tr("Passwords"));
-        auto *fillAction = passwordsMenu->addAction(QObject::tr("Fill or Save Login…"));
+        auto *fillAction = passwordsMenu->addAction(QObject::tr("Fill Saved Login…"));
         QObject::connect(fillAction, &QAction::triggered, root, [root] {
             QMetaObject::invokeMethod(root, "openPasswords");
         });

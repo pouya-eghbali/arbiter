@@ -17,6 +17,7 @@ Basic.ApplicationWindow {
     required property var webProfiles
     required property var tabs
     required property var history
+    required property var onboarding
     required property var appearance
     // Snapshot at launch: changing native window flags can recreate the surface.
     required property bool windowDecorations
@@ -596,11 +597,22 @@ Basic.ApplicationWindow {
                     PasswordSession {
                         id: passwordSession
                         manager: window.passwords
-                        onCaptureNeedsValidation: passwordSession.validateCapture(page.mainFrame.url, page.profile.offTheRecord)
+                        onFocusNeedsValidation: {
+                            if (page === window.webView && !window.settingsOpen && window.passwords.enabled)
+                                passwordSession.validateFocus(page.mainFrame.url)
+                        }
+                        onFocused: function(origin, rect) { passwordPanel.offerFor(page, origin, rect) }
+                        onCaptureNeedsValidation: { if (page === window.webView && !window.settingsOpen) passwordSession.validateCapture(page.mainFrame.url, page.profile.offTheRecord) }
                         onRunFillScript: function(script) {
                             if (page !== window.webView || window.settingsOpen || !window.passwords.enabled) return
                             page.mainFrame.runJavaScript(script, 1, function(filled) {
                                 window.passwords.reportFillResult(filled === true)
+                            })
+                        }
+                        onRunPasswordSuggestionScript: function(script) {
+                            if (page !== window.webView || window.settingsOpen || !window.passwords.enabled) return
+                            page.mainFrame.runJavaScript(script, 1, function(filled) {
+                                window.passwords.reportSuggestionResult(filled === true)
                             })
                         }
                     }
@@ -609,8 +621,12 @@ Basic.ApplicationWindow {
                         view: page
                         passwordsEnabled: window.passwords.enabled
                         onPasswordsRequested: Qt.callLater(window.openPasswords)
+                        onPasswordSuggestionRequested: function(field) {
+                            if (page === window.webView && !window.settingsOpen)
+                                passwordSession.suggestPassword(page.mainFrame.url, field)
+                        }
                     }
-                    onContextMenuRequested: function(request) { pageContextMenu.show(request) }
+                    onContextMenuRequested: function(request) { passwordPanel.cancelFor(page); pageContextMenu.show(request) }
                     onNewWindowRequested: function(request) { window.openWebRequest(request, workspaceId) }
                     onWindowCloseRequested: {
                         if (closeQueued) return
@@ -923,6 +939,37 @@ Basic.ApplicationWindow {
                             checked: window.passwords.enabled
                             onToggled: window.passwords.enabled = checked
                         }
+                        UiCheckBox {
+                            text: qsTr("Verify my identity before filling saved passwords")
+                            objectName: "passwordBiometricPreference"
+                            checked: window.passwords.biometricEnabled
+                            enabled: window.passwords.enabled
+                            onToggled: window.passwords.biometricEnabled = checked
+                        }
+                        Basic.Label {
+                            text: qsTr("Uses fingerprint verification when available. Your operating system may separately ask for permission to access its credential store.")
+                            color: Theme.muted
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
+                        Basic.Label { text: qsTr("Ask me to verify again"); color: Theme.text }
+                        UiComboBox {
+                            objectName: "passwordVerificationCooldown"
+                            readonly property var durations: [0, 60, 300, 900, 1800, 3600]
+                            model: [qsTr("Every time"), qsTr("After 1 minute"), qsTr("After 5 minutes"),
+                                    qsTr("After 15 minutes"), qsTr("After 30 minutes"), qsTr("After 1 hour")]
+                            currentIndex: durations.indexOf(window.passwords.verificationCooldown)
+                            displayText: currentIndex < 0 ? qsTr("After %1 seconds").arg(window.passwords.verificationCooldown) : currentText
+                            enabled: window.passwords.enabled && window.passwords.biometricEnabled
+                            implicitWidth: 240
+                            onActivated: window.passwords.verificationCooldown = durations[currentIndex]
+                        }
+                        Basic.Label {
+                            text: qsTr("Remember a successful fingerprint verification for this long. Locking, sleeping, or restarting clears it. Your operating system still controls access to its credential store.")
+                            color: Theme.muted
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
                         UiButton { text: qsTr("Manage saved passwords…"); onClicked: window.openPasswordSettings() }
                         UiButton { text: qsTr("Import passwords + history…"); onClicked: window.settingsCategory = 5 }
                     }
@@ -1063,6 +1110,11 @@ Basic.ApplicationWindow {
                         visible: window.settingsCategory === 4
                         Layout.fillWidth: true
                         spacing: 16
+                        UiButton {
+                            objectName: "replayTutorialButton"
+                            text: qsTr("Replay welcome tutorial")
+                            onClicked: { window.settingsOpen = false; window.onboarding.replayTutorial() }
+                        }
                         Basic.Label {
                             text: qsTr("Keep your preferences in your dotfiles.")
                             color: Theme.text
@@ -1198,6 +1250,30 @@ Basic.ApplicationWindow {
             opacity: windowHandle.containsMouse ? 0.45 : 0
             Behavior on opacity { NumberAnimation { duration: 120 } }
         }
+    }
+
+    Tutorial {
+        id: tutorial
+        objectName: "browserTutorial"
+        controller: window.onboarding
+        keyBindings: window.keyBindings
+        navigationPill: window.appearance.navigationPill
+        onAddressRequested: window.focusAddress()
+        onTabsRequested: window.showTabs()
+        onWorkspacesRequested: window.openWorkspaces()
+        onSplitRequested: window.splitHorizontal()
+    }
+    Connections {
+        target: window.onboarding
+        function onChanged() {
+            if (window.onboarding.tutorialPending && !window.settingsOpen) tutorial.open()
+            else if (!window.onboarding.tutorialPending) tutorial.close()
+        }
+    }
+    Timer {
+        interval: 250
+        running: window.onboarding.tutorialPending && !window.settingsOpen
+        onTriggered: tutorial.open()
     }
 
     Basic.Popup {

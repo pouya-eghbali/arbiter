@@ -1,4 +1,6 @@
 #include "../src/browserimporter.h"
+#include "../src/browserimportselection.h"
+#include <QSemaphore>
 #include "../src/chromevault.h"
 #include <openssl/evp.h>
 #include <atomic>
@@ -161,6 +163,141 @@ private slots:
         const auto blocked=source.filePath("blocked"); QDir().mkpath(blocked); seedVault(blocked+"/Login Data","v20protected","user");
         auto unsupported=ChromeVault::readWithKey(QVariantMap{{"directory",blocked}},key,ChromeVault::Cipher::MacCbc); QVERIFY(!unsupported.error.isEmpty()); QVERIFY(unsupported.passwords.isEmpty());
     }
+    void nativeAccessCompletionAndCancellation() {
+        QTemporaryDir source;
+        const auto root=source.filePath("Chrome");
+        const QVariantMap locked{{"browser","Chrome"},{"label","Chrome — allow access"},{"directory",root},
+            {"accessRequired",true},{"accessDirectory",QUrl::fromLocalFile(root)}};
+        bool readable=false;
+        int scans=0,requests=0,reads=0;
+        BrowserImporter::AccessCompletion pending;
+        const auto profiles=[&] {
+            ++scans;
+            return QVariantList{QVariantMap{},readable ? QVariantMap{{"browser","Chrome"},{"directory",root+"/Default"},{"passwordSupport",true}} : locked};
+        };
+        BrowserImporter importer(nullptr,nullptr,nullptr,profiles,
+            [&](const QVariantMap &) { ++reads; return ImportPreview{}; },
+            [&](QWindow *window,const QUrl &directory,BrowserImporter::AccessCompletion completion) {
+                QVERIFY(!window); QCOMPARE(directory,QUrl::fromLocalFile(root)); ++requests; pending=std::move(completion);
+            });
+        importer.refreshProfiles();
+        QCOMPARE(importer.browserAccessDirectory(),QUrl::fromLocalFile(root));
+        QSignalSpy finished(&importer,&BrowserImporter::accessFinished);
+        importer.requestBrowserAccess(nullptr);
+        QVERIFY(importer.busy()); QVERIFY(importer.requestingAccess());
+        QCOMPARE(requests,1); QCOMPARE(scans,1);
+        importer.requestBrowserAccess(nullptr); importer.refreshProfiles();
+        QCOMPARE(requests,1); QCOMPARE(scans,1);
+        pending(false,{});
+        QTRY_COMPARE(finished.size(),1);
+        QVERIFY(!importer.busy()); QCOMPARE(scans,1);
+        // A successful panel response does not prove protected data is readable.
+        importer.requestBrowserAccess(nullptr);
+        pending(true,{});
+        QTRY_COMPARE(finished.size(),2);
+        QVERIFY(!finished.last().first().toBool());
+        QVERIFY(importer.discoveryWarning().contains("still unavailable"));
+        importer.requestBrowserAccess(nullptr);
+        readable=true; pending(true,{});
+        QTRY_COMPARE(finished.size(),3);
+        QVERIFY(finished.last().first().toBool());
+        QVERIFY(!importer.busy()); QCOMPARE(reads,0);
+        QCOMPARE(importer.selectedBrowser(),QString("Chrome"));
+        QVERIFY(!importer.selectedNeedsAccess());
+        readable=false; importer.refreshProfiles();
+        importer.requestBrowserAccess(nullptr);
+        pending(false,"Native window unavailable");
+        QTRY_COMPARE(finished.size(),4);
+        QVERIFY(!importer.busy());
+        QCOMPARE(importer.discoveryWarning(),QString("Native window unavailable"));
+        auto *closed=new BrowserImporter(nullptr,nullptr,nullptr,profiles,{},
+            [&](QWindow *,const QUrl &,BrowserImporter::AccessCompletion completion) { pending=std::move(completion); });
+        closed->refreshProfiles(); closed->requestBrowserAccess(nullptr); delete closed; pending(true,{});
+    }
+    void lockedBrowserCardsResolveAfterVerifiedAccess() {
+        QTemporaryDir source;
+        const auto root=source.filePath("Chrome");
+        bool readable=false;
+        int reads=0;
+        BrowserImporter::AccessCompletion pending;
+        BrowserImporter importer(nullptr,nullptr,nullptr,[&] {
+            QVariantList profiles{QVariantMap{},QVariantMap{{"browser","Arc"},{"directory","arc"},{"passwordSupport",true}}};
+            if(!readable) profiles.append(QVariantMap{{"browser","Chrome"},{"directory",root},{"accessRequired",true},
+                {"accessDirectory",QUrl::fromLocalFile(root)},{"passwordSupport",true},{"historySupport",true}});
+            else for(const auto &folder:{"Default","Work"}) profiles.append(QVariantMap{{"browser","Chrome"},{"directory",root+"/"+folder},{"passwordSupport",true}});
+            return profiles;
+        },[&](const QVariantMap &) { ++reads; return ImportPreview{}; },
+        [&](QWindow *,const QUrl &directory,BrowserImporter::AccessCompletion completion) { QCOMPARE(directory,QUrl::fromLocalFile(root)); pending=std::move(completion); });
+        BrowserImportSelection selection(&importer);
+        selection.refresh(); QCOMPARE(selection.browsers().size(),2);
+        QVERIFY(selection.browsers().at(1).toMap().value("accessRequired").toBool());
+        selection.toggle(0); selection.toggle(1);
+        QVERIFY(importer.busy()); selection.start(); QCOMPARE(reads,0);
+        pending(false,{}); QTRY_VERIFY(!importer.busy());
+        QCOMPARE(selection.selectedCount(),1);
+        selection.toggle(1); readable=true; pending(true,{});
+        QTRY_VERIFY(!importer.busy());
+        QCOMPARE(selection.selectedCount(),2);
+        const auto chrome=selection.browsers().at(1).toMap();
+        QVERIFY(!chrome.value("accessRequired").toBool());
+        QCOMPARE(chrome.value("profiles").toList().size(),2);
+        QCOMPARE(reads,0);
+    }
+    void accessRescanPreservesChoicesWithoutImporting() {
+        bool allowed=false;
+        int scans=0,reads=0;
+        const auto profile=[](const QString &name) { return QVariantMap{{"browser",name},{"label",name},{"directory",name},{"passwordSupport",true}}; };
+        BrowserImporter importer(nullptr,nullptr,nullptr,[&] {
+            ++scans;
+            QVariantList result{QVariantMap{},profile("Arc")};
+            if(allowed) { result.append(profile("Chrome")); result.append(profile("Firefox")); }
+            return result;
+        },[&](const QVariantMap &) { ++reads; return ImportPreview{}; });
+        BrowserImportSelection selection(&importer);
+        QSignalSpy imports(&importer,&BrowserImporter::operationFinished);
+        selection.refresh();
+        QCOMPARE(selection.browsers().size(),1);
+        selection.toggle(0);
+        allowed=true;
+        selection.refresh(true);
+        QCOMPARE(scans,2);
+        QCOMPARE(selection.browsers().size(),3);
+        QCOMPARE(selection.selectedCount(),1);
+        QVERIFY(selection.browsers().first().toMap().value("selected").toBool());
+        QVERIFY(!selection.browsers().at(1).toMap().value("selected").toBool());
+        QVERIFY(!selection.browsers().at(2).toMap().value("selected").toBool());
+        QCOMPARE(reads,0);
+        QCOMPARE(imports.size(),0);
+        QVERIFY(importer.browserAccessDirectory().isEmpty());
+    }
+    void manuallyLocatedProfiles() {
+        QTemporaryDir source;
+        QVERIFY(QDir(source.path()).mkpath("chrome/Work profile"));
+        QVERIFY(QDir(source.path()).mkpath("firefox/Profiles/personal.default-release"));
+        QVERIFY(!write(source,"chrome/Work profile/History",{}).isEmpty());
+        QVERIFY(!write(source,"chrome/Work profile/Login Data",{}).isEmpty());
+        QVERIFY(!write(source,"firefox/Profiles/personal.default-release/places.sqlite",{}).isEmpty());
+        BrowserImporter importer(nullptr,nullptr);
+        QVERIFY(!importer.addProfileDirectory("Unknown",QUrl::fromLocalFile(source.path())));
+        QVERIFY(!importer.addProfileDirectory("Chrome",QUrl("https://example.test")));
+        QVERIFY(importer.addProfileDirectory("Chrome",QUrl::fromLocalFile(source.filePath("chrome"))));
+        QVERIFY(importer.addProfileDirectory("Firefox",QUrl::fromLocalFile(source.filePath("firefox"))));
+        // Selecting the profile itself and its parent must not duplicate it.
+        QVERIFY(importer.addProfileDirectory("Firefox",QUrl::fromLocalFile(source.filePath("firefox/Profiles/personal.default-release"))));
+        int chrome=0,firefox=0;
+        for(const auto &value:importer.profiles()) {
+            const auto row=value.toMap();
+            if(!row.value("directory").toString().startsWith(source.path())) continue;
+            QVERIFY(row.value("file").toUrl().isLocalFile());
+            if(row.value("browser")=="Chrome") { ++chrome; QVERIFY(row.value("passwordSupport").toBool()); }
+            if(row.value("browser")=="Firefox") { ++firefox; QVERIFY(!row.value("passwordSupport").toBool()); }
+        }
+        QCOMPARE(chrome,1);
+        QCOMPARE(firefox,1);
+        QVERIFY(QDir(source.path()).mkpath("empty"));
+        QVERIFY(!importer.addProfileDirectory("Chrome",QUrl::fromLocalFile(source.filePath("empty"))));
+        QVERIFY(importer.discoveryWarning().contains("No importable Chrome profiles"));
+    }
     void profilesWithOnlyOneDataType() {
         QTemporaryDir dir; ImportStore store; PasswordManager passwords(dir.filePath("vault"),"test",&store); History history(dir.filePath("history"));
         const auto file=historyJson(dir);
@@ -173,12 +310,62 @@ private slots:
         QTRY_VERIFY(importer.message().startsWith("Imported")); QCOMPARE(store.writes,1); QCOMPARE(history.totalCount(),1);
         importer.setImportHistory(false); importer.selectProfile(1); importer.selectProfile(2); QVERIFY(!importer.importHistory());
     }
+    void browserSelectionImportsProfilesSeriallyAndRetriesFailures() {
+        QTemporaryDir dir; ImportStore store;
+        PasswordManager passwords(dir.filePath("vault"),"test",&store); History history(dir.filePath("history"));
+        const auto file=QUrl::fromLocalFile(historyJson(dir));
+        const QVariantList profiles{QVariantMap{},
+            QVariantMap{{"browser","Chrome"},{"label","Chrome — One"},{"directory","one"},{"passwordSupport",true},{"file",file}},
+            QVariantMap{{"browser","Chrome"},{"label","Chrome — Two"},{"directory","two"},{"passwordSupport",true},{"file",file}},
+            QVariantMap{{"browser","Firefox"},{"label","Firefox"},{"directory","firefox"},{"file",file}},
+            QVariantMap{{"browser","Edge"},{"label","Edge"},{"directory","edge"},{"passwordSupport",true}}};
+        std::atomic<int> calls=0,active=0,maximum=0; std::atomic<bool> deny=true;
+        BrowserImporter importer(&passwords,&history,nullptr,[profiles]{return profiles;},[&](const QVariantMap &source) {
+            const int concurrent=++active; maximum.store(qMax(maximum.load(),concurrent)); ++calls;
+            ImportPreview result;
+            if(source.value("directory")=="edge" && deny) result.error="Authorization denied";
+            else result.passwords.append({QUrl("https://example.test/"),source.value("directory").toString(),"synthetic-secret"});
+            --active; return result;
+        });
+        BrowserImportSelection selection(&importer);
+        QVERIFY(importer.profiles().isEmpty());
+        selection.refresh(); QCOMPARE(selection.browsers().size(),3);
+        QCOMPARE(selection.browsers().first().toMap().value("profiles").toList().size(),2);
+        for(int i=0;i<3;++i) selection.toggle(i);
+        QCOMPARE(selection.selectedCount(),3); QCOMPARE(calls.load(),0); QCOMPARE(store.writes,0);
+        QSignalSpy completed(&selection,&BrowserImportSelection::completed);
+        selection.start(); QTRY_VERIFY_WITH_TIMEOUT(selection.done(),10000);
+        QVERIFY(selection.hasFailures()); QCOMPARE(completed.size(),1); QVERIFY(!completed[0][0].toBool());
+        QCOMPARE(selection.results().size(),4); QCOMPARE(calls.load(),3); QCOMPARE(maximum.load(),1);
+        QCOMPARE(passwords.entries().size(),2); QCOMPARE(history.totalCount(),1);
+        deny=false; selection.retryFailed(); QTRY_VERIFY_WITH_TIMEOUT(selection.done(),10000);
+        QVERIFY(!selection.hasFailures()); QCOMPARE(completed.size(),2); QVERIFY(completed[1][0].toBool());
+        QCOMPARE(calls.load(),4); QCOMPARE(passwords.entries().size(),3); QCOMPARE(history.totalCount(),1);
+        selection.start(); QTRY_VERIFY_WITH_TIMEOUT(selection.done(),10000);
+        QVERIFY(!selection.hasFailures()); QCOMPARE(store.writes,3); // Duplicate credentials are never overwritten.
+    }
+    void cancelledBrowserSelectionDoesNotPromptForRemainingProfiles() {
+        QTemporaryDir dir; ImportStore store; PasswordManager passwords(dir.filePath("vault"),"test",&store); History history(dir.filePath("history"));
+        const QVariantList profiles{QVariantMap{},QVariantMap{{"browser","Chrome"},{"label","One"},{"directory","one"},{"passwordSupport",true}},
+            QVariantMap{{"browser","Edge"},{"label","Two"},{"directory","two"},{"passwordSupport",true}}};
+        QSemaphore entered,release; std::atomic<int> calls=0;
+        BrowserImporter importer(&passwords,&history,nullptr,[profiles]{return profiles;},[&](const QVariantMap &) {
+            ++calls; entered.release(); release.acquire(); ImportPreview result; result.passwords.append({QUrl("https://example.test/"),"user","synthetic-secret"}); return result;
+        });
+        BrowserImportSelection selection(&importer); selection.refresh(); selection.toggle(0); selection.toggle(1); selection.start();
+        const bool started=entered.tryAcquire(1,3000);
+        if(!started) release.release();
+        QVERIFY(started);
+        selection.cancel(); release.release(); QTRY_VERIFY_WITH_TIMEOUT(selection.done(),5000);
+        QVERIFY(selection.hasFailures()); QCOMPARE(calls.load(),1); QCOMPARE(store.writes,0); QVERIFY(passwords.entries().isEmpty());
+    }
     void cancellationAndPartialFailure() {
         QTemporaryDir dir; ImportStore store; PasswordManager passwords(dir.filePath("vault"),"test",&store); History history(dir.filePath("history")); BrowserImporter importer(&passwords,&history); importer.setDirect(false);
         const auto csv=write(dir,"passwords.csv","url,username,password\nhttps://one.test,u,one\nhttps://two.test,u,two\n");
         importer.setPasswordFile(QUrl::fromLocalFile(csv)); importer.preview(); importer.cancel(); QTest::qWait(100); QVERIFY(!importer.ready()); QCOMPARE(store.writes,0);
         importer.preview(); QTRY_VERIFY(!importer.busy()); store.delay=true; importer.apply(); QTRY_VERIFY(bool(store.pending));
-        importer.cancel(); auto complete=std::move(store.pending); complete(); QTRY_VERIFY(!importer.busy()); QCOMPARE(passwords.entries().size(),1); QCOMPARE(store.writes,1);
+        QCOMPARE(importer.processed(),0); QVERIFY(importer.progress().contains("0 of 2"));
+        importer.cancel(); auto complete=std::move(store.pending); complete(); QTRY_VERIFY(!importer.busy()); QCOMPARE(passwords.entries().size(),1); QCOMPARE(store.writes,1); QCOMPARE(importer.processed(),1); QVERIFY(importer.progress().isEmpty());
         importer.preview(); QTRY_VERIFY(!importer.busy()); store.delay=false; store.failAt=2; importer.apply(); QTRY_VERIFY(!importer.busy()); QVERIFY(!importer.error().isEmpty()); QCOMPARE(passwords.entries().size(),1); QCOMPARE(store.values.size(),1);
     }
 };

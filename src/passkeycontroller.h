@@ -3,6 +3,22 @@
 #include <QWebEngineWebAuthUxRequest>
 #include <QUrl>
 
+class PasskeyController;
+// Engine capability is available before a vault exists; the UI provisions the
+// vault inside a pending registration. No private keys are exposed here.
+class PasskeyProviderBridge final : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(int abi READ abi CONSTANT)
+    Q_PROPERTY(bool configured READ ready CONSTANT)
+public:
+    explicit PasskeyProviderBridge(PasskeyController *controller);
+    int abi() const { return 1; }
+    bool ready() const { return true; }
+    Q_INVOKABLE QVariantList credentials(const QString &rp) const;
+private:
+    PasskeyController *m_controller;
+};
+
 class PasskeyController final : public QObject
 {
     Q_OBJECT
@@ -59,6 +75,7 @@ public:
     Q_INVOKABLE void handle(QWebEngineWebAuthUxRequest *request);
     Q_INVOKABLE void clear();
     Q_INVOKABLE void setup(const QString &passphrase, const QString &confirmation);
+    Q_INVOKABLE void setupForRequest(const QString &passphrase,const QString &confirmation);
     Q_INVOKABLE void useLocal();
     Q_INVOKABLE void usePhone();
     Q_INVOKABLE void useSystem();
@@ -72,6 +89,8 @@ private slots:
     void update();
 private:
     void verifyLocal(int accountIndex, const QString &phrase, bool biometric);
+    PasskeyProviderBridge m_provider;
+    QString m_pendingSetupPhrase;
     BiometricAuth *m_biometrics;
     KeychainSecretStore m_store;
     PasskeyVault m_vault;

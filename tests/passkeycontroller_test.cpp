@@ -36,6 +36,31 @@ class PasskeyControllerTest : public QObject {
         timeout.start(5000); loop.exec(); return result;
     }
 private slots:
+    void firstRegistrationSetsUpVaultInsidePendingRequest() {
+        QTemporaryDir directory; ControllerStore store; TestBiometrics auth; auth.refresh();
+        PasskeyController controller(&store,directory.path()+"/vault",&auth);
+        if(!controller.enabled()) QSKIP("Requires patched WebEngine.");
+        QVERIFY(!controller.configured());
+        QWebEngineProfile profile("ArbiterInlineSetupTest");
+        profile.setPersistentStoragePath(directory.path()+"/browser"); profile.setCachePath(directory.path()+"/cache");
+        QWebEngineView view; view.setPage(new QWebEnginePage(&profile,&view)); view.resize(800,600); view.show();
+        QSignalSpy loaded(&view,&QWebEngineView::loadFinished);
+        view.setHtml("<!doctype html><title>Inline setup fixture</title>",QUrl("https://example.test/"));
+        QVERIFY(loaded.wait(15000));
+        bool selected=false;
+        connect(view.page(),&QWebEnginePage::webAuthUxRequested,&controller,&PasskeyController::handle);
+        connect(&controller,&PasskeyController::changed,this,[&] {
+            if(controller.localAvailable() && !controller.verifying() && !selected) { selected=true; QTimer::singleShot(0,&controller,&PasskeyController::useLocal); }
+        });
+        js(view.page(),"globalThis.result='pending'; navigator.credentials.create({publicKey:{challenge:new Uint8Array(32).fill(4),rp:{id:'example.test',name:'Test'},user:{id:new Uint8Array([1]),name:'alice',displayName:'Alice'},pubKeyCredParams:[{type:'public-key',alg:-7}],authenticatorSelection:{residentKey:'required',userVerification:'required'},timeout:30000}}).then(c=>result='created',e=>result=e.name); true;");
+        QTRY_VERIFY_WITH_TIMEOUT(controller.verifying(),10000);
+        QVERIFY(!controller.configured());
+        const QString phrase("synthetic inline vault passphrase");
+        controller.setupForRequest(phrase,phrase);
+        QTRY_COMPARE_WITH_TIMEOUT(js(view.page(),"result").toString(),QString("created"),15000);
+        QVERIFY(controller.configured()); QCOMPARE(controller.credentials("example.test").size(),1);
+    }
+
     void biometricFailureKeepsChallengeForPassphraseFallback() {
         QTemporaryDir directory; ControllerStore store; TestBiometrics auth; auth.refresh();
         PasskeyController controller(&store,directory.path()+"/vault",&auth);

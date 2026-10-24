@@ -19,6 +19,14 @@ current limitations. Stock Qt builds keep those features disabled.
 Standard Qt WebAuthn requests have native account-selection, security-key PIN,
 error, and cancellation UI; actual authenticator availability depends on Qt/OS.
 
+First launch offers a short setup: a logo reveal, optional password/history
+import via browser cards, Minimal/Glacier/Classic presets, theme plus accent and
+background selection, and optional
+default-browser setup. It remembers interrupted progress and applies the preset
+before opening the browser. Finish with an optional three-step tutorial; replay
+it from Settings → Configuration. See [onboarding](docs/onboarding.md) for platform
+behavior and verification limits.
+
 The page fills the window. On macOS, the native frame retains rounded corners
 and shadows while its title text, background, and window buttons are hidden.
 Settings → Appearance → Show native window decorations restores the system title
@@ -50,6 +58,14 @@ navigation headings appear directly in the menu bar; additional headings go in
 More. Pages without navigation links show a disabled placeholder in the tab-title
 menu. Script-only buttons, hidden dropdown contents and frame navigation are
 not included.
+The Glacier passkey prompt presents stacked Arbiter passkey and Use a phone
+choices, with a QR flow for phone authentication. The first local passkey
+registration creates the vault inside that same prompt and continues the pending
+website request; visiting Settings first is unnecessary. The engine capability
+bridge is available before provisioning, but credential creation still requires
+vault setup and user verification. An empty vault cannot sign in to an account
+whose passkey lives elsewhere; choose its provider or Use a phone.
+
 Settings → Passkeys offers optional biometric unlocking for Arbiter's own vault:
 Touch ID on macOS, Windows Hello on Windows 11, and enrolled fprintd fingerprint
 readers on Linux. Windows Hello may offer its PIN as well as biometrics.
@@ -225,12 +241,26 @@ validation remain enabled.
 
 ## Passwords
 
-Press Cmd+Shift+P on macOS / Ctrl+Shift+P elsewhere on an HTTPS login page, then
-choose an account to fill. Arbiter never submits a login automatically. The
+Click a supported username/password field on an HTTPS login page to see a
+nonmodal suggestion panel beside it. It lists matching saved logins without
+taking keyboard focus. Cmd+Shift+P on macOS /
+Ctrl+Shift+P elsewhere opens the centered account picker. Arbiter never submits a login automatically. When available, account selection
+uses Touch ID, Windows Hello, or Linux fingerprint verification before reading
+the credential by default. Its toggle lives in **Settings → Passwords**, alongside
+the cooldown. This verification does not
+repeat during the cooldown configured in **Settings → Passwords → Ask me to verify
+again** (five minutes by default; Every time is available). The interval starts
+at successful verification and is not extended by autofill. Locking, sleeping,
+restarting, disabling passwords, or changing the interval clears it. Only the
+verification time is remembered, never decrypted passwords. This does not
+replace an OS keyring unlock or a legacy macOS Keychain permission prompt; the
+system can still require the login password for those. The
 page context menu exposes the same action, alongside the native Passwords menu
-on macOS. Supported form submissions offer
-a native save/update prompt. If a website does not trigger one, use **Save current
-login** from the password picker. Dismiss the prompt if sign-in failed.
+on macOS. Right-click a supported password field and choose **Suggest password**
+to insert a generated password. Explicit new-password confirmation fields in the
+same form are filled too; current-password fields are preserved. Generation never
+saves or submits a login. Sign-in and account-creation submissions automatically
+offer a native save/update confirmation. Dismiss the prompt if sign-in failed.
 
 Open **Settings → Manage passwords…** (or **Passwords → Manage Passwords…**) to
 search, add, replace, generate, or delete logins. The manager does not reveal
@@ -336,6 +366,13 @@ this action; there is no startup prompt. Source databases are opened read-only.
 The OS can ask you to unlock or authorize access to the selected browser's
 credential-store item. Decrypted passwords stay in C++ and are saved through
 QtKeychain; no plaintext export file is created by direct import.
+
+On macOS 27+, installed browsers are listed before reading protected profiles.
+Select a browser, then use **Allow <browser> access** in Settings (or select its
+card in onboarding). The native sheet opens at that browser's exact data folder.
+After approval, Arbiter checks that its profiles are readable before proceeding;
+confirmation alone does not count as successful access. No credentials are
+imported until you start the import.
 
 Profiles are detected for Chrome, Edge, Brave, Chromium, Vivaldi and Arc (macOS),
 plus Firefox and Safari history. Direct Chromium-family password import reads

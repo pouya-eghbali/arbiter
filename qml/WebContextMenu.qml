@@ -5,9 +5,12 @@ import QtWebEngine
 
 Controls.Menu {
     id: contextMenu
+    objectName: "webContextMenu"
     required property WebEngineView view
     property bool passwordsEnabled: true
     signal passwordsRequested()
+    signal passwordSuggestionRequested(var field)
+    property int requestGeneration: 0
     popupType: Qt.platform.os === "osx" ? Controls.Popup.Native : Controls.Popup.Window
 
     Component {
@@ -33,9 +36,18 @@ Controls.Menu {
     Component {
         id: passwordsItem
         Controls.MenuItem {
-            text: qsTr("Fill or Save Login…")
+            text: qsTr("Saved passwords…")
             enabled: contextMenu.passwordsEnabled && contextMenu.view.url.toString().startsWith("https://")
             onTriggered: contextMenu.passwordsRequested()
+        }
+    }
+    Component {
+        id: generatePasswordItem
+        Controls.MenuItem {
+            required property var field
+            objectName: "suggestPasswordAction"
+            text: qsTr("Suggest password")
+            onTriggered: contextMenu.passwordSuggestionRequested(field)
         }
     }
 
@@ -51,6 +63,7 @@ Controls.Menu {
     }
 
     function show(request: ContextMenuRequest) {
+        const generation = ++requestGeneration
         // The request belongs to WebEngine. Build the menu synchronously and
         // retain only actions and copied suggestion text after this handler.
         while (count > 0) {
@@ -107,6 +120,20 @@ Controls.Menu {
         separator()
         addItem(passwordsItem.createObject(contextMenu.contentItem))
         request.accepted = true
-        popup(view, request.position)
+        const position = Qt.point(request.position.x, request.position.y)
+        const committedUrl = view.mainFrame.url.toString()
+        if (request.isContentEditable && passwordsEnabled) {
+            // Copy everything needed before returning: WebEngine owns request.
+            // The isolated inspector exists only in secure HTTPS main frames;
+            // native code validates the committed origin again on selection.
+            const x = position.x / view.zoomFactor
+            const y = position.y / view.zoomFactor
+            view.mainFrame.runJavaScript("globalThis.__arbiterPasswords?.inspectPasswordAt(" + x + "," + y + ") || null", 1, function(field) {
+                if (generation !== contextMenu.requestGeneration || contextMenu.view.mainFrame.url.toString() !== committedUrl) return
+                if (field && contextMenu.passwordsEnabled)
+                    contextMenu.insertItem(contextMenu.count - 1, generatePasswordItem.createObject(contextMenu.contentItem, {field: field}))
+                contextMenu.popup(contextMenu.view, position)
+            })
+        } else popup(view, position)
     }
 }

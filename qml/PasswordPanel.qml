@@ -16,11 +16,25 @@ Item {
     property string deleteId: ""
     property string deleteLabel: ""
     property bool editing: false
+    property bool awaitingInspection: false
+    property rect suggestionField: Qt.rect(0, 0, 0, 0)
+
+    function updateSuggestionAnchor() {
+        if (!target) return
+        const at = target.mapToItem(Basic.Overlay.overlay,
+            suggestionField.x * target.zoomFactor, suggestionField.y * target.zoomFactor)
+        suggestionPopup.field = Qt.rect(at.x, at.y,
+            suggestionField.width * target.zoomFactor, suggestionField.height * target.zoomFactor)
+    }
+    onWidthChanged: if (suggestionPopup.visible) updateSuggestionAnchor()
+    onHeightChanged: if (suggestionPopup.visible) updateSuggestionAnchor()
 
     function cancelFor(view: var) {
         if (target !== view) return
+        awaitingInspection = false
         inspection++
         if (target) target.passwordAgent.invalidate()
+        suggestionPopup.close()
         fillPopup.close()
         target = null
     }
@@ -33,11 +47,35 @@ Item {
         formAvailable = false
         filling = false
         manager.clearMessage()
+        awaitingInspection = true
         const request = ++inspection
         view.mainFrame.runJavaScript("globalThis.__arbiterPasswords?.inspect() || null", 1, function(result) {
             if (panel.inspection !== request || panel.target !== view || panel.activeView !== view) return
             view.passwordAgent.prepare(view.mainFrame.url, result || {})
         })
+    }
+    function offerFor(view: var, site: string, rect: rect) {
+        if (!view || view !== activeView || !manager.enabled || manager.busy || fillPopup.visible || savePopup.visible) return
+        const matches = manager.accountsFor(site)
+        if (matches.length === 0) return
+        if (target && target !== view) cancelFor(target)
+        target = view
+        origin = site
+        accounts = matches
+        formAvailable = true
+        filling = false
+        suggestionField = rect
+        updateSuggestionAnchor()
+        const flick = suggestionScroll.contentItem as Flickable
+        flick.contentY = 0
+        suggestionPopup.open()
+    }
+    function fillAccount(id: string) {
+        if (!target || target !== activeView || manager.busy) return
+        filling = true
+        target.passwordAgent.fill(id, target.mainFrame.url)
+        suggestionPopup.close()
+        fillPopup.close()
     }
     function openManager() {
         manager.clearMessage()
@@ -54,6 +92,8 @@ Item {
     Connections {
         target: panel.target ? panel.target.passwordAgent : null
         function onPrepared(origin: string) {
+            if (!panel.awaitingInspection) return
+            panel.awaitingInspection = false
             panel.origin = origin
             panel.formAvailable = origin.length > 0
             panel.accounts = origin ? panel.manager.accountsFor(origin) : []
@@ -88,6 +128,77 @@ Item {
         background: GlassSurface { dense: true }
     }
 
+    // Compact, nonmodal menu: keep typing focus in the page and constrain the
+    // entire scrolling surface, including its actions, to the available space.
+    component SuggestionAction: Basic.ItemDelegate {
+        id: action
+        implicitHeight: 34
+        width: suggestionContent.width
+        horizontalPadding: 10
+        hoverEnabled: true
+        opacity: enabled ? 1 : 0.45
+        contentItem: Text {
+            text: action.text
+            textFormat: Text.PlainText
+            font.pixelSize: 13
+            color: Theme.text
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+        }
+        background: Rectangle {
+            radius: 8
+            color: action.down ? Theme.pressed : action.hovered || action.highlighted ? Theme.hover : "transparent"
+        }
+    }
+    Basic.Popup {
+        id: suggestionPopup
+        objectName: "passwordSuggestions"
+        parent: Basic.Overlay.overlay
+        property rect field: Qt.rect(0, 0, 0, 0)
+        readonly property real edge: 8
+        readonly property real desiredHeight: Math.min(340, suggestionContent.implicitHeight + padding * 2)
+        readonly property real below: Math.max(0, parent.height - edge - Math.max(edge, field.y + field.height + 6))
+        readonly property real above: Math.max(0, Math.min(parent.height - edge, field.y - 6) - edge)
+        readonly property bool opensBelow: below >= desiredHeight || below >= above
+        width: Math.max(0, Math.min(300, parent.width - edge * 2))
+        height: Math.min(desiredHeight, opensBelow ? below : above)
+        x: Math.max(edge, Math.min(field.x, parent.width - width - edge))
+        y: Math.max(edge, Math.min(opensBelow ? field.y + field.height + 6 : field.y - 6 - height,
+                                  parent.height - height - edge))
+        padding: 8
+        modal: false
+        focus: false
+        closePolicy: Basic.Popup.CloseOnEscape | Basic.Popup.CloseOnPressOutside
+        background: GlassSurface { dense: true; radius: 14 }
+        contentItem: Basic.ScrollView {
+            id: suggestionScroll
+            objectName: "passwordSuggestionScroll"
+            clip: true
+            contentWidth: availableWidth
+            Basic.ScrollBar.horizontal.policy: Basic.ScrollBar.AlwaysOff
+            Basic.ScrollBar.vertical.policy: Basic.ScrollBar.AsNeeded
+            Column {
+                id: suggestionContent
+                width: suggestionScroll.availableWidth
+                spacing: 2
+                Basic.Label {
+                    width: parent.width
+                    leftPadding: 10; topPadding: 4; bottomPadding: 6
+                    text: qsTr("Passwords"); color: Theme.muted; font.pixelSize: 12
+                }
+                Repeater {
+                    model: panel.accounts
+                    SuggestionAction {
+                        required property var modelData
+                        text: modelData.username || qsTr("No username")
+                        enabled: !panel.manager.busy
+                        onClicked: panel.fillAccount(modelData.id)
+                    }
+                }
+
+            }
+        }
+    }
     Popup {
         id: fillPopup
         onClosed: {
@@ -121,24 +232,13 @@ Item {
                             text: modelData.username || qsTr("No username")
                             enabled: !panel.manager.busy
                             onClicked: {
-                                if (panel.target !== panel.activeView) return
-                                panel.filling = true
-                                panel.target.passwordAgent.fill(modelData.id, panel.target.mainFrame.url)
-                                fillPopup.close()
+                                panel.fillAccount(modelData.id)
                             }
                         }
                     }
                 }
             }
             RowLayout {
-                UiButton {
-                    text: qsTr("Save current login")
-                    enabled: panel.formAvailable && !panel.manager.busy && panel.target && !panel.target.profile.offTheRecord
-                    onClicked: {
-                        panel.target.mainFrame.runJavaScript("globalThis.__arbiterPasswords?.capture() === true", 1)
-                        fillPopup.close()
-                    }
-                }
                 UiButton { text: qsTr("Manage passwords"); onClicked: { fillPopup.close(); panel.openManager() } }
             }
         }
@@ -146,6 +246,7 @@ Item {
 
     Popup {
         id: savePopup
+        objectName: "savePasswordPrompt"
         closePolicy: Basic.Popup.CloseOnEscape
         onClosed: if (panel.manager.pending && !panel.manager.busy) panel.manager.dismissPending()
         contentItem: ColumnLayout {

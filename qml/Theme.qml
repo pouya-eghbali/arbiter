@@ -33,6 +33,6 @@ QtObject {
     readonly property color pressed: darkSurface ? "#30ffffff" : "#240c2847"
     readonly property color selection: Qt.rgba(accent.r, accent.g, accent.b, darkSurface ? 0.26 : 0.2)
     readonly property color accent: dark ? darkAccent : lightAccent
-    readonly property color onAccent: luminance(accent) > 0.179 ? "#000000" : "#ffffff"
+    readonly property color accentText: luminance(accent) > 0.179 ? Qt.rgba(0, 0, 0, 1) : Qt.rgba(1, 1, 1, 1)
     readonly property color scrim: darkSurface ? "#33000000" : "#160e2038"
 }

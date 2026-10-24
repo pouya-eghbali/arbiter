@@ -19,6 +19,7 @@ class PasswordFormsTest : public QObject
     QTemporaryDir directory;
     PasswordManager *manager = nullptr;
     QList<QStringList> captures;
+    QList<QVariantMap> focuses;
 
     QVariant js(const QString &script, int world = 1) {
         QVariant result;
@@ -52,6 +53,7 @@ private slots:
         capture->receiver = [this](const QString &origin, const QString &username, const QString &password) {
             captures.append({origin, username, password});
         };
+        capture->focusReceiver=[this](const QVariantMap &document) { focuses.append(document); };
         channel->registerObject("passwordCapture", capture);
         view->page()->setWebChannel(channel, 1);
         QWebEngineScript script;
@@ -64,6 +66,47 @@ private slots:
         view->page()->scripts().insert(script);
     }
     void cleanupTestCase() { delete view; }
+    void suggestedPasswordFillsNewAndConfirmationThenIsCapturedOnSubmit() {
+        load("<form onsubmit='event.preventDefault()'><input autocomplete=username value=alice>"
+             "<input type=password autocomplete=current-password value=old>"
+             "<input type=password autocomplete='section-signup new-password'>"
+             "<input type=password autocomplete='section-signup new-password'><button>Register</button></form>");
+        const auto target=js("(()=>{const r=document.querySelectorAll('[type=password]')[1].getBoundingClientRect();return __arbiterPasswords.inspectPasswordAt(r.x+2,r.y+2)})()").toMap();
+        QVERIFY(!target.isEmpty());
+        const auto script=PasswordManager::suggestionScript(target["origin"].toString(),target["document"].toString(),
+            target["form"].toString(),target["field"].toString(),"Generated'p\\assword!123");
+        QVERIFY(js(script).toBool());
+        const auto values=js("Array.from(document.querySelectorAll('input')).map(i=>i.value)",0).toStringList();
+        QCOMPARE(values,QStringList({"alice","old","Generated'p\\assword!123","Generated'p\\assword!123"}));
+        QVERIFY(captures.isEmpty()); // Generation neither submits nor saves.
+        js("document.querySelector('form').requestSubmit()",0);
+        QTRY_COMPARE(captures.size(),1);
+        QCOMPARE(captures.first().last(),QString("Generated'p\\assword!123"));
+        QCOMPARE(js("typeof __arbiterPasswords",0).toString(),QString("undefined"));
+    }
+    void passwordSuggestionRejectsOtherFieldsChangedFormsAndOldDocuments() {
+        load("<form><input autocomplete=username><input type=password></form>");
+        QVERIFY(js("(()=>{const r=document.querySelector('input').getBoundingClientRect();return __arbiterPasswords.inspectPasswordAt(r.x+2,r.y+2)})()").isNull());
+        const auto target=js("(()=>{const r=document.querySelector('[type=password]').getBoundingClientRect();return __arbiterPasswords.inspectPasswordAt(r.x+2,r.y+2)})()").toMap();
+        QVERIFY(!target.isEmpty());
+        const auto script=PasswordManager::suggestionScript(target["origin"].toString(),target["document"].toString(),
+            target["form"].toString(),target["field"].toString(),"GeneratedPassword123!");
+        js("document.querySelector('form').action='https://evil.test/'",0);
+        QVERIFY(!js(script).toBool());
+        QCOMPARE(js("document.querySelector('[type=password]').value",0).toString(),QString());
+        load("<form><input type=password></form>");
+        js("(()=>{const r=document.querySelector('input').getBoundingClientRect();return __arbiterPasswords.inspectPasswordAt(r.x+2,r.y+2)})()");
+        QVERIFY(!js(script).toBool());
+        QCOMPARE(js("document.querySelector('[type=password]').value",0).toString(),QString());
+    }
+    void syntheticPointerEventsDoNotOfferAutofill() {
+        load("<form><input autocomplete=username><input type=password autocomplete=current-password></form>");
+        focuses.clear();
+        js("document.querySelector('input').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))",0);
+        js("document.querySelector('input').focus()",0);
+        QTest::qWait(100);
+        QVERIFY(focuses.isEmpty());
+    }
     void fillAndCaptureWithoutSubmitting() {
         load("<form><input name=user autocomplete=username><input type=password autocomplete=current-password><button>Log in</button></form>");
         const auto document = js("__arbiterPasswords.inspect()").toMap();
