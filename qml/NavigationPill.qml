@@ -20,6 +20,7 @@ FocusScope {
     signal workspacesRequested()
     signal splitHorizontalRequested()
     signal splitVerticalRequested()
+    signal splitWithRequested()
     readonly property real expandedWidth: Math.min(560, parent.width - 32)
     property real revealProgress: expanded ? 1 : 0
     width: expanded ? expandedWidth : 76
@@ -125,6 +126,7 @@ FocusScope {
         onClosed: collapse.restart()
         UiMenuItem { text: qsTr("Split left / right"); onTriggered: pill.splitHorizontalRequested() }
         UiMenuItem { text: qsTr("Split top / bottom"); onTriggered: pill.splitVerticalRequested() }
+        UiMenuItem { text: qsTr("Split with…"); onTriggered: pill.splitWithRequested() }
         UiMenuItem { text: qsTr("Workspaces…"); onTriggered: pill.workspacesRequested() }
         UiMenuItem { text: qsTr("History…"); onTriggered: pill.historyRequested() }
         UiMenuItem { text: qsTr("Passwords…"); onTriggered: pill.passwordsRequested() }

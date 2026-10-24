@@ -9,6 +9,80 @@ class SplitLayoutTest : public QObject {
     Q_OBJECT
     static int paneTab(const QVariant &pane) { return pane.toMap().value("tabId").toInt(); }
 private slots:
+    void deletingSourceOfOnlyBorrowedPaneRestoresAnOwnerStartPage() {
+        QTemporaryDir directory; Tabs tabs; Workspaces spaces(&tabs,directory.path());
+        const auto work=spaces.create("Work",QColor("#112233"),true);
+        const int borrowed=tabs.idAt(tabs.currentIndex());
+        spaces.activate("main"); auto *layout=spaces.splitLayout();
+        QVERIFY(layout->splitWith(borrowed,true));
+        tabs.close(0); QCOMPARE(tabs.workspaceCount(),0); QCOMPARE(layout->panes().size(),1);
+        QVERIFY(spaces.remove(work));
+        QCOMPARE(spaces.currentId(),QString("main")); QCOMPARE(tabs.workspaceCount(),1);
+        QVERIFY(tabs.currentIndex()>=0); QCOMPARE(tabs.workspaceAt(tabs.currentIndex()),QString("main"));
+        QCOMPARE(layout->panes().size(),1);
+    }
+    void borrowedTabsKeepTheirWorkspaceAndCycleOnlyHiddenSourceTabs() {
+        QTemporaryDir directory; Tabs tabs; Workspaces spaces(&tabs,directory.path());
+        auto *layout=spaces.splitLayout();
+        const int personal=tabs.idAt(0);
+        tabs.add(QUrl("https://personal.test/hidden"),false);
+        const auto work=spaces.create("Work",QColor("#112233"),true);
+        const int a=tabs.add(QUrl("https://work.test/a"));
+        const int b=tabs.add(QUrl("https://work.test/b"),false);
+        const int c=tabs.add(QUrl("https://work.test/c"),false);
+        const int aid=tabs.idAt(a),bid=tabs.idAt(b),cid=tabs.idAt(c);
+        const auto profile=tabs.profileAt(a);
+        const auto sourceLayout=layout->snapshot().value(work);
+        spaces.activate("main");
+        const int count=tabs.count();
+        QVERIFY(layout->splitWith(aid,true));
+        QCOMPARE(spaces.currentId(),QString("main")); QCOMPARE(tabs.workspaceId(),QString("main"));
+        QCOMPARE(tabs.count(),count); QCOMPARE(tabs.workspaceAt(tabs.currentIndex()),work);
+        QCOMPARE(tabs.profileAt(tabs.currentIndex()),profile); QVERIFY(profile!="Default");
+        QCOMPARE(layout->panes().size(),2);
+        const auto personalPane=layout->geometry(personal);
+        const int focused=layout->activePane();
+        QVERIFY(layout->cycleTab(1)); QCOMPARE(tabs.idAt(tabs.currentIndex()),bid);
+        QCOMPARE(layout->activePane(),focused); QCOMPARE(layout->geometry(personal),personalPane);
+        QVERIFY(layout->cycleTab(-1)); QCOMPARE(tabs.idAt(tabs.currentIndex()),aid);
+        QVERIFY(!layout->splitWith(aid,true)); QCOMPARE(layout->panes().size(),2);
+        QVERIFY(layout->splitWith(cid,false,true));
+        QVERIFY(layout->cycleTab(-1)); QCOMPARE(tabs.idAt(tabs.currentIndex()),bid);
+        // B was hidden, while A is still visible in the adjacent source pane.
+        QCOMPARE(tabs.workspaceAt(tabs.currentIndex()),work);
+        QCOMPARE(layout->snapshot().value(work),sourceLayout);
+        const int closed=tabs.addToWorkspace(QUrl("https://work.test/closed"),work,profile);
+        tabs.close(closed); QVERIFY(tabs.reopen());
+        QCOMPARE(tabs.workspaceAt(tabs.currentIndex()),work);
+        QCOMPARE(tabs.profileAt(tabs.currentIndex()),profile);
+        tabs.setCurrentIndex(b); // Return to B before checking layout restoration.
+        QCOMPARE(tabs.idAt(tabs.currentIndex()),bid);
+        spaces.activate(work); QCOMPARE(layout->panes().size(),1);
+        spaces.activate("main"); QCOMPARE(layout->panes().size(),3);
+        QCOMPARE(tabs.idAt(tabs.currentIndex()),bid);
+        QVERIFY(spaces.remove(work)); QCOMPARE(layout->panes().size(),1);
+        QCOMPARE(paneTab(layout->panes().first()),personal);
+        QVERIFY(!layout->snapshot().contains(work));
+    }
+    void crossWorkspaceLayoutAndForeignFocusSurviveRestart() {
+        QTemporaryDir directory; QString work; int borrowed=0;
+        QVariantMap saved;
+        {
+            Tabs tabs; Workspaces spaces(&tabs,directory.path());
+            work=spaces.create("Work",QColor("#112233"),true);
+            tabs.add(QUrl("https://work.test/page")); borrowed=tabs.idAt(tabs.currentIndex());
+            spaces.activate("main");
+            QVERIFY(spaces.splitLayout()->splitWith(borrowed,true,true));
+            saved=spaces.splitLayout()->snapshot(); spaces.flush();
+        }
+        Tabs tabs; Workspaces spaces(&tabs,directory.path()); auto *layout=spaces.splitLayout();
+        QCOMPARE(spaces.currentId(),QString("main")); QCOMPARE(tabs.idAt(tabs.currentIndex()),borrowed);
+        QCOMPARE(tabs.workspaceAt(tabs.currentIndex()),work);
+        QCOMPARE(tabs.profileAt(tabs.currentIndex()),QString("Workspace-")+work);
+        QCOMPARE(layout->snapshot(),saved); QCOMPARE(layout->panes().size(),2);
+        tabs.close(tabs.currentIndex()); QCOMPARE(layout->panes().size(),1);
+        QVERIFY(!layout->splitWith(borrowed,true));
+    }
     void nextHiddenTabSkipsVisibleTabsAndOtherWorkspaces() {
         Tabs tabs; SplitLayout layout(&tabs);
         layout.split(true); layout.split(false);

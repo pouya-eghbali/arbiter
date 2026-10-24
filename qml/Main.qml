@@ -20,6 +20,12 @@ Basic.ApplicationWindow {
     required property var history
     required property var onboarding
     required property var appearance
+    readonly property string focusedWorkspaceId: webView ? webView.workspaceId : workspaces.currentId
+    readonly property var focusedWorkspace: workspaceInfo(focusedWorkspaceId)
+    function workspaceInfo(id: string): var {
+        for (const space of workspaces.choices) if (space.id === id) return space
+        return {name: "", color: window.accent, tabs: 0}
+    }
     // Snapshot at launch: changing native window flags can recreate the surface.
     required property bool windowDecorations
     required property var siteNavigation
@@ -122,6 +128,7 @@ Basic.ApplicationWindow {
     }
 
     function prepareForShutdown() {
+        splitWithPicker.close()
         shuttingDown = true
         biometricSetup.close()
         workspacePanel.close()
@@ -144,6 +151,7 @@ Basic.ApplicationWindow {
     }
 
     function focusAddress() {
+        splitWithPicker.close()
         workspacePanel.close()
         historyPanel.close()
         if (emptyPage && !settingsOpen && webView) {
@@ -200,7 +208,7 @@ Basic.ApplicationWindow {
     Shortcut { sequence: window.bindings.pageBottom; enabled: window.pageNavigationEnabled; onActivated: window.scrollPage(true) }
     Shortcut {
         sequence: window.bindings.stop
-        enabled: !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible && window.recordingIndex < 0 && !window.settingsOpen
+        enabled: !splitWithPicker.visible && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible && window.recordingIndex < 0 && !window.settingsOpen
         onActivated: { window.webView.stop(); window.webView.forceActiveFocus() }
     }
     Shortcut { sequence: window.bindings.close; enabled: window.recordingIndex < 0; onActivated: window.closeCurrentTab() }
@@ -214,6 +222,7 @@ Basic.ApplicationWindow {
     Shortcut { sequence: window.bindings.reopenTab; enabled: window.recordingIndex < 0; onActivated: window.reopenTab() }
     Shortcut { sequence: window.bindings.splitHorizontal; enabled: window.recordingIndex < 0; onActivated: window.splitHorizontal() }
     Shortcut { sequence: window.bindings.splitVertical; enabled: window.recordingIndex < 0; onActivated: window.splitVertical() }
+    Shortcut { sequence: window.bindings.splitWith; enabled: window.recordingIndex < 0; onActivated: window.openSplitWith() }
     Shortcut { sequence: window.bindings.nextPane; enabled: window.recordingIndex < 0; onActivated: window.nextPane() }
     Shortcut { sequence: window.bindings.previousPane; enabled: window.recordingIndex < 0; onActivated: window.previousPane() }
     Shortcut { sequence: window.bindings.nextHiddenTab; enabled: window.recordingIndex < 0; onActivated: window.nextHiddenTab() }
@@ -227,7 +236,9 @@ Basic.ApplicationWindow {
     }
 
     function focusPage() {
-        if (workspacePanel.visible)
+        if (splitWithPicker.visible)
+            return
+        else if (workspacePanel.visible)
             workspacePanel.focusSearch()
         else if (historyPanel.visible)
             historyPanel.focusSearch()
@@ -267,7 +278,9 @@ Basic.ApplicationWindow {
 
     function splitHorizontal() { closeSplitPopups(); splits.split(true) }
     function splitVertical() { closeSplitPopups(); splits.split(false) }
+    function openSplitWith() { closeSplitPopups(); splitWithPicker.openFor() }
     function closeSplitPopups() {
+        splitWithPicker.close()
         settingsOpen = false
         recordingIndex = -1
         tabsPopup.close()
@@ -302,7 +315,7 @@ Basic.ApplicationWindow {
     }
 
     function newTab() {
-        selectTab(tabs.add("about:blank"))
+        selectTab(workspaces.addTab(focusedWorkspaceId, "about:blank", false))
     }
 
     function prepareTabRemoval(first: int, last: int) {
@@ -358,16 +371,16 @@ Basic.ApplicationWindow {
         }
         addressPopup.close()
         tabs.close(index)
-        if (tabs.workspaceCount === 0) tabs.add("about:blank")
+        if (tabs.currentIndex < 0) tabs.add("about:blank")
         syncActiveView()
         if (tabsPopup.visible)
             tabSearch.forceActiveFocus()
     }
 
-    function nextTab() { tabs.cycle(1); selectTab(tabs.currentIndex) }
-    function previousTab() { tabs.cycle(-1); selectTab(tabs.currentIndex) }
+    function nextTab() { if (splits.cycleTab(1)) selectTab(tabs.currentIndex) }
+    function previousTab() { if (splits.cycleTab(-1)) selectTab(tabs.currentIndex) }
     function reopenTab() { if (tabs.reopen()) selectTab(tabs.currentIndex) }
-    function showTabs() { workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.open() }
+    function showTabs() { splitWithPicker.close(); workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.open() }
 
     function openExternalUrl(url: string) {
         syncActiveView()
@@ -382,8 +395,8 @@ Basic.ApplicationWindow {
         // Preserve background-tab requests and keep the request's opener and
         // pending navigation by handing it directly to the new engine view.
         const background = request.destination === WebEngineView.NewViewInBackgroundTab
-        const activate = !background && sourceWorkspace === workspaces.currentId
-        const index = workspaces.addTab(sourceWorkspace, "about:blank", activate)
+        const activate = !background && (sourceWorkspace === workspaces.currentId || (webView && sourceWorkspace === webView.workspaceId))
+        const index = workspaces.addTab(sourceWorkspace, "about:blank", false)
         const view = tabViews.itemAt(index) as WebEngineView
         if (view)
             view.acceptAsNewWindow(request)
@@ -413,6 +426,7 @@ Basic.ApplicationWindow {
     }
 
     function toggleSettings() {
+        splitWithPicker.close()
         workspacePanel.close()
         historyPanel.close()
         if (webView) webAuthnPanel.cancelFor(webView)
@@ -433,6 +447,7 @@ Basic.ApplicationWindow {
     }
 
     function openPasswords() {
+        splitWithPicker.close()
         historyPanel.close()
         addressPopup.close()
         tabsPopup.close()
@@ -441,6 +456,7 @@ Basic.ApplicationWindow {
 
     function openPasswordSettings() { historyPanel.close(); passwordPanel.openManager() }
     function openWorkspaces() {
+        splitWithPicker.close()
         if (webView) {
             webAuthnPanel.cancelFor(webView)
             passwordPanel.cancelFor(webView)
@@ -451,6 +467,7 @@ Basic.ApplicationWindow {
         workspacePanel.open()
     }
     function openHistory() {
+        splitWithPicker.close()
         workspacePanel.close()
         if (webView) {
             webAuthnPanel.cancelFor(webView)
@@ -525,6 +542,34 @@ Basic.ApplicationWindow {
                     property bool closeQueued: false
                     property string errorText: ""
                     property bool historyReady: false
+                    readonly property var sourceWorkspace: window.workspaceInfo(workspaceId)
+                    Timer { id: workspaceBadgeTimer; interval: 1800 }
+                    Connections {
+                        target: window
+                        function onWebViewChanged() { if (window.webView === page) workspaceBadgeTimer.restart() }
+                    }
+                    GlassSurface {
+                        sourceItem: null
+                        visible: page.inSplit && window.webView === page && page.workspaceId !== window.workspaces.currentId && workspaceBadgeTimer.running
+                        parent: paneCanvas
+                        x: page.x + page.width - width - 12
+                        y: page.y + 12
+                        width: Math.min(page.width - 24, workspaceBadge.implicitWidth + 24)
+                        height: 30
+                        radius: 15
+                        dense: true
+                        z: 4
+                        Basic.Label {
+                            id: workspaceBadge
+                            anchors.centerIn: parent
+                            width: parent.width - 24
+                            elide: Text.ElideRight
+                            text: page.sourceWorkspace.name
+                            textFormat: Text.PlainText
+                            font.pixelSize: 12
+                            color: Theme.text
+                        }
+                    }
                     TabSleepController {
                         objectName: "tabSleep" + page.tabId
                         view: page
@@ -572,7 +617,7 @@ Basic.ApplicationWindow {
                     width: inSplit ? Math.max(0, paneGeometry.width) : window.width
                     height: inSplit ? Math.max(0, paneGeometry.height) : window.height
                     onActiveFocusChanged: if (activeFocus && inSplit && !window.settingsOpen && !window.changingTabs && !window.shuttingDown) window.splits.activate(paneGeometry.paneId)
-                    visible: (tabsPopup.visible && workspaceId === window.workspaces.currentId) || (inSplit && !window.settingsOpen && url.toString() !== "about:blank")
+                    visible: (tabsPopup.visible && workspaceId === window.focusedWorkspaceId) || (inSplit && !window.settingsOpen && url.toString() !== "about:blank")
                     z: 1
                     layer.enabled: inSplit && window.splits.multiple
                     layer.effect: MultiEffect {
@@ -1230,7 +1275,7 @@ Basic.ApplicationWindow {
             && !window.webauthn.active && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible
         view: window.webView
         appearance: window.appearance
-        tabCount: window.tabs.workspaceCount
+        tabCount: window.focusedWorkspace.tabs
         workspaceName: window.workspaces.currentName
         workspaceColor: window.workspaces.currentColor
         onAddressRequested: window.focusAddress()
@@ -1241,6 +1286,7 @@ Basic.ApplicationWindow {
         onWorkspacesRequested: window.openWorkspaces()
         onSplitHorizontalRequested: window.splitHorizontal()
         onSplitVerticalRequested: window.splitVertical()
+        onSplitWithRequested: window.openSplitWith()
     }
     WorkspacePanel {
         id: workspacePanel
@@ -1314,6 +1360,13 @@ Basic.ApplicationWindow {
         onWorkspacesRequested: window.openWorkspaces()
         onSplitRequested: window.splitHorizontal()
     }
+    SplitWithPicker {
+        id: splitWithPicker
+        tabs: window.tabs
+        workspaces: window.workspaces
+        splits: window.splits
+        onDismissed: Qt.callLater(window.focusPage)
+    }
     Connections {
         target: window.onboarding
         function onChanged() {
@@ -1348,8 +1401,8 @@ Basic.ApplicationWindow {
                 Layout.fillWidth: true
                 ColumnLayout {
                     spacing: 3
-                    Basic.Label { text: window.workspaces.currentName; textFormat: Text.PlainText; font.pixelSize: 22; font.weight: Font.DemiBold }
-                    Basic.Label { text: qsTr("%1 open · Pick up where you left off").arg(window.tabs.workspaceCount); color: window.mutedText; font.pixelSize: 12 }
+                    Basic.Label { text: window.focusedWorkspace.name; textFormat: Text.PlainText; font.pixelSize: 22; font.weight: Font.DemiBold }
+                    Basic.Label { text: qsTr("%1 open · Pick up where you left off").arg(window.focusedWorkspace.tabs); color: window.mutedText; font.pixelSize: 12 }
                 }
                 Item { Layout.fillWidth: true }
                 UiButton { text: qsTr("Workspaces…"); onClicked: window.openWorkspaces() }
@@ -1359,6 +1412,7 @@ Basic.ApplicationWindow {
                 Layout.fillWidth: true
                 UiButton { text: qsTr("Split left / right"); onClicked: window.splitHorizontal() }
                 UiButton { text: qsTr("Split top / bottom"); onClicked: window.splitVertical() }
+                UiButton { text: qsTr("Split with…"); onClicked: window.openSplitWith() }
                 Item { Layout.fillWidth: true }
                 UiButton { visible: window.splits.multiple; text: qsTr("Single pane"); onClicked: { tabsPopup.close(); window.singlePane() } }
             }
@@ -1566,7 +1620,7 @@ Basic.ApplicationWindow {
         for (const pinned of [true, false]) {
             for (let i = 0; i < tabViews.count; ++i) {
                 const view = tabViews.itemAt(i) as WebEngineView
-                if (!view || window.tabs.workspaceAt(i) !== window.workspaces.currentId || window.tabs.pinnedAt(i) !== pinned) continue
+                if (!view || window.tabs.workspaceAt(i) !== window.focusedWorkspaceId || window.tabs.pinnedAt(i) !== pinned) continue
                 const url = view.url.toString()
                 const title = url === "about:blank" ? qsTr("New tab") : (view.title || url)
                 if (!query || (title + " " + url).toLowerCase().includes(query)) {

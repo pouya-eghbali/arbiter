@@ -41,6 +41,7 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
     add("previousWorkspace", "Previous workspace", QKeySequence(QStringLiteral("Ctrl+Alt+Left")));
     add("splitHorizontal", "Split left / right", QKeySequence(QStringLiteral("Ctrl+Alt+S")));
     add("splitVertical", "Split top / bottom", QKeySequence(QStringLiteral("Ctrl+Alt+V")));
+    add("splitWith", "Split with a tab from any workspace", QKeySequence(QStringLiteral("Ctrl+Alt+Shift+S")));
     add("nextPane", "Focus next pane", QKeySequence(QStringLiteral("Ctrl+Alt+]")));
     add("previousPane", "Focus previous pane", QKeySequence(QStringLiteral("Ctrl+Alt+[")));
     add("nextHiddenTab", "Show next hidden tab in active pane", QKeySequence(QStringLiteral("Ctrl+Alt+N")));

@@ -32,6 +32,7 @@ verificationCooldown = 300
 # address = "Ctrl+L"
 # settings = "Ctrl+,"
 # nextHiddenTab = "Ctrl+Alt+N"
+# splitWith = "Ctrl+Alt+Shift+S"
 # pageTop = "Ctrl+Up"
 # pageBottom = "Ctrl+Down"
 

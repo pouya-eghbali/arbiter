@@ -122,11 +122,27 @@ onto another pane to swap them without reloading. Release the modifiers or press
 Escape to cancel. Pages fill their panes, with a faint accent edge for the active
 pane. Cmd+Option+] / [ (Ctrl+Alt+] / [ elsewhere) cycles pane focus.
 Cmd+Option+N (Ctrl+Alt+N elsewhere) replaces the active pane with the next tab
-in this workspace that isn't already visible, wrapping around the tab list.
+in the focused pane's source workspace that isn't already visible, wrapping around the tab list.
 This shortcut is configurable in Settings. The tab
 overview and native Tabs menu can keep only the active pane. Closing a tab
 collapses its pane. Nested layouts and divider proportions are restored per workspace; if a
 layout becomes larger than the window, scrollbars keep every pane accessible.
+
+**Split with…** opens a searchable tab picker grouped by workspace. Use
+Cmd+Option+Shift+S on macOS or Ctrl+Alt+Shift+S on Windows/Linux, the tab overview,
+or the native Tabs menu. Choose Right, Below, Left, or Above and select a tab;
+arrow keys and Enter work from the search field. The shortcut is configurable
+in Settings → Keyboard (`KeyboardBindings.splitWith` in TOML).
+
+The current workspace owns the layout, while each pane keeps its tab's original
+workspace, cookies, and sign-in session. Borrowing does not move, copy, reload,
+or reprofile a tab. A brief workspace badge identifies a focused foreign pane.
+The tab overview follows that pane's workspace. Next/previous tab shortcuts and
+the next-hidden-tab shortcut cycle only hidden tabs from the focused pane's
+source workspace, leaving other panes in place. New tabs and reopening closed
+tabs also use the focused pane's source workspace and profile. Switching workspaces restores
+each layout, including its focused foreign pane; closing a borrowed tab or
+deleting its source workspace removes its references from other layouts.
 
 Cmd+L opens a floating address editor with the full URL selected; Enter navigates, and Escape
 or a click outside dismisses the editor. The default empty page has a centered

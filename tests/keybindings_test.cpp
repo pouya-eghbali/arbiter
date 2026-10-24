@@ -9,6 +9,14 @@ class KeyBindingsTest : public QObject
     Q_OBJECT
     QTemporaryDir directory;
 private slots:
+    void crossWorkspaceSplitShortcutIsCustomizable() {
+        Settings().clear(); KeyBindings keys;
+        QVERIFY(!keys.bindings().value("splitWith").toString().isEmpty());
+        int row=-1;
+        for(int i=0;i<keys.rowCount();++i) if(keys.data(keys.index(i),Qt::UserRole)=="splitWith") row=i;
+        QVERIFY(row>=0); QVERIFY(keys.assign(row,Qt::Key_F10,Qt::AltModifier).isEmpty());
+        KeyBindings restored; QCOMPARE(restored.bindings().value("splitWith"),keys.bindings().value("splitWith"));
+    }
     void initTestCase() {
         QVERIFY(directory.isValid());
         QCoreApplication::setOrganizationName("ArbiterTests");

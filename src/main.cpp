@@ -191,6 +191,7 @@ int main(int argc, char *argv[])
         tabsMenu->addSeparator();
         addTabAction(QObject::tr("Split Left / Right"), "splitHorizontal");
         addTabAction(QObject::tr("Split Top / Bottom"), "splitVertical");
+        addTabAction(QObject::tr("Split With…"), "openSplitWith");
         addTabAction(QObject::tr("Focus Next Pane"), "nextPane");
         addTabAction(QObject::tr("Focus Previous Pane"), "previousPane");
         addTabAction(QObject::tr("Show Next Hidden Tab in Active Pane"), "nextHiddenTab");

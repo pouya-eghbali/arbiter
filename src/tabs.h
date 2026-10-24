@@ -27,6 +27,7 @@ public:
     QString workspaceId() const { return m_workspace; }
     void setWorkspace(const QString &id, const QString &profile);
     Q_INVOKABLE int idAt(int row) const;
+    Q_INVOKABLE QVariantList choices() const { return snapshot(); }
     Q_INVOKABLE QString workspaceAt(int row) const;
     Q_INVOKABLE QString profileAt(int row) const;
     Q_INVOKABLE bool pinnedAt(int row) const;

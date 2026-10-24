@@ -17,7 +17,7 @@ const SplitLayout::Tree *SplitLayout::current() const {
 }
 int SplitLayout::row(int tab,const QString &workspace) const {
     for(int i=0;i<m_tabs->count();++i)
-        if(m_tabs->workspaceAt(i)==workspace && m_tabs->data(m_tabs->index(i),Tabs::Id).toInt()==tab) return i;
+        if((workspace.isEmpty() || m_tabs->workspaceAt(i)==workspace) && m_tabs->idAt(i)==tab) return i;
     return -1;
 }
 int SplitLayout::firstLeaf(const Tree &t,int id) const {
@@ -27,7 +27,7 @@ int SplitLayout::firstLeaf(const Tree &t,int id) const {
 int SplitLayout::prune(Tree &t,int id,const QString &workspace) {
     if(!id || !t.nodes.contains(id)) return 0;
     const auto n=t.nodes.value(id);
-    if(!n.first) { if(row(n.tab,workspace)>=0) return id; t.nodes.remove(id); return 0; }
+    if(!n.first) { if(row(n.tab,n.workspace.isEmpty() ? workspace : n.workspace)>=0) return id; t.nodes.remove(id); return 0; }
     const int a=prune(t,n.first,workspace),b=prune(t,n.second,workspace);
     if(!a || !b) { t.nodes.remove(id); return a ? a : b; }
     t.nodes[id].first=a; t.nodes[id].second=b; return id;
@@ -43,14 +43,14 @@ void SplitLayout::synchronize(bool selection) {
     const int selected=m_tabs->currentIndex();
     const int tab=selected<0 ? 0 : m_tabs->data(m_tabs->index(selected),Tabs::Id).toInt();
     if(!t.root && tab && m_tabs->workspaceAt(selected)==m_tabs->workspaceId()) {
-        const int id=m_nextId++; t.nodes.insert(id,{id,tab}); t.root=t.active=id;
+        const int id=m_nextId++; t.nodes.insert(id,{id,tab,0,0,true,.5,m_tabs->workspaceAt(selected)}); t.root=t.active=id;
     } else if(t.root && selection && tab) {
         int visible=0;
         for(const auto &n:t.nodes) if(!n.first && n.tab==tab) { visible=n.id; break; }
         if(visible) t.active=visible;
-        else t.nodes[t.active].tab=tab;
+        else { t.nodes[t.active].tab=tab; t.nodes[t.active].workspace=m_tabs->workspaceAt(selected); }
     } else if(t.root) {
-        const int activeRow=row(t.nodes.value(t.active).tab,m_tabs->workspaceId());
+        const int activeRow=row(t.nodes.value(t.active).tab);
         if(activeRow>=0) m_tabs->setCurrentIndex(activeRow);
     }
     m_mutating=false; publish();
@@ -107,18 +107,28 @@ QVariantList SplitLayout::handles() const { ensureGeometry(); return m_handles; 
 QVariantMap SplitLayout::geometry(int tab) const { ensureGeometry(); return m_geometry.value(tab); }
 void SplitLayout::split(bool horizontal) {
     auto &t=tree(); if(!t.root || m_mutating) return;
+    const int source=row(t.nodes.value(t.active).tab); if(source<0) return;
     m_mutating=true;
-    const int added=m_tabs->add(QUrl("about:blank"),false);
-    const int tab=m_tabs->data(m_tabs->index(added),Tabs::Id).toInt();
+    const int added=m_tabs->addToWorkspace(QUrl("about:blank"),m_tabs->workspaceAt(source),m_tabs->profileAt(source));
+    m_mutating=false;
+    splitWith(m_tabs->idAt(added),horizontal);
+}
+bool SplitLayout::splitWith(int tab,bool horizontal,bool before) {
+    auto &t=tree(); const int added=row(tab);
+    if(m_mutating || !t.root || added<0) return false;
+    for(const auto &node:t.nodes) if(!node.first && node.tab==tab) return false;
+    m_mutating=true;
     const int id=t.active,a=m_nextId++,b=m_nextId++;
-    const int previous=t.nodes.value(id).tab;
-    t.nodes.insert(a,{a,previous}); t.nodes.insert(b,{b,tab});
-    t.nodes[id]={id,0,a,b,horizontal,.5}; t.active=b;
-    m_tabs->setCurrentIndex(added); m_mutating=false; publish();
+    auto previous=t.nodes.value(id); previous.id=before ? b : a;
+    t.nodes.insert(previous.id,previous);
+    const int inserted=before ? a : b;
+    t.nodes.insert(inserted,{inserted,tab,0,0,true,.5,m_tabs->workspaceAt(added)});
+    t.nodes[id]={id,0,a,b,horizontal,.5,{}}; t.active=inserted;
+    m_tabs->setCurrentIndex(added); m_mutating=false; publish(); return true;
 }
 void SplitLayout::activate(int pane) {
     auto &t=tree(); if(!t.nodes.contains(pane) || t.nodes.value(pane).first) return;
-    const int index=row(t.nodes.value(pane).tab,m_tabs->workspaceId()); if(index<0) return;
+    const int index=row(t.nodes.value(pane).tab); if(index<0) return;
     t.active=pane; m_mutating=true; m_tabs->setCurrentIndex(index); m_mutating=false; publish();
 }
 void SplitLayout::remove(int pane) {
@@ -141,15 +151,17 @@ void SplitLayout::cycle(int direction) {
     int index=0; for(int i=0;i<p.size();++i) if(p[i].toMap().value("paneId").toInt()==activePane()) index=i;
     activate(p[(index+direction%p.size()+p.size())%p.size()].toMap().value("paneId").toInt());
 }
-bool SplitLayout::nextHiddenTab() {
+bool SplitLayout::nextHiddenTab() { return cycleTab(1); }
+bool SplitLayout::cycleTab(int direction) {
     const auto *t=current();
-    if(m_mutating || !t || !t->active || m_tabs->currentIndex()<0) return false;
+    if(!direction || m_mutating || !t || !t->active || m_tabs->currentIndex()<0) return false;
     QSet<int> visible;
     for(const auto &n:t->nodes) if(!n.first) visible.insert(n.tab);
     const int count=m_tabs->count(),start=m_tabs->currentIndex();
+    const auto workspace=m_tabs->workspaceAt(start);
     for(int offset=1;offset<count;++offset) {
-        const int candidate=(start+offset)%count;
-        if(m_tabs->workspaceAt(candidate)==m_tabs->workspaceId() && !visible.contains(m_tabs->idAt(candidate))) {
+        const int candidate=(start+(direction<0 ? -offset : offset)+count)%count;
+        if(m_tabs->workspaceAt(candidate)==workspace && !visible.contains(m_tabs->idAt(candidate))) {
             // Selection replaces the active leaf while retaining all pane IDs
             // and divider proportions through synchronize(true).
             m_tabs->setCurrentIndex(candidate);
@@ -173,6 +185,7 @@ void SplitLayout::resize(int id,qreal x,qreal y) {
 void SplitLayout::swap(int a,int b) {
     auto &t=tree(); if(a==b || !t.nodes.contains(a) || !t.nodes.contains(b) || t.nodes.value(a).first || t.nodes.value(b).first) return;
     std::swap(t.nodes[a].tab,t.nodes[b].tab);
+    std::swap(t.nodes[a].workspace,t.nodes[b].workspace);
     // Keep focus with the page being dragged rather than its old position.
     if(t.active==a) t.active=b; else if(t.active==b) t.active=a;
     activate(t.active);
@@ -183,7 +196,7 @@ QVariantMap SplitLayout::snapshot() const {
         if(!it->root) continue;
         QVariantList nodes;
         auto ids=it->nodes.keys(); std::sort(ids.begin(),ids.end());
-        for(int id:ids) { const auto n=it->nodes.value(id); nodes.append(QVariantMap{{"id",n.id},{"tab",n.tab},{"first",n.first},{"second",n.second},{"horizontal",n.horizontal},{"ratio",n.ratio}}); }
+        for(int id:ids) { const auto n=it->nodes.value(id); nodes.append(QVariantMap{{"id",n.id},{"tab",n.tab},{"first",n.first},{"second",n.second},{"horizontal",n.horizontal},{"ratio",n.ratio},{"workspace",n.workspace}}); }
         result[it.key()]=QVariantMap{{"root",it->root},{"active",it->active},{"nodes",nodes}};
     }
     return result;
@@ -197,7 +210,7 @@ void SplitLayout::restore(const QVariantMap &data) {
             const auto n=value.toMap(); const int id=n.value("id").toInt();
             const qreal ratio=n.value("ratio",.5).toReal();
             if(id<=0 || id>10000000 || t.nodes.contains(id) || !std::isfinite(ratio)) { valid=false; break; }
-            t.nodes.insert(id,{id,n.value("tab").toInt(),n.value("first").toInt(),n.value("second").toInt(),n.value("horizontal").toBool(),std::clamp(ratio,0.,1.)});
+            t.nodes.insert(id,{id,n.value("tab").toInt(),n.value("first").toInt(),n.value("second").toInt(),n.value("horizontal").toBool(),std::clamp(ratio,0.,1.),n.value("workspace",it.key()).toString()});
             m_nextId=qMax(m_nextId,id+1);
         }
         t.root=saved.value("root").toInt(); t.active=saved.value("active").toInt();
@@ -213,5 +226,8 @@ void SplitLayout::restore(const QVariantMap &data) {
         if(valid && visited.size()==t.nodes.size()) m_trees.insert(it.key(),t);
     }
     m_mutating=false;
-    synchronize(true);
+    synchronize(false);
+}
+void SplitLayout::forgetWorkspace(const QString &workspace) {
+    m_trees.remove(workspace); publish();
 }

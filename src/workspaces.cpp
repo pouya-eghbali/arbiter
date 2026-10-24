@@ -50,6 +50,9 @@ Workspaces::Workspaces(Tabs *tabs, const QString &directory, QObject *parent)
         }
     }
     m_tabs->setWorkspace(m_current,profile(m_spaces[indexOf(m_current)]));
+    for(auto it=savedSplits.begin();it!=savedSplits.end();) {
+        if(indexOf(it.key())<0) it=savedSplits.erase(it); else ++it;
+    }
     m_splits.restore(savedSplits);
     m_save.setSingleShot(true); m_save.setInterval(350);
     connect(&m_save,&QTimer::timeout,this,&Workspaces::flush);
@@ -93,7 +96,9 @@ bool Workspaces::edit(const QString &id, const QString &name, const QColor &colo
 bool Workspaces::remove(const QString &id) {
     const int i=indexOf(id); if(i<0 || count()==1) return fail(tr("Keep at least one workspace."));
     if(id==m_current) activate(m_spaces[i==0 ? 1 : i-1].id);
-    m_tabs->removeWorkspace(id); m_spaces.removeAt(i); scheduleSave(); return true;
+    m_tabs->removeWorkspace(id); m_spaces.removeAt(i); m_splits.forgetWorkspace(id);
+    if(m_tabs->currentIndex()<0) m_tabs->add();
+    scheduleSave(); return true;
 }
 void Workspaces::reorder(const QString &id, int direction) {
     const int i=indexOf(id), target=i+direction;

@@ -27,11 +27,14 @@ public:
     qreal minimumHeight() const;
     Q_INVOKABLE void setViewport(qreal width,qreal height);
     Q_INVOKABLE void split(bool horizontal);
+    Q_INVOKABLE bool splitWith(int tab, bool horizontal, bool before=false);
     Q_INVOKABLE void activate(int pane);
     Q_INVOKABLE void remove(int pane);
     Q_INVOKABLE void single();
     Q_INVOKABLE void cycle(int direction);
     Q_INVOKABLE bool nextHiddenTab();
+    Q_INVOKABLE bool cycleTab(int direction);
+    void forgetWorkspace(const QString &workspace);
     Q_INVOKABLE void resize(int handle,qreal x,qreal y);
     Q_INVOKABLE void swap(int first,int second);
     Q_INVOKABLE QVariantMap geometry(int tab) const;
@@ -42,14 +45,14 @@ signals:
     void changed();
     void sessionChanged();
 private:
-    struct Node { int id=0, tab=0, first=0, second=0; bool horizontal=true; qreal ratio=.5; };
+    struct Node { int id=0, tab=0, first=0, second=0; bool horizontal=true; qreal ratio=.5; QString workspace; };
     struct Tree { int root=0, active=0; QHash<int,Node> nodes; };
     Tree &tree();
     const Tree *current() const;
     void synchronize(bool selection);
     int prune(Tree &tree,int node,const QString &workspace);
     int firstLeaf(const Tree &tree,int node) const;
-    int row(int tab,const QString &workspace) const;
+    int row(int tab,const QString &workspace={}) const;
     QSizeF minimum(const Tree &tree,int node) const;
     void flatten(const Tree &tree,int node,const QRectF &rect,QVariantList &panes,QVariantList &handles) const;
     void publish(bool session=true);

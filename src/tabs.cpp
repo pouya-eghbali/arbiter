@@ -24,7 +24,9 @@ QHash<int, QByteArray> Tabs::roleNames() const
 }
 void Tabs::setCurrentIndex(int index)
 {
-    if (index < 0 || index >= count() || index == m_currentIndex || m_tabs[index].workspace != m_workspace) return;
+    // The workspace owns the layout; a focused pane may borrow a tab from
+    // another workspace without changing that tab's profile or ownership.
+    if (index < 0 || index >= count() || index == m_currentIndex) return;
     m_currentIndex = index;
     emit currentIndexChanged();
     emit sessionChanged();
@@ -65,19 +67,22 @@ void Tabs::close(int row)
 }
 void Tabs::cycle(int direction)
 {
+    const auto workspace=m_currentIndex>=0 ? workspaceAt(m_currentIndex) : m_workspace;
     QList<int> rows;
-    for (int i=0;i<count();++i) if (m_tabs[i].workspace==m_workspace) rows.append(i);
+    for (int i=0;i<count();++i) if (m_tabs[i].workspace==workspace) rows.append(i);
     if (rows.isEmpty()) return;
     const int current = rows.indexOf(m_currentIndex);
     setCurrentIndex(rows[(qMax(0,current) + direction % rows.size() + rows.size()) % rows.size()]);
 }
 bool Tabs::reopen()
 {
+    const auto workspace=m_currentIndex>=0 ? workspaceAt(m_currentIndex) : m_workspace;
     int found = -1;
-    for (int i=m_closed.size()-1;i>=0;--i) if (m_closed[i].workspace==m_workspace) { found=i; break; }
+    for (int i=m_closed.size()-1;i>=0;--i) if (m_closed[i].workspace==workspace) { found=i; break; }
     if (found < 0) return false;
     const auto closed = m_closed.takeAt(found);
-    const int row = add(closed.url);
+    const int row = addToWorkspace(closed.url,closed.workspace,closed.profile);
+    setCurrentIndex(row);
     m_tabs[row].pinned = closed.pinned;
     update(m_tabs[row].id, closed.title, closed.url);
     return true;
