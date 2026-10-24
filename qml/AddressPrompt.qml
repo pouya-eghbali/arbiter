@@ -101,11 +101,7 @@ FocusScope {
         anchors.leftMargin: 18; anchors.rightMargin: 18
         height: 64
         spacing: 12
-        Item {
-            implicitWidth: 20; implicitHeight: 20
-            Rectangle { x: 1; y: 1; width: 13; height: 13; radius: 6.5; color: "transparent"; border.color: Theme.text; border.width: 2 }
-            Rectangle { x: 13; y: 12; width: 8; height: 2; rotation: 45; transformOrigin: Item.Left; color: Theme.text; radius: 1 }
-        }
+        UiIcon { name: "search"; color: Theme.text; Layout.preferredWidth: 20; Layout.preferredHeight: 20 }
         UiTextField {
             id: field
             objectName: "addressPromptField"

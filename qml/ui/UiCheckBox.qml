@@ -18,13 +18,12 @@ Basic.CheckBox {
         color: control.checked ? Theme.accent : control.hovered ? Theme.hover : Theme.field
         border.width: 1
         border.color: control.activeFocus ? Theme.accent : Theme.border
-        Text {
+        UiIcon {
             anchors.centerIn: parent
-            text: "✓"
+            width: 16; height: 16
+            name: "check"
             visible: control.checked
             color: Theme.accentText
-            font.pixelSize: 15
-            font.weight: Font.DemiBold
         }
     }
     contentItem: Basic.Label {

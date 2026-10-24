@@ -29,6 +29,6 @@ Basic.Button {
             Text { text: card.text; textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 18; Layout.fillWidth: true; elide: Text.ElideRight }
             Text { text: card.subtitle; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 14; Layout.fillWidth: true; wrapMode: Text.Wrap }
         }
-        Text { text: "›"; color: card.prominent ? Theme.accent : Theme.muted; font.pixelSize: 30; Accessible.ignored: true }
+        UiIcon { name: "chevron-right"; color: card.prominent ? Theme.accent : Theme.muted; Layout.preferredWidth: 22; Layout.preferredHeight: 22 }
     }
 }

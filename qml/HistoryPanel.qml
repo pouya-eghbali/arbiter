@@ -136,7 +136,7 @@ Basic.Popup {
                 }
                 UiButton {
                     id: newTabButton
-                    text: "+"
+                    iconName: "plus"
                     flat: true
                     Accessible.name: qsTr("Open %1 in a new tab").arg(entry.pageTitle)
                     UiToolTip { visible: newTabButton.hovered; text: qsTr("Open in new tab") }
@@ -144,7 +144,7 @@ Basic.Popup {
                 }
                 UiButton {
                     id: removeButton
-                    text: "×"
+                    iconName: "x"
                     flat: true
                     Accessible.name: qsTr("Remove %1 from history").arg(entry.pageTitle)
                     UiToolTip { visible: removeButton.hovered; text: qsTr("Remove from history") }

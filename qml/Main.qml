@@ -2211,11 +2211,12 @@ Basic.ApplicationWindow {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: 6
-                            Basic.Label {
+                            UiIcon {
                                 visible: tabChoice.sourceIndex === window.tabs.currentIndex
-                                text: "●"
+                                name: "check"
                                 color: window.accent
-                                font.pixelSize: 10
+                                Layout.preferredWidth: 14
+                                Layout.preferredHeight: 14
                             }
                             Basic.Label {
                                 text: tabChoice.pageTitle
@@ -2225,7 +2226,8 @@ Basic.ApplicationWindow {
                                 font.weight: Font.Medium
                             }
                             UiButton {
-                                text: tabChoice.pinned ? "◆" : "◇"
+                                iconName: tabChoice.pinned ? "pin-off" : "pin"
+                                iconSize: 16
                                 flat: true
                                 Layout.preferredWidth: 26
                                 Layout.preferredHeight: 24
@@ -2235,7 +2237,8 @@ Basic.ApplicationWindow {
                                 onClicked: window.tabs.togglePinned(tabChoice.sourceIndex)
                             }
                             UiButton {
-                                text: "×"
+                                iconName: "x"
+                                iconSize: 16
                                 flat: true
                                 Layout.preferredWidth: 26
                                 Layout.preferredHeight: 24

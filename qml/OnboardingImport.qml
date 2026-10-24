@@ -57,7 +57,7 @@ ColumnLayout {
                     color: card.checked ? Theme.accent : Theme.field
                     border.width: 1
                     border.color: card.checked || card.activeFocus ? Theme.accent : Theme.border
-                    Text { anchors.centerIn: parent; text: "✓"; visible: card.checked; color: Theme.accentText; font.pixelSize: 15 }
+                    UiIcon { anchors.centerIn: parent; width: 16; height: 16; name: "check"; visible: card.checked; color: Theme.accentText }
                 }
                 background: Rectangle {
                     radius: 18

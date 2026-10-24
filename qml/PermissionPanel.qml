@@ -45,7 +45,7 @@ Item {
             RowLayout {
                 Layout.fillWidth: true
                 Basic.Label { text: qsTr("Site permission"); font.pixelSize: 24; font.weight: Font.DemiBold; color: Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap; Layout.alignment: Qt.AlignVCenter }
-                UiButton { text: "×"; flat: true; Layout.alignment: Qt.AlignVCenter; Accessible.name: qsTr("Dismiss permission request"); onClicked: panel.controller.dismiss(panel.presentedId) }
+                UiButton { iconName: "x"; flat: true; Layout.alignment: Qt.AlignVCenter; Accessible.name: qsTr("Dismiss permission request"); onClicked: panel.controller.dismiss(panel.presentedId) }
             }
             Basic.Label {
                 objectName: "sitePermissionOrigin"

@@ -100,10 +100,10 @@ FocusScope {
         opacity: Math.max(0, (pill.revealProgress - 0.85) / 0.15)
         visible: opacity > 0
         enabled: pill.expanded && pill.revealProgress > 0.95
-        NavButton { text: "‹"; Accessible.name: qsTr("Back"); enabled: pill.view && pill.view.canGoBack; onClicked: { pill.view.goBack(); pill.view.forceActiveFocus() } }
-        NavButton { text: "›"; Accessible.name: qsTr("Forward"); enabled: pill.view && pill.view.canGoForward; onClicked: { pill.view.goForward(); pill.view.forceActiveFocus() } }
+        NavButton { iconName: "arrow-left"; Accessible.name: qsTr("Back"); enabled: pill.view && pill.view.canGoBack; onClicked: { pill.view.goBack(); pill.view.forceActiveFocus() } }
+        NavButton { iconName: "arrow-right"; Accessible.name: qsTr("Forward"); enabled: pill.view && pill.view.canGoForward; onClicked: { pill.view.goForward(); pill.view.forceActiveFocus() } }
         NavButton {
-            text: pill.view && pill.view.loading ? "×" : "↻"
+            iconName: pill.view && pill.view.loading ? "x" : "rotate-cw"
             Accessible.name: pill.view && pill.view.loading ? qsTr("Stop loading") : qsTr("Reload")
             enabled: pill.view !== null
             onClicked: { if (pill.view.loading) pill.view.stop(); else pill.view.reload(); pill.view.forceActiveFocus() }
@@ -124,9 +124,9 @@ FocusScope {
         }
         Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 20; color: Theme.border }
         NavButton {
-            text: "●"
+            iconName: "layers"
+            iconColor: pill.workspaceColor
             Accessible.name: qsTr("Workspaces: %1").arg(pill.workspaceName)
-            contentItem: Basic.Label { text: "●"; color: pill.workspaceColor; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             onClicked: pill.workspacesRequested()
         }
         NavButton {
@@ -134,7 +134,8 @@ FocusScope {
             visible: pill.expandedWidth >= 440
             enabled: pill.adBlockEnabled
             Accessible.name: pill.adBlockActive ? qsTr("Pause ad blocking in this view (%1 blocked)").arg(pill.adBlockBlocked) : qsTr("Resume ad blocking in this view")
-            contentItem: UiIcon { name: "shield"; color: pill.adBlockActive ? Theme.accent : Theme.muted }
+            iconName: "shield"
+            iconColor: pill.adBlockActive ? Theme.accent : Theme.muted
             onClicked: pill.adBlockRequested()
         }
         NavButton {
@@ -143,11 +144,12 @@ FocusScope {
             visible: pill.expandedWidth >= 480
             enabled: pill.canShare
             Accessible.name: qsTr("Share current page")
-            contentItem: UiIcon { name: "share"; color: pill.canShare ? Theme.text : Theme.muted }
+            iconName: "share"
+            iconColor: pill.canShare ? Theme.text : Theme.muted
             onPressed: pill.shareRequested()
         }
         NavButton { objectName: "navigationTabsButton"; text: String(pill.tabCount); font.pixelSize: 13; Accessible.name: pill.tabCount === 1 ? qsTr("Show 1 tab") : qsTr("Show %1 tabs").arg(pill.tabCount); onClicked: pill.tabsRequested() }
-        NavButton { text: "⋯"; Accessible.name: qsTr("More browser controls"); onClicked: more.open() }
+        NavButton { iconName: "ellipsis"; Accessible.name: qsTr("More browser controls"); onClicked: more.open() }
     }
     Basic.Menu {
         id: more

@@ -25,3 +25,14 @@ subtle; reserve accent borders for keyboard focus.
 file selection for `Appearance` to validate and copy; cancellation preserves the
 saved image. `BrowserBackground` paints the active image with a centered crop,
 using the theme background color while loading or if the image is unavailable.
+
+`UiIcon` renders the bundled Lucide SVG subset with a theme-aware `color` and a
+24-pixel default size. Use canonical Lucide names; `user`, `phone`, and `key` remain
+aliases for existing credential cards. `UiButton` supports `iconName`, `iconSize`
+(default 20), and `iconColor`, with or without a text label. Icon-only buttons must
+set a descriptive `Accessible.name`; decorative icons are ignored by screen readers.
+Use the shared control instead of text glyphs or bespoke drawings for UI actions.
+
+Lucide sources, pinned revision, and regeneration instructions are in
+`assets/icons/lucide/README.md`. The full ISC/Feather MIT notices ship in
+`licenses/Lucide.txt`. Qt SVG is required for rendering on every platform.

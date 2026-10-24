@@ -70,7 +70,7 @@ Item {
                         : panel.passkeys.registration ? qsTr("Create a passkey") : qsTr("Sign in")
                     font.pixelSize: 26; font.weight: Font.DemiBold; color: Theme.text; Layout.fillWidth: true
                 }
-                UiButton { text: "×"; flat: true; font.pixelSize: 24; Accessible.name: qsTr("Cancel sign-in"); onClicked: panel.controller.cancel() }
+                UiButton { iconName: "x"; flat: true; font.pixelSize: 24; Accessible.name: qsTr("Cancel sign-in"); onClicked: panel.controller.cancel() }
             }
             Basic.Label {
                 text: qsTr("Continue to %1").arg(panel.controller.relyingParty)

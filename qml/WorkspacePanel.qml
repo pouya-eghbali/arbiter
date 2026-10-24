@@ -142,9 +142,9 @@ Basic.Popup {
                         onClicked: { panel.manager.activate(choice.modelData.id); panel.close() }
                     }
                     UiButton { text: qsTr("Edit"); flat: true; onClicked: panel.editWorkspace(choice.modelData) }
-                    UiButton { text: "↑"; flat: true; enabled: choice.index > 0; Accessible.name: qsTr("Move workspace up"); onClicked: panel.manager.reorder(choice.modelData.id, -1) }
-                    UiButton { text: "↓"; flat: true; enabled: choice.index < panel.manager.count-1; Accessible.name: qsTr("Move workspace down"); onClicked: panel.manager.reorder(choice.modelData.id, 1) }
-                    UiButton { text: "×"; flat: true; enabled: panel.manager.count > 1; Accessible.name: qsTr("Delete %1").arg(choice.modelData.name); onClicked: { panel.deletingId = choice.modelData.id; panel.deletingName = choice.modelData.name } }
+                    UiButton { iconName: "arrow-up"; flat: true; enabled: choice.index > 0; Accessible.name: qsTr("Move workspace up"); onClicked: panel.manager.reorder(choice.modelData.id, -1) }
+                    UiButton { iconName: "arrow-down"; flat: true; enabled: choice.index < panel.manager.count-1; Accessible.name: qsTr("Move workspace down"); onClicked: panel.manager.reorder(choice.modelData.id, 1) }
+                    UiButton { iconName: "x"; flat: true; enabled: panel.manager.count > 1; Accessible.name: qsTr("Delete %1").arg(choice.modelData.name); onClicked: { panel.deletingId = choice.modelData.id; panel.deletingName = choice.modelData.name } }
                 }
                 RowLayout {
                     Layout.fillWidth: true

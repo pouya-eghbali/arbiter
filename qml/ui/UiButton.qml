@@ -1,10 +1,14 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 import Arbiter
 
 Basic.Button {
     id: control
+    property string iconName: ""
+    property int iconSize: 20
+    property color iconColor: primary ? Theme.accentText : Theme.text
     property bool primary: false
     property int textAlignment: Text.AlignHCenter
     implicitWidth: Math.max(40, implicitContentWidth + leftPadding + rightPadding)
@@ -15,14 +19,27 @@ Basic.Button {
     opacity: enabled ? 1 : 0.45
     palette.buttonText: primary ? Theme.accentText : Theme.text
     palette.highlightedText: Theme.accentText
-    contentItem: Text {
-        text: control.text
-        textFormat: Text.PlainText
-        color: control.primary ? Theme.accentText : Theme.text
-        font: control.font
-        horizontalAlignment: control.textAlignment
-        verticalAlignment: Text.AlignVCenter
-        elide: Text.ElideRight
+    contentItem: RowLayout {
+        spacing: 8
+        UiIcon {
+            visible: control.iconName.length > 0
+            name: control.iconName
+            color: control.iconColor
+            Layout.preferredWidth: control.iconSize
+            Layout.preferredHeight: control.iconSize
+            Layout.alignment: Qt.AlignCenter
+        }
+        Text {
+            visible: control.text.length > 0
+            Layout.fillWidth: true
+            text: control.text
+            textFormat: Text.PlainText
+            color: control.primary ? Theme.accentText : Theme.text
+            font: control.font
+            horizontalAlignment: control.textAlignment
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+        }
     }
     background: Rectangle {
         radius: 12

@@ -1,82 +1,27 @@
 import QtQuick
-import QtQuick.Shapes
 import Arbiter
+import "LucideIcons.js" as Lucide
 
 Item {
     id: icon
     property string name: "user"
-    property color color: Theme.accent
-    implicitWidth: 28
-    implicitHeight: 28
-    Shape {
-        anchors.centerIn: parent
-        width: 24; height: 24
-        visible: icon.name === "share"
-        ShapePath {
-            strokeColor: icon.color
-            strokeWidth: 1.8
-            fillColor: "transparent"
-            capStyle: ShapePath.RoundCap
-            joinStyle: ShapePath.RoundJoin
-            startX: 7; startY: 9
-            PathLine { x: 4; y: 9 }
-            PathLine { x: 4; y: 21 }
-            PathLine { x: 20; y: 21 }
-            PathLine { x: 20; y: 9 }
-            PathLine { x: 17; y: 9 }
-        }
-        ShapePath {
-            strokeColor: icon.color
-            strokeWidth: 1.8
-            fillColor: "transparent"
-            capStyle: ShapePath.RoundCap
-            joinStyle: ShapePath.RoundJoin
-            startX: 12; startY: 15
-            PathLine { x: 12; y: 2 }
-            PathMove { x: 7; y: 7 }
-            PathLine { x: 12; y: 2 }
-            PathLine { x: 17; y: 7 }
-        }
-    }
-    Shape {
-        anchors.centerIn: parent
-        width: 24; height: 24
-        visible: icon.name === "shield"
-        ShapePath {
-            strokeColor: icon.color
-            strokeWidth: 1.8
-            fillColor: "transparent"
-            capStyle: ShapePath.RoundCap
-            joinStyle: ShapePath.RoundJoin
-            startX: 12; startY: 2
-            PathLine { x: 21; y: 6 }
-            PathLine { x: 20; y: 14 }
-            PathQuad { x: 12; y: 22; controlX: 18; controlY: 19 }
-            PathQuad { x: 4; y: 14; controlX: 6; controlY: 19 }
-            PathLine { x: 3; y: 6 }
-            PathLine { x: 12; y: 2 }
-        }
-    }
-    Item {
-        anchors.centerIn: parent
-        width: 24; height: 24
-        visible: icon.name === "phone"
-        Rectangle { x: 5; y: 1; width: 14; height: 22; radius: 3; color: "transparent"; border.width: 2; border.color: icon.color }
-        Rectangle { x: 10; y: 18; width: 4; height: 2; radius: 1; color: icon.color }
-    }
-    Item {
-        anchors.centerIn: parent
-        width: 24; height: 24
-        visible: icon.name === "user"
-        Rectangle { x: 8; y: 1; width: 9; height: 9; radius: 4.5; color: icon.color }
-        Rectangle { x: 3; y: 12; width: 19; height: 11; radius: 5; color: icon.color }
-    }
-    Item {
-        anchors.centerIn: parent
-        width: 24; height: 24
-        visible: icon.name === "key"
-        Rectangle { x: 1; y: 3; width: 12; height: 12; radius: 6; color: "transparent"; border.width: 2; border.color: icon.color }
-        Rectangle { x: 11; y: 8; width: 12; height: 3; radius: 1; color: icon.color }
-        Rectangle { x: 18; y: 9; width: 3; height: 7; color: icon.color }
+    property color color: Theme.text
+    // Keep existing semantic names stable for credential choice cards.
+    readonly property string assetName: ({user: "user-round", phone: "smartphone", key: "key-round"})[name] || name
+    readonly property int status: asset.status
+    implicitWidth: 24
+    implicitHeight: 24
+    Accessible.ignored: true
+    Image {
+        id: asset
+        anchors.fill: parent
+        fillMode: Image.PreserveAspectFit
+        sourceSize: Qt.size(Math.max(1, width), Math.max(1, height))
+        cache: true
+        smooth: true
+        // SVG source is bundled, never fetched. Tint before rasterization so icons
+        // work with both GPU and software rendering without effects or icon fonts.
+        source: Lucide.icons[icon.assetName]
+            ? "data:image/svg+xml," + encodeURIComponent(Lucide.icons[icon.assetName].replace(/currentColor/g, icon.color.toString())) : ""
     }
 }

@@ -48,6 +48,8 @@ a preset or open the centered in-app color picker; Reset restores each color's d
 Background colors tint the browser surfaces, with foreground colors adapting for
 readability. The color picker applies changes on confirmation; Cancel preserves
 the existing color.
+UI icons use a bundled [Lucide](https://lucide.dev/) SVG subset through `UiIcon`,
+with consistent sizes and theme colors; full ISC/Feather MIT notices ship with the app.
 Buttons, fields and other shared controls live in [`qml/ui`](qml/ui/README.md)
 and are reused across Settings, navigation and credential dialogs.
 A bottom navigation pill expands on hover or click, then shrinks to a tiny
@@ -186,7 +188,7 @@ Arbiter keeps normalized PNG copies under `backgrounds/` beside `settings.toml`,
 ## Requirements
 
 - Qt **6.12.0 or newer**, including Qt Quick, Quick Controls, **Qt WebEngine**,
-  **Qt WebChannel**, and **Qt Positioning**.
+  **Qt WebChannel**, **Qt Positioning**, and **Qt SVG**.
 - CMake 3.24+, Ninja, a C++20 compiler, and Rust 1.93+ with Cargo.
 - The current [patched WebEngine SDK](docs/passkey-integration.md#build) for per-view ad blocking and passkeys.
 - QtKeychain 0.14.2+ built with Qt 6. CMake prefers an installed package; otherwise
@@ -197,7 +199,7 @@ Arbiter keeps normalized PNG copies under `backgrounds/` beside `settings.toml`,
 - On macOS, full Xcode 26+ with Icon Composer and `actool` to compile the layered app icon.
 
 On macOS, use the Qt Online Installer / MaintenanceTool to install the Qt 6.12
-macOS desktop kit and the Qt WebEngine, Qt WebChannel, and Qt Positioning
+macOS desktop kit and the Qt WebEngine, Qt WebChannel, Qt Positioning, and Qt SVG
 components. WebChannel and Positioning are required by WebEngine. A Homebrew Qt installation
 without WebEngine is insufficient. Use components from the same Qt installation;
 do not mix the Homebrew libraries with an older Online Installer WebEngine.
