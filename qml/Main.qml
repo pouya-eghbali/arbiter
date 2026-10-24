@@ -903,7 +903,9 @@ Basic.ApplicationWindow {
                             settings.pdfViewerEnabled: true
                             settings.focusOnNavigationEnabled: index === window.tabs.currentIndex && url.toString() !== "about:blank"
                             url: initialUrl
-                            backgroundColor: window.color
+                            // Transparent document canvases use the browser's
+                            // normal white backing, independent of UI colors.
+                            backgroundColor: "white"
                             audioMuted: window.privateCovered
                             profile: window.webProfiles.profile(profileId)
                             webChannel: passwordChannel

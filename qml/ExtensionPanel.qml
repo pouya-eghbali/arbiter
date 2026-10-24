@@ -91,7 +91,7 @@ Basic.Popup {
                     objectName: "extensionPopupView"
                     profile: panel.browserProfile
                     url: panel.extensionUrl
-                    backgroundColor: Theme.window
+                    backgroundColor: "white"
                     onTitleChanged: panel.pageTitle = title || qsTr("Extension")
                     onWindowCloseRequested: panel.close()
                     onNewWindowRequested: function(request) { panel.newWindowRequested(request) }
