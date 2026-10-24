@@ -5,6 +5,7 @@ import QtQuick.Controls.Basic as Basic
 import "ui"
 
 Basic.Popup {
+    popupType: Basic.Popup.Item
     id: tour
     required property var controller
     required property var keyBindings
@@ -25,7 +26,7 @@ Basic.Popup {
     closePolicy: Basic.Popup.NoAutoClose
     onOpened: step = 0
     function shortcut(action: string): string { return keyBindings.nativeSequence(keyBindings.bindings[action]) }
-    background: Rectangle { color: Theme.popupSolid; radius: 18; border.width: 1; border.color: Theme.border }
+    background: GlassSurface { dense: true }
     contentItem: ColumnLayout {
         spacing: 14
         RowLayout {

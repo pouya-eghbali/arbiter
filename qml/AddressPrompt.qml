@@ -5,6 +5,8 @@ import QtQuick.Controls.Basic as Basic
 
 FocusScope {
     id: prompt
+    property Item surfaceSource: Theme.backdrop
+    property bool floating: true
     property var browserPreferences: null
     property bool privateMode: false
     property var history: null
@@ -94,7 +96,7 @@ FocusScope {
         function onDataChanged() { refresh.restart() }
         function onCountChanged() { refresh.restart() }
     }
-    Rectangle { anchors.fill: parent; radius: prompt.expanded ? 24 : 18; color: Theme.popupSolid; border.color: Theme.border }
+    GlassSurface { anchors.fill: parent; sourceItem: prompt.surfaceSource; shadowEnabled: prompt.floating; radius: prompt.expanded ? Theme.panelRadius : 20 }
     RowLayout {
         id: searchRow
         anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top

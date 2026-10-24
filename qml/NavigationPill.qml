@@ -151,7 +151,8 @@ FocusScope {
         NavButton { objectName: "navigationTabsButton"; text: String(pill.tabCount); font.pixelSize: 13; Accessible.name: pill.tabCount === 1 ? qsTr("Show 1 tab") : qsTr("Show %1 tabs").arg(pill.tabCount); onClicked: pill.tabsRequested() }
         NavButton { iconName: "ellipsis"; Accessible.name: qsTr("More browser controls"); onClicked: more.open() }
     }
-    Basic.Menu {
+    UiMenu {
+        preferredWidth: 320
         id: more
         y: -height - 8
         x: Math.max(0, pill.width - width)
@@ -160,8 +161,6 @@ FocusScope {
         palette.base: Theme.window
         palette.highlight: Theme.selection
         palette.highlightedText: Theme.text
-        padding: 6
-        background: GlassSurface { dense: true }
         onOpened: pill.revealed = true
         onClosed: collapse.restart()
         UiMenuItem { text: qsTr("Split left / right"); onTriggered: pill.splitHorizontalRequested() }

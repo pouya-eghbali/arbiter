@@ -19,9 +19,5 @@ Basic.ToolTip {
         font: tip.font
         wrapMode: Text.Wrap
     }
-    background: Rectangle {
-        radius: 10
-        color: Theme.popupSolid
-        border.color: Theme.border
-    }
+    background: GlassSurface { radius: Theme.tooltipRadius; dense: true }
 }

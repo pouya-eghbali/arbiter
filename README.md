@@ -37,7 +37,8 @@ and shadows while its title text, background, and window buttons are hidden.
 Settings → Appearance → Show native window decorations restores the system title
 bar and window buttons. It defaults to off and applies after restarting Arbiter
 (`appearance.windowDecorations` in the TOML settings).
-The Glacier interface uses frosted overlays with subtle borders and defaults to
+The Glacier interface uses blurred, background-tinted glass overlays with soft
+shadows and borderless edges. It defaults to
 the system color theme. Settings → Appearance offers System, Dark and Light;
 the selection is saved and System follows changes to the OS appearance.
 Settings uses vertical category tabs for Appearance, Passwords, Passkeys,

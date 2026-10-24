@@ -58,6 +58,7 @@ void DevToolsTest::frontendAndLifecycle()
     for (const QPoint point : {QPoint(40, 35), QPoint(40, 115)}) {
         QTest::mouseClick(window, Qt::RightButton, Qt::NoModifier, point);
         QTRY_VERIFY(evaluate("contextMenu.visible").toBool());
+        QVERIFY(evaluate("contextMenu.width >= 200").toBool());
         auto *action = evaluate(inspectAction).value<QObject *>();
         QVERIFY(action);
         QCOMPARE(action->property("text").toString(), QString("Inspect element"));

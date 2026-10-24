@@ -42,6 +42,7 @@ Item {
         function onChanged() { if (!panel.passkeys.verifying) vaultPhrase.text = "" }
     }
     Basic.Popup {
+        popupType: Basic.Popup.Item
         id: authPopup
         parent: Basic.Overlay.overlay
         anchors.centerIn: parent
@@ -53,7 +54,7 @@ Item {
         focus: true
         closePolicy: Basic.Popup.CloseOnEscape
         onClosed: { setupPhrase.text = ""; setupConfirmation.text = ""; vaultPhrase.text = ""; if (panel.controller.active) panel.controller.cancel() }
-        background: GlassSurface { radius: 28 }
+        background: GlassSurface { radius: Theme.panelRadius }
         height: Math.min(authContent.implicitHeight + topPadding + bottomPadding, panel.height - 40)
         contentItem: Basic.ScrollView {
             id: authScroll

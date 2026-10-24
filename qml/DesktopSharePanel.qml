@@ -39,6 +39,7 @@ Item {
         sharePopup.close()
     }
     Basic.Popup {
+        popupType: Basic.Popup.Item
         id: sharePopup
         objectName: "desktopSharePopup"
         parent: Basic.Overlay.overlay
@@ -50,7 +51,7 @@ Item {
         focus: true
         closePolicy: Basic.Popup.CloseOnEscape
         Basic.Overlay.modal: Rectangle { color: Theme.scrim }
-        background: GlassSurface { radius: 26 }
+        background: GlassSurface { radius: Theme.panelRadius }
         onClosed: if (panel.request) panel.cancel()
         height: Math.min(shareContent.implicitHeight + topPadding + bottomPadding, panel.height - 32)
         contentItem: Basic.ScrollView {

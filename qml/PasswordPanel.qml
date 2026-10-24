@@ -116,6 +116,7 @@ Item {
     }
 
     component Popup: Basic.Popup {
+        popupType: Basic.Popup.Item
         parent: Basic.Overlay.overlay
         anchors.centerIn: parent
         width: Math.min(600, panel.width - 40)
@@ -151,6 +152,7 @@ Item {
         }
     }
     Basic.Popup {
+        popupType: Basic.Popup.Item
         id: suggestionPopup
         objectName: "passwordSuggestions"
         parent: Basic.Overlay.overlay
@@ -169,7 +171,7 @@ Item {
         modal: false
         focus: false
         closePolicy: Basic.Popup.CloseOnEscape | Basic.Popup.CloseOnPressOutside
-        background: GlassSurface { dense: true; radius: 14 }
+        background: GlassSurface { dense: true; radius: Theme.menuRadius }
         contentItem: Basic.ScrollView {
             id: suggestionScroll
             objectName: "passwordSuggestionScroll"
@@ -392,6 +394,6 @@ Item {
         visible: text.length > 0 && !managePopup.visible && !editPopup.visible && !savePopup.visible
         wrapMode: Text.Wrap
         textFormat: Text.PlainText
-        background: GlassSurface { dense: true; radius: 12 }
+        background: GlassSurface { dense: true; radius: Theme.tooltipRadius }
     }
 }

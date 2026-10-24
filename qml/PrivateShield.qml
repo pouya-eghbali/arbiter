@@ -16,14 +16,14 @@ Rectangle {
     onVisibleChanged: { password.clear(); confirmation.clear(); if (visible) forceActiveFocus() }
     MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: function(wheel) { wheel.accepted=true } }
     Keys.onPressed: function(event) { if (event.key !== Qt.Key_Tab && event.key !== Qt.Key_Backtab) event.accepted = true }
-    Rectangle {
+    GlassSurface {
+        sourceItem: null
+        dense: true
         x: Math.max(12, (shield.width - width) / 2)
         y: Math.max(12, (shield.height - height) / 2)
         width: Math.min(456, shield.width - 24)
         height: Math.min(shield.height - 24, lockFields.implicitHeight + 48)
         radius: 24
-        color: Theme.surface
-        border.color: Theme.border
     }
     ColumnLayout {
         id: lockFields

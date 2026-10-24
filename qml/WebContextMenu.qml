@@ -1,9 +1,10 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls as Controls
+import QtQuick.Controls.Basic as Controls
+import Arbiter
 import QtWebEngine
 
-Controls.Menu {
+UiMenu {
     id: contextMenu
     objectName: "webContextMenu"
     required property WebEngineView view
@@ -12,11 +13,10 @@ Controls.Menu {
     signal passwordsRequested()
     signal passwordSuggestionRequested(var field)
     property int requestGeneration: 0
-    popupType: Qt.platform.os === "osx" ? Controls.Popup.Native : Controls.Popup.Window
 
     Component {
         id: actionItem
-        Controls.MenuItem {
+        UiMenuItem {
             required property var webAction
             property bool contextEnabled: true
             text: webAction.text
@@ -26,17 +26,17 @@ Controls.Menu {
     }
     Component {
         id: suggestionItem
-        Controls.MenuItem {
+        UiMenuItem {
             onTriggered: contextMenu.view.replaceMisspelledWord(text)
         }
     }
     Component {
         id: separatorItem
-        Controls.MenuSeparator { }
+        Controls.MenuSeparator { contentItem: Rectangle { implicitHeight: 1; color: Theme.border } }
     }
     Component {
         id: passwordsItem
-        Controls.MenuItem {
+        UiMenuItem {
             text: qsTr("Saved passwords…")
             enabled: contextMenu.passwordsEnabled && contextMenu.view.url.toString().startsWith("https://")
             onTriggered: contextMenu.passwordsRequested()
@@ -44,7 +44,7 @@ Controls.Menu {
     }
     Component {
         id: inspectItem
-        Controls.MenuItem {
+        UiMenuItem {
             objectName: "inspectElementAction"
             text: qsTr("Inspect element")
             onTriggered: contextMenu.inspectRequested()
@@ -52,7 +52,7 @@ Controls.Menu {
     }
     Component {
         id: generatePasswordItem
-        Controls.MenuItem {
+        UiMenuItem {
             required property var field
             objectName: "suggestPasswordAction"
             text: qsTr("Suggest password")

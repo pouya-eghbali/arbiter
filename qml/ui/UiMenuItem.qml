@@ -5,7 +5,9 @@ import Arbiter
 
 Basic.MenuItem {
     id: control
-    implicitHeight: 40
+    implicitHeight: 36
+    font.pixelSize: 13
+    opacity: enabled ? 1 : 0.45
     horizontalPadding: 12
     contentItem: Basic.Label {
         text: control.text
@@ -13,6 +15,7 @@ Basic.MenuItem {
         color: Theme.text
         font: control.font
         verticalAlignment: Text.AlignVCenter
+        elide: Text.ElideRight
     }
     background: Rectangle { radius: 10; color: control.highlighted ? Theme.selection : control.hovered ? Theme.hover : "transparent" }
 }

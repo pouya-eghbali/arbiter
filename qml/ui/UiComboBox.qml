@@ -57,7 +57,7 @@ Basic.ComboBox {
         width: control.width
         padding: 6
         implicitHeight: Math.min(260, options.contentHeight + 12)
-        background: GlassSurface { radius: 14; dense: true }
+        background: GlassSurface { radius: Theme.menuRadius; dense: true }
         contentItem: ListView {
             id: options
             clip: true

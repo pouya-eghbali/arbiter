@@ -5,6 +5,7 @@ import QtQuick.Controls.Basic as Basic
 
 FocusScope {
     id: start
+    property Item surfaceSource: null
     property var browserPreferences: null
     property bool privateMode: false
     property var history: null
@@ -58,6 +59,7 @@ FocusScope {
         }
         AddressPrompt {
             id: addressPrompt
+            surfaceSource: start.surfaceSource
             width: parent.width
             maximumHeight: Math.max(64, start.height - (start.compact ? 130 : 190))
             browserPreferences: start.browserPreferences

@@ -33,9 +33,16 @@ QtObject {
     readonly property color text: readable(darkSurface ? "#f0f3f8" : "#192330")
     readonly property color muted: readable(darkSurface ? "#b9c2d0" : "#4e5b6c")
     readonly property color border: darkSurface ? "#0affffff" : "#240e243d"
-    readonly property color popupSolid: mix(window, "white", darkSurface ? (luminance(window) < 0.08 ? 0.045 : 0) : 0.3)
-    readonly property color surface: Qt.rgba(popupSolid.r, popupSolid.g, popupSolid.b, 0.95)
-    readonly property color glass: Qt.rgba(window.r, window.g, window.b, darkSurface ? 0.8 : 0.86)
+    readonly property color popupSolid: Qt.rgba(window.r, window.g, window.b, 1)
+    readonly property color surface: popupSolid
+    readonly property color glass: Qt.rgba(window.r, window.g, window.b, darkSurface ? 0.68 : 0.78)
+    readonly property color glassDense: Qt.rgba(window.r, window.g, window.b, darkSurface ? 0.80 : 0.88)
+    readonly property real panelRadius: 24
+    readonly property real menuRadius: 16
+    readonly property real tooltipRadius: 12
+    readonly property color panelShadow: darkSurface ? "#4d000000" : "#26091320"
+    readonly property color panelContactShadow: darkSurface ? "#24000000" : "#12091320"
+    readonly property color panelSheen: darkSurface ? "#0bffffff" : "#18ffffff"
     readonly property color field: darkSurface ? "#12ffffff" : "#100c2847"
     readonly property color hover: darkSurface ? "#20ffffff" : "#180c2847"
     readonly property color pressed: darkSurface ? "#30ffffff" : "#240c2847"

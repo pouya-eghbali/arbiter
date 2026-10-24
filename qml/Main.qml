@@ -144,7 +144,7 @@ Basic.ApplicationWindow {
     Binding { target: Theme; property: "darkAccent"; value: window.appearance.darkAccent }
     Binding { target: Theme; property: "lightBackground"; value: window.appearance.lightBackground }
     Binding { target: Theme; property: "darkBackground"; value: window.appearance.darkBackground }
-    Binding { target: Theme; property: "backdrop"; value: !window.emptyPage && !window.settingsOpen ? window.webView : null }
+    readonly property Item glassBackdrop: privateCovered ? null : (settingsOpen ? settingsPage : pageBackdrop)
 
     readonly property url backgroundImage: appearance.dark ? appearance.darkBackgroundImage : appearance.lightBackgroundImage
     readonly property bool emptyPage: !webView || webView.url.toString() === "about:blank"
@@ -707,363 +707,399 @@ Basic.ApplicationWindow {
         id: browsingContent
         anchors.fill: parent
         enabled: !window.privateCovered
-        BrowserBackground {
-            id: windowBackground
-            objectName: "windowBackground"
-            anchors.fill: parent
-            imageSource: window.backgroundImage
-            visible: !window.settingsOpen && (window.emptyPage || window.splits.multiple)
-        }
-    Flickable {
-        id: splitViewport
-        objectName: "splitViewport"
-        anchors.fill: parent
-        anchors.bottomMargin: developerTools.height + (window.splits.multiple ? 4 : 0)
-        // Half the divider width keeps the complete pane stroke inside the
-        // native window curve, with the same spacing around the whole layout.
-        anchors.margins: window.splits.multiple ? 4 : 0
-        visible: !window.settingsOpen
-        clip: true
-        contentWidth: Math.max(width, window.splits.minimumWidth)
-        contentHeight: Math.max(height, window.splits.minimumHeight)
-        // Scrolling the canvas must not steal gestures from websites.
-        interactive: false
-        Basic.ScrollBar.horizontal: Basic.ScrollBar { policy: splitViewport.contentWidth > splitViewport.width ? Basic.ScrollBar.AlwaysOn : Basic.ScrollBar.AlwaysOff }
-        Basic.ScrollBar.vertical: Basic.ScrollBar { policy: splitViewport.contentHeight > splitViewport.height ? Basic.ScrollBar.AlwaysOn : Basic.ScrollBar.AlwaysOff }
-        function clampOffsets() {
-            contentX = Math.max(0, Math.min(contentX, contentWidth - width))
-            contentY = Math.max(0, Math.min(contentY, contentHeight - height))
-        }
-        function updateViewport() {
-            window.splits.setViewport(width, height)
-            clampOffsets()
-        }
-        onContentWidthChanged: Qt.callLater(splitViewport.clampOffsets)
-        onContentHeightChanged: Qt.callLater(splitViewport.clampOffsets)
-        // Wait for anchor margins to settle before publishing new geometry.
-        onWidthChanged: Qt.callLater(splitViewport.updateViewport)
-        onHeightChanged: Qt.callLater(splitViewport.updateViewport)
-        Component.onCompleted: updateViewport()
         Item {
-            id: paneCanvas
-            objectName: "paneCanvas"
-            width: splitViewport.contentWidth
-            height: splitViewport.contentHeight
-            Repeater {
-                id: tabViews
-                model: window.tabs
-                onItemAdded: Qt.callLater(window.syncActiveView)
-                onItemRemoved: Qt.callLater(window.syncActiveView)
-                delegate: WebEngineView {
-                    id: page
-                    function cancelPrivateInteraction() {
-                        sitePermissionQueue.cancelFor(page)
-                        desktopSharePanel.cancelFor(page)
-                        nativeShare.cancelFor(page)
-                        pageContextMenu.close()
-                        passwordSession.invalidate()
-                        startPage.focus = false
-                        focus = false
-                    }
-                    required property int index
-                    required property string workspaceId
-                    required property string profileId
-                    required property int tabId
-                    required property url initialUrl
-                    readonly property alias adBlock: viewAdBlock
-                    urlRequestInterceptor: viewAdBlock
-                    ViewAdBlock {
-                        id: viewAdBlock
-                        manager: window.adblocker
-                        onStateChanged: {
-                            if (!enabled) page.mainFrame.runJavaScript("globalThis.__arbiterAdblock?.clear()", 1, function() {})
-                            else Qt.callLater(page.applyAdBlockCosmetics)
+            id: pageBackdrop
+            objectName: "pageBackdrop"
+            anchors.fill: parent
+            BrowserBackground {
+                id: windowBackground
+                objectName: "windowBackground"
+                anchors.fill: parent
+                imageSource: window.backgroundImage
+                visible: !window.settingsOpen && (window.emptyPage || window.splits.multiple)
+            }
+            Flickable {
+                id: splitViewport
+                objectName: "splitViewport"
+                anchors.fill: parent
+                anchors.bottomMargin: developerTools.height + (window.splits.multiple ? 4 : 0)
+                // Half the divider width keeps the complete pane stroke inside the
+                // native window curve, with the same spacing around the whole layout.
+                anchors.margins: window.splits.multiple ? 4 : 0
+                visible: !window.settingsOpen
+                clip: true
+                contentWidth: Math.max(width, window.splits.minimumWidth)
+                contentHeight: Math.max(height, window.splits.minimumHeight)
+                // Scrolling the canvas must not steal gestures from websites.
+                interactive: false
+                Basic.ScrollBar.horizontal: Basic.ScrollBar { policy: splitViewport.contentWidth > splitViewport.width ? Basic.ScrollBar.AlwaysOn : Basic.ScrollBar.AlwaysOff }
+                Basic.ScrollBar.vertical: Basic.ScrollBar { policy: splitViewport.contentHeight > splitViewport.height ? Basic.ScrollBar.AlwaysOn : Basic.ScrollBar.AlwaysOff }
+                function clampOffsets() {
+                    contentX = Math.max(0, Math.min(contentX, contentWidth - width))
+                    contentY = Math.max(0, Math.min(contentY, contentHeight - height))
+                }
+                function updateViewport() {
+                    window.splits.setViewport(width, height)
+                    clampOffsets()
+                }
+                onContentWidthChanged: Qt.callLater(splitViewport.clampOffsets)
+                onContentHeightChanged: Qt.callLater(splitViewport.clampOffsets)
+                // Wait for anchor margins to settle before publishing new geometry.
+                onWidthChanged: Qt.callLater(splitViewport.updateViewport)
+                onHeightChanged: Qt.callLater(splitViewport.updateViewport)
+                Component.onCompleted: updateViewport()
+                Item {
+                    id: paneCanvas
+                    objectName: "paneCanvas"
+                    width: splitViewport.contentWidth
+                    height: splitViewport.contentHeight
+                    Repeater {
+                        id: tabViews
+                        model: window.tabs
+                        onItemAdded: Qt.callLater(window.syncActiveView)
+                        onItemRemoved: Qt.callLater(window.syncActiveView)
+                        delegate: WebEngineView {
+                            id: page
+                            function cancelPrivateInteraction() {
+                                sitePermissionQueue.cancelFor(page)
+                                desktopSharePanel.cancelFor(page)
+                                nativeShare.cancelFor(page)
+                                pageContextMenu.close()
+                                passwordSession.invalidate()
+                                startPage.focus = false
+                                focus = false
+                            }
+                            required property int index
+                            required property string workspaceId
+                            required property string profileId
+                            required property int tabId
+                            required property url initialUrl
+                            readonly property alias adBlock: viewAdBlock
+                            urlRequestInterceptor: viewAdBlock
+                            ViewAdBlock {
+                                id: viewAdBlock
+                                manager: window.adblocker
+                                onStateChanged: {
+                                    if (!enabled) page.mainFrame.runJavaScript("globalThis.__arbiterAdblock?.clear()", 1, function() {})
+                                    else Qt.callLater(page.applyAdBlockCosmetics)
+                                }
+                            }
+                            function applyAdBlockCosmetics() {
+                                if (!viewAdBlock.enabled || page.loading || !page.visible) return
+                                page.mainFrame.runJavaScript("globalThis.__arbiterAdblock?.collect()", 1, function(result) {
+                                    if (!result || !viewAdBlock.enabled || result.url !== page.mainFrame.url.toString()) return
+                                    const selectors = viewAdBlock.cosmetic(result.url, result.classes, result.ids)
+                                    if (selectors.length) page.mainFrame.runJavaScript("globalThis.__arbiterAdblock?.apply(" + JSON.stringify(result.token) + "," + JSON.stringify(selectors) + ")", 1, function() {})
+                                })
+                            }
+                            Timer {
+                                interval: 750
+                                repeat: true
+                                running: viewAdBlock.enabled && page.visible && !page.loading && !window.privateCovered
+                                onTriggered: page.applyAdBlockCosmetics()
+                            }
+                            property bool closeQueued: false
+                            property string errorText: ""
+                            property bool historyReady: false
+                            readonly property var sourceWorkspace: window.workspaceInfo(workspaceId)
+                            Timer { id: workspaceBadgeTimer; interval: 1800 }
+                            Connections {
+                                target: window
+                                function onWebViewChanged() { if (window.webView === page) workspaceBadgeTimer.restart() }
+                            }
+                            GlassSurface {
+                                sourceItem: page
+                                visible: page.inSplit && window.webView === page && page.workspaceId !== window.workspaces.currentId && workspaceBadgeTimer.running
+                                parent: paneCanvas
+                                x: page.x + page.width - width - 12
+                                y: page.y + 12
+                                width: Math.min(page.width - 24, workspaceBadge.implicitWidth + 24)
+                                height: 30
+                                radius: 15
+                                dense: true
+                                z: 4
+                                Basic.Label {
+                                    id: workspaceBadge
+                                    anchors.centerIn: parent
+                                    width: parent.width - 24
+                                    elide: Text.ElideRight
+                                    text: page.sourceWorkspace.name
+                                    textFormat: Text.PlainText
+                                    font.pixelSize: 12
+                                    color: Theme.text
+                                }
+                            }
+                            TabSleepController {
+                                objectName: "tabSleep" + page.tabId
+                                view: page
+                                timeoutSeconds: window.tabSleep.timeoutSeconds
+                                keepAwake: page.inSplit || page === window.webView || page === developerTools.target
+                            }
+                            property string historyVisitId: ""
+                            property string historyUrl: ""
+                            function recordHistory() {
+                                // url may expose a pending destination before LoadStarted.
+                                // Only save the committed document, including same-document changes.
+                                const committed = mainFrame.url.toString()
+                                if (!historyReady || loading || profile.offTheRecord || url.toString() !== committed || committed === historyUrl) return
+                                historyUrl = committed
+                                historyVisitId = window.history.record(mainFrame.url, title, profile.offTheRecord)
+                            }
+                            readonly property var passwordAgent: passwordSession
+                            readonly property var startPage: paneStart
+                            StartPage {
+                                surfaceSource: windowBackground
+                                id: paneStart
+                                history: window.history
+                                browserPreferences: window.browserPreferences
+                                privateMode: window.privateMode
+                                tabs: window.tabs
+                                currentTabId: page.tabId
+                                onTabRequested: function(tabId) { window.activateSuggestedTab(tabId) }
+                                objectName: "paneStart" + page.tabId
+                                // A stable sibling of the engine item, owned by this tab:
+                                // an invisible about:blank view must not hide its start page.
+                                parent: paneCanvas
+                                x: page.x
+                                y: page.y
+                                width: page.width
+                                height: page.height
+                                z: 1
+                                visible: page.inSplit && window.splits.multiple && !window.settingsOpen && page.url.toString() === "about:blank"
+                                addressShortcut: window.keyBindings.nativeSequence(window.bindings.address)
+                                tabsShortcut: window.keyBindings.nativeSequence(window.bindings.tabs)
+                                onActiveFocusChanged: if (activeFocus && visible && !window.changingTabs && !window.shuttingDown) window.splits.activate(page.paneGeometry.paneId)
+                                onNavigateRequested: function(text) { window.splits.activate(page.paneGeometry.paneId); window.navigate(text) }
+                                onTabsRequested: { window.splits.activate(page.paneGeometry.paneId); window.showTabs() }
+                                onSettingsRequested: window.openSettings()
+                            }
+                            readonly property var paneGeometry: {
+                                const revision = window.splitRevision
+                                return window.splits.geometry(tabId)
+                            }
+                            readonly property bool inSplit: paneGeometry.paneId !== undefined
+                            x: inSplit ? paneGeometry.x : 0
+                            y: inSplit ? paneGeometry.y : 0
+                            width: inSplit ? Math.max(0, paneGeometry.width) : splitViewport.width
+                            height: inSplit ? Math.max(0, paneGeometry.height) : splitViewport.height
+                            onActiveFocusChanged: if (activeFocus && inSplit && !window.settingsOpen && !window.changingTabs && !window.shuttingDown) window.splits.activate(paneGeometry.paneId)
+                            visible: (tabsPopup.visible && workspaceId === window.focusedWorkspaceId) || (inSplit && !window.settingsOpen && url.toString() !== "about:blank")
+                            z: 1
+                            layer.enabled: inSplit && window.splits.multiple
+                            layer.effect: MultiEffect {
+                                maskEnabled: true
+                                maskSource: paneMask
+                            }
+                            PaneShape {
+                                id: paneMask
+                                objectName: "paneMask" + page.tabId
+                                anchors.fill: parent
+                                color: "white"
+                                layer.enabled: true
+                                visible: false
+                            }
+                            // Chromium’s built-in PDF viewer requires plugin support.
+                            settings.pluginsEnabled: true
+                            settings.pdfViewerEnabled: true
+                            settings.focusOnNavigationEnabled: index === window.tabs.currentIndex && url.toString() !== "about:blank"
+                            url: initialUrl
+                            backgroundColor: window.color
+                            audioMuted: window.privateCovered
+                            profile: window.webProfiles.profile(profileId)
+                            webChannel: passwordChannel
+                            webChannelWorld: 1
+                            userScripts.collection: [{
+                                name: "Arbiter password forms",
+                                injectionPoint: WebEngineScript.DocumentReady,
+                                worldId: WebEngineScript.ApplicationWorld,
+                                runsOnSubFrames: false,
+                                sourceCode: window.passwords.captureScript
+                            }, {
+                                name: "Arbiter ad blocking",
+                                injectionPoint: WebEngineScript.DocumentReady,
+                                worldId: WebEngineScript.ApplicationWorld,
+                                runsOnSubFrames: false,
+                                sourceCode: window.adblocker.cosmeticScript
+                            }]
+                            WebChannel {
+                                id: passwordChannel
+                                Component.onCompleted: registerObject("passwordCapture", passwordSession.capture)
+                            }
+                            PasswordSession {
+                                id: passwordSession
+                                manager: window.passwords
+                                onFocusNeedsValidation: {
+                                    if (page === window.webView && !window.privateCovered && !window.settingsOpen && window.passwords.enabled)
+                                        passwordSession.validateFocus(page.mainFrame.url)
+                                }
+                                onFocused: function(origin, rect) { passwordPanel.offerFor(page, origin, rect) }
+                                onCaptureNeedsValidation: { if (page === window.webView && !window.privateCovered && !window.settingsOpen) passwordSession.validateCapture(page.mainFrame.url, page.profile.offTheRecord) }
+                                onRunFillScript: function(script) {
+                                    if (page !== window.webView || window.privateCovered || window.settingsOpen || !window.passwords.enabled) return
+                                    page.mainFrame.runJavaScript(script, 1, function(filled) {
+                                        window.passwords.reportFillResult(filled === true)
+                                    })
+                                }
+                                onRunPasswordSuggestionScript: function(script) {
+                                    if (page !== window.webView || window.privateCovered || window.settingsOpen || !window.passwords.enabled) return
+                                    page.mainFrame.runJavaScript(script, 1, function(filled) {
+                                        window.passwords.reportSuggestionResult(filled === true)
+                                    })
+                                }
+                            }
+                            WebContextMenu {
+                                id: pageContextMenu
+                                view: page
+                                passwordsEnabled: window.passwords.enabled
+                                onInspectRequested: {
+                                    if (!window.privateCovered && !window.shuttingDown && !window.settingsOpen) {
+                                        window.splits.activate(page.paneGeometry.paneId)
+                                        developerTools.openFor(page, true)
+                                    }
+                                }
+                                onPasswordsRequested: Qt.callLater(window.openPasswords)
+                                onPasswordSuggestionRequested: function(field) {
+                                    if (page === window.webView && !window.privateCovered && !window.settingsOpen)
+                                        passwordSession.suggestPassword(page.mainFrame.url, field)
+                                }
+                            }
+                            onContextMenuRequested: function(request) { passwordPanel.cancelFor(page); pageContextMenu.show(request) }
+                            onNewWindowRequested: function(request) { window.openWebRequest(request, workspaceId) }
+                            onWindowCloseRequested: {
+                                if (closeQueued) return
+                                closeQueued = true
+                                const closingId = tabId
+                                Qt.callLater(function() { window.finishClosingTab(closingId) })
+                            }
+                            settings.screenCaptureEnabled: true
+                            onPermissionRequested: function(permissionRequest) {
+                                if (window.privateCovered || window.shuttingDown) {
+                                    sitePermissionQueue.reject(permissionRequest)
+                                } else sitePermissionQueue.request(page, permissionRequest, page.mainFrame.url)
+                            }
+                            onDesktopMediaRequested: function(request) {
+                                if (page !== window.webView || window.privateCovered || window.settingsOpen || !window.active) request.cancel()
+                                else desktopSharePanel.show(page, request, window.sitePermissionSettings.displayOrigin(page.mainFrame.url))
+                            }
+                            onWebAuthUxRequested: function(request) {
+                                if (page !== window.webView || window.privateCovered || window.settingsOpen) request.cancel()
+                                else webAuthnPanel.show(page, request)
+                            }
+                            Component.onDestruction: {
+                                developerTools.closeFor(page)
+                                sitePermissionQueue.cancelFor(page)
+                                desktopSharePanel.cancelFor(page)
+                                nativeShare.cancelFor(page)
+                                webAuthnPanel.cancelFor(page)
+                                passwordPanel.cancelFor(page)
+                            }
+                            onTitleChanged: {
+                                window.tabs.update(tabId, title, url)
+                                if (!profile.offTheRecord && historyVisitId.length > 0)
+                                    window.history.updateTitle(historyVisitId, url, title)
+                                if (page === window.webView && !window.privateMode) window.siteNavigation.setTitle(title)
+                            }
+                            onUrlChanged: {
+                                sitePermissionQueue.cancelFor(page)
+                                desktopSharePanel.cancelFor(page)
+                                nativeShare.cancelFor(page)
+                                Qt.callLater(page.recordHistory)
+                                if (page === window.webView) window.resetSiteNavigation()
+                                webAuthnPanel.cancelFor(page)
+                                passwordSession.invalidate()
+                                passwordPanel.cancelFor(page)
+                                window.tabs.update(tabId, title, url)
+                                if (page === window.webView && window.emptyPage) {
+                                    window.homeAddress.text = ""
+                                    Qt.callLater(window.focusPage)
+                                }
+                            }
+                            onJavaScriptConsoleMessage: function(level, message, lineNumber, sourceID) {
+                                if (window.browserDiagnostics)
+                                    console.log("Page console:", level, sourceID, lineNumber, message)
+                            }
+                            onLoadingChanged: function(request) {
+                                if (request.status === WebEngineView.LoadStartedStatus) {
+                                    viewAdBlock.resetCount()
+                                    sitePermissionQueue.cancelFor(page)
+                                    desktopSharePanel.cancelFor(page)
+                                    nativeShare.cancelFor(page)
+                                    historyReady = false
+                                    historyVisitId = ""
+                                    historyUrl = ""
+                                    if (page === window.webView) window.resetSiteNavigation()
+                                    webAuthnPanel.cancelFor(page)
+                                    passwordSession.invalidate()
+                                    passwordPanel.cancelFor(page)
+                                }
+                                if (request.status === WebEngineView.LoadSucceededStatus) {
+                                    if (request.url.toString() === page.mainFrame.url.toString()) {
+                                        historyReady = true
+                                        recordHistory()
+                                    }
+                                }
+                                if (page === window.webView && request.status === WebEngineView.LoadSucceededStatus)
+                                    window.refreshSiteNavigation()
+                                if (window.browserDiagnostics) {
+                                    console.log("Load:", request.url, request.status,
+                                                request.errorDomain, request.errorCode, request.errorString)
+                                    if (request.status === WebEngineView.LoadSucceededStatus
+                                            || request.status === WebEngineView.LoadFailedStatus) {
+                                        runJavaScript("JSON.stringify({userAgent:navigator.userAgent,secureContext:isSecureContext,workers:typeof Worker,webAssembly:typeof WebAssembly,crypto:typeof crypto.subtle,cookies:navigator.cookieEnabled,cores:navigator.hardwareConcurrency})",
+                                                      function(result) { console.log("Browser features:", result) })
+                                    }
+                                }
+                                if (request.status === WebEngineView.LoadFailedStatus)
+                                    errorText = request.isErrorPage ? request.errorString : ""
+                                else if (request.status === WebEngineView.LoadStartedStatus
+                                         || request.status === WebEngineView.LoadSucceededStatus)
+                                    errorText = ""
+                            }
                         }
                     }
-                    function applyAdBlockCosmetics() {
-                        if (!viewAdBlock.enabled || page.loading || !page.visible) return
-                        page.mainFrame.runJavaScript("globalThis.__arbiterAdblock?.collect()", 1, function(result) {
-                            if (!result || !viewAdBlock.enabled || result.url !== page.mainFrame.url.toString()) return
-                            const selectors = viewAdBlock.cosmetic(result.url, result.classes, result.ids)
-                            if (selectors.length) page.mainFrame.runJavaScript("globalThis.__arbiterAdblock?.apply(" + JSON.stringify(result.token) + "," + JSON.stringify(selectors) + ")", 1, function() {})
-                        })
-                    }
-                    Timer {
-                        interval: 750
-                        repeat: true
-                        running: viewAdBlock.enabled && page.visible && !page.loading && !window.privateCovered
-                        onTriggered: page.applyAdBlockCosmetics()
-                    }
-                    property bool closeQueued: false
-                    property string errorText: ""
-                    property bool historyReady: false
-                    readonly property var sourceWorkspace: window.workspaceInfo(workspaceId)
-                    Timer { id: workspaceBadgeTimer; interval: 1800 }
-                    Connections {
-                        target: window
-                        function onWebViewChanged() { if (window.webView === page) workspaceBadgeTimer.restart() }
-                    }
-                    GlassSurface {
-                        sourceItem: null
-                        visible: page.inSplit && window.webView === page && page.workspaceId !== window.workspaces.currentId && workspaceBadgeTimer.running
-                        parent: paneCanvas
-                        x: page.x + page.width - width - 12
-                        y: page.y + 12
-                        width: Math.min(page.width - 24, workspaceBadge.implicitWidth + 24)
-                        height: 30
-                        radius: 15
-                        dense: true
-                        z: 4
-                        Basic.Label {
-                            id: workspaceBadge
-                            anchors.centerIn: parent
-                            width: parent.width - 24
-                            elide: Text.ElideRight
-                            text: page.sourceWorkspace.name
-                            textFormat: Text.PlainText
-                            font.pixelSize: 12
-                            color: Theme.text
-                        }
-                    }
-                    TabSleepController {
-                        objectName: "tabSleep" + page.tabId
-                        view: page
-                        timeoutSeconds: window.tabSleep.timeoutSeconds
-                        keepAwake: page.inSplit || page === window.webView || page === developerTools.target
-                    }
-                    property string historyVisitId: ""
-                    property string historyUrl: ""
-                    function recordHistory() {
-                        // url may expose a pending destination before LoadStarted.
-                        // Only save the committed document, including same-document changes.
-                        const committed = mainFrame.url.toString()
-                        if (!historyReady || loading || profile.offTheRecord || url.toString() !== committed || committed === historyUrl) return
-                        historyUrl = committed
-                        historyVisitId = window.history.record(mainFrame.url, title, profile.offTheRecord)
-                    }
-                    readonly property var passwordAgent: passwordSession
-                    readonly property var startPage: paneStart
-                    StartPage {
-                        id: paneStart
-                        history: window.history
-                        browserPreferences: window.browserPreferences
-                        privateMode: window.privateMode
-                        tabs: window.tabs
-                        currentTabId: page.tabId
-                        onTabRequested: function(tabId) { window.activateSuggestedTab(tabId) }
-                        objectName: "paneStart" + page.tabId
-                        // A stable sibling of the engine item, owned by this tab:
-                        // an invisible about:blank view must not hide its start page.
-                        parent: paneCanvas
-                        x: page.x
-                        y: page.y
-                        width: page.width
-                        height: page.height
-                        z: 1
-                        visible: page.inSplit && window.splits.multiple && !window.settingsOpen && page.url.toString() === "about:blank"
-                        addressShortcut: window.keyBindings.nativeSequence(window.bindings.address)
-                        tabsShortcut: window.keyBindings.nativeSequence(window.bindings.tabs)
-                        onActiveFocusChanged: if (activeFocus && visible && !window.changingTabs && !window.shuttingDown) window.splits.activate(page.paneGeometry.paneId)
-                        onNavigateRequested: function(text) { window.splits.activate(page.paneGeometry.paneId); window.navigate(text) }
-                        onTabsRequested: { window.splits.activate(page.paneGeometry.paneId); window.showTabs() }
-                        onSettingsRequested: window.openSettings()
-                    }
-                    readonly property var paneGeometry: {
-                        const revision = window.splitRevision
-                        return window.splits.geometry(tabId)
-                    }
-                    readonly property bool inSplit: paneGeometry.paneId !== undefined
-                    x: inSplit ? paneGeometry.x : 0
-                    y: inSplit ? paneGeometry.y : 0
-                    width: inSplit ? Math.max(0, paneGeometry.width) : splitViewport.width
-                    height: inSplit ? Math.max(0, paneGeometry.height) : splitViewport.height
-                    onActiveFocusChanged: if (activeFocus && inSplit && !window.settingsOpen && !window.changingTabs && !window.shuttingDown) window.splits.activate(paneGeometry.paneId)
-                    visible: (tabsPopup.visible && workspaceId === window.focusedWorkspaceId) || (inSplit && !window.settingsOpen && url.toString() !== "about:blank")
-                    z: 1
-                    layer.enabled: inSplit && window.splits.multiple
-                    layer.effect: MultiEffect {
-                        maskEnabled: true
-                        maskSource: paneMask
-                    }
-                    PaneShape {
-                        id: paneMask
-                        objectName: "paneMask" + page.tabId
+
+                    SplitOverlay {
+                        z: 2
+                        id: splitOverlay
+                        objectName: "splitOverlay"
                         anchors.fill: parent
-                        color: "white"
-                        layer.enabled: true
-                        visible: false
-                    }
-                    // Chromium’s built-in PDF viewer requires plugin support.
-                    settings.pluginsEnabled: true
-                    settings.pdfViewerEnabled: true
-                    settings.focusOnNavigationEnabled: index === window.tabs.currentIndex && url.toString() !== "about:blank"
-                    url: initialUrl
-                    backgroundColor: window.color
-                    audioMuted: window.privateCovered
-                    profile: window.webProfiles.profile(profileId)
-                    webChannel: passwordChannel
-                    webChannelWorld: 1
-                    userScripts.collection: [{
-                        name: "Arbiter password forms",
-                        injectionPoint: WebEngineScript.DocumentReady,
-                        worldId: WebEngineScript.ApplicationWorld,
-                        runsOnSubFrames: false,
-                        sourceCode: window.passwords.captureScript
-                    }, {
-                        name: "Arbiter ad blocking",
-                        injectionPoint: WebEngineScript.DocumentReady,
-                        worldId: WebEngineScript.ApplicationWorld,
-                        runsOnSubFrames: false,
-                        sourceCode: window.adblocker.cosmeticScript
-                    }]
-                    WebChannel {
-                        id: passwordChannel
-                        Component.onCompleted: registerObject("passwordCapture", passwordSession.capture)
-                    }
-                    PasswordSession {
-                        id: passwordSession
-                        manager: window.passwords
-                        onFocusNeedsValidation: {
-                            if (page === window.webView && !window.privateCovered && !window.settingsOpen && window.passwords.enabled)
-                                passwordSession.validateFocus(page.mainFrame.url)
-                        }
-                        onFocused: function(origin, rect) { passwordPanel.offerFor(page, origin, rect) }
-                        onCaptureNeedsValidation: { if (page === window.webView && !window.privateCovered && !window.settingsOpen) passwordSession.validateCapture(page.mainFrame.url, page.profile.offTheRecord) }
-                        onRunFillScript: function(script) {
-                            if (page !== window.webView || window.privateCovered || window.settingsOpen || !window.passwords.enabled) return
-                            page.mainFrame.runJavaScript(script, 1, function(filled) {
-                                window.passwords.reportFillResult(filled === true)
-                            })
-                        }
-                        onRunPasswordSuggestionScript: function(script) {
-                            if (page !== window.webView || window.privateCovered || window.settingsOpen || !window.passwords.enabled) return
-                            page.mainFrame.runJavaScript(script, 1, function(filled) {
-                                window.passwords.reportSuggestionResult(filled === true)
-                            })
-                        }
-                    }
-                    WebContextMenu {
-                        id: pageContextMenu
-                        view: page
-                        passwordsEnabled: window.passwords.enabled
-                        onInspectRequested: {
-                            if (!window.privateCovered && !window.shuttingDown && !window.settingsOpen) {
-                                window.splits.activate(page.paneGeometry.paneId)
-                                developerTools.openFor(page, true)
-                            }
-                        }
-                        onPasswordsRequested: Qt.callLater(window.openPasswords)
-                        onPasswordSuggestionRequested: function(field) {
-                            if (page === window.webView && !window.privateCovered && !window.settingsOpen)
-                                passwordSession.suggestPassword(page.mainFrame.url, field)
-                        }
-                    }
-                    onContextMenuRequested: function(request) { passwordPanel.cancelFor(page); pageContextMenu.show(request) }
-                    onNewWindowRequested: function(request) { window.openWebRequest(request, workspaceId) }
-                    onWindowCloseRequested: {
-                        if (closeQueued) return
-                        closeQueued = true
-                        const closingId = tabId
-                        Qt.callLater(function() { window.finishClosingTab(closingId) })
-                    }
-                    settings.screenCaptureEnabled: true
-                    onPermissionRequested: function(permissionRequest) {
-                        if (window.privateCovered || window.shuttingDown) {
-                            sitePermissionQueue.reject(permissionRequest)
-                        } else sitePermissionQueue.request(page, permissionRequest, page.mainFrame.url)
-                    }
-                    onDesktopMediaRequested: function(request) {
-                        if (page !== window.webView || window.privateCovered || window.settingsOpen || !window.active) request.cancel()
-                        else desktopSharePanel.show(page, request, window.sitePermissionSettings.displayOrigin(page.mainFrame.url))
-                    }
-                    onWebAuthUxRequested: function(request) {
-                        if (page !== window.webView || window.privateCovered || window.settingsOpen) request.cancel()
-                        else webAuthnPanel.show(page, request)
-                    }
-                    Component.onDestruction: {
-                        developerTools.closeFor(page)
-                        sitePermissionQueue.cancelFor(page)
-                        desktopSharePanel.cancelFor(page)
-                        nativeShare.cancelFor(page)
-                        webAuthnPanel.cancelFor(page)
-                        passwordPanel.cancelFor(page)
-                    }
-                    onTitleChanged: {
-                        window.tabs.update(tabId, title, url)
-                        if (!profile.offTheRecord && historyVisitId.length > 0)
-                            window.history.updateTitle(historyVisitId, url, title)
-                        if (page === window.webView && !window.privateMode) window.siteNavigation.setTitle(title)
-                    }
-                    onUrlChanged: {
-                        sitePermissionQueue.cancelFor(page)
-                        desktopSharePanel.cancelFor(page)
-                        nativeShare.cancelFor(page)
-                        Qt.callLater(page.recordHistory)
-                        if (page === window.webView) window.resetSiteNavigation()
-                        webAuthnPanel.cancelFor(page)
-                        passwordSession.invalidate()
-                        passwordPanel.cancelFor(page)
-                        window.tabs.update(tabId, title, url)
-                        if (page === window.webView && window.emptyPage) {
-                            window.homeAddress.text = ""
-                            Qt.callLater(window.focusPage)
-                        }
-                    }
-                    onJavaScriptConsoleMessage: function(level, message, lineNumber, sourceID) {
-                        if (window.browserDiagnostics)
-                            console.log("Page console:", level, sourceID, lineNumber, message)
-                    }
-                    onLoadingChanged: function(request) {
-                        if (request.status === WebEngineView.LoadStartedStatus) {
-                            viewAdBlock.resetCount()
-                            sitePermissionQueue.cancelFor(page)
-                            desktopSharePanel.cancelFor(page)
-                            nativeShare.cancelFor(page)
-                            historyReady = false
-                            historyVisitId = ""
-                            historyUrl = ""
-                            if (page === window.webView) window.resetSiteNavigation()
-                            webAuthnPanel.cancelFor(page)
-                            passwordSession.invalidate()
-                            passwordPanel.cancelFor(page)
-                        }
-                        if (request.status === WebEngineView.LoadSucceededStatus) {
-                            if (request.url.toString() === page.mainFrame.url.toString()) {
-                                historyReady = true
-                                recordHistory()
-                            }
-                        }
-                        if (page === window.webView && request.status === WebEngineView.LoadSucceededStatus)
-                            window.refreshSiteNavigation()
-                        if (window.browserDiagnostics) {
-                            console.log("Load:", request.url, request.status,
-                                        request.errorDomain, request.errorCode, request.errorString)
-                            if (request.status === WebEngineView.LoadSucceededStatus
-                                    || request.status === WebEngineView.LoadFailedStatus) {
-                                runJavaScript("JSON.stringify({userAgent:navigator.userAgent,secureContext:isSecureContext,workers:typeof Worker,webAssembly:typeof WebAssembly,crypto:typeof crypto.subtle,cookies:navigator.cookieEnabled,cores:navigator.hardwareConcurrency})",
-                                              function(result) { console.log("Browser features:", result) })
-                            }
-                        }
-                        if (request.status === WebEngineView.LoadFailedStatus)
-                            errorText = request.isErrorPage ? request.errorString : ""
-                        else if (request.status === WebEngineView.LoadStartedStatus
-                                 || request.status === WebEngineView.LoadSucceededStatus)
-                            errorText = ""
+                        layout: window.splits
+                        enabled: !window.settingsOpen && (!Basic.Overlay.overlay || !Basic.Overlay.overlay.visible)
+                        onFocusRequested: window.focusPage()
                     }
                 }
             }
 
-            SplitOverlay {
-                z: 2
-                id: splitOverlay
-                objectName: "splitOverlay"
+            Rectangle {
+                id: homePage
                 anchors.fill: parent
-                layout: window.splits
-                enabled: !window.settingsOpen && (!Basic.Overlay.overlay || !Basic.Overlay.overlay.visible)
-                onFocusRequested: window.focusPage()
+                anchors.bottomMargin: developerTools.height
+                visible: window.emptyPage && !window.settingsOpen && !window.splits.multiple
+                color: "transparent"
+
+                MouseArea {
+                    anchors.fill: parent
+                    onPressed: window.startSystemMove()
+                }
+                StartPage {
+                    id: homeStart
+                    surfaceSource: windowBackground
+                    history: window.history
+                    browserPreferences: window.browserPreferences
+                    privateMode: window.privateMode
+                    tabs: window.tabs
+                    currentTabId: window.tabs.idAt(window.tabs.currentIndex)
+                    onTabRequested: function(tabId) { window.activateSuggestedTab(tabId) }
+                    anchors.fill: parent
+                    addressShortcut: window.keyBindings.nativeSequence(window.bindings.address)
+                    tabsShortcut: window.keyBindings.nativeSequence(window.bindings.tabs)
+                    onNavigateRequested: function(text) { window.navigate(text) }
+                    onTabsRequested: window.showTabs()
+                    onSettingsRequested: window.toggleSettings()
+                }
             }
+
         }
-    }
 
     DeveloperToolsDock {
         id: developerTools
@@ -1075,38 +1111,10 @@ Basic.ApplicationWindow {
         onPageFocusRequested: window.focusPage()
     }
 
-    component ModalPanel: GlassSurface { radius: 18 }
+    component ModalPanel: GlassSurface { }
 
     component ModalBackdrop: Rectangle {
         color: Theme.scrim
-    }
-
-    Rectangle {
-        id: homePage
-        anchors.fill: parent
-        anchors.bottomMargin: developerTools.height
-        visible: window.emptyPage && !window.settingsOpen && !window.splits.multiple
-        color: "transparent"
-
-        MouseArea {
-            anchors.fill: parent
-            onPressed: window.startSystemMove()
-        }
-        StartPage {
-            id: homeStart
-            history: window.history
-            browserPreferences: window.browserPreferences
-            privateMode: window.privateMode
-            tabs: window.tabs
-            currentTabId: window.tabs.idAt(window.tabs.currentIndex)
-            onTabRequested: function(tabId) { window.activateSuggestedTab(tabId) }
-            anchors.fill: parent
-            addressShortcut: window.keyBindings.nativeSequence(window.bindings.address)
-            tabsShortcut: window.keyBindings.nativeSequence(window.bindings.tabs)
-            onNavigateRequested: function(text) { window.navigate(text) }
-            onTabsRequested: window.showTabs()
-            onSettingsRequested: window.toggleSettings()
-        }
     }
 
     Rectangle {
@@ -1809,7 +1817,7 @@ Basic.ApplicationWindow {
         }
     }
 
-    Rectangle {
+    GlassSurface {
         id: storeInstallBanner
         objectName: "storeInstallBanner"
         anchors.top: parent.top
@@ -1821,10 +1829,7 @@ Basic.ApplicationWindow {
         width: Math.min(420, parent.width - 40)
         implicitHeight: storeBannerLayout.implicitHeight + 24
         height: implicitHeight
-        radius: 16
-        color: Theme.window
-        border.color: Theme.border
-        border.width: 1
+        radius: Theme.menuRadius
         ColumnLayout {
             id: storeBannerLayout
             anchors.fill: parent
@@ -2053,6 +2058,7 @@ Basic.ApplicationWindow {
     }
 
     Basic.Popup {
+        popupType: Basic.Popup.Item
         id: tabsPopup
         objectName: "tabsPopup"
         parent: Basic.Overlay.overlay
@@ -2312,6 +2318,7 @@ Basic.ApplicationWindow {
     }
 
     Basic.Popup {
+        popupType: Basic.Popup.Item
         id: addressPopup
         objectName: "addressPopup"
         parent: Basic.Overlay.overlay
@@ -2326,6 +2333,7 @@ Basic.ApplicationWindow {
         background: Item { }
         contentItem: AddressPrompt {
             id: popupAddress
+            surfaceSource: window.glassBackdrop
             objectName: "popupAddressPrompt"
             maximumHeight: Math.min(640, window.height - 64)
             history: window.history
@@ -2352,7 +2360,7 @@ Basic.ApplicationWindow {
         visible: text.length > 0
         wrapMode: Text.Wrap
         color: window.palette.text
-        background: Rectangle { radius: 12; color: window.palette.base }
+        background: GlassSurface { radius: Theme.tooltipRadius; dense: true }
     }
     }
     ShaderEffectSource {
@@ -2391,7 +2399,7 @@ Basic.ApplicationWindow {
         text: qsTr("Private")
         color: Theme.muted
         font.pixelSize: 11
-        background: Rectangle { color: Theme.window; radius: 6 }
+        background: GlassSurface { radius: 10; dense: true; shadowEnabled: false }
         padding: 6
     }
 

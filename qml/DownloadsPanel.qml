@@ -5,6 +5,7 @@ import QtQuick.Controls.Basic as Basic
 import Arbiter
 
 Basic.Popup {
+    popupType: Basic.Popup.Item
     id: panel
     required property var manager
     function bytes(value: real): string {
@@ -23,7 +24,7 @@ Basic.Popup {
     dim: true
     focus: true
     closePolicy: Basic.Popup.CloseOnEscape | Basic.Popup.CloseOnPressOutside
-    background: GlassSurface { dense: true; radius: 24 }
+    background: GlassSurface { dense: true; radius: Theme.panelRadius }
     Basic.Overlay.modal: Rectangle { color: Theme.scrim }
     contentItem: ColumnLayout {
         spacing: 12

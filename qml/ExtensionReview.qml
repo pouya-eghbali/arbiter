@@ -5,6 +5,7 @@ import QtQuick.Controls.Basic as Basic
 import Arbiter
 
 Basic.Popup {
+    popupType: Basic.Popup.Item
     id: panel
     objectName: "extensionPermissionReview"
     required property var catalog
@@ -49,7 +50,7 @@ Basic.Popup {
     dim: true
     focus: true
     closePolicy: Basic.Popup.CloseOnEscape
-    background: GlassSurface { dense: true; radius: 24 }
+    background: GlassSurface { dense: true; radius: Theme.panelRadius }
     Basic.Overlay.modal: Rectangle { color: Theme.scrim }
     onOpened: declineButton.forceActiveFocus()
     onClosed: {

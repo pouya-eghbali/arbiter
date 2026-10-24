@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 
 Basic.Popup {
+    popupType: Basic.Popup.Item
     id: picker
     objectName: "splitWithPicker"
     required property var tabs

@@ -19,6 +19,7 @@ Item {
         }
     }
     Basic.Popup {
+        popupType: Basic.Popup.Item
         id: permissionPopup
         objectName: "sitePermissionPopup"
         parent: Basic.Overlay.overlay
@@ -30,7 +31,7 @@ Item {
         focus: true
         closePolicy: Basic.Popup.CloseOnEscape
         Basic.Overlay.modal: Rectangle { color: Theme.scrim }
-        background: GlassSurface { radius: 26 }
+        background: GlassSurface { radius: Theme.panelRadius }
         onAboutToHide: panel.closingId = panel.presentedId
         onClosed: panel.controller.dismiss(panel.closingId)
         height: Math.min(permissionContent.implicitHeight + topPadding + bottomPadding, panel.height - 32)
