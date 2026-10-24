@@ -2,6 +2,7 @@
 #include <QObject>
 #include <QHash>
 #include <functional>
+#include "extensioncatalog.h"
 #include <QtWebEngineQuick/QQuickWebEngineProfile>
 
 // One live Chromium profile per storage name, owned beyond the QML views.
@@ -19,9 +20,12 @@ public:
         profile->setPersistentPermissionsPolicy(privateMode ? QQuickWebEngineProfile::PersistentPermissionsPolicy::StoreInMemory
                                                           : QQuickWebEngineProfile::PersistentPermissionsPolicy::StoreOnDisk);
         m_profiles.insert(name, profile);
+        m_extensions.insert(profile, new ExtensionCatalog(profile));
         if (profileCreated) profileCreated(profile);
         return profile;
     }
+    Q_INVOKABLE QObject *extensions(QQuickWebEngineProfile *profile) const { return m_extensions.value(profile); }
 private:
+    QHash<QQuickWebEngineProfile *, ExtensionCatalog *> m_extensions;
     QHash<QString,QQuickWebEngineProfile *> m_profiles;
 };

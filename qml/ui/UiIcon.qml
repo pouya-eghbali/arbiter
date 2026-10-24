@@ -11,6 +11,36 @@ Item {
     Shape {
         anchors.centerIn: parent
         width: 24; height: 24
+        visible: icon.name === "share"
+        ShapePath {
+            strokeColor: icon.color
+            strokeWidth: 1.8
+            fillColor: "transparent"
+            capStyle: ShapePath.RoundCap
+            joinStyle: ShapePath.RoundJoin
+            startX: 7; startY: 9
+            PathLine { x: 4; y: 9 }
+            PathLine { x: 4; y: 21 }
+            PathLine { x: 20; y: 21 }
+            PathLine { x: 20; y: 9 }
+            PathLine { x: 17; y: 9 }
+        }
+        ShapePath {
+            strokeColor: icon.color
+            strokeWidth: 1.8
+            fillColor: "transparent"
+            capStyle: ShapePath.RoundCap
+            joinStyle: ShapePath.RoundJoin
+            startX: 12; startY: 15
+            PathLine { x: 12; y: 2 }
+            PathMove { x: 7; y: 7 }
+            PathLine { x: 12; y: 2 }
+            PathLine { x: 17; y: 7 }
+        }
+    }
+    Shape {
+        anchors.centerIn: parent
+        width: 24; height: 24
         visible: icon.name === "shield"
         ShapePath {
             strokeColor: icon.color

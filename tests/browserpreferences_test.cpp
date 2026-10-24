@@ -8,6 +8,9 @@
 #include <QImage>
 #include <QBuffer>
 #include <QUrlQuery>
+#include <QGuiApplication>
+#include <QClipboard>
+#include <QMimeData>
 class BrowserPreferencesTest : public QObject {
     Q_OBJECT
 private slots:
@@ -26,6 +29,21 @@ private slots:
         preferences.setSearchEngine("invalid"); QCOMPARE(preferences.searchEngine(),"startpage");
         QCOMPARE(preferences.siteOrigin(QUrl("https://user:secret@example.com:8443/path?q=secret#fragment")),"https://example.com:8443");
         QVERIFY(preferences.siteOrigin(QUrl("file:///tmp/test")).isEmpty());
+    }
+    void shareLinks() {
+        BrowserPreferences preferences;
+        const QUrl original("https://user:secret@example.com/a?q=one%20two#section");
+        const QUrl shared("https://example.com/a?q=one%20two#section");
+        QCOMPARE(preferences.shareableUrl(original),shared);
+        QVERIFY(preferences.copyLink(original));
+        QCOMPARE(QGuiApplication::clipboard()->text(),shared.toString(QUrl::FullyEncoded));
+        QCOMPARE(QGuiApplication::clipboard()->mimeData()->urls(),QList<QUrl>{shared});
+        for(const auto &input:{"about:blank","arbiter://settings","javascript:alert(1)","data:text/plain,test","https:///"}) {
+            QVERIFY(preferences.shareableUrl(QUrl(input)).isEmpty());
+            QVERIFY(!preferences.copyLink(QUrl(input)));
+        }
+        QCOMPARE(QGuiApplication::clipboard()->text(),shared.toString(QUrl::FullyEncoded));
+        QVERIFY(preferences.shareableUrl(QUrl("file:///tmp/document.pdf")).isLocalFile());
     }
     void cacheFirst() {
         QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
@@ -57,7 +75,7 @@ private slots:
     }
 };
 int main(int argc,char **argv) {
-    QCoreApplication app(argc,argv);
+    QGuiApplication app(argc,argv);
     QStandardPaths::setTestModeEnabled(true);
     QTemporaryDir config; qputenv("XDG_CONFIG_HOME",config.path().toUtf8());
     Settings::initialize();

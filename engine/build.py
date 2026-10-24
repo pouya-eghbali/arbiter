@@ -96,6 +96,7 @@ def main():
              "-DFEATURE_qtwebengine_build=ON", "-DFEATURE_qtpdf_build=OFF",
              "-DFEATURE_webengine_proprietary_codecs=ON",
              "-DFEATURE_webengine_geolocation=ON",
+             "-DFEATURE_webengine_extensions=ON",
              "-DQT_SHOW_EXTRA_IDE_SOURCES=OFF",
              f"-DPython3_EXECUTABLE={sys.executable}", f"-DCMAKE_PREFIX_PATH={args.qt_prefix}",
              f"-DCMAKE_INSTALL_PREFIX={sdk}"]

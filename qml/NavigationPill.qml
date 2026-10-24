@@ -10,6 +10,12 @@ FocusScope {
     property int adBlockBlocked: 0
     signal adBlockRequested()
     function dismissMenu() { more.close() }
+    function shareAnchor() { return shareButton.visible ? shareButton.mapToItem(null, shareButton.width / 2, shareButton.height / 2) : Qt.point(pill.x + pill.width / 2, pill.y) }
+    function reveal() {
+        collapse.stop()
+        revealed = true
+        addressButton.forceActiveFocus(Qt.ShortcutFocusReason)
+    }
     signal privateWindowRequested()
     signal lockPrivateRequested()
     id: pill
@@ -20,6 +26,9 @@ FocusScope {
     required property int tabCount
     property bool revealed: false
     readonly property bool expanded: revealed || activeFocus || more.visible
+    signal shareRequested()
+    signal extensionsRequested()
+    property bool canShare: false
     signal addressRequested()
     signal tabsRequested()
     signal passwordsRequested()
@@ -36,6 +45,7 @@ FocusScope {
     Behavior on revealProgress { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
     onVisibleChanged: if (!visible) { revealed = false; focus = false; collapse.stop() }
     onActiveFocusChanged: if (!activeFocus && !hover.hovered) collapse.restart()
+    Keys.onShortcutOverride: function(event) { if (event.key === Qt.Key_Escape && expanded) event.accepted = true }
     Keys.onEscapePressed: { revealed = false; focus = false; if (view) view.forceActiveFocus() }
     HoverHandler {
         id: hover
@@ -124,6 +134,15 @@ FocusScope {
             contentItem: UiIcon { name: "shield"; color: pill.adBlockActive ? Theme.accent : Theme.muted }
             onClicked: pill.adBlockRequested()
         }
+        NavButton {
+            id: shareButton
+            objectName: "sharePillButton"
+            visible: pill.expandedWidth >= 480
+            enabled: pill.canShare
+            Accessible.name: qsTr("Share current page")
+            contentItem: UiIcon { name: "share"; color: pill.canShare ? Theme.text : Theme.muted }
+            onPressed: pill.shareRequested()
+        }
         NavButton { objectName: "navigationTabsButton"; text: String(pill.tabCount); font.pixelSize: 13; Accessible.name: pill.tabCount === 1 ? qsTr("Show 1 tab") : qsTr("Show %1 tabs").arg(pill.tabCount); onClicked: pill.tabsRequested() }
         NavButton { text: "⋯"; Accessible.name: qsTr("More browser controls"); onClicked: more.open() }
     }
@@ -145,6 +164,8 @@ FocusScope {
         UiMenuItem { text: qsTr("Split with…"); onTriggered: pill.splitWithRequested() }
         UiMenuItem { text: qsTr("Workspaces…"); onTriggered: pill.workspacesRequested() }
         UiMenuItem { text: pill.adBlockActive ? qsTr("Pause ad blocking in this view") : qsTr("Resume ad blocking in this view"); enabled: pill.adBlockEnabled; onTriggered: pill.adBlockRequested() }
+        UiMenuItem { text: qsTr("Share current page…"); enabled: pill.canShare; onTriggered: pill.shareRequested() }
+        UiMenuItem { text: qsTr("Extensions…"); visible: !pill.privateMode; onTriggered: pill.extensionsRequested() }
         UiMenuItem { text: qsTr("History…"); onTriggered: pill.historyRequested() }
         UiMenuItem { text: qsTr("Passwords…"); onTriggered: pill.passwordsRequested() }
         UiMenuItem { text: qsTr("New private window"); onTriggered: pill.privateWindowRequested() }

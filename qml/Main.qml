@@ -16,6 +16,8 @@ Basic.ApplicationWindow {
     signal preferencesRequested()
     function newPrivateWindow() { if (privacy) privacy.open() }
     function lockPrivateWindow() { if (privateSession) privateSession.lock() }
+    property bool temporaryPill: false
+    readonly property bool canSharePage: webView && browserPreferences.shareableUrl(webView.url).toString().length > 0
     property bool uiReady: false
     Component.onCompleted: { uiReady = true; if (privateCovered) privateShield.forceActiveFocus() }
     onPrivateCoveredChanged: {
@@ -23,6 +25,8 @@ Basic.ApplicationWindow {
         if (privateCovered) {
             sitePermissionQueue.clear()
             desktopSharePanel.cancel()
+            nativeShare.cancel()
+            temporaryPill = false
             splitWithPicker.close(); workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.close()
             biometricSetup.close(); passkeySetup.close(); tutorial.close()
             if (webView) { webAuthnPanel.cancelFor(webView); passwordPanel.cancelFor(webView) }
@@ -44,6 +48,8 @@ Basic.ApplicationWindow {
     property int splitRevision: 0
     required property var workspaces
     required property var webProfiles
+    readonly property string currentStoreItem: !privateMode && extensionCatalog && webView ? extensionCatalog.storeItemId(webView.url.toString()) : ""
+    readonly property var extensionCatalog: webView ? webProfiles.extensions(webView.profile) : null
     required property var sitePermissionSettings
 
     SitePermissions {
@@ -97,7 +103,7 @@ Basic.ApplicationWindow {
         Qt.callLater(function() { categoryScroll.revealCategory(window.settingsCategory) })
     }
     onSettingsOpenChanged: {
-        if (uiReady && settingsOpen) desktopSharePanel.cancel()
+        if (uiReady && settingsOpen) { desktopSharePanel.cancel(); nativeShare.cancel(); temporaryPill = false }
         if (uiReady && !settingsOpen) clearPrivacyFields()
         if (importer && !settingsOpen && !importer.importing) importer.cancel()
     }
@@ -180,6 +186,8 @@ Basic.ApplicationWindow {
     }
 
     function prepareForShutdown() {
+        nativeShare.cancel()
+        temporaryPill = false
         splitWithPicker.close()
         shuttingDown = true
         sitePermissionQueue.clear()
@@ -206,6 +214,7 @@ Basic.ApplicationWindow {
 
     function focusAddress() {
         if (privateCovered) return;
+        nativeShare.cancel()
         splitWithPicker.close()
         workspacePanel.close()
         historyPanel.close()
@@ -252,6 +261,38 @@ Basic.ApplicationWindow {
         webView.forceActiveFocus()
     }
 
+    function showNavigation() {
+        if (privateCovered || settingsOpen || shuttingDown || window.webauthn.active || sitePermissionQueue.active || desktopSharePanel.request) return
+        nativeShare.cancel()
+        addressPopup.close()
+        tabsPopup.close()
+        historyPanel.close()
+        workspacePanel.close()
+        temporaryPill = true
+        Qt.callLater(function() { if (!window.privateCovered && !window.settingsOpen && !window.shuttingDown) navigationPill.reveal() })
+    }
+    function showExtensions() {
+        if (privateMode || privateCovered || settingsOpen || shuttingDown || window.webauthn.active || sitePermissionQueue.active || desktopSharePanel.request) return
+        nativeShare.cancel()
+        addressPopup.close()
+        tabsPopup.close()
+        historyPanel.close()
+        workspacePanel.close()
+        navigationPill.dismissMenu()
+        extensionPanel.showList()
+    }
+    Shortcut { sequence: window.bindings.extensions; enabled: !window.privateMode && !window.privateCovered && !window.settingsOpen && window.recordingIndex < 0; onActivated: window.showExtensions() }
+    function sharePage() {
+        if (privateCovered || settingsOpen || shuttingDown || !canSharePage || window.webauthn.active || sitePermissionQueue.active || desktopSharePanel.request) return
+        addressPopup.close()
+        tabsPopup.close()
+        historyPanel.close()
+        workspacePanel.close()
+        navigationPill.dismissMenu()
+        nativeShare.show(webView, webView.url, webView.loading ? "" : webView.title, navigationPill.visible && navigationPill.expanded ? navigationPill.shareAnchor() : Qt.point(window.width / 2, window.height - 40))
+    }
+    Shortcut { sequence: window.bindings.showNavigation; enabled: !window.privateCovered && !window.settingsOpen && window.recordingIndex < 0; onActivated: window.showNavigation() }
+    Shortcut { sequence: window.bindings.sharePage; enabled: !window.privateCovered && !window.settingsOpen && window.canSharePage && window.recordingIndex < 0; onActivated: window.sharePage() }
     function toggleAdBlock() {
         if (privateCovered || !webView || !window.adblocker.enabled) return
         webView.adBlock.paused = !webView.adBlock.paused
@@ -693,6 +734,7 @@ Basic.ApplicationWindow {
                     function cancelPrivateInteraction() {
                         sitePermissionQueue.cancelFor(page)
                         desktopSharePanel.cancelFor(page)
+                        nativeShare.cancelFor(page)
                         pageContextMenu.close()
                         passwordSession.invalidate()
                         startPage.focus = false
@@ -907,6 +949,7 @@ Basic.ApplicationWindow {
                     Component.onDestruction: {
                         sitePermissionQueue.cancelFor(page)
                         desktopSharePanel.cancelFor(page)
+                        nativeShare.cancelFor(page)
                         webAuthnPanel.cancelFor(page)
                         passwordPanel.cancelFor(page)
                     }
@@ -919,6 +962,7 @@ Basic.ApplicationWindow {
                     onUrlChanged: {
                         sitePermissionQueue.cancelFor(page)
                         desktopSharePanel.cancelFor(page)
+                        nativeShare.cancelFor(page)
                         Qt.callLater(page.recordHistory)
                         if (page === window.webView) window.resetSiteNavigation()
                         webAuthnPanel.cancelFor(page)
@@ -939,6 +983,7 @@ Basic.ApplicationWindow {
                             viewAdBlock.resetCount()
                             sitePermissionQueue.cancelFor(page)
                             desktopSharePanel.cancelFor(page)
+                            nativeShare.cancelFor(page)
                             historyReady = false
                             historyVisitId = ""
                             historyUrl = ""
@@ -1059,7 +1104,7 @@ Basic.ApplicationWindow {
                         spacing: 8
                         Repeater {
                             id: settingsNavigation
-                            model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy")]
+                            model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions")]
                             delegate: UiButton {
                                 id: categoryButton
                                 required property int index
@@ -1107,7 +1152,7 @@ Basic.ApplicationWindow {
                     width: Math.min(720, settingsScroll.availableWidth)
                     spacing: 24
                     Basic.Label {
-                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy")][window.settingsCategory]
+                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions")][window.settingsCategory]
                         font.pixelSize: 28
                         font.weight: Font.DemiBold
                         color: Theme.text
@@ -1565,6 +1610,13 @@ Basic.ApplicationWindow {
                             wrapMode: Text.Wrap
                         }
                     }
+                    ExtensionsPage {
+                        visible: window.settingsCategory === 8
+                        Layout.fillWidth: true
+                        controller: window.extensionCatalog
+                        onBrowseRequested: { window.settingsOpen = false; window.openExternalUrl("https://chromewebstore.google.com/") }
+                        onPageRequested: function(id, options) { extensionPanel.showExtension(id, options) }
+                    }
                     ImportPage {
                         visible: window.settingsCategory === 5
                         Layout.fillWidth: true
@@ -1705,6 +1757,45 @@ Basic.ApplicationWindow {
         }
     }
 
+    Rectangle {
+        id: storeInstallBanner
+        objectName: "storeInstallBanner"
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.margins: 20
+        z: 20
+        visible: window.currentStoreItem.length > 0 && !window.settingsOpen && !window.privateCovered
+            && !window.webauthn.active && !sitePermissionQueue.active && !desktopSharePanel.request && !tutorial.visible
+        width: Math.min(420, parent.width - 40)
+        implicitHeight: storeBannerLayout.implicitHeight + 24
+        height: implicitHeight
+        radius: 16
+        color: Theme.window
+        border.color: Theme.border
+        border.width: 1
+        ColumnLayout {
+            id: storeBannerLayout
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 8
+            Basic.Label { Layout.fillWidth: true; text: qsTr("Chrome Web Store extension"); color: Theme.text; font.weight: Font.DemiBold }
+            Basic.Label { Layout.fillWidth: true; text: qsTr("Install in Arbiter, then review its permissions. Some extensions require Chrome APIs we don’t support yet."); color: Theme.muted; wrapMode: Text.Wrap }
+            UiButton {
+                objectName: "addStoreExtensionButton"
+                Layout.fillWidth: true
+                text: window.extensionCatalog && window.extensionCatalog.busy ? qsTr("Installing…") : qsTr("Add to Arbiter")
+                primary: true
+                enabled: window.extensionCatalog && !window.extensionCatalog.busy && !window.extensionCatalog.review.id
+                onClicked: {
+                    const link = window.webView.url.toString()
+                    window.openSettings()
+                    window.settingsCategory = 8
+                    window.extensionCatalog.installFromStore(link)
+                }
+            }
+        }
+    }
+
     // Window movement remains available above every website without a toolbar.
     NavigationPill {
         id: navigationPill
@@ -1713,7 +1804,7 @@ Basic.ApplicationWindow {
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 12
         z: 21
-        visible: window.appearance.navigationPill && !window.emptyPage && !window.settingsOpen
+        visible: (window.appearance.navigationPill || window.temporaryPill) && (!window.emptyPage || window.temporaryPill) && !window.settingsOpen
             && !window.webauthn.active && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible
         view: window.webView
         appearance: window.appearance
@@ -1725,6 +1816,10 @@ Basic.ApplicationWindow {
         workspaceName: window.workspaces.currentName
         workspaceColor: window.workspaces.currentColor
         onAddressRequested: window.focusAddress()
+        canShare: window.canSharePage
+        onExtensionsRequested: window.showExtensions()
+        onShareRequested: window.sharePage()
+        onExpandedChanged: if (!expanded) window.temporaryPill = false
         onTabsRequested: window.showTabs()
         onPasswordsRequested: window.openPasswords()
         onSettingsRequested: window.openSettings()
@@ -1736,6 +1831,56 @@ Basic.ApplicationWindow {
         privateMode: window.privateMode
         onPrivateWindowRequested: window.newPrivateWindow()
         onLockPrivateRequested: window.lockPrivateWindow()
+    }
+    ExtensionReview {
+        id: extensionReview
+        catalog: window.extensionCatalog
+        allowed: !window.privateMode && !window.privateCovered && !window.shuttingDown
+            && !window.webauthn.active && !sitePermissionQueue.active && !desktopSharePanel.request && !tutorial.visible
+    }
+    ExtensionPanel {
+        id: extensionPanel
+        objectName: "extensionPanel"
+        controller: window.extensionCatalog
+        browserProfile: window.webView ? window.webView.profile : null
+        onManageRequested: { window.openSettings(); window.settingsCategory = 8 }
+        onNewWindowRequested: function(request) { window.openWebRequest(request, window.focusedWorkspaceId) }
+        onVisitRequested: function(url) { extensionPanel.close(); window.openExternalUrl(url) }
+    }
+    Connections {
+        target: window
+        function onWebViewChanged() { extensionPanel.close() }
+        function onSettingsOpenChanged() { extensionPanel.close() }
+        function onPrivateCoveredChanged() { if (window.privateCovered) extensionPanel.close() }
+        function onShuttingDownChanged() { if (window.shuttingDown) extensionPanel.close() }
+    }
+    NativeShare {
+        id: nativeShare
+        objectName: "nativePageShare"
+        host: window
+    }
+    Connections {
+        target: window
+        function onWebViewChanged() { nativeShare.cancel() }
+    }
+    Timer { id: shareErrorTimer; interval: 4000 }
+    Connections {
+        target: nativeShare
+        function onErrorChanged() { if (nativeShare.error.length) shareErrorTimer.restart() }
+    }
+    Basic.Label {
+        visible: shareErrorTimer.running && !window.privateCovered
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 88
+        width: Math.min(440, window.width - 32)
+        padding: 12
+        z: 30
+        text: nativeShare.error
+        textFormat: Text.PlainText
+        wrapMode: Text.Wrap
+        color: Theme.text
+        background: GlassSurface { radius: 12; dense: true }
     }
     WorkspacePanel {
         id: workspacePanel

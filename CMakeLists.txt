@@ -6,13 +6,17 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(cmake/ArbiterWebEngine.cmake)
-find_package(Qt6 6.12 REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick Widgets WebChannel Sql Concurrent Network Positioning)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick Widgets WebChannel Sql Concurrent Network Positioning CorePrivate)
+get_target_property(arbiter_webengine_features Qt6::WebEngineCore QT_ENABLED_PUBLIC_FEATURES)
+if(NOT "webengine_extensions" IN_LIST arbiter_webengine_features)
+    message(FATAL_ERROR "Arbiter requires Qt WebEngine with FEATURE_webengine_extensions=ON. Rebuild the SDK using engine/build.py.")
+endif()
 qt_standard_project_setup(REQUIRES 6.12)
 include(cmake/Settings.cmake)
 include(cmake/QtKeychain.cmake)
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 
-qt_add_executable(arbiter src/browserimportselection.cpp src/browserimportselection.h src/browsericons.cpp src/browsericons.h src/browserinstance.cpp src/browserinstance.h src/onboarding.cpp src/onboarding.h src/systemintegration.cpp src/systemintegration.h src/browserimporter.cpp src/browserimporter.h src/importdata.cpp src/importdata.h src/settings.h src/splitswapgesture.cpp src/splitswapgesture.h src/splitlayout.cpp src/splitlayout.h src/workspaces.cpp src/workspaces.h src/webprofiles.h src/history.cpp src/history.h src/main.cpp src/appearance.cpp src/appearance.h src/sitenavigation.cpp src/sitenavigation.h src/browserapplication.h src/keybindings.cpp src/keybindings.h src/tabs.cpp src/tabs.h
+qt_add_executable(arbiter src/crxpackage.cpp src/crxpackage.h src/webstoreinstall.cpp src/webstoreinstall.h src/extensioncatalog.cpp src/extensioncatalog.h src/browserimportselection.cpp src/browserimportselection.h src/browsericons.cpp src/browsericons.h src/browserinstance.cpp src/browserinstance.h src/onboarding.cpp src/onboarding.h src/systemintegration.cpp src/systemintegration.h src/browserimporter.cpp src/browserimporter.h src/importdata.cpp src/importdata.h src/settings.h src/splitswapgesture.cpp src/splitswapgesture.h src/splitlayout.cpp src/splitlayout.h src/workspaces.cpp src/workspaces.h src/webprofiles.h src/history.cpp src/history.h src/main.cpp src/appearance.cpp src/appearance.h src/sitenavigation.cpp src/sitenavigation.h src/browserapplication.h src/keybindings.cpp src/keybindings.h src/tabs.cpp src/tabs.h
     src/passwordmanager.cpp src/passwordmanager.h src/secretstore.cpp src/secretstore.h
     src/webauthncontroller.cpp src/webauthncontroller.h
     src/passkeycontroller.cpp src/passkeycontroller.h src/passkeyvault.cpp src/passkeyvault.h src/lockedkey.cpp src/lockedkey.h
@@ -26,6 +30,8 @@ target_sources(arbiter PRIVATE src/sitepermissions.cpp src/sitepermissions.h src
 if(NOT ARBITER_PATCHED_WEBENGINE)
     message(FATAL_ERROR "Arbiter requires its patched Qt WebEngine SDK for per-view ad blocking. See docs/ad-blocking.md.")
 endif()
+include(cmake/NativeShare.cmake)
+arbiter_add_native_share(arbiter)
 include(cmake/AdBlock.cmake)
 target_link_libraries(arbiter PRIVATE arbiter_adblock_engine)
 qt_add_resources(arbiter adblock_lists PREFIX /adblock BASE assets/adblock FILES assets/adblock/easylist.txt assets/adblock/easyprivacy.txt)
@@ -80,7 +86,7 @@ qt_add_qml_module(arbiter
     IMPORT_PATH ${ARBITER_ENGINE_QML}
     URI Arbiter
     VERSION 1.0
-    QML_FILES qml/PermissionPanel.qml qml/DesktopSharePanel.qml qml/SitePermissionsSettings.qml qml/AddressPrompt.qml qml/BrowserBackground.qml qml/ui/UiImagePicker.qml qml/PrivateShield.qml qml/SplitWithPicker.qml qml/TabSleepController.qml qml/ui/UiIcon.qml qml/ui/UiChoiceCard.qml qml/ImportProgress.qml qml/BrowserAccess.qml qml/OnboardingImport.qml qml/Onboarding.qml qml/BrowserPreview.qml qml/Tutorial.qml qml/ImportPage.qml qml/StartPage.qml qml/PaneShape.qml qml/SplitOverlay.qml qml/BiometricSetup.qml qml/WorkspacePanel.qml qml/HistoryPanel.qml qml/Main.qml qml/Theme.qml qml/ui/UiButton.qml qml/ui/UiTextField.qml qml/ui/UiCheckBox.qml qml/ui/UiComboBox.qml qml/ui/UiToolTip.qml qml/ui/UiMenuItem.qml qml/ui/UiColorPicker.qml qml/GlassSurface.qml qml/NavigationPill.qml qml/WebContextMenu.qml qml/PasswordPanel.qml qml/WebAuthnPanel.qml qml/PasskeySetup.qml
+    QML_FILES qml/ExtensionReview.qml qml/ExtensionsPage.qml qml/ExtensionPanel.qml qml/PermissionPanel.qml qml/DesktopSharePanel.qml qml/SitePermissionsSettings.qml qml/AddressPrompt.qml qml/BrowserBackground.qml qml/ui/UiImagePicker.qml qml/PrivateShield.qml qml/SplitWithPicker.qml qml/TabSleepController.qml qml/ui/UiIcon.qml qml/ui/UiChoiceCard.qml qml/ImportProgress.qml qml/BrowserAccess.qml qml/OnboardingImport.qml qml/Onboarding.qml qml/BrowserPreview.qml qml/Tutorial.qml qml/ImportPage.qml qml/StartPage.qml qml/PaneShape.qml qml/SplitOverlay.qml qml/BiometricSetup.qml qml/WorkspacePanel.qml qml/HistoryPanel.qml qml/Main.qml qml/Theme.qml qml/ui/UiButton.qml qml/ui/UiTextField.qml qml/ui/UiCheckBox.qml qml/ui/UiComboBox.qml qml/ui/UiToolTip.qml qml/ui/UiMenuItem.qml qml/ui/UiColorPicker.qml qml/GlassSurface.qml qml/NavigationPill.qml qml/WebContextMenu.qml qml/PasswordPanel.qml qml/WebAuthnPanel.qml qml/PasskeySetup.qml
 )
 target_link_libraries(arbiter PRIVATE
     arbiter_settings
@@ -95,6 +101,7 @@ target_link_libraries(arbiter PRIVATE
     Qt6::Positioning
     qt6keychain
     OpenSSL::Crypto
+    Qt6::CorePrivate
 )
 set_target_properties(arbiter PROPERTIES
     MACOSX_BUNDLE TRUE

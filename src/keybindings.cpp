@@ -19,6 +19,9 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
         m_bindings.push_back({QString::fromLatin1(id), tr(label), key, key});
     };
     add("address", "Edit address", QKeySequence(QStringLiteral("Ctrl+L")));
+    add("showNavigation", "Show navigation pill", QKeySequence(QStringLiteral("Ctrl+Shift+L")));
+    add("sharePage", "Share current page", QKeySequence(QStringLiteral("Ctrl+Shift+S")));
+    add("extensions", "Show extensions", QKeySequence(QStringLiteral("Ctrl+Shift+X")));
     add("settings", "Settings", QKeySequence(QStringLiteral("Ctrl+,")));
     add("passwords", "Fill or save login", QKeySequence(QStringLiteral("Ctrl+Shift+P")));
     add("reload", "Reload page", QKeySequence(QKeySequence::Refresh));

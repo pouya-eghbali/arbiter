@@ -8,7 +8,7 @@ The browser has tabs, workspaces, nested split views, an address/search field, b
 reload/stop, loading progress, a persistent local browser profile, and a local
 password manager backed by QtKeychain. It starts
 on a blank page. Search defaults to DuckDuckGo and is configurable. Favicons
-and enabled ad-block filter lists may be fetched in the background. Extension management, downloads, and credential sync
+and enabled ad-block filter lists may be fetched in the background. Downloads and credential sync
 are not implemented yet. The required patched-engine integration adds Arbiter
 passkeys and Chromium's phone QR transport. The custom runtime builds on Apple
 Silicon macOS and passes browser passkey registration/sign-in tests; phone
@@ -522,3 +522,23 @@ Enable/disable it globally under **Settings → Privacy**. Use the pill shield o
 focused view. The shortcut is customizable. Rust/Cargo and the current patched
 WebEngine SDK are required to build. See [ad-blocking development notes](docs/ad-blocking.md)
 for list updates, integration details, tests, and licenses.
+
+### Navigation reveal and sharing
+
+Use **Command+Shift+L** on macOS / **Ctrl+Shift+L** on Windows/Linux to reveal
+the pill, even when disabled in Appearance. Escape dismisses the temporary
+reveal. The pill's Share button and **Command+Shift+S / Ctrl+Shift+S** open native
+sharing for the focused view, with Copy Link included. Both shortcuts are
+customizable in Keyboard settings. See [sharing notes](docs/sharing.md) for
+platform support, Linux desktop integration, and verification.
+
+### Chrome extensions
+
+Settings → Extensions installs Manifest V3 extensions from Chrome Web Store links, ZIPs, or unpacked folders,
+with permission review before enabling. Use the pill’s **Extensions…** menu or
+**Cmd+Shift+X** on macOS (**Ctrl+Shift+X** elsewhere) to open extension popups.
+The shortcut is customizable. Extensions follow the focused view’s browser profile
+and are excluded from private browsing. Store listings show **Add to Arbiter**;
+downloads are signature-verified and require permission review before enabling.
+Automatic updates and full Chrome API compatibility are not provided yet. See
+[extension development notes](docs/extensions.md) for supported behavior and tests.

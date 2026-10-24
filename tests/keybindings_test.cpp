@@ -35,6 +35,18 @@ private slots:
         qputenv("XDG_CONFIG_DIRS", directory.path().toUtf8());
     }
     void init() { Settings().clear(); }
+    void navigationAndShareBindingsAreCustomizable() {
+        KeyBindings keys;
+        QCOMPARE(keys.bindings().value("showNavigation").toString(),QString("Ctrl+Shift+L"));
+        QCOMPARE(keys.bindings().value("sharePage").toString(),QString("Ctrl+Shift+S"));
+        const QStringList actions{"showNavigation","sharePage","extensions"};
+        for(int i=0;i<actions.size();++i) {
+            int row=-1;
+            for(int j=0;j<keys.rowCount();++j) if(keys.data(keys.index(j),Qt::UserRole).toString()==actions[i]) row=j;
+            QVERIFY(row>=0); QVERIFY(keys.assign(row,Qt::Key_F6+i,Qt::AltModifier).isEmpty());
+        }
+        KeyBindings restored; QCOMPARE(restored.bindings(),keys.bindings());
+    }
     void rejectsConflicts() {
         KeyBindings keys;
         const auto before = keys.bindings();

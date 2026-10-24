@@ -5,6 +5,9 @@
 #include <QFileInfo>
 #include <QImageReader>
 #include <QBuffer>
+#include <QGuiApplication>
+#include <QClipboard>
+#include <QMimeData>
 #include <QNetworkReply>
 #include <QNetworkCookieJar>
 #include <QSaveFile>
@@ -27,6 +30,22 @@ void BrowserPreferences::setSearchEngine(const QString &engine) {
     m_engine=engine;
     Settings().setValue("Search/engine",engine);
     emit searchEngineChanged();
+}
+QUrl BrowserPreferences::normalizedShareUrl(const QUrl &url) {
+    if (!url.isValid()) return {};
+    const bool web=(url.scheme()=="https" || url.scheme()=="http") && !url.host().isEmpty();
+    const bool file=url.isLocalFile() && !url.path().isEmpty();
+    return web || file ? url.adjusted(QUrl::RemoveUserInfo) : QUrl();
+}
+bool BrowserPreferences::copySharedLink(const QUrl &url) {
+    const QUrl link=normalizedShareUrl(url);
+    auto *clipboard=QGuiApplication::clipboard();
+    if (link.isEmpty() || !clipboard) return false;
+    auto *mime=new QMimeData;
+    mime->setUrls({link});
+    mime->setText(link.toString(QUrl::FullyEncoded));
+    clipboard->setMimeData(mime);
+    return true;
 }
 QUrl BrowserPreferences::searchUrl(const QString &text) const {
     const QHash<QString,QString> urls{{"duckduckgo","https://duckduckgo.com/"},{"google","https://www.google.com/search"},
