@@ -29,6 +29,7 @@ add_executable(tabs_test tabs_test.cpp ../src/tabs.cpp ../src/tabs.h)
 target_link_libraries(tabs_test PRIVATE Qt6::Test)
 add_test(NAME tabs COMMAND tabs_test)
 
+
 add_library(password_core STATIC ../src/passwordmanager.cpp ../src/passwordmanager.h
     ../src/secretstore.cpp ../src/secretstore.h)
 target_link_libraries(password_core PUBLIC arbiter_settings Qt6::Core qt6keychain)
@@ -41,6 +42,13 @@ endif()
 
 option(ARBITER_WEBENGINE_TESTS "Build password form integration tests" ON)
 if(ARBITER_WEBENGINE_TESTS)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Quick WebEngineQuick)
+    add_executable(tabsleep_test tabsleep_test.cpp ../src/tabsleepsettings.cpp ../src/tabsleepsettings.h)
+    target_link_libraries(tabsleep_test PRIVATE arbiter_settings Qt6::Quick Qt6::WebEngineQuick Qt6::Test)
+    target_compile_definitions(tabsleep_test PRIVATE ARBITER_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    arbiter_configure_webengine_runtime(tabsleep_test)
+    add_test(NAME tabsleep COMMAND tabsleep_test)
+    set_tests_properties(tabsleep PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     find_package(Qt6 6.12 REQUIRED COMPONENTS WebEngineWidgets WebChannel)
     add_executable(passwordforms_test passwordforms_test.cpp)
     qt_add_resources(passwordforms_test password_scripts PREFIX /passwords BASE ../scripts FILES ../scripts/passwords.js)

@@ -16,6 +16,7 @@ Basic.ApplicationWindow {
     required property var workspaces
     required property var webProfiles
     required property var tabs
+    required property var tabSleep
     required property var history
     required property var onboarding
     required property var appearance
@@ -39,7 +40,10 @@ Basic.ApplicationWindow {
     readonly property var bindings: keyBindings.bindings
     property bool settingsOpen: false
     property int settingsCategory: 0
-    onSettingsCategoryChanged: if (importer && settingsCategory !== 5 && !importer.importing) importer.cancel()
+    onSettingsCategoryChanged: {
+        if (importer && settingsCategory !== 5 && !importer.importing) importer.cancel()
+        Qt.callLater(function() { categoryScroll.revealCategory(window.settingsCategory) })
+    }
     onSettingsOpenChanged: if (importer && !settingsOpen && !importer.importing) importer.cancel()
     property int recordingIndex: -1
     property string bindingError: ""
@@ -521,6 +525,12 @@ Basic.ApplicationWindow {
                     property bool closeQueued: false
                     property string errorText: ""
                     property bool historyReady: false
+                    TabSleepController {
+                        objectName: "tabSleep" + page.tabId
+                        view: page
+                        timeoutSeconds: window.tabSleep.timeoutSeconds
+                        keepAwake: page.inSplit || page === window.webView
+                    }
                     property string historyVisitId: ""
                     property string historyUrl: ""
                     function recordHistory() {
@@ -769,41 +779,60 @@ Basic.ApplicationWindow {
                     Layout.leftMargin: 16
                     Layout.bottomMargin: 24
                 }
-                Repeater {
-                    id: settingsNavigation
-                    model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import")]
-                    delegate: UiButton {
-                        id: categoryButton
-                        required property int index
-                        required property string modelData
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 44
-                        text: modelData
-                        highlighted: window.settingsCategory === index
-                        Accessible.role: Accessible.PageTab
-                        Accessible.name: modelData
-                        Accessible.selected: highlighted
-                        contentItem: Basic.Label {
-                            text: categoryButton.text
-                            color: categoryButton.highlighted ? Theme.text : Theme.muted
-                            font.pixelSize: 14
-                            font.weight: categoryButton.highlighted ? Font.DemiBold : Font.Normal
-                            verticalAlignment: Text.AlignVCenter
+                Basic.ScrollView {
+                    id: categoryScroll
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    contentWidth: availableWidth
+                    clip: true
+                    function revealCategory(index: int) {
+                        const item = settingsNavigation.itemAt(index)
+                        const flick = contentItem as Flickable
+                        if (!item || !flick) return
+                        flick.contentY = Math.max(0, Math.min(item.y,
+                            Math.max(flick.contentY, item.y + item.height - flick.height)))
+                    }
+                    onHeightChanged: Qt.callLater(function() { categoryScroll.revealCategory(window.settingsCategory) })
+                    ColumnLayout {
+                        width: categoryScroll.availableWidth
+                        spacing: 8
+                        Repeater {
+                            id: settingsNavigation
+                            model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance")]
+                            delegate: UiButton {
+                                id: categoryButton
+                                required property int index
+                                required property string modelData
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 44
+                                text: modelData
+                                highlighted: window.settingsCategory === index
+                                Accessible.role: Accessible.PageTab
+                                Accessible.name: modelData
+                                Accessible.selected: highlighted
+                                onActiveFocusChanged: if (activeFocus) categoryScroll.revealCategory(index)
+                                contentItem: Basic.Label {
+                                    text: categoryButton.text
+                                    color: categoryButton.highlighted ? Theme.text : Theme.muted
+                                    font.pixelSize: 14
+                                    font.weight: categoryButton.highlighted ? Font.DemiBold : Font.Normal
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                                background: Rectangle {
+                                    radius: height / 2
+                                    color: categoryButton.highlighted ? Theme.selection : categoryButton.hovered || categoryButton.activeFocus ? Theme.hover : "transparent"
+                                }
+                                onClicked: {
+                                    window.recordingIndex = -1
+                                    window.bindingError = ""
+                                    window.settingsCategory = index
+                                }
+                                Keys.onDownPressed: settingsNavigation.itemAt(Math.min(settingsNavigation.count - 1, index + 1)).forceActiveFocus()
+                                Keys.onUpPressed: settingsNavigation.itemAt(Math.max(0, index - 1)).forceActiveFocus()
+                            }
                         }
-                        background: Rectangle {
-                            radius: height / 2
-                            color: categoryButton.highlighted ? Theme.selection : categoryButton.hovered || categoryButton.activeFocus ? Theme.hover : "transparent"
-                        }
-                        onClicked: {
-                            window.recordingIndex = -1
-                            window.bindingError = ""
-                            window.settingsCategory = index
-                        }
-                        Keys.onDownPressed: settingsNavigation.itemAt(Math.min(settingsNavigation.count - 1, index + 1)).forceActiveFocus()
-                        Keys.onUpPressed: settingsNavigation.itemAt(Math.max(0, index - 1)).forceActiveFocus()
                     }
                 }
-                Item { Layout.fillHeight: true }
                 UiButton { text: qsTr("Done"); Layout.fillWidth: true; onClicked: window.toggleSettings() }
             }
             Rectangle { Layout.preferredWidth: 1; Layout.fillHeight: true; color: Theme.border }
@@ -817,7 +846,7 @@ Basic.ApplicationWindow {
                     width: Math.min(720, settingsScroll.availableWidth)
                     spacing: 24
                     Basic.Label {
-                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import")][window.settingsCategory]
+                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance")][window.settingsCategory]
                         font.pixelSize: 28
                         font.weight: Font.DemiBold
                         color: Theme.text
@@ -1162,6 +1191,28 @@ Basic.ApplicationWindow {
                         visible: window.settingsCategory === 5
                         Layout.fillWidth: true
                         controller: window.importer
+                    }
+                    ColumnLayout {
+                        visible: window.settingsCategory === 6
+                        Layout.fillWidth: true
+                        spacing: 20
+                        Basic.Label { text: qsTr("Put inactive tabs to sleep after"); color: Theme.text }
+                        UiComboBox {
+                            objectName: "tabSleepTimeout"
+                            readonly property var durations: [0, 60, 300, 900, 1800, 3600]
+                            model: [qsTr("Off"), qsTr("1 minute"), qsTr("5 minutes"), qsTr("15 minutes"), qsTr("30 minutes"), qsTr("1 hour")]
+                            currentIndex: durations.indexOf(window.tabSleep.timeoutSeconds)
+                            displayText: currentIndex < 0 ? qsTr("%1 seconds").arg(window.tabSleep.timeoutSeconds) : currentText
+                            implicitWidth: 240
+                            Accessible.name: qsTr("Tab sleep timeout")
+                            onActivated: window.tabSleep.timeoutSeconds = durations[currentIndex]
+                        }
+                        Basic.Label {
+                            text: qsTr("Sleeping tabs pause background activity and resume when you return. Visible split panes and tabs playing audio stay awake. Page contents are preserved without reloading. Turning this off wakes sleeping tabs.")
+                            color: Theme.muted
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
                     }
                 }
             }

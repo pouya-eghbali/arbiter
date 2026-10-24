@@ -21,6 +21,7 @@ include(cmake/BrowserImport.cmake)
 arbiter_add_browser_import(arbiter)
 include(cmake/Biometrics.cmake)
 arbiter_add_biometrics(arbiter)
+target_sources(arbiter PRIVATE src/tabsleepsettings.cpp src/tabsleepsettings.h)
 target_include_directories(arbiter PRIVATE third_party/qrcodegen)
 arbiter_configure_webengine_runtime(arbiter)
 qt_add_resources(arbiter password_scripts PREFIX /passwords BASE scripts FILES scripts/passwords.js)
@@ -69,7 +70,7 @@ qt_add_qml_module(arbiter
     NO_IMPORT_SCAN
     URI Arbiter
     VERSION 1.0
-    QML_FILES qml/ui/UiIcon.qml qml/ui/UiChoiceCard.qml qml/ImportProgress.qml qml/BrowserAccess.qml qml/OnboardingImport.qml qml/Onboarding.qml qml/BrowserPreview.qml qml/Tutorial.qml qml/ImportPage.qml qml/StartPage.qml qml/PaneShape.qml qml/SplitOverlay.qml qml/BiometricSetup.qml qml/WorkspacePanel.qml qml/HistoryPanel.qml qml/Main.qml qml/Theme.qml qml/ui/UiButton.qml qml/ui/UiTextField.qml qml/ui/UiCheckBox.qml qml/ui/UiComboBox.qml qml/ui/UiToolTip.qml qml/ui/UiMenuItem.qml qml/ui/UiColorPicker.qml qml/GlassSurface.qml qml/NavigationPill.qml qml/WebContextMenu.qml qml/PasswordPanel.qml qml/WebAuthnPanel.qml qml/PasskeySetup.qml
+    QML_FILES qml/TabSleepController.qml qml/ui/UiIcon.qml qml/ui/UiChoiceCard.qml qml/ImportProgress.qml qml/BrowserAccess.qml qml/OnboardingImport.qml qml/Onboarding.qml qml/BrowserPreview.qml qml/Tutorial.qml qml/ImportPage.qml qml/StartPage.qml qml/PaneShape.qml qml/SplitOverlay.qml qml/BiometricSetup.qml qml/WorkspacePanel.qml qml/HistoryPanel.qml qml/Main.qml qml/Theme.qml qml/ui/UiButton.qml qml/ui/UiTextField.qml qml/ui/UiCheckBox.qml qml/ui/UiComboBox.qml qml/ui/UiToolTip.qml qml/ui/UiMenuItem.qml qml/ui/UiColorPicker.qml qml/GlassSurface.qml qml/NavigationPill.qml qml/WebContextMenu.qml qml/PasswordPanel.qml qml/WebAuthnPanel.qml qml/PasskeySetup.qml
 )
 target_link_libraries(arbiter PRIVATE
     arbiter_settings

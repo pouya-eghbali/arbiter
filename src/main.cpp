@@ -14,6 +14,7 @@
 #include "browserinstance.h"
 #include <QStandardPaths>
 #include "tabs.h"
+#include "tabsleepsettings.h"
 #include "splitswapgesture.h"
 #include "workspaces.h"
 #include "webprofiles.h"
@@ -58,6 +59,7 @@ int main(int argc, char *argv[])
     Onboarding onboarding(&appearance);
     SystemIntegration systemIntegration;
     Tabs tabs;
+    TabSleepSettings tabSleep;
     Workspaces workspaces(&tabs);
     WebProfiles webProfiles;
     History history;
@@ -124,6 +126,7 @@ int main(int argc, char *argv[])
                                  {QStringLiteral("siteNavigation"), QVariant::fromValue(&siteNavigation)},
                                  {QStringLiteral("keyBindings"), QVariant::fromValue(&keyBindings)},
                                  {QStringLiteral("tabs"), QVariant::fromValue(&tabs)},
+                                 {QStringLiteral("tabSleep"), QVariant::fromValue(&tabSleep)},
                                  {QStringLiteral("workspaces"), QVariant::fromValue(&workspaces)},
                                  {QStringLiteral("webProfiles"), QVariant::fromValue(&webProfiles)},
                                  {QStringLiteral("history"), QVariant::fromValue(&history)},

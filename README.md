@@ -239,6 +239,21 @@ the local password index contains sites and usernames, but no passwords.
 Chromium's sandbox and normal TLS certificate
 validation remain enabled.
 
+## Tab sleeping
+
+**Settings → Performance** controls automatic tab sleeping (default 15 minutes;
+Off, 1, 5, 15, 30 minutes, and 1 hour). The TOML setting is `Tabs.sleepTimeout`
+in seconds, from 0 (off) to 86400. A timeout change wakes sleeping tabs and starts
+a fresh interval.
+
+Only hidden, idle tabs that Qt considers safe to pause are eligible. Visible
+split panes, the selected tab, audio-playing tabs, loading pages, and pages the
+engine recommends keeping active stay awake. Sleep uses Qt's Frozen lifecycle
+state to pause background tasks while retaining the document, form contents,
+and scroll position. Returning to a tab resumes it without a reload. It does
+not discard the renderer or promise to reclaim all its memory. See
+[Qt's lifecycle API](https://doc.qt.io/qt-6/qml-qtwebengine-webengineview.html#lifecycleState-prop).
+
 ## Passwords
 
 Click a supported username/password field on an HTTPS login page to see a

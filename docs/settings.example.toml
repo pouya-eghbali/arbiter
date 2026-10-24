@@ -15,6 +15,10 @@ darkBackground = "#11161e"
 [History]
 enabled = true
 
+[Tabs]
+# Seconds of uninterrupted background inactivity; 0 disables sleeping. Maximum 86400.
+sleepTimeout = 900
+
 [Passwords]
 enabled = true
 biometricEnabled = true
