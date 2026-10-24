@@ -10,6 +10,7 @@
 
 #ifdef Q_OS_MACOS
 void abortNativePrintDialog();
+int execNativePrintDialog(QPrintDialog *dialog);
 #endif
 
 PagePrinter::~PagePrinter() { cancel(); }
@@ -42,7 +43,11 @@ void PagePrinter::show(QObject *owner, const QString &title)
     QMetaObject::invokeMethod(dialog, [this, guard, dialog, printer, request] {
         if (!guard || request != m_request) { delete dialog; return; }
         m_dialogRunning = true;
+#ifdef Q_OS_MACOS
+        const int result = execNativePrintDialog(dialog);
+#else
         const int result = dialog->exec();
+#endif
         delete dialog;
         if (!guard) return;
         m_dialogRunning = false;

@@ -564,6 +564,8 @@ choose **Print…**. The shortcut is customizable in Keyboard settings. Printing
 uses the focused split pane and opens the system print dialog, with printer,
 paper size, orientation, page ranges and copies. Website `window.print()` buttons
 use the same flow. The start page and Settings are not printed.
+On macOS, the print dialog follows the OS appearance even when Arbiter uses a
+different Light/Dark theme.
 
 Native printing requires Qt PrintSupport and Qt Pdf. Chromium prepares the page
 with its print stylesheet; the PDF stays in memory and Qt rasterizes it for the

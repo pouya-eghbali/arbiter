@@ -6,6 +6,9 @@
 #include <QPdfWriter>
 #include <QPrinter>
 #include <QTemporaryDir>
+#ifdef Q_OS_MACOS
+QString checkNativePrintAppearance();
+#endif
 
 class PagePrinterTest : public QObject {
     Q_OBJECT
@@ -23,6 +26,15 @@ class PagePrinterTest : public QObject {
         return bytes;
     }
 private slots:
+    void nativeAppearance() {
+#ifdef Q_OS_MACOS
+        if (QGuiApplication::platformName() != "cocoa") QSKIP("Native appearance requires the macOS desktop backend");
+        const QString error = checkNativePrintAppearance();
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+#else
+        QSKIP("macOS native print-panel regression");
+#endif
+    }
     void disjointPageRanges() {
         QTemporaryDir directory; QVERIFY(directory.isValid());
         QPrinter printer; printer.setResolution(72);
