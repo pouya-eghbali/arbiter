@@ -2,7 +2,7 @@
 
 These components are exported by the application's `Arbiter` QML module. Use
 `UiButton`, `UiTextField`, `UiCheckBox`, `UiComboBox`, `UiMenuItem`, `UiToolTip`
-and `UiColorPicker` in browser surfaces instead of styling Basic controls in
+`UiColorPicker` and `UiImagePicker` in browser surfaces instead of styling Basic controls in
 individual screens. `Theme` is the shared color source and `GlassSurface`
 provides popup material.
 
@@ -20,3 +20,8 @@ are centralized in `Theme`, including dense and glass surfaces. Selection
 and focus colors follow the active accent. Text on a solid accent chooses black
 or white using relative luminance for contrast. Keep borders on neutral surfaces
 subtle; reserve accent borders for keyboard focus.
+
+`UiImagePicker` provides a local-file chooser, preview, and removal control. It emits
+file selection for `Appearance` to validate and copy; cancellation preserves the
+saved image. `BrowserBackground` paints the active image with a centered crop,
+using the theme background color while loading or if the image is unavailable.

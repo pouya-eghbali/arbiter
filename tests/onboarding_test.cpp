@@ -1,5 +1,7 @@
 #include <QtTest>
 #include <QTemporaryDir>
+#include <QImage>
+#include <QDir>
 #include <QQmlEngine>
 #include <QQmlComponent>
 #include <QQmlContext>
@@ -22,6 +24,30 @@ private slots:
         QCoreApplication::setApplicationName("Tests");
     }
     void init() { Settings settings; settings.clear(); }
+    void backgroundImagesPersistIndependentlyAndKeepTheirOwnCopy() {
+        QTemporaryDir originals;
+        const auto light=originals.filePath("light image.png"), dark=originals.filePath("dark image.png");
+        QImage picture(120,80,QImage::Format_RGB32); picture.fill(QColor("#bbddff")); QVERIFY(picture.save(light));
+        picture.fill(QColor("#223355")); QVERIFY(picture.save(dark));
+        Appearance appearance;
+        QVERIFY(appearance.lightBackgroundImage().isEmpty()); QVERIFY(appearance.darkBackgroundImage().isEmpty());
+        QVERIFY(appearance.setBackgroundImage(false,QUrl::fromLocalFile(light)).isEmpty());
+        QVERIFY(appearance.setBackgroundImage(true,QUrl::fromLocalFile(dark)).isEmpty());
+        const auto lightCopy=appearance.lightBackgroundImage(),darkCopy=appearance.darkBackgroundImage();
+        QVERIFY(lightCopy!=QUrl::fromLocalFile(light)); QVERIFY(darkCopy!=lightCopy);
+        QVERIFY(Settings().value("appearance/lightBackgroundImage").toString().startsWith("backgrounds/"));
+        QVERIFY(QFile::remove(light)); QVERIFY(QFile::remove(dark));
+        Appearance restored;
+        QCOMPARE(restored.lightBackgroundImage(),lightCopy); QCOMPARE(restored.darkBackgroundImage(),darkCopy);
+        QCOMPARE(QImage(lightCopy.toLocalFile()).pixelColor(0,0),QColor("#bbddff"));
+        QCOMPARE(QImage(darkCopy.toLocalFile()).pixelColor(0,0),QColor("#223355"));
+        QVERIFY(!appearance.setBackgroundImage(false,QUrl("https://example.test/photo.png")).isEmpty());
+        QCOMPARE(appearance.lightBackgroundImage(),lightCopy);
+        QFile invalid(originals.filePath("broken.png")); QVERIFY(invalid.open(QIODevice::WriteOnly)); invalid.write("invalid image"); invalid.close();
+        QVERIFY(!appearance.setBackgroundImage(false,QUrl::fromLocalFile(invalid.fileName())).isEmpty()); QCOMPARE(appearance.lightBackgroundImage(),lightCopy);
+        appearance.clearBackgroundImage(false); QVERIFY(appearance.lightBackgroundImage().isEmpty()); QCOMPARE(appearance.darkBackgroundImage(),darkCopy);
+        Appearance cleared; QVERIFY(cleared.lightBackgroundImage().isEmpty()); QCOMPARE(cleared.darkBackgroundImage(),darkCopy);
+    }
     void accentForegroundContrast() {
         qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(ARBITER_THEME_FILE)),"ArbiterThemeTest",1,0,"Theme");
         QQmlEngine engine;

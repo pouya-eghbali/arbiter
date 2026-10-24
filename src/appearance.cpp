@@ -3,6 +3,12 @@
 #include <QPalette>
 #include <QStyleHints>
 #include <QEvent>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QSaveFile>
+#include <QImageReader>
+#include <QCryptographicHash>
 
 Appearance::Appearance(QObject *parent) : QObject(parent),
     m_theme(m_settings.value(QStringLiteral("appearance/theme"), QStringLiteral("system")).toString()),
@@ -101,4 +107,49 @@ void Appearance::setDarkBackground(const QColor &color)
     if (!color.isValid() || color.alpha() != 255 || color == darkBackground()) return;
     m_settings.setValue(QStringLiteral("appearance/darkBackground"), color.name(QColor::HexRgb));
     emit backgroundColorsChanged();
+}
+
+QUrl Appearance::backgroundImage(bool dark) const
+{
+    const auto value=m_settings.value(dark ? "appearance/darkBackgroundImage" : "appearance/lightBackgroundImage").toString();
+    if(value.isEmpty()) return {};
+    if(QDir::isAbsolutePath(value)) return QUrl::fromLocalFile(value);
+    const QUrl url(value);
+    if(url.isLocalFile()) return url;
+    // Dotfiles may also reference an absolute path or a path relative to settings.toml.
+    if(!url.isRelative() || value.startsWith("//")) return {};
+    return QUrl::fromLocalFile(QDir(QFileInfo(Settings::configFile()).absolutePath()).absoluteFilePath(value));
+}
+QUrl Appearance::lightBackgroundImage() const { return backgroundImage(false); }
+QUrl Appearance::darkBackgroundImage() const { return backgroundImage(true); }
+QString Appearance::setBackgroundImage(bool dark,const QUrl &url)
+{
+    if(!url.isLocalFile()) return tr("Choose an image from this computer.");
+    QFile input(url.toLocalFile());
+    if(!input.open(QIODevice::ReadOnly) || input.size()>64*1024*1024) return tr("Choose a readable image smaller than 64 MB.");
+    QCryptographicHash hash(QCryptographicHash::Sha256);
+    if(!hash.addData(&input) || !input.seek(0)) return tr("The image could not be read. Try another file.");
+    QImageReader reader(&input); reader.setAutoTransform(true);
+    const auto size=reader.size();
+    if(!size.isValid() || qint64(size.width())*size.height()>64000000) return tr("Choose an image with fewer than 64 million pixels.");
+    // Bound decoded wallpaper size while retaining enough detail for HiDPI windows.
+    if(size.width()>5120 || size.height()>5120) reader.setScaledSize(size.scaled(5120,5120,Qt::KeepAspectRatio));
+    const auto image=reader.read();
+    if(image.isNull()) return tr("This image format could not be opened. Try PNG, JPEG, or WebP.");
+    const QString relative="backgrounds/"+QString::fromLatin1(hash.result().toHex())+".png";
+    const QDir config(QFileInfo(Settings::configFile()).absolutePath());
+    if(!config.mkpath("backgrounds")) return tr("Could not create the background image folder.");
+    QSaveFile output(config.filePath(relative));
+    if(!output.open(QIODevice::WriteOnly)) return tr("Could not save the background image.");
+    output.setPermissions(QFileDevice::ReadOwner|QFileDevice::WriteOwner);
+    if(!image.save(&output,"PNG") || !output.commit()) return tr("Could not save the background image.");
+    m_settings.setValue(dark ? "appearance/darkBackgroundImage" : "appearance/lightBackgroundImage",relative);
+    if(m_settings.status()!=QSettings::NoError) return tr("The background image was copied, but its setting could not be saved.");
+    emit backgroundImagesChanged();
+    return {};
+}
+void Appearance::clearBackgroundImage(bool dark)
+{
+    m_settings.setValue(dark ? "appearance/darkBackgroundImage" : "appearance/lightBackgroundImage",QString());
+    emit backgroundImagesChanged();
 }

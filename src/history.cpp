@@ -6,6 +6,9 @@
 #include <QSqlQuery>
 #include <QStandardPaths>
 #include <QUuid>
+#include <QHash>
+#include <QRegularExpression>
+#include <algorithm>
 
 namespace {
 constexpr int limit = 10000;
@@ -147,4 +150,28 @@ int History::importVisits(const QList<ImportedVisit> &visits) {
     beginResetModel(); m_entries.clear();
     while(query.next()) m_entries.append({query.value(0).toString(),query.value(2).toString(),QUrl(query.value(1).toString()),QDateTime::fromMSecsSinceEpoch(query.value(3).toLongLong())});
     filter(true); return imported;
+}
+
+QVariantList History::suggestions(const QString &query,int maximum) const {
+    maximum=qBound(0,maximum,20);
+    if(maximum==0) return {};
+    struct Suggestion { QString title,url; int count=0,order=0,score=0; };
+    QList<Suggestion> entries; QHash<QString,int> byUrl;
+    const auto terms=query.trimmed().left(512).split(QRegularExpression("\\s+"),Qt::SkipEmptyParts);
+    for(int i=0;i<m_entries.size();++i) {
+        const auto &entry=m_entries[i];
+        const auto url=entry.url.adjusted(QUrl::RemoveFragment|QUrl::RemoveUserInfo).toString(QUrl::FullyEncoded);
+        if(byUrl.contains(url)) { ++entries[byUrl.value(url)].count; continue; }
+        const auto searchable=entry.title+" "+entry.url.toDisplayString(QUrl::RemoveUserInfo);
+        if(!std::all_of(terms.begin(),terms.end(),[&](const QString &term) { return searchable.contains(term,Qt::CaseInsensitive); })) continue;
+        byUrl[url]=entries.size(); entries.append({entry.title.isEmpty() ? entry.url.host() : entry.title,url,1,i,0});
+    }
+    for(auto &entry:entries) entry.score=entry.count*20+1000/(entry.order+10);
+    std::stable_sort(entries.begin(),entries.end(),[](const auto &a,const auto &b) { return a.score>b.score; });
+    QVariantList result;
+    for(const auto &entry:entries) {
+        result.append(QVariantMap{{"title",entry.title},{"url",entry.url}});
+        if(result.size()>=maximum) break;
+    }
+    return result;
 }

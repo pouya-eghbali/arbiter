@@ -39,6 +39,22 @@ private slots:
         QCOMPARE(restored.data(restored.index(0), History::PageUrl).toString(), QString("https://other.test/path?q=hello#section"));
         QVERIFY(restored.data(restored.index(0), History::VisitedAt).toDateTime().isValid());
     }
+    void suggestionsRankDeduplicateAndDoNotChangeHistorySearch() {
+        QTemporaryDir directory; History history(directory.path());
+        history.record(QUrl("https://user:secret@example.test/docs#first"),"Example documentation");
+        history.record(QUrl("https://example.test/docs#second"),"Example documentation");
+        history.record(QUrl("https://other.test/recent"),"Recent other page");
+        history.setSearch("other"); QCOMPARE(history.count(),1);
+        const auto suggestions=history.suggestions("EXAMPLE docs",8);
+        QCOMPARE(suggestions.size(),1);
+        QCOMPARE(suggestions.first().toMap().value("url").toString(),QString("https://example.test/docs"));
+        QCOMPARE(history.search(),QString("other")); QCOMPARE(history.count(),1);
+        const auto frequent=history.suggestions("",1); QCOMPARE(frequent.size(),1);
+        QCOMPARE(frequent.first().toMap().value("title").toString(),QString("Example documentation"));
+        QVERIFY(history.suggestions("not in history",8).isEmpty()); QVERIFY(history.suggestions("",0).isEmpty());
+        history.clear(); QVERIFY(history.suggestions("",8).isEmpty());
+        History privateHistory(QString{}); QVERIFY(privateHistory.suggestions("",8).isEmpty());
+    }
     void exclusionsAndPause() {
         QTemporaryDir directory;
         History history(directory.path());

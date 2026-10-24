@@ -15,6 +15,8 @@ class Appearance final : public QObject {
     Q_PROPERTY(QColor darkAccent READ darkAccent WRITE setDarkAccent NOTIFY accentColorsChanged)
     Q_PROPERTY(QColor lightBackground READ lightBackground WRITE setLightBackground NOTIFY backgroundColorsChanged)
     Q_PROPERTY(QColor darkBackground READ darkBackground WRITE setDarkBackground NOTIFY backgroundColorsChanged)
+    Q_PROPERTY(QUrl lightBackgroundImage READ lightBackgroundImage NOTIFY backgroundImagesChanged)
+    Q_PROPERTY(QUrl darkBackgroundImage READ darkBackgroundImage NOTIFY backgroundImagesChanged)
 public:
     explicit Appearance(QObject *parent = nullptr);
     QString theme() const { return m_theme; }
@@ -34,6 +36,10 @@ public:
     QColor darkBackground() const;
     void setLightBackground(const QColor &color);
     void setDarkBackground(const QColor &color);
+    QUrl lightBackgroundImage() const;
+    QUrl darkBackgroundImage() const;
+    Q_INVOKABLE QString setBackgroundImage(bool dark,const QUrl &file);
+    Q_INVOKABLE void clearBackgroundImage(bool dark);
     Q_INVOKABLE QString displayAddress(const QUrl &url) const;
 signals:
     void themeChanged();
@@ -43,9 +49,11 @@ signals:
     void siteMenuModeChanged();
     void accentColorsChanged();
     void backgroundColorsChanged();
+    void backgroundImagesChanged();
 private:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void applyTheme();
+    QUrl backgroundImage(bool dark) const;
     QColor savedColor(const QString &key, const QColor &fallback) const;
     void setAccent(const QString &key, const QColor &color, const QColor &current);
     Settings m_settings;

@@ -11,6 +11,10 @@ lightAccent = "#2868b8"
 darkAccent = "#8dbbff"
 lightBackground = "#edf2f7"
 darkBackground = "#11161e"
+# Optional images for the start page and behind split views. Empty means color only.
+# Paths can be relative to this file, absolute local paths, or file: URLs.
+lightBackgroundImage = ""
+darkBackgroundImage = ""
 
 [History]
 enabled = true

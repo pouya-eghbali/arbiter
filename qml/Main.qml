@@ -72,6 +72,7 @@ Basic.ApplicationWindow {
     property string settingsError: ""
     readonly property var bindings: keyBindings.bindings
     property bool settingsOpen: false
+    property bool editingDarkAppearance: appearance.dark
     property int settingsCategory: 0
     function clearPrivacyFields() { currentPrivacyPassword.clear(); newPrivacyPassword.clear(); confirmPrivacyPassword.clear() }
     onActiveChanged: if (!active && uiReady) clearPrivacyFields()
@@ -119,6 +120,7 @@ Basic.ApplicationWindow {
     Binding { target: Theme; property: "darkBackground"; value: window.appearance.darkBackground }
     Binding { target: Theme; property: "backdrop"; value: !window.emptyPage && !window.settingsOpen ? window.webView : null }
 
+    readonly property url backgroundImage: appearance.dark ? appearance.darkBackgroundImage : appearance.lightBackgroundImage
     readonly property bool emptyPage: !webView || webView.url.toString() === "about:blank"
     readonly property bool pageNavigationEnabled: webView !== null && webView.activeFocus && !settingsOpen && recordingIndex < 0 && !changingTabs && !shuttingDown
 
@@ -189,18 +191,22 @@ Basic.ApplicationWindow {
         splitWithPicker.close()
         workspacePanel.close()
         historyPanel.close()
-        if (emptyPage && !settingsOpen && webView) {
-            if (splits.multiple) webView.startPage.focusAddress(true)
-            else homeStart.focusAddress(true)
-        } else {
-            if (!addressPopup.visible) {
-                tabsPopup.close()
-                popupAddress.text = settingsOpen ? "arbiter://settings" : webView.url.toString()
-                addressPopup.open()
-            } else {
-                popupAddress.forceActiveFocus()
-                popupAddress.selectAll()
-            }
+        if (!addressPopup.visible) {
+            tabsPopup.close()
+            popupAddress.text = settingsOpen ? "arbiter://settings" : emptyPage ? "" : webView.url.toString()
+            addressPopup.open()
+        } else popupAddress.focusAddress(true)
+    }
+
+    function activateSuggestedTab(tabId: int) {
+        if (privateCovered) return
+        for (let row = 0; row < tabs.count; ++row) {
+            if (tabs.idAt(row) !== tabId) continue
+            addressPopup.close()
+            const pane = splits.geometry(tabId)
+            if (pane.paneId === undefined) workspaces.activate(tabs.workspaceAt(row))
+            selectTab(row)
+            return
         }
     }
 
@@ -286,7 +292,7 @@ Basic.ApplicationWindow {
         else if (tabsPopup.visible)
             tabSearch.forceActiveFocus()
         else if (addressPopup.visible)
-            popupAddress.forceActiveFocus()
+            popupAddress.focusAddress(false)
         else if (settingsOpen)
             settingsPage.forceActiveFocus()
         else if (emptyPage) {
@@ -555,6 +561,33 @@ Basic.ApplicationWindow {
     }
 
 
+    function shortcutMatches(label: string, keys: string, action: string): bool {
+        function normalize(text) {
+            return text.toLowerCase().replace(/⌘/g, " cmd ").replace(/⌥/g, " alt ")
+                .replace(/⌃/g, " ctrl ").replace(/⇧/g, " shift ")
+                .replace(/⇥/g, " tab ").replace(/⎋/g, " esc ").replace(/[↩⌅]/g, " enter ")
+                .replace(/⌫/g, " backspace ").replace(/⌦/g, " delete ")
+                .replace(/←/g, " left ").replace(/→/g, " right ").replace(/↑/g, " up ").replace(/↓/g, " down ")
+                .replace(/\bcommand\b/g, "cmd").replace(/\bcontrol\b/g, "ctrl").replace(/\b(option|opt)\b/g, "alt")
+                .replace(/\bescape\b/g, "esc").replace(/\breturn\b/g, "enter")
+                .replace(/\+/g, " ").replace(/\s+/g, " ").trim()
+        }
+        const terms = normalize(shortcutSearch.text).split(" ").filter(term => term.length > 0)
+        if (terms.length === 0) return true
+        if (terms.every(term => normalize(label).includes(term))) return true
+        const modifiers = ["cmd", "ctrl", "alt", "shift", "meta"]
+        const hasModifier = terms.some(term => modifiers.includes(term))
+        const hasKey = terms.some(term => !modifiers.includes(term))
+        const portable = bindings[action] || ""
+        const platformKeys = Qt.platform.os === "osx"
+            ? portable.replace(/\bCtrl\b/g, "Command").replace(/\bMeta\b/g, "Control") : portable
+        return [keys, portable, platformKeys].some(sequence => {
+            const parts = normalize(sequence).split(" ")
+            return terms.every(term => parts.includes(term))
+                && (!hasModifier || !hasKey || parts.length === terms.length)
+        })
+    }
+
     function moveTabSelection(delta: int) {
         tabList.currentIndex = Math.max(0, Math.min(tabChoices.count - 1, tabList.currentIndex + delta))
         tabList.positionViewAtIndex(tabList.currentIndex, GridView.Contain)
@@ -585,6 +618,13 @@ Basic.ApplicationWindow {
         id: browsingContent
         anchors.fill: parent
         enabled: !window.privateCovered
+        BrowserBackground {
+            id: windowBackground
+            objectName: "windowBackground"
+            anchors.fill: parent
+            imageSource: window.backgroundImage
+            visible: !window.settingsOpen && (window.emptyPage || window.splits.multiple)
+        }
     Flickable {
         id: splitViewport
         objectName: "splitViewport"
@@ -688,6 +728,10 @@ Basic.ApplicationWindow {
                     readonly property var startPage: paneStart
                     StartPage {
                         id: paneStart
+                        history: window.history
+                        tabs: window.tabs
+                        currentTabId: page.tabId
+                        onTabRequested: function(tabId) { window.activateSuggestedTab(tabId) }
                         objectName: "paneStart" + page.tabId
                         // A stable sibling of the engine item, owned by this tab:
                         // an invisible about:blank view must not hide its start page.
@@ -866,14 +910,6 @@ Basic.ApplicationWindow {
         }
     }
 
-    component AddressField: UiTextField {
-        implicitHeight: 46
-        font.pixelSize: 15
-        placeholderText: qsTr("Search or enter address")
-        Accessible.name: qsTr("Address and search")
-        onAccepted: window.navigate(text)
-    }
-
     component ModalPanel: GlassSurface { radius: 18 }
 
     component ModalBackdrop: Rectangle {
@@ -884,7 +920,7 @@ Basic.ApplicationWindow {
         id: homePage
         anchors.fill: parent
         visible: window.emptyPage && !window.settingsOpen && !window.splits.multiple
-        color: window.palette.window
+        color: "transparent"
 
         MouseArea {
             anchors.fill: parent
@@ -892,6 +928,10 @@ Basic.ApplicationWindow {
         }
         StartPage {
             id: homeStart
+            history: window.history
+            tabs: window.tabs
+            currentTabId: window.tabs.idAt(window.tabs.currentIndex)
+            onTabRequested: function(tabId) { window.activateSuggestedTab(tabId) }
             anchors.fill: parent
             addressShortcut: window.keyBindings.nativeSequence(window.bindings.address)
             tabsShortcut: window.keyBindings.nativeSequence(window.bindings.tabs)
@@ -1000,7 +1040,6 @@ Basic.ApplicationWindow {
                         visible: window.settingsCategory === 0
                         Layout.fillWidth: true
                         spacing: 20
-                        Basic.Label { text: qsTr("Make Arbiter feel at home."); color: Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
                         RowLayout {
                             Layout.fillWidth: true
                             Basic.Label { text: qsTr("Color theme"); Layout.fillWidth: true; color: Theme.text }
@@ -1013,7 +1052,108 @@ Basic.ApplicationWindow {
                                 onActivated: window.appearance.theme = ["system", "dark", "light"][currentIndex]
                             }
                         }
-                        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.border }
+                        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; Layout.topMargin: 4; Layout.bottomMargin: 4; color: Theme.border }
+                        Basic.Label { text: qsTr("Colors & background"); color: Theme.text; font.pixelSize: 18; font.weight: Font.DemiBold }
+                        Basic.Label {
+                            Layout.fillWidth: true
+                            text: qsTr("Customize each mode independently.")
+                            color: Theme.muted
+                            wrapMode: Text.Wrap
+                            Layout.topMargin: -12
+                        }
+                        RowLayout {
+                            spacing: 6
+                            UiButton {
+                                objectName: "editLightAppearance"
+                                text: qsTr("Light")
+                                checkable: true
+                                autoExclusive: true
+                                checked: !window.editingDarkAppearance
+                                highlighted: checked
+                                Accessible.name: qsTr("Edit light appearance")
+                                Accessible.role: Accessible.PageTab
+                                Accessible.selected: checked
+                                onClicked: window.editingDarkAppearance = false
+                            }
+                            UiButton {
+                                objectName: "editDarkAppearance"
+                                text: qsTr("Dark")
+                                checkable: true
+                                autoExclusive: true
+                                checked: window.editingDarkAppearance
+                                highlighted: checked
+                                Accessible.name: qsTr("Edit dark appearance")
+                                Accessible.role: Accessible.PageTab
+                                Accessible.selected: checked
+                                onClicked: window.editingDarkAppearance = true
+                            }
+                        }
+                        ColumnLayout {
+                            objectName: "lightAppearanceEditor"
+                            visible: !window.editingDarkAppearance
+                            Layout.fillWidth: true
+                            spacing: 20
+                            UiColorPicker {
+                                objectName: "lightAccentPicker"
+                                Layout.fillWidth: true
+                                title: qsTr("Accent color")
+                                value: window.appearance.lightAccent
+                                defaultColor: "#2868b8"
+                                onColorSelected: color => window.appearance.lightAccent = color
+                            }
+                            UiColorPicker {
+                                objectName: "lightBackgroundPicker"
+                                Layout.fillWidth: true
+                                title: qsTr("Background color")
+                                value: window.appearance.lightBackground
+                                defaultColor: "#edf2f7"
+                                presets: ["#edf2f7", "#f7f3ed", "#f1f5ed", "#f4eff7", "#eef6f6", "#ffffff", "#e3e7ed", "#f4eeee"]
+                                onColorSelected: color => window.appearance.lightBackground = color
+                            }
+                            UiImagePicker {
+                                id: lightImagePicker
+                                objectName: "lightBackgroundImagePicker"
+                                Layout.fillWidth: true
+                                title: qsTr("Background image")
+                                value: window.appearance.lightBackgroundImage
+                                onFileSelected: function(file) { error = window.appearance.setBackgroundImage(false, file) }
+                                onRemoveRequested: window.appearance.clearBackgroundImage(false)
+                            }
+                        }
+                        ColumnLayout {
+                            objectName: "darkAppearanceEditor"
+                            visible: window.editingDarkAppearance
+                            Layout.fillWidth: true
+                            spacing: 20
+                            UiColorPicker {
+                                objectName: "darkAccentPicker"
+                                Layout.fillWidth: true
+                                title: qsTr("Accent color")
+                                value: window.appearance.darkAccent
+                                defaultColor: "#8dbbff"
+                                onColorSelected: color => window.appearance.darkAccent = color
+                            }
+                            UiColorPicker {
+                                objectName: "darkBackgroundPicker"
+                                Layout.fillWidth: true
+                                title: qsTr("Background color")
+                                value: window.appearance.darkBackground
+                                defaultColor: "#11161e"
+                                presets: ["#11161e", "#19181d", "#181d19", "#1e1820", "#142023", "#121212", "#202530", "#211b18"]
+                                onColorSelected: color => window.appearance.darkBackground = color
+                            }
+                            UiImagePicker {
+                                id: darkImagePicker
+                                objectName: "darkBackgroundImagePicker"
+                                Layout.fillWidth: true
+                                title: qsTr("Background image")
+                                value: window.appearance.darkBackgroundImage
+                                onFileSelected: function(file) { error = window.appearance.setBackgroundImage(true, file) }
+                                onRemoveRequested: window.appearance.clearBackgroundImage(true)
+                            }
+                        }
+                        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; Layout.topMargin: 4; Layout.bottomMargin: 4; color: Theme.border }
+                        Basic.Label { text: qsTr("Window & navigation"); color: Theme.text; font.pixelSize: 18; font.weight: Font.DemiBold }
                         UiCheckBox {
                             objectName: "windowDecorationsToggle"
                             text: qsTr("Show native window decorations")
@@ -1028,40 +1168,6 @@ Basic.ApplicationWindow {
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
-                        UiColorPicker {
-                            objectName: "lightAccentPicker"
-                            Layout.fillWidth: true
-                            title: qsTr("Light accent")
-                            value: window.appearance.lightAccent
-                            defaultColor: "#2868b8"
-                            onColorSelected: color => window.appearance.lightAccent = color
-                        }
-                        UiColorPicker {
-                            objectName: "darkAccentPicker"
-                            Layout.fillWidth: true
-                            title: qsTr("Dark accent")
-                            value: window.appearance.darkAccent
-                            defaultColor: "#8dbbff"
-                            onColorSelected: color => window.appearance.darkAccent = color
-                        }
-                        UiColorPicker {
-                            objectName: "lightBackgroundPicker"
-                            Layout.fillWidth: true
-                            title: qsTr("Light background")
-                            value: window.appearance.lightBackground
-                            defaultColor: "#edf2f7"
-                            presets: ["#edf2f7", "#f7f3ed", "#f1f5ed", "#f4eff7", "#eef6f6", "#ffffff", "#e3e7ed", "#f4eeee"]
-                            onColorSelected: color => window.appearance.lightBackground = color
-                        }
-                        UiColorPicker {
-                            objectName: "darkBackgroundPicker"
-                            Layout.fillWidth: true
-                            title: qsTr("Dark background")
-                            value: window.appearance.darkBackground
-                            defaultColor: "#11161e"
-                            presets: ["#11161e", "#19181d", "#181d19", "#1e1820", "#142023", "#121212", "#202530", "#211b18"]
-                            onColorSelected: color => window.appearance.darkBackground = color
-                        }
                         UiCheckBox {
                             objectName: "navigationPillToggle"
                             text: qsTr("Show navigation pill")
@@ -1069,7 +1175,7 @@ Basic.ApplicationWindow {
                             onToggled: window.appearance.navigationPill = checked
                         }
                         Basic.Label {
-                            text: qsTr("Navigation appears when you hover over the small handle. Keyboard shortcuts remain available when the pill is hidden.")
+                            text: qsTr("Reveal navigation by hovering over the small handle. Keyboard shortcuts also work with the pill hidden.")
                             color: Theme.muted
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
@@ -1091,7 +1197,7 @@ Basic.ApplicationWindow {
                         }
                         Basic.Label {
                             visible: Qt.platform.os === "osx"
-                            text: qsTr("Add the active website's navigation links to the macOS menu bar. Use its tab title as one menu, show navigation sections as separate menus, or turn this off.")
+                            text: qsTr("Show website navigation under the tab title or as separate menus in the macOS menu bar.")
                             color: Theme.muted
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
@@ -1211,18 +1317,52 @@ Basic.ApplicationWindow {
                     Layout.fillWidth: true
                     color: window.mutedText
                 }
+                RowLayout {
+                    Layout.fillWidth: true
+                    UiTextField {
+                        id: shortcutSearch
+                        objectName: "shortcutSearch"
+                        Layout.fillWidth: true
+                        placeholderText: qsTr("Search actions or shortcuts…")
+                        Accessible.name: qsTr("Search keyboard shortcuts")
+                        onTextChanged: { window.recordingIndex = -1; window.bindingError = "" }
+                        Keys.onEscapePressed: function(event) { if (text.length > 0) clear(); else event.accepted = false }
+                    }
+                    UiButton {
+                        text: qsTr("Clear")
+                        visible: shortcutSearch.text.length > 0
+                        onClicked: { shortcutSearch.clear(); shortcutSearch.forceActiveFocus() }
+                    }
+                }
                 Repeater {
+                    id: shortcutRows
+                    property int revision: 0
+                    readonly property bool hasMatches: {
+                        const currentRevision = revision
+                        for (let i = 0; i < count; ++i) {
+                            const row = itemAt(i)
+                            if (row && row.matchesQuery && currentRevision >= 0) return true
+                        }
+                        return false
+                    }
+                    onItemAdded: ++revision
+                    onItemRemoved: ++revision
                     model: window.keyBindings
                     delegate: RowLayout {
                         id: bindingRow
                         required property int index
                         required property string actionLabel
+                        required property string actionId
                         required property string keyLabel
+                        readonly property bool matchesQuery: window.shortcutMatches(actionLabel, keyLabel, actionId)
+                        objectName: "shortcutRow_" + actionId
+                        visible: matchesQuery
                         Layout.fillWidth: true
                         Layout.minimumHeight: 36
-                        Basic.Label { text: bindingRow.actionLabel; Layout.fillWidth: true; font.pixelSize: 14 }
+                        Basic.Label { text: bindingRow.actionLabel; Layout.fillWidth: true; Layout.minimumWidth: 0; wrapMode: Text.Wrap; font.pixelSize: 14; color: Theme.text }
                         UiButton {
                             id: recordButton
+                            objectName: "recordShortcut_" + bindingRow.actionId
                             Layout.preferredWidth: 132
                             text: window.recordingIndex === bindingRow.index ? qsTr("Press shortcut…") : bindingRow.keyLabel
                             Accessible.name: qsTr("Change %1 shortcut").arg(bindingRow.actionLabel)
@@ -1256,6 +1396,13 @@ Basic.ApplicationWindow {
                     }
                 }
                 Basic.Label {
+                    objectName: "noShortcutMatches"
+                    text: qsTr("No matching shortcuts.")
+                    visible: !shortcutRows.hasMatches
+                    color: window.mutedText
+                    Layout.fillWidth: true
+                }
+                Basic.Label {
                     text: window.bindingError
                     visible: text.length > 0
                     Layout.fillWidth: true
@@ -1263,7 +1410,7 @@ Basic.ApplicationWindow {
                     color: window.palette.text
                 }
                 UiButton {
-                    text: qsTr("Reset to defaults")
+                    text: qsTr("Reset all shortcuts")
                     onClicked: {
                         window.recordingIndex = -1
                         window.bindingError = ""
@@ -1809,40 +1956,29 @@ Basic.ApplicationWindow {
 
     Basic.Popup {
         id: addressPopup
+        objectName: "addressPopup"
         parent: Basic.Overlay.overlay
-        x: (window.width - width) / 2
-        y: Math.max(24, Math.min(100, window.height * 0.12))
-        width: Math.min(600, window.width - 48)
-        padding: 20
+        anchors.centerIn: parent
+        width: Math.min(760, window.width - 48)
+        padding: 0
         modal: true
         dim: true
         focus: true
         closePolicy: Basic.Popup.CloseOnEscape | Basic.Popup.CloseOnPressOutside
         Basic.Overlay.modal: ModalBackdrop { }
-        background: ModalPanel { }
-        enter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 140 } }
-        exit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 100 } }
-        contentItem: ColumnLayout {
-            spacing: 12
-            RowLayout {
-                Layout.fillWidth: true
-                Basic.Label { text: qsTr("Go to"); font.pixelSize: 12; font.weight: Font.Medium; color: window.mutedText; Layout.fillWidth: true }
-                Basic.Label { text: qsTr("esc to dismiss"); font.pixelSize: 11; color: window.mutedText }
-            }
-            AddressField {
-                id: popupAddress
-                Layout.fillWidth: true
-                leftPadding: 0
-                rightPadding: 0
-                font.pixelSize: 18
-                background: Item { }
-                Accessible.name: qsTr("Edit address")
-            }
+        background: Item { }
+        contentItem: AddressPrompt {
+            id: popupAddress
+            objectName: "popupAddressPrompt"
+            maximumHeight: Math.min(640, window.height - 64)
+            history: window.history
+            tabs: window.tabs
+            currentTabId: window.tabs.idAt(window.tabs.currentIndex)
+            onNavigateRequested: function(input) { window.navigate(input) }
+            onTabRequested: function(tabId) { window.activateSuggestedTab(tabId) }
+            onCancelRequested: addressPopup.close()
         }
-        onAboutToShow: Qt.callLater(function() {
-            popupAddress.forceActiveFocus()
-            popupAddress.selectAll()
-        })
+        onAboutToShow: Qt.callLater(function() { popupAddress.focusAddress(true) })
         onClosed: Qt.callLater(window.focusPage)
     }
 

@@ -170,9 +170,13 @@ latest URL, not its form contents or full navigation history.
 
 Open Settings from the start page or the native Arbiter > Preferences… menu,
 with Cmd+, on macOS / Ctrl+, elsewhere, or by
-entering `arbiter://settings` in the address editor. Click a binding and press a
+entering `arbiter://settings` in the address editor. Filter the Keyboard page by action name or key combination, then click a binding and press a
 new key combination. Bindings save immediately, duplicate assignments are
 rejected, and Reset to defaults restores the original bindings.
+
+Start-page and split-view background images can be chosen separately for Light and Dark in **Settings → Appearance**, beside their background colors. Use the Light/Dark editor to customize a mode without changing the active application theme; window and navigation options are grouped below. Images fill the window with a centered crop behind the start-page controls. System theme changes automatically select the matching image. Remove an image to return to the chosen background color; unavailable images also fall back to that color.
+
+Arbiter keeps normalized PNG copies under `backgrounds/` beside `settings.toml`, independent of the original photo. Back up that folder with your dotfiles to include selected pictures. The `appearance.lightBackgroundImage` and `appearance.darkBackgroundImage` settings accept paths relative to the settings directory, absolute local paths, or `file:` URLs. These images stay in the browser UI; website backgrounds are unchanged.
 
 ## Requirements
 
@@ -445,3 +449,6 @@ Open a private window from the pill's More menu, the macOS application menu, or 
 Set a global private-browsing PIN (at least six digits) or password (at least eight characters) once, in the first private window or Settings → Privacy. A random salt and PBKDF2-SHA256 verifier are saved through QtKeychain in the OS credential store, with insecure fallback disabled; the PIN/password itself is never saved. All private windows share this credential, including after restarting Arbiter, while each window has independent unlock approval. Use Touch ID, Windows Hello (including its PIN), or an enrolled fprintd fingerprint, with the global credential as fallback. Settings → Privacy lets you change it after entering its current value; a successful change locks all open private windows and invalidates pending unlocks. A locked, unreadable, or corrupt credential store never triggers fresh setup. Closing a private window clears its browsing session but retains the global unlock credential.
 
 Private windows heavily blur and darken their contents, and mute audio after five minutes without input, immediately when backgrounded/minimized, and on screen lock/system sleep. Every split pane and popup is protected together. They stay locked after returning or waking; cancelled, failed, or stale authentication cannot reveal them. **Settings → Privacy** configures the inactivity timeout; TOML `[Privacy] lockTimeout` accepts 1–86400 seconds. **Cmd+Option+L** / **Ctrl+Alt+L** locks manually, and is customizable too.
+
+
+The start page and **Cmd+L / Ctrl+L** share a rounded address prompt with local suggestions: matching open tabs, frequently visited history pages, and a small built-in set of popular sites. Type to filter, use ↑/↓ and Enter to choose, or press Enter without selecting a row to navigate/search your text. Open-tab suggestions switch to the existing tab and its workspace; visible split panes are focused in place. Long lists scroll within the available space. Suggestions do not fetch remote autocomplete or favicons, and private windows use only their own ephemeral tabs/history.

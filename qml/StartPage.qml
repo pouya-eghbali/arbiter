@@ -5,20 +5,23 @@ import QtQuick.Controls.Basic as Basic
 
 FocusScope {
     id: start
+    property var history: null
+    property var tabs: null
+    property int currentTabId: 0
     required property string addressShortcut
     required property string tabsShortcut
-    readonly property alias addressField: address
+    readonly property alias addressField: addressPrompt.addressField
     readonly property bool compact: width < 400 || height < 300
     signal navigateRequested(string text)
+    signal tabRequested(int tabId)
     signal tabsRequested()
     signal settingsRequested()
     function focusAddress(select: bool) {
-        address.forceActiveFocus()
-        if (select) address.selectAll()
+        addressPrompt.focusAddress(select)
     }
     Column {
         anchors.centerIn: parent
-        width: Math.max(0, Math.min(560, start.width - (start.compact ? 24 : 64)))
+        width: Math.max(0, Math.min(760, start.width - (start.compact ? 24 : 64)))
         spacing: start.compact ? 10 : 16
         Basic.Label {
             anchors.horizontalCenter: parent.horizontalCenter
@@ -27,15 +30,15 @@ FocusScope {
             font.weight: Font.Medium
             color: Theme.text
         }
-        UiTextField {
-            id: address
-            objectName: "startAddress"
+        AddressPrompt {
+            id: addressPrompt
             width: parent.width
-            implicitHeight: start.compact ? 42 : 46
-            font.pixelSize: 15
-            placeholderText: qsTr("Search or enter address")
-            Accessible.name: qsTr("Address and search")
-            onAccepted: start.navigateRequested(text)
+            maximumHeight: Math.max(64, start.height - (start.compact ? 130 : 190))
+            history: start.history
+            tabs: start.tabs
+            currentTabId: start.currentTabId
+            onNavigateRequested: function(input) { start.navigateRequested(input) }
+            onTabRequested: function(tabId) { start.tabRequested(tabId) }
         }
         Basic.Label {
             visible: start.height >= 240

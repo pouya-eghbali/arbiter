@@ -27,6 +27,7 @@ public:
     bool enabled() const { return m_enabled; }
     void setEnabled(bool value);
     QString error() const { return m_error; }
+    Q_INVOKABLE QVariantList suggestions(const QString &query, int maximum=8) const;
     Q_INVOKABLE QString record(const QUrl &url, const QString &title, bool offTheRecord = false);
     Q_INVOKABLE void updateTitle(const QString &id, const QUrl &url, const QString &title);
     Q_INVOKABLE bool remove(const QString &id);
