@@ -15,6 +15,14 @@ QtObject {
     function mix(a: color, b: color, amount: real): color {
         return Qt.rgba(a.r + (b.r - a.r) * amount, a.g + (b.g - a.g) * amount, a.b + (b.b - a.b) * amount, 1)
     }
+    function contrastingText(surface: color): color {
+        // Account for translucent accents over the normal control surface.
+        const opaque = mix(popupSolid, surface, surface.a)
+        const value = luminance(opaque)
+        const whiteContrast = 1.05 / (value + 0.05)
+        const blackContrast = (value + 0.05) / 0.05
+        return whiteContrast >= blackContrast ? "white" : "black"
+    }
     function readable(preferred: color): color {
         const contrast = (luminance(preferred) + 0.05) / (luminance(window) + 0.05)
         return Math.max(contrast, 1 / contrast) >= 4.5 ? preferred : darkSurface ? "white" : "black"
@@ -33,6 +41,6 @@ QtObject {
     readonly property color pressed: darkSurface ? "#30ffffff" : "#240c2847"
     readonly property color selection: Qt.rgba(accent.r, accent.g, accent.b, darkSurface ? 0.26 : 0.2)
     readonly property color accent: dark ? darkAccent : lightAccent
-    readonly property color accentText: luminance(accent) > 0.179 ? Qt.rgba(0, 0, 0, 1) : Qt.rgba(1, 1, 1, 1)
+    readonly property color accentText: contrastingText(accent)
     readonly property color scrim: darkSurface ? "#33000000" : "#160e2038"
 }

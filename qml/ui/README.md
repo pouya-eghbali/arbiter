@@ -18,7 +18,9 @@ emits a new color when accepted; cancellation keeps the saved color. Include the
 `QtQuick.Dialogs` QML module when deploying the app. Background-derived colors
 are centralized in `Theme`, including dense and glass surfaces. Selection
 and focus colors follow the active accent. Text on a solid accent chooses black
-or white using relative luminance for contrast. Keep borders on neutral surfaces
+or white using relative luminance for contrast. Disabled primary buttons mute only
+their fill and choose text/icon colors against that fill; whole-button opacity
+must not reduce their foreground contrast. Keep borders on neutral surfaces
 subtle; reserve accent borders for keyboard focus.
 
 `UiImagePicker` provides a local-file chooser, preview, and removal control. It emits
