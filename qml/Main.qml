@@ -2058,7 +2058,16 @@ Basic.ApplicationWindow {
         parent: Basic.Overlay.overlay
         anchors.centerIn: parent
         width: Math.min(1080, window.width - 48)
-        height: Math.min(760, window.height - 64, 202 + Math.max(1, Math.ceil(tabChoices.count / Math.max(1, tabList.columns))) * tabList.cellHeight)
+        readonly property real chromeHeight: topPadding + bottomPadding
+            + tabsHeading.implicitHeight + tabsSplitActions.implicitHeight
+            + tabSearch.implicitHeight + tabsHelp.implicitHeight
+            + (tabsEmptyMessage.visible ? tabsEmptyMessage.implicitHeight : 0)
+            + tabsContent.spacing * (tabsEmptyMessage.visible ? 5 : 4)
+        readonly property int rowCount: Math.max(1, Math.ceil(tabChoices.count / tabList.columns))
+        // Reserve the real header/footer sizes before allocating complete rows.
+        // Only the available window height may force the first row to be clipped.
+        height: Math.max(0, Math.min(window.height, chromeHeight + rowCount * tabList.cellHeight,
+            Math.max(chromeHeight + tabList.cellHeight, Math.min(760, window.height - 64))))
         padding: 24
         modal: true
         dim: true
@@ -2069,8 +2078,11 @@ Basic.ApplicationWindow {
         enter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 140 } }
         exit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 100 } }
         contentItem: ColumnLayout {
+            id: tabsContent
             spacing: 12
             RowLayout {
+                id: tabsHeading
+                Layout.fillHeight: false
                 Layout.fillWidth: true
                 ColumnLayout {
                     spacing: 3
@@ -2082,6 +2094,8 @@ Basic.ApplicationWindow {
                 UiButton { text: qsTr("New tab"); onClicked: window.newTab() }
             }
             RowLayout {
+                id: tabsSplitActions
+                Layout.fillHeight: false
                 Layout.fillWidth: true
                 UiButton { text: qsTr("Split left / right"); onClicked: window.splitHorizontal() }
                 UiButton { text: qsTr("Split top / bottom"); onClicked: window.splitVertical() }
@@ -2091,6 +2105,7 @@ Basic.ApplicationWindow {
             }
             UiTextField {
                 id: tabSearch
+                Layout.fillHeight: false
                 Layout.fillWidth: true
                 placeholderText: qsTr("Search open tabs")
                 Accessible.name: qsTr("Search open tabs")
@@ -2124,6 +2139,7 @@ Basic.ApplicationWindow {
                 cellHeight: (cellWidth - gutter) * 0.625 + 80
                 model: tabChoices
                 boundsBehavior: Flickable.StopAtBounds
+                snapMode: GridView.SnapToRow
                 keyNavigationEnabled: true
                 highlightMoveDuration: 0
                 Basic.ScrollBar.vertical: Basic.ScrollBar { }
@@ -2260,12 +2276,14 @@ Basic.ApplicationWindow {
                 }
             }
             Basic.Label {
+                id: tabsEmptyMessage
                 visible: tabChoices.count === 0
                 text: qsTr("No matching tabs")
                 Layout.alignment: Qt.AlignHCenter
                 color: window.mutedText
             }
             Basic.Label {
+                id: tabsHelp
                 text: qsTr("↑ ↓ ← →  Navigate     ↵  Open     esc  Dismiss")
                 color: window.mutedText
                 font.pixelSize: 12
