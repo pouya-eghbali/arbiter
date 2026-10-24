@@ -71,6 +71,37 @@ private slots:
         History restored(directory.path()); QCOMPARE(restored.totalCount(), 0);
         const auto after = history.record(url, "After clear"); QVERIFY(after != next);
     }
+    void importsWithoutTitlesAndRestoresUrls() {
+        QTemporaryDir directory;
+        const auto time=QDateTime::currentDateTime().addSecs(-100);
+        {
+            History history(directory.path());
+            QCOMPARE(history.importVisits({{QUrl("https://untitled.test/"),QString(),time}}),1);
+            QCOMPARE(history.data(history.index(0),History::PageUrl).toString(),QString("https://untitled.test/"));
+            QCOMPARE(history.data(history.index(0),History::PageTitle).toString(),QString("untitled.test"));
+            QVERIFY(!history.record(QUrl("https://another.test/"),QString()).isEmpty());
+        }
+        History restored(directory.path());
+        QCOMPARE(restored.totalCount(),2);
+        QCOMPARE(restored.data(restored.index(1),History::PageUrl).toString(),QString("https://untitled.test/"));
+        QCOMPARE(restored.data(restored.index(1),History::VisitedAt).toDateTime(),time);
+    }
+    void importedHistoryUsesVisitDatesAndKeepsNewestAcrossSources() {
+        QTemporaryDir directory; History history(directory.path());
+        history.record(QUrl("https://current.test/"),"Current");
+        const auto now=history.data(history.index(0),History::VisitedAt).toDateTime();
+        QList<ImportedVisit> visits;
+        for(int i=1;i<=10002;++i) visits.append({QUrl("https://old.test/"),QString::number(i),now.addSecs(-i)});
+        QCOMPARE(history.importVisits(visits),10002); QCOMPARE(history.totalCount(),10000);
+        QCOMPARE(history.data(history.index(0),History::PageTitle).toString(),QString("Current"));
+        QCOMPARE(history.data(history.index(9999),History::VisitedAt).toDateTime(),now.addSecs(-9999));
+        QCOMPARE(history.importVisits({{QUrl("https://current.test/"),"Duplicate must not overwrite",now}}),0);
+        QCOMPARE(history.data(history.index(0),History::PageTitle).toString(),QString("Current"));
+        history.setEnabled(false);
+        QCOMPARE(history.importVisits({{QUrl("https://manual.test/"),"Explicit import",now.addMSecs(-500)}}),1);
+        QVERIFY(!history.enabled()); QVERIFY(history.record(QUrl("https://paused.test/"),"No automatic recording").isEmpty());
+        QCOMPARE(history.data(history.index(1),History::PageTitle).toString(),QString("Explicit import"));
+    }
     void retentionAndCorruptStorage() {
         QTemporaryDir directory;
         { History initialize(directory.path()); }

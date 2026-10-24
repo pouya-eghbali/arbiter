@@ -26,6 +26,7 @@ Basic.ApplicationWindow {
     property bool changingTabs: false
     property bool shuttingDown: false
     required property var keyBindings
+    required property var importer
     required property var passwords
     required property var passkeys
     required property var webauthn
@@ -35,6 +36,8 @@ Basic.ApplicationWindow {
     readonly property var bindings: keyBindings.bindings
     property bool settingsOpen: false
     property int settingsCategory: 0
+    onSettingsCategoryChanged: if (importer && settingsCategory !== 5 && !importer.importing) importer.cancel()
+    onSettingsOpenChanged: if (importer && !settingsOpen && !importer.importing) importer.cancel()
     property int recordingIndex: -1
     property string bindingError: ""
     signal shortcutRecordingChanged(bool recording)
@@ -750,7 +753,7 @@ Basic.ApplicationWindow {
                 }
                 Repeater {
                     id: settingsNavigation
-                    model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration")]
+                    model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import")]
                     delegate: UiButton {
                         id: categoryButton
                         required property int index
@@ -796,7 +799,7 @@ Basic.ApplicationWindow {
                     width: Math.min(720, settingsScroll.availableWidth)
                     spacing: 24
                     Basic.Label {
-                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration")][window.settingsCategory]
+                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import")][window.settingsCategory]
                         font.pixelSize: 28
                         font.weight: Font.DemiBold
                         color: Theme.text
@@ -905,6 +908,7 @@ Basic.ApplicationWindow {
                             onToggled: window.passwords.enabled = checked
                         }
                         UiButton { text: qsTr("Manage saved passwords…"); onClicked: window.openPasswordSettings() }
+                        UiButton { text: qsTr("Import passwords + history…"); onClicked: window.settingsCategory = 5 }
                     }
                     ColumnLayout {
                         visible: window.settingsCategory === 2
@@ -1085,6 +1089,11 @@ Basic.ApplicationWindow {
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
+                    }
+                    ImportPage {
+                        visible: window.settingsCategory === 5
+                        Layout.fillWidth: true
+                        controller: window.importer
                     }
                 }
             }

@@ -35,6 +35,9 @@ public:
     bool pendingUpdate() const;
     QString captureScript() const;
     static QString originFor(const QUrl &url);
+    static bool canStore(const QUrl &url,const QString &username,const QString &password);
+    using ImportCallback=std::function<void(bool imported,const QString &error)>;
+    void importAccount(const QUrl &url,const QString &username,const QString &password,ImportCallback callback);
     static QString fillScript(const QString &origin, const QString &document,
                               const QString &form, const QString &username, const QString &password);
     Q_INVOKABLE QVariantList accountsFor(const QUrl &url) const;
@@ -55,6 +58,7 @@ signals:
     void credentialSaved();
 private:
     void initialize();
+    void saveLogin(const QUrl &url,const QString &username,const QString &password,ImportCallback callback);
     bool persist(const QVariantList &entries);
     void finish(const QString &error, const QString &message = {});
     int find(const QString &origin, const QString &username) const;

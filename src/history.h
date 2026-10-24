@@ -3,6 +3,7 @@
 #include <QDateTime>
 #include <QSqlDatabase>
 #include <QUrl>
+#include "importdata.h"
 
 class History final : public QAbstractListModel {
     Q_OBJECT
@@ -30,6 +31,7 @@ public:
     Q_INVOKABLE void updateTitle(const QString &id, const QUrl &url, const QString &title);
     Q_INVOKABLE bool remove(const QString &id);
     Q_INVOKABLE bool clear();
+    int importVisits(const QList<ImportedVisit> &visits);
 signals:
     void searchChanged();
     void countChanged();

@@ -20,6 +20,7 @@
 #include "passkeycontroller.h"
 #include "appearance.h"
 #include "history.h"
+#include "browserimporter.h"
 #include "sitenavigation.h"
 #include <QWindow>
 #include <QFileInfo>
@@ -46,6 +47,7 @@ int main(int argc, char *argv[])
     WebProfiles webProfiles;
     History history;
     PasswordManager passwords;
+    BrowserImporter importer(&passwords,&history);
     WebAuthnController webauthn;
     PasskeyController passkeys;
     qmlRegisterType<SplitSwapGesture>("Arbiter.Input", 1, 0, "SplitSwapGesture");
@@ -76,6 +78,7 @@ int main(int argc, char *argv[])
                                  {QStringLiteral("webProfiles"), QVariant::fromValue(&webProfiles)},
                                  {QStringLiteral("history"), QVariant::fromValue(&history)},
                                  {QStringLiteral("passwords"), QVariant::fromValue(&passwords)},
+                                 {QStringLiteral("importer"), QVariant::fromValue(&importer)},
                                  {QStringLiteral("webauthn"), QVariant::fromValue(&webauthn)},
                                  {QStringLiteral("passkeys"), QVariant::fromValue(&passkeys)},
                                  {QStringLiteral("browserDiagnostics"), diagnostics}});

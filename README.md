@@ -24,8 +24,8 @@ and shadows while its title text, background, and window buttons are hidden.
 The Glacier interface uses frosted overlays with subtle borders and defaults to
 the system color theme. Settings → Appearance offers System, Dark and Light;
 the selection is saved and System follows changes to the OS appearance.
-Settings uses vertical category tabs for Appearance, Passwords, Passkeys and
-Keyboard. Checkboxes, dropdown menus and navigation tooltips share rounded,
+Settings uses vertical category tabs for Appearance, Passwords, Passkeys,
+Keyboard, Configuration and Import. Checkboxes, dropdown menus and navigation tooltips share rounded,
 theme-aware styling.
 Appearance saves independent Light and Dark accent and background colors. Choose
 a preset or open the centered in-app color picker; Reset restores each color's default.
@@ -323,3 +323,46 @@ configuration is preserved instead of being
 overwritten. Passwords and passkey secrets remain in their existing protected
 storage; history, sessions, browser profiles and caches retain their existing
 locations and are not included in this portable preferences file.
+
+
+### Import from another browser
+
+Open **Settings → Import**, choose a browser/profile, select Passwords and/or
+Browsing history, then click **Import from browser**. Import runs only after
+this action; there is no startup prompt. Source databases are opened read-only.
+The OS can ask you to unlock or authorize access to the selected browser's
+credential-store item. Decrypted passwords stay in C++ and are saved through
+QtKeychain; no plaintext export file is created by direct import.
+
+Profiles are detected for Chrome, Edge, Brave, Chromium, Vivaldi and Arc (macOS),
+plus Firefox and Safari history. Direct Chromium-family password import reads
+both `Login Data` and `Login Data For Account` when present. macOS uses the
+browser's Safe Storage item in Keychain, Linux uses Secret Service or KWallet,
+and Windows supports DPAPI-protected local keys and AES-GCM passwords. Source
+profiles must belong to the current OS user. Sandboxed distributions may not
+have access to another browser's profile or credential store.
+
+Windows app-bound (`v20`) vaults currently require the source browser's own
+authenticated export; Arbiter reports that restriction rather than silently
+skipping encrypted rows. Firefox and Safari passwords also use the file import
+path. Native unlock prompts have not been exercised against personal browser
+vaults in automated tests; synthetic encrypted vaults cover decryption and the
+end-to-end import flow on macOS. Native Windows/Linux validation remains pending.
+
+**From files** supports password CSV exports from Chrome, Edge, Brave, Firefox,
+Safari and Apple Passwords, as well as Safari `History.json`, Chrome Takeout
+`BrowserHistory.json`, and Chromium/Firefox/Safari SQLite history databases.
+For Safari's browsing-data ZIP, extract it first and choose its password CSV and
+history JSON files. See [Apple's export format](https://developer.apple.com/documentation/safariservices/importing-data-exported-from-safari),
+[Chrome's password export](https://support.google.com/chrome/answer/95606), and
+[Firefox's export instructions](https://support.mozilla.org/en-US/kb/export-login-data-firefox).
+Password CSV files are unencrypted; delete the exported copy after importing.
+
+File import shows a preview before saving. Existing passwords are always kept;
+duplicate accounts in a source file and unsupported rows are counted and skipped.
+Arbiter's existing HTTPS-only login and credential-size limits still apply;
+notes, OTP seeds and passkeys are not imported. History keeps original visit
+dates, deduplicates URL/time pairs and retains the newest 10,000 visits across
+existing and imported history. Import does not turn on paused history recording
+or disabled autofill. Stop import finishes the current credential-store write;
+completed entries are retained and the result reports partial progress.

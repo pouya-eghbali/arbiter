@@ -179,12 +179,25 @@ QVariantList PasswordManager::accountsFor(const QUrl &url) const
     return result;
 }
 
-void PasswordManager::save(const QUrl &url, const QString &username, const QString &password)
+bool PasswordManager::canStore(const QUrl &url,const QString &username,const QString &password) {
+    const auto origin=originFor(url);
+    return !origin.isEmpty() && !password.isEmpty() && username.size()<=512 && record(origin,username,password).size()<=2560;
+}
+void PasswordManager::importAccount(const QUrl &url,const QString &username,const QString &password,ImportCallback callback) {
+    if(m_busy || !m_writable) { callback(false,m_error.isEmpty() ? tr("Password storage is busy or unavailable.") : m_error); return; }
+    if(find(originFor(url),username)>=0) { callback(false,{}); return; }
+    saveLogin(url,username,password,std::move(callback));
+}
+void PasswordManager::save(const QUrl &url, const QString &username, const QString &password) {
+    if(m_busy || !m_writable) return;
+    saveLogin(url,username,password,{});
+}
+void PasswordManager::saveLogin(const QUrl &url,const QString &username,const QString &password,ImportCallback callback)
 {
-    if (m_busy || !m_writable) return;
     const auto origin = originFor(url);
-    if (!m_enabled || origin.isEmpty() || password.isEmpty() || username.size() > 512) {
+    if ((!callback && !m_enabled) || origin.isEmpty() || password.isEmpty() || username.size() > 512) {
         finish(tr("Enter an HTTPS website and a non-empty password (username: at most 512 characters)."));
+        if(callback) callback(false,m_error);
         return;
     }
     const auto data = record(origin, username, password);
@@ -192,6 +205,7 @@ void PasswordManager::save(const QUrl &url, const QString &username, const QStri
     // limit everywhere, including the account-binding envelope.
     if (data.size() > 2560) {
         finish(tr("This login is too large for cross-platform secure storage (maximum 2560 encoded bytes)."));
+        if(callback) callback(false,m_error);
         return;
     }
     const int existing = find(origin, username);
@@ -204,6 +218,7 @@ void PasswordManager::save(const QUrl &url, const QString &username, const QStri
         // missing secret that can be re-saved, never an undiscoverable password.
         if (!persist(next)) {
             finish(tr("Could not update the password index. No password was written."));
+            if(callback) callback(false,m_error);
             return;
         }
     }
@@ -212,7 +227,7 @@ void PasswordManager::save(const QUrl &url, const QString &username, const QStri
     m_message.clear();
     emit stateChanged();
     const QPointer<PasswordManager> guard(this);
-    m_store->write(secretKey(id), data, [guard, next, existing](const QString &error, const QByteArray &) {
+    m_store->write(secretKey(id), data, [guard, next, existing, callback=std::move(callback)](const QString &error, const QByteArray &) {
         if (!guard) return;
         if (!error.isEmpty()) {
             if (existing < 0 && !guard->persist(guard->m_entries)) {
@@ -221,13 +236,14 @@ void PasswordManager::save(const QUrl &url, const QString &username, const QStri
                 emit guard->entriesChanged();
             }
             guard->finish(error);
+            if(callback) callback(false,error);
             return;
         }
         guard->m_entries = next;
         emit guard->entriesChanged();
-        guard->finish({}, existing < 0 ? tr("Password saved securely.") : tr("Password updated securely."));
-        emit guard->credentialSaved();
-        guard->dismissPending();
+        guard->finish({}, callback ? QString() : existing < 0 ? tr("Password saved securely.") : tr("Password updated securely."));
+        if(callback) callback(true,{});
+        else { emit guard->credentialSaved(); guard->dismissPending(); }
     });
 }
 

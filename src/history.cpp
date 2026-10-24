@@ -27,10 +27,11 @@ History::History(const QString &directory, QObject *parent) : QAbstractListModel
     if (!m_db.open()) { fail(tr("Could not open history storage. Existing data has been preserved.")); return; }
     QFile::setPermissions(m_db.databaseName(), QFileDevice::ReadOwner | QFileDevice::WriteOwner);
     QSqlQuery query(m_db);
-    if (!query.exec("PRAGMA secure_delete=ON") || !query.exec("CREATE TABLE IF NOT EXISTS visits (id INTEGER PRIMARY KEY AUTOINCREMENT, url TEXT NOT NULL, title TEXT NOT NULL, visited INTEGER NOT NULL)")) {
+    if (!query.exec("PRAGMA secure_delete=ON") || !query.exec("CREATE TABLE IF NOT EXISTS visits (id INTEGER PRIMARY KEY AUTOINCREMENT, url TEXT NOT NULL, title TEXT NOT NULL, visited INTEGER NOT NULL)")
+        || !query.exec("CREATE INDEX IF NOT EXISTS visits_url_visited ON visits(url,visited)")) {
         fail(tr("Could not initialize history storage.")); return;
     }
-    if (!query.exec("SELECT id, url, title, visited FROM visits ORDER BY id DESC LIMIT 10000")) { fail(tr("Could not read browsing history.")); return; }
+    if (!query.exec("SELECT id, url, title, visited FROM visits ORDER BY visited DESC,id DESC LIMIT 10000")) { fail(tr("Could not read browsing history.")); return; }
     while (query.next()) {
         const auto url = historyUrl(QUrl(query.value(1).toString()));
         if (!url.isEmpty()) m_entries.append({query.value(0).toString(), query.value(2).toString(), url, QDateTime::fromMSecsSinceEpoch(query.value(3).toLongLong())});
@@ -88,10 +89,10 @@ QString History::record(const QUrl &input, const QString &title, bool offTheReco
     QSqlQuery query(m_db);
     if (!m_db.transaction()) { fail(tr("Could not save browsing history.")); return {}; }
     query.prepare("INSERT INTO visits (url,title,visited) VALUES (?,?,?)");
-    query.addBindValue(url.toString(QUrl::FullyEncoded)); query.addBindValue(title.left(1024)); query.addBindValue(time.toMSecsSinceEpoch());
+    query.addBindValue(url.toString(QUrl::FullyEncoded)); query.addBindValue(title.isNull() ? QStringLiteral("") : title.left(1024)); query.addBindValue(time.toMSecsSinceEpoch());
     if (!query.exec()) { m_db.rollback(); fail(tr("Could not save browsing history.")); return {}; }
     const auto id = query.lastInsertId().toString();
-    if (!query.exec("DELETE FROM visits WHERE id NOT IN (SELECT id FROM visits ORDER BY id DESC LIMIT 10000)") || !m_db.commit()) {
+    if (!query.exec("DELETE FROM visits WHERE id NOT IN (SELECT id FROM visits ORDER BY visited DESC,id DESC LIMIT 10000)") || !m_db.commit()) {
         m_db.rollback(); fail(tr("Could not save browsing history.")); return {};
     }
     beginResetModel();
@@ -121,4 +122,27 @@ bool History::clear() {
     QSqlQuery query(m_db);
     if (!query.exec("DELETE FROM visits")) return fail(tr("Could not clear browsing history."));
     beginResetModel(); m_entries.clear(); filter(true); return true;
+}
+
+int History::importVisits(const QList<ImportedVisit> &visits) {
+    if(!m_error.isEmpty() || !m_db.isOpen()) return -1;
+    if(!m_db.transaction()) { fail(tr("Could not start history import.")); return -1; }
+    QSqlQuery query(m_db); int imported=0;
+    query.prepare("INSERT INTO visits(url,title,visited) SELECT ?,?,? WHERE NOT EXISTS (SELECT 1 FROM visits WHERE url=? AND visited=?)");
+    for(const auto &visit:visits) {
+        const auto url=historyUrl(visit.url); const auto ms=visit.time.toMSecsSinceEpoch();
+        if(url.isEmpty() || !visit.time.isValid() || ms<0 || ms>QDateTime::currentMSecsSinceEpoch()) continue;
+        const auto address=url.toString(QUrl::FullyEncoded);
+        query.bindValue(0,address); query.bindValue(1,visit.title.isNull() ? QStringLiteral("") : visit.title.left(1024)); query.bindValue(2,ms);
+        query.bindValue(3,address); query.bindValue(4,ms);
+        if(!query.exec()) { m_db.rollback(); fail(tr("History import failed. Existing history was preserved.")); return -1; }
+        imported+=query.numRowsAffected();
+    }
+    if(!query.exec("DELETE FROM visits WHERE id NOT IN (SELECT id FROM visits ORDER BY visited DESC,id DESC LIMIT 10000)") || !m_db.commit()) {
+        m_db.rollback(); fail(tr("History import failed. Existing history was preserved.")); return -1;
+    }
+    if(!query.exec("SELECT id,url,title,visited FROM visits ORDER BY visited DESC,id DESC LIMIT 10000")) { fail(tr("Could not reload imported history.")); return -1; }
+    beginResetModel(); m_entries.clear();
+    while(query.next()) m_entries.append({query.value(0).toString(),query.value(2).toString(),QUrl(query.value(1).toString()),QDateTime::fromMSecsSinceEpoch(query.value(3).toLongLong())});
+    filter(true); return imported;
 }

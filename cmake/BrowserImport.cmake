@@ -1,0 +1,17 @@
+function(arbiter_add_browser_import target)
+    target_sources(${target} PRIVATE
+        ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../src/chromevault.cpp
+        ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../src/chromevault.h)
+    target_link_libraries(${target} PRIVATE OpenSSL::Crypto)
+    if(APPLE)
+        target_link_libraries(${target} PRIVATE "-framework Security")
+    elseif(WIN32)
+        target_compile_definitions(${target} PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+        target_link_libraries(${target} PRIVATE crypt32)
+    else()
+        find_package(Qt6 6.12 REQUIRED COMPONENTS DBus)
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(ArbiterSecret REQUIRED IMPORTED_TARGET libsecret-1)
+        target_link_libraries(${target} PRIVATE Qt6::DBus PkgConfig::ArbiterSecret)
+    endif()
+endfunction()
