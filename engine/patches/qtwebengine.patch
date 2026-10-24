@@ -239,6 +239,45 @@ index 668a248..d9baf91 100644
          adapterClient->showWebAuthDialog(m_request);
          m_isDialogCreated = true;
      } else {
+diff --git a/src/core/location_provider_qt.cpp b/src/core/location_provider_qt.cpp
+index 779efdc..71eb96d 100644
+--- a/src/core/location_provider_qt.cpp
++++ b/src/core/location_provider_qt.cpp
+@@ -87,15 +87,18 @@ void QtPositioningHelper::start(bool highAccuracy)
+     switch (qApp->checkPermission(locationPermission)) {
+     case Qt::PermissionStatus::Undetermined:
+         qApp->requestPermission(locationPermission, this,
+-                    [this, &highAccuracy](const QPermission &permission) {
++                    [this, highAccuracy](const QPermission &permission) {
+                       if (permission.status() == Qt::PermissionStatus::Granted)
+                           this->startImpl(highAccuracy);
++                      else
++                          this->error(QGeoPositionInfoSource::AccessError);
+                     });
+ 
+         return;
+     case Qt::PermissionStatus::Denied:
+         qWarning("Failed to initialize location provider: The user does not have the right "
+                  "permissions or has denied the permission request.");
++        error(QGeoPositionInfoSource::AccessError);
+         return;
+     case Qt::PermissionStatus::Granted:
+         break; // Proceed
+diff --git a/src/core/permission_manager_qt.cpp b/src/core/permission_manager_qt.cpp
+index 838fa3b..4962aa3 100644
+--- a/src/core/permission_manager_qt.cpp
++++ b/src/core/permission_manager_qt.cpp
+@@ -365,7 +365,9 @@ void PermissionManagerQt::setPermissionImpl(
+             content::RenderFrameHost *targetRfh = content::RenderFrameHost::FromID(
+                     subscription->render_process_id, subscription->render_frame_id);
+ 
+-            if (subscription->embedding_origin != gorigin)
++            // Decisions belong to the requesting origin, including third-party
++            // frames. Resetting a grant must notify those frames as well.
++            if (subscription->requesting_origin != gorigin)
+                 continue;
+             if (subscription->permission != permissionTypeBlink)
+                 continue;
 diff --git a/src/core/web_engine_context.cpp b/src/core/web_engine_context.cpp
 index 76ea59c..180cd3d 100644
 --- a/src/core/web_engine_context.cpp

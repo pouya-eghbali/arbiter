@@ -232,6 +232,11 @@ The development build uses the installed Qt runtime. Shipping a standalone app
 will require deployment of Qt libraries, QML plugins, WebEngine resources and
 helpers, followed by platform signing/notarization.
 
+## Website permissions
+
+Website permission prompts and the location switch in Settings → Privacy are
+documented in the [site permissions developer guide](docs/site-permissions.md).
+
 ## DRM video and codecs
 
 Arbiter's patched WebEngine SDK exposes H.264/AAC formats while relying on

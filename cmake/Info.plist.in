@@ -12,6 +12,10 @@
     <key>CFBundleShortVersionString</key><string>${MACOSX_BUNDLE_SHORT_VERSION_STRING}</string>
     <key>CFBundleVersion</key><string>${MACOSX_BUNDLE_BUNDLE_VERSION}</string>
     <key>NSBluetoothAlwaysUsageDescription</key><string>Arbiter uses Bluetooth to securely connect to a nearby phone for passkey authentication.</string>
+    <key>NSLocationUsageDescription</key><string>Arbiter shares your location only with websites you allow.</string>
+    <key>NSLocationWhenInUseUsageDescription</key><string>Arbiter shares your location only with websites you allow.</string>
+    <key>NSCameraUsageDescription</key><string>Arbiter lets websites you allow use your camera for calls and recording.</string>
+    <key>NSMicrophoneUsageDescription</key><string>Arbiter lets websites you allow use your microphone for calls and recording.</string>
     <key>NSAppDataUsageDescription</key><string>Arbiter accesses other browsers’ profiles to import the passwords and browsing history you select.</string>
     <key>NSPrincipalClass</key><string>NSApplication</string>
     <key>CFBundleAllowMixedLocalizations</key><true/>

@@ -48,6 +48,7 @@ verificationCooldown = 300
 # tutorialPending = false
 
 [Privacy]
+geolocationEnabled = true # Sites must still ask for permission; false blocks all location requests.
 # Lock private windows after this many seconds without keyboard, mouse, or touch input.
 # Window deactivation, minimization, screen lock, and system sleep always lock immediately.
 lockTimeout = 300

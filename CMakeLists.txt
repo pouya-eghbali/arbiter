@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(cmake/ArbiterWebEngine.cmake)
-find_package(Qt6 6.12 REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick Widgets WebChannel Sql Concurrent Network)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick Widgets WebChannel Sql Concurrent Network Positioning)
 qt_standard_project_setup(REQUIRES 6.12)
 include(cmake/Settings.cmake)
 include(cmake/QtKeychain.cmake)
@@ -22,7 +22,8 @@ arbiter_add_browser_import(arbiter)
 include(cmake/Biometrics.cmake)
 arbiter_add_biometrics(arbiter)
 target_sources(arbiter PRIVATE src/privatebrowsing.cpp src/privatebrowsing.h src/tabsleepsettings.cpp src/tabsleepsettings.h)
-target_include_directories(arbiter PRIVATE third_party/qrcodegen)
+target_sources(arbiter PRIVATE src/sitepermissions.cpp src/sitepermissions.h)
+target_include_directories(arbiter PRIVATE src third_party/qrcodegen)
 arbiter_configure_webengine_runtime(arbiter)
 qt_add_resources(arbiter password_scripts PREFIX /passwords BASE scripts FILES scripts/passwords.js)
 qt_add_resources(arbiter brand PREFIX /brand BASE assets/icon/Arbiter.icon/Assets FILES assets/icon/Arbiter.icon/Assets/valkyrie-source.png)
@@ -70,7 +71,7 @@ qt_add_qml_module(arbiter
     NO_IMPORT_SCAN
     URI Arbiter
     VERSION 1.0
-    QML_FILES qml/AddressPrompt.qml qml/BrowserBackground.qml qml/ui/UiImagePicker.qml qml/PrivateShield.qml qml/SplitWithPicker.qml qml/TabSleepController.qml qml/ui/UiIcon.qml qml/ui/UiChoiceCard.qml qml/ImportProgress.qml qml/BrowserAccess.qml qml/OnboardingImport.qml qml/Onboarding.qml qml/BrowserPreview.qml qml/Tutorial.qml qml/ImportPage.qml qml/StartPage.qml qml/PaneShape.qml qml/SplitOverlay.qml qml/BiometricSetup.qml qml/WorkspacePanel.qml qml/HistoryPanel.qml qml/Main.qml qml/Theme.qml qml/ui/UiButton.qml qml/ui/UiTextField.qml qml/ui/UiCheckBox.qml qml/ui/UiComboBox.qml qml/ui/UiToolTip.qml qml/ui/UiMenuItem.qml qml/ui/UiColorPicker.qml qml/GlassSurface.qml qml/NavigationPill.qml qml/WebContextMenu.qml qml/PasswordPanel.qml qml/WebAuthnPanel.qml qml/PasskeySetup.qml
+    QML_FILES qml/PermissionPanel.qml qml/DesktopSharePanel.qml qml/SitePermissionsSettings.qml qml/AddressPrompt.qml qml/BrowserBackground.qml qml/ui/UiImagePicker.qml qml/PrivateShield.qml qml/SplitWithPicker.qml qml/TabSleepController.qml qml/ui/UiIcon.qml qml/ui/UiChoiceCard.qml qml/ImportProgress.qml qml/BrowserAccess.qml qml/OnboardingImport.qml qml/Onboarding.qml qml/BrowserPreview.qml qml/Tutorial.qml qml/ImportPage.qml qml/StartPage.qml qml/PaneShape.qml qml/SplitOverlay.qml qml/BiometricSetup.qml qml/WorkspacePanel.qml qml/HistoryPanel.qml qml/Main.qml qml/Theme.qml qml/ui/UiButton.qml qml/ui/UiTextField.qml qml/ui/UiCheckBox.qml qml/ui/UiComboBox.qml qml/ui/UiToolTip.qml qml/ui/UiMenuItem.qml qml/ui/UiColorPicker.qml qml/GlassSurface.qml qml/NavigationPill.qml qml/WebContextMenu.qml qml/PasswordPanel.qml qml/WebAuthnPanel.qml qml/PasskeySetup.qml
 )
 target_link_libraries(arbiter PRIVATE
     arbiter_settings
@@ -82,6 +83,7 @@ target_link_libraries(arbiter PRIVATE
     Qt6::Sql
     Qt6::Concurrent
     Qt6::Network
+    Qt6::Positioning
     qt6keychain
     OpenSSL::Crypto
 )
@@ -122,4 +124,7 @@ install(TARGETS arbiter
 )
 if(NOT APPLE)
     install(FILES licenses/QtKeychain.txt licenses/QRCodeGenerator.txt licenses/TomlPlusPlus.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/arbiter/licenses)
+endif()
+if(UNIX AND NOT APPLE)
+    install(FILES cmake/com.arbiter.browser.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
 endif()

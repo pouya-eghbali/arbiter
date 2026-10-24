@@ -21,6 +21,8 @@ Basic.ApplicationWindow {
     onPrivateCoveredChanged: {
         if (!uiReady) return
         if (privateCovered) {
+            sitePermissionQueue.clear()
+            desktopSharePanel.cancel()
             splitWithPicker.close(); workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.close()
             biometricSetup.close(); passkeySetup.close(); tutorial.close()
             if (webView) { webAuthnPanel.cancelFor(webView); passwordPanel.cancelFor(webView) }
@@ -42,6 +44,17 @@ Basic.ApplicationWindow {
     property int splitRevision: 0
     required property var workspaces
     required property var webProfiles
+    required property var sitePermissionSettings
+
+    SitePermissions {
+        id: sitePermissionQueue
+        objectName: "sitePermissionQueue"
+        focusedView: window.webView
+        enabled: window.active && !window.privateCovered && !window.settingsOpen && !window.shuttingDown
+                 && !desktopSharePanel.request && !window.webauthn.active
+        locationEnabled: window.sitePermissionSettings.geolocationEnabled
+        onResolved: window.sitePermissionSettings.refresh()
+    }
     required property var tabs
     required property var tabSleep
     required property var history
@@ -82,6 +95,7 @@ Basic.ApplicationWindow {
         Qt.callLater(function() { categoryScroll.revealCategory(window.settingsCategory) })
     }
     onSettingsOpenChanged: {
+        if (uiReady && settingsOpen) desktopSharePanel.cancel()
         if (uiReady && !settingsOpen) clearPrivacyFields()
         if (importer && !settingsOpen && !importer.importing) importer.cancel()
     }
@@ -166,6 +180,8 @@ Basic.ApplicationWindow {
     function prepareForShutdown() {
         splitWithPicker.close()
         shuttingDown = true
+        sitePermissionQueue.clear()
+        desktopSharePanel.cancel()
         biometricSetup.close()
         workspacePanel.close()
         historyPanel.close()
@@ -667,6 +683,8 @@ Basic.ApplicationWindow {
                 delegate: WebEngineView {
                     id: page
                     function cancelPrivateInteraction() {
+                        sitePermissionQueue.cancelFor(page)
+                        desktopSharePanel.cancelFor(page)
                         pageContextMenu.close()
                         passwordSession.invalidate()
                         startPage.focus = false
@@ -832,11 +850,23 @@ Basic.ApplicationWindow {
                         const closingId = tabId
                         Qt.callLater(function() { window.finishClosingTab(closingId) })
                     }
+                    settings.screenCaptureEnabled: true
+                    onPermissionRequested: function(permissionRequest) {
+                        if (window.privateCovered || window.shuttingDown) {
+                            sitePermissionQueue.reject(permissionRequest)
+                        } else sitePermissionQueue.request(page, permissionRequest, page.mainFrame.url)
+                    }
+                    onDesktopMediaRequested: function(request) {
+                        if (page !== window.webView || window.privateCovered || window.settingsOpen || !window.active) request.cancel()
+                        else desktopSharePanel.show(page, request, window.sitePermissionSettings.displayOrigin(page.mainFrame.url))
+                    }
                     onWebAuthUxRequested: function(request) {
                         if (page !== window.webView || window.privateCovered || window.settingsOpen) request.cancel()
                         else webAuthnPanel.show(page, request)
                     }
                     Component.onDestruction: {
+                        sitePermissionQueue.cancelFor(page)
+                        desktopSharePanel.cancelFor(page)
                         webAuthnPanel.cancelFor(page)
                         passwordPanel.cancelFor(page)
                     }
@@ -847,6 +877,8 @@ Basic.ApplicationWindow {
                         if (page === window.webView && !window.privateMode) window.siteNavigation.setTitle(title)
                     }
                     onUrlChanged: {
+                        sitePermissionQueue.cancelFor(page)
+                        desktopSharePanel.cancelFor(page)
                         Qt.callLater(page.recordHistory)
                         if (page === window.webView) window.resetSiteNavigation()
                         webAuthnPanel.cancelFor(page)
@@ -864,6 +896,8 @@ Basic.ApplicationWindow {
                     }
                     onLoadingChanged: function(request) {
                         if (request.status === WebEngineView.LoadStartedStatus) {
+                            sitePermissionQueue.cancelFor(page)
+                            desktopSharePanel.cancelFor(page)
                             historyReady = false
                             historyVisitId = ""
                             historyUrl = ""
@@ -1510,6 +1544,9 @@ Basic.ApplicationWindow {
                         onVisibleChanged: if (visible && window.privacy) window.privacy.load()
                         spacing: 16
                         Layout.fillWidth: true
+                        SitePermissionsSettings { Layout.fillWidth: true; settings: window.sitePermissionSettings; workspaceChoices: window.workspaces.choices }
+                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.border }
+                        Basic.Label { text: qsTr("Private browsing"); font.pixelSize: 20; font.weight: Font.DemiBold; color: Theme.text }
                         Basic.Label {
                             Layout.fillWidth: true
                             text: qsTr("Private windows keep cookies and site storage in memory and do not save browsing history or restore tabs. Each private window has its own session. Downloads you save and credentials you explicitly create remain on your device.")
@@ -1645,6 +1682,19 @@ Basic.ApplicationWindow {
     BiometricSetup { id: biometricSetup; objectName: "biometricSetup"; controller: window.passkeys }
     PasskeySetup { id: passkeySetup; objectName: "passkeySetup"; controller: window.passkeys }
 
+    PermissionPanel {
+        anchors.fill: parent
+        controller: sitePermissionQueue
+        privateMode: window.privateMode
+    }
+    DesktopSharePanel {
+        id: desktopSharePanel
+        anchors.fill: parent
+        Connections {
+            target: window
+            function onWebViewChanged() { if (desktopSharePanel.owner !== window.webView) desktopSharePanel.cancel() }
+        }
+    }
     PasswordPanel {
         id: passwordPanel
         anchors.fill: parent

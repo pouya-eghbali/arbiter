@@ -95,6 +95,7 @@ def main():
     flags = ["-DCMAKE_BUILD_TYPE=Release", "-DQT_BUILD_EXAMPLES=OFF", "-DQT_BUILD_TESTS=OFF",
              "-DFEATURE_qtwebengine_build=ON", "-DFEATURE_qtpdf_build=OFF",
              "-DFEATURE_webengine_proprietary_codecs=ON",
+             "-DFEATURE_webengine_geolocation=ON",
              "-DQT_SHOW_EXTRA_IDE_SOURCES=OFF",
              f"-DPython3_EXECUTABLE={sys.executable}", f"-DCMAKE_PREFIX_PATH={args.qt_prefix}",
              f"-DCMAKE_INSTALL_PREFIX={sdk}"]

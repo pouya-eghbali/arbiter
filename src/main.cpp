@@ -20,6 +20,7 @@
 #include "splitswapgesture.h"
 #include "workspaces.h"
 #include "webprofiles.h"
+#include "sitepermissions.h"
 #include "passwordmanager.h"
 #include "webauthncontroller.h"
 #include "passkeycontroller.h"
@@ -65,6 +66,9 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName(QStringLiteral("Arbiter"));
     QCoreApplication::setApplicationName(QStringLiteral("Arbiter"));
     QCoreApplication::setApplicationVersion(QStringLiteral("0.1.0"));
+#ifdef Q_OS_LINUX
+    app.setDesktopFileName(QStringLiteral("com.arbiter.browser"));
+#endif
 #ifdef Q_OS_MACOS
     QQuickStyle::setStyle(QStringLiteral("macOS"));
 #endif
@@ -85,6 +89,8 @@ int main(int argc, char *argv[])
     PrivateBrowsing privacy;
     Workspaces workspaces(&tabs);
     WebProfiles webProfiles;
+    SitePermissionSettings sitePermissionSettings;
+    webProfiles.profileCreated=[&sitePermissionSettings](QQuickWebEngineProfile *profile) { sitePermissionSettings.trackProfile(profile); };
     History history;
     PasswordManager passwords;
     BrowserImporter importer(&passwords,&history);
@@ -154,6 +160,7 @@ int main(int argc, char *argv[])
                                  {QStringLiteral("tabSleep"), QVariant::fromValue(&tabSleep)},
                                  {QStringLiteral("workspaces"), QVariant::fromValue(&workspaces)},
                                  {QStringLiteral("webProfiles"), QVariant::fromValue(&webProfiles)},
+                                 {QStringLiteral("sitePermissionSettings"), QVariant::fromValue(&sitePermissionSettings)},
                                  {QStringLiteral("history"), QVariant::fromValue(&history)},
                                  {QStringLiteral("passwords"), QVariant::fromValue(&passwords)},
                                  {QStringLiteral("importer"), QVariant::fromValue(&importer)},
@@ -174,6 +181,7 @@ int main(int argc, char *argv[])
         QObject::connect(&privacy,&PrivateBrowsing::openRequested,&app,[&,root,initialProperties] {
             auto *state=new PrivateWindowState(&privacy,&privateWindows);
             state->profiles.userAgent=userAgent;
+            state->profiles.profileCreated=[&sitePermissionSettings](QQuickWebEngineProfile *profile) { sitePermissionSettings.trackProfile(profile); };
 #ifdef ARBITER_WEBENGINE_QML_PATH
             state->engine.addImportPath(QString::fromUtf8(ARBITER_WEBENGINE_QML_PATH));
 #endif

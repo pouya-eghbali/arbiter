@@ -6,6 +6,7 @@ import Arbiter
 Basic.Button {
     id: control
     property bool primary: false
+    property int textAlignment: Text.AlignHCenter
     implicitWidth: Math.max(40, implicitContentWidth + leftPadding + rightPadding)
     implicitHeight: Math.max(40, implicitContentHeight + topPadding + bottomPadding)
     padding: 10
@@ -19,7 +20,7 @@ Basic.Button {
         textFormat: Text.PlainText
         color: control.primary ? Theme.accentText : Theme.text
         font: control.font
-        horizontalAlignment: Text.AlignHCenter
+        horizontalAlignment: control.textAlignment
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
     }
