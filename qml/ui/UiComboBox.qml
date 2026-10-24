@@ -51,7 +51,7 @@ Basic.ComboBox {
         }
         background: Rectangle { radius: 9; color: option.highlighted ? Theme.selection : option.hovered ? Theme.hover : "transparent" }
     }
-    popup: Basic.Popup {
+    popup: UiPopup {
         popupType: Basic.Popup.Item
         y: control.height + 6
         width: control.width

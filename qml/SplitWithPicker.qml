@@ -3,7 +3,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 
-Basic.Popup {
+UiPopup {
     popupType: Basic.Popup.Item
     id: picker
     objectName: "splitWithPicker"

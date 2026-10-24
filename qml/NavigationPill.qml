@@ -13,8 +13,15 @@ FocusScope {
     function shareAnchor() { return shareButton.visible ? shareButton.mapToItem(null, shareButton.width / 2, shareButton.height / 2) : Qt.point(pill.x + pill.width / 2, pill.y) }
     function reveal() {
         collapse.stop()
+        focusAddressPending = true
+        revealFocusAnchor.forceActiveFocus(Qt.ShortcutFocusReason)
         revealed = true
-        addressButton.forceActiveFocus(Qt.ShortcutFocusReason)
+        focusAddressIfReady()
+    }
+    function focusAddressIfReady() {
+        if (!focusAddressPending || !expanded || revealProgress < 0.99) return
+        focusAddressPending = false
+        Qt.callLater(function() { if (pill.shown && pill.expanded && pill.activeFocus && !pill.forceHidden) addressButton.forceActiveFocus(Qt.ShortcutFocusReason) })
     }
     signal privateWindowRequested()
     signal lockPrivateRequested()
@@ -25,6 +32,18 @@ FocusScope {
     required property color workspaceColor
     required property int tabCount
     property bool revealed: false
+    property bool focusAddressPending: false
+    property bool shown: true
+    property bool forceHidden: false
+    readonly property bool presented: shown && !forceHidden
+    property real presenceProgress: presented ? 1 : 0
+    readonly property real slideOffset: 10 * (1 - presenceProgress)
+    visible: !forceHidden && (presented || presenceProgress > 0.001)
+    enabled: presented
+    opacity: presenceProgress
+    Behavior on presenceProgress {
+        NumberAnimation { duration: pill.forceHidden ? 0 : pill.presented ? Theme.enterDuration : Theme.exitDuration; easing.type: Easing.OutCubic }
+    }
     readonly property bool expanded: revealed || activeFocus || more.visible
     signal shareRequested()
     signal extensionsRequested()
@@ -43,13 +62,20 @@ FocusScope {
     signal splitWithRequested()
     readonly property real expandedWidth: Math.min(560, parent.width - 32)
     property real revealProgress: expanded ? 1 : 0
-    width: expanded ? expandedWidth : 76
-    height: expanded ? 56 : 28
-    Behavior on revealProgress { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
-    onVisibleChanged: if (!visible) { revealed = false; focus = false; collapse.stop() }
+    width: 76 + (expandedWidth - 76) * revealProgress
+    height: 28 + 28 * revealProgress
+    Behavior on revealProgress {
+        enabled: pill.visible
+        NumberAnimation { duration: Theme.reducedMotion ? 0 : 240; easing.type: Easing.OutCubic }
+    }
+    onRevealProgressChanged: focusAddressIfReady()
+    onVisibleChanged: if (!visible) { focusAddressPending = false; revealed = false; focus = false; collapse.stop() }
     onActiveFocusChanged: if (!activeFocus && !hover.hovered) collapse.restart()
     Keys.onShortcutOverride: function(event) { if (event.key === Qt.Key_Escape && expanded) event.accepted = true }
     Keys.onEscapePressed: { revealed = false; focus = false; if (view) view.forceActiveFocus() }
+    // Keep shortcut focus stable while the controls are still clipped/hidden.
+    // Once the reveal finishes it moves to the address button.
+    Item { id: revealFocusAnchor; Accessible.ignored: true }
     HoverHandler {
         id: hover
         objectName: "navigationHover"
@@ -60,6 +86,7 @@ FocusScope {
     }
     Timer { id: collapse; interval: 1000; onTriggered: if (!hover.hovered && !pill.activeFocus && !more.visible) pill.revealed = false }
     GlassSurface {
+        id: pillSurface
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 10 * (1 - pill.revealProgress)
@@ -74,7 +101,7 @@ FocusScope {
         Accessible.name: text
         background: Item { }
         contentItem: Item { }
-        onClicked: { pill.revealed = true; addressButton.forceActiveFocus() }
+        onClicked: pill.reveal()
         onActiveFocusChanged: if (activeFocus) pill.revealed = true
     }
     component NavButton: UiButton {
@@ -90,16 +117,21 @@ FocusScope {
             text: button.Accessible.name
         }
     }
-    RowLayout {
-        width: pill.expandedWidth - 20
+    Item {
+        width: Math.max(0, pillSurface.width - 20)
         height: 36
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 10
-        spacing: 3
-        opacity: Math.max(0, (pill.revealProgress - 0.85) / 0.15)
+        clip: true
+        opacity: Math.max(0, (pill.revealProgress - 0.65) / 0.35)
         visible: opacity > 0
         enabled: pill.expanded && pill.revealProgress > 0.95
+    RowLayout {
+        width: pill.expandedWidth - 20
+        height: 36
+        anchors.centerIn: parent
+        spacing: 3
         NavButton { iconName: "arrow-left"; Accessible.name: qsTr("Back"); enabled: pill.view && pill.view.canGoBack; onClicked: { pill.view.goBack(); pill.view.forceActiveFocus() } }
         NavButton { iconName: "arrow-right"; Accessible.name: qsTr("Forward"); enabled: pill.view && pill.view.canGoForward; onClicked: { pill.view.goForward(); pill.view.forceActiveFocus() } }
         NavButton {
@@ -150,6 +182,7 @@ FocusScope {
         }
         NavButton { objectName: "navigationTabsButton"; text: String(pill.tabCount); font.pixelSize: 13; Accessible.name: pill.tabCount === 1 ? qsTr("Show 1 tab") : qsTr("Show %1 tabs").arg(pill.tabCount); onClicked: pill.tabsRequested() }
         NavButton { iconName: "ellipsis"; Accessible.name: qsTr("More browser controls"); onClicked: more.open() }
+    }
     }
     UiMenu {
         preferredWidth: 320

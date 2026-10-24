@@ -67,11 +67,18 @@ private slots:
     }
     void actualPrimaryButtonUsesReadableForeground() {
         QQmlEngine engine;
+        // These tests load source files with their locally registered Theme,
+        // not another test executable's generated Arbiter module beside us.
+        auto imports = engine.importPathList(); imports.removeAll(QCoreApplication::applicationDirPath()); engine.setImportPathList(imports);
         QQmlComponent component(&engine,QUrl::fromLocalFile(QStringLiteral(ARBITER_BUTTON_FILE)));
         QScopedPointer<QObject> button(component.create());
         QVERIFY2(button,qPrintable(component.errorString()));
         button->setProperty("primary",true);
-        auto *label=button->property("contentItem").value<QQuickItem *>(); QVERIFY(label);
+        button->setProperty("text", "Continue");
+        auto *content=button->property("contentItem").value<QQuickItem *>(); QVERIFY(content);
+        QQuickItem *label=nullptr;
+        for (auto *child : content->childItems()) if (child->property("text").toString()=="Continue") label=child;
+        QVERIFY(label);
         const auto change=[&](const QString &script) { QQmlExpression expression(qmlContext(button.data()),button.data(),script); expression.evaluate(); return !expression.hasError(); };
         QVERIFY(change("Theme.dark=false; Theme.lightAccent='#2868b8'"));
         QCOMPARE(label->property("color").value<QColor>(),QColor("white"));
@@ -82,6 +89,7 @@ private slots:
     }
     void browserAccessScansAfterConfirmationOnly() {
         QQmlEngine engine;
+        auto imports = engine.importPathList(); imports.removeAll(QCoreApplication::applicationDirPath()); engine.setImportPathList(imports);
         QQmlComponent fake(&engine);
         fake.setData("import QtQml\nQtObject { property string selectedBrowser: 'Chrome'; property bool busy: false; property bool requestingAccess: false; property var requestedWindow; property int scans: 0; property int requests: 0; signal accessFinished(bool allowed);"
                      "function requestBrowserAccess(window) { requestedWindow=window; requests++; requestingAccess=true; busy=true }"

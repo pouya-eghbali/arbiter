@@ -3,6 +3,9 @@ import QtQuick
 
 QtObject {
     property bool dark: false
+    property bool reducedMotion: Application.styleHints.accessibility.motionPreference === Qt.ReducedMotion
+    readonly property int enterDuration: reducedMotion ? 0 : 160
+    readonly property int exitDuration: reducedMotion ? 0 : 120
     property color lightAccent: "#2868b8"
     property color darkAccent: "#8dbbff"
     property color lightBackground: "#edf2f7"

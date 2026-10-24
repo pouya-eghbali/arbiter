@@ -186,6 +186,10 @@ Start-page and split-view background images can be chosen separately for Light a
 
 Arbiter keeps normalized PNG copies under `backgrounds/` beside `settings.toml`, independent of the original photo. Back up that folder with your dotfiles to include selected pictures. The `appearance.lightBackgroundImage` and `appearance.darkBackgroundImage` settings accept paths relative to the settings directory, absolute local paths, or `file:` URLs. These images stay in the browser UI; website backgrounds are unchanged.
 
+The navigation pill fades/slides into view and smoothly expands from its compact
+handle. Main popovers and menus share subtle fade transitions. These transitions
+respect the OS Reduce Motion preference; private locking remains immediate.
+
 ## Requirements
 
 - Qt **6.12.0 or newer**, including Qt Quick, Quick Controls, **Qt WebEngine**,

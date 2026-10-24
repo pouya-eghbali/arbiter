@@ -4,7 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 import Arbiter
 
-Basic.Popup {
+UiPopup {
     popupType: Basic.Popup.Item
     id: panel
     required property var manager

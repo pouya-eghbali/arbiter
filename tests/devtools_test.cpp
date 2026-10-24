@@ -66,6 +66,7 @@ void DevToolsTest::frontendAndLifecycle()
         QVERIFY(action->property("enabled").toBool());
         if (point.y() == 115) QVERIFY(QMetaObject::invokeMethod(action, "triggered"));
         evaluate("contextMenu.close()");
+        QTRY_VERIFY(!evaluate("contextMenu.visible").toBool());
     }
     QVERIFY(root->property("inspectedFromMenu").toBool());
     QTRY_VERIFY_WITH_TIMEOUT(evaluate("dock.frontend && !dock.frontend.loading && dock.frontend.url.toString().startsWith('devtools://')").toBool(), 15000);

@@ -1881,9 +1881,10 @@ Basic.ApplicationWindow {
         objectName: "navigationPill"
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: developerTools.height + 12
+        anchors.bottomMargin: developerTools.height + 12 - slideOffset
         z: 21
-        visible: (window.appearance.navigationPill || window.temporaryPill) && (!window.emptyPage || window.temporaryPill) && !window.settingsOpen
+        forceHidden: window.privateCovered || window.shuttingDown
+        shown: (window.appearance.navigationPill || window.temporaryPill) && (!window.emptyPage || window.temporaryPill) && !window.settingsOpen
             && !window.webauthn.active && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible
         view: window.webView
         appearance: window.appearance
@@ -1898,7 +1899,7 @@ Basic.ApplicationWindow {
         canShare: window.canSharePage
         onExtensionsRequested: window.showExtensions()
         onShareRequested: window.sharePage()
-        onExpandedChanged: if (!expanded) window.temporaryPill = false
+        onRevealProgressChanged: if (!expanded && revealProgress <= 0.001) window.temporaryPill = false
         onTabsRequested: window.showTabs()
         onPasswordsRequested: window.openPasswords()
         onSettingsRequested: window.openSettings()
@@ -2138,8 +2139,8 @@ Basic.ApplicationWindow {
         closePolicy: Basic.Popup.CloseOnEscape | Basic.Popup.CloseOnPressOutside
         Basic.Overlay.modal: ModalBackdrop { }
         background: ModalPanel { }
-        enter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 140 } }
-        exit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 100 } }
+        enter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.enterDuration; easing.type: Easing.OutCubic } }
+        exit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.exitDuration; easing.type: Easing.OutCubic } }
         contentItem: ColumnLayout {
             id: tabsContent
             spacing: 12
@@ -2374,8 +2375,7 @@ Basic.ApplicationWindow {
         function onWorkspaceChanged() { Qt.callLater(window.refreshTabChoices) }
     }
 
-    Basic.Popup {
-        popupType: Basic.Popup.Item
+    UiPopup {
         id: addressPopup
         objectName: "addressPopup"
         parent: Basic.Overlay.overlay

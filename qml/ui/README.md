@@ -2,7 +2,7 @@
 
 These components are exported by the application's `Arbiter` QML module. Use
 `UiButton`, `UiIconButton`, `UiTextField`, `UiCheckBox`, `UiComboBox`, `UiMenuItem`, `UiToolTip`
-`UiMenu`, `UiColorPicker` and `UiImagePicker` in browser surfaces instead of styling Basic controls in
+`UiMenu`, `UiPopup`, `UiColorPicker` and `UiImagePicker` in browser surfaces instead of styling Basic controls in
 individual screens. `Theme` is the shared color source and `GlassSurface`
 provides popup material.
 
@@ -65,6 +65,12 @@ so native popup-window frames cannot introduce mismatched edges or corners.
 
 `UiMenu` provides the shared glass menu, a readable minimum width and a scrollable
 height constrained to the owning window. Use it for application and page menus.
+`UiPopup` and `UiMenu` share short opacity transitions from `Theme`. The pill
+animates its presence separately from its expansion, so hiding it does not cut
+off the collapse animation. Hidden/closing pill controls stop accepting input.
+`Theme.reducedMotion` follows Qt's live OS accessibility motion preference; shared
+transition durations become zero when reduced motion is enabled. Private locking
+always hides sensitive UI immediately, independent of animation settings.
 
 `glasssurface_test` checks actual rendered pixels: stripe suppression on large and
 small surfaces, live backdrop changes, ancestor movement and cross-window isolation.

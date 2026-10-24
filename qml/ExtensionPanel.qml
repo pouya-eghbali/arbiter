@@ -5,7 +5,7 @@ import QtQuick.Controls.Basic as Basic
 import QtWebEngine
 import Arbiter
 
-Basic.Popup {
+UiPopup {
     popupType: Basic.Popup.Item
     id: panel
     required property var controller
