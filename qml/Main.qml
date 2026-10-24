@@ -491,7 +491,6 @@ Basic.ApplicationWindow {
         // Let Chromium run beforeunload and show its confirmation before
         // destroying a page with unsaved work.
         addressPopup.close()
-        tabsPopup.close()
         view.triggerWebAction(WebEngineView.RequestClose)
     }
 
