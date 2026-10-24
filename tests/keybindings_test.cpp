@@ -39,7 +39,8 @@ private slots:
         KeyBindings keys;
         QCOMPARE(keys.bindings().value("showNavigation").toString(),QString("Ctrl+Shift+L"));
         QCOMPARE(keys.bindings().value("sharePage").toString(),QString("Ctrl+Shift+S"));
-        const QStringList actions{"showNavigation","sharePage","extensions","downloads","developerTools"};
+        QCOMPARE(QKeySequence::fromString(keys.bindings().value("print").toString(), QKeySequence::PortableText), QKeySequence(QKeySequence::Print));
+        const QStringList actions{"showNavigation","sharePage","extensions","downloads","developerTools","print"};
         for(int i=0;i<actions.size();++i) {
             int row=-1;
             for(int j=0;j<keys.rowCount();++j) if(keys.data(keys.index(j),Qt::UserRole).toString()==actions[i]) row=j;

@@ -190,6 +190,7 @@ Basic.ApplicationWindow {
     }
 
     function prepareForShutdown() {
+        pagePrinter.cancel()
         developerTools.close()
         downloadsPanel.close()
         nativeShare.cancel()
@@ -310,6 +311,21 @@ Basic.ApplicationWindow {
     }
     Shortcut { sequence: window.bindings.showNavigation; enabled: !window.privateCovered && !window.settingsOpen && window.recordingIndex < 0; onActivated: window.showNavigation() }
     Shortcut { sequence: window.bindings.sharePage; enabled: !window.privateCovered && !window.settingsOpen && window.canSharePage && window.recordingIndex < 0; onActivated: window.sharePage() }
+    function printPage(view: var) {
+        if (!view || view !== webView || emptyPage || privateCovered || settingsOpen || shuttingDown || pagePrinter.busy) return
+        nativeShare.cancel()
+        addressPopup.close()
+        tabsPopup.close()
+        historyPanel.close()
+        workspacePanel.close()
+        navigationPill.dismissMenu()
+        pagePrinter.show(view, view.title)
+    }
+    Shortcut {
+        sequence: window.bindings.print
+        enabled: !window.privateCovered && !window.settingsOpen && !window.emptyPage && !window.shuttingDown && !pagePrinter.busy && window.recordingIndex < 0
+        onActivated: window.printPage(window.webView)
+    }
     function toggleAdBlock() {
         if (privateCovered || !webView || !window.adblocker.enabled) return
         webView.adBlock.paused = !webView.adBlock.paused
@@ -959,6 +975,7 @@ Basic.ApplicationWindow {
                                     }
                                 }
                                 onPasswordsRequested: Qt.callLater(window.openPasswords)
+                                onPrintRequested: Qt.callLater(function() { window.printPage(page) })
                                 onPasswordSuggestionRequested: function(field) {
                                     if (page === window.webView && !window.privateCovered && !window.settingsOpen)
                                         passwordSession.suggestPassword(page.mainFrame.url, field)
@@ -972,6 +989,7 @@ Basic.ApplicationWindow {
                                 const closingId = tabId
                                 Qt.callLater(function() { window.finishClosingTab(closingId) })
                             }
+                            onPrintRequested: window.printPage(page)
                             settings.screenCaptureEnabled: true
                             onPermissionRequested: function(permissionRequest) {
                                 if (window.privateCovered || window.shuttingDown) {
@@ -987,6 +1005,7 @@ Basic.ApplicationWindow {
                                 else webAuthnPanel.show(page, request)
                             }
                             Component.onDestruction: {
+                                pagePrinter.cancelFor(page)
                                 developerTools.closeFor(page)
                                 sitePermissionQueue.cancelFor(page)
                                 desktopSharePanel.cancelFor(page)
@@ -1001,6 +1020,7 @@ Basic.ApplicationWindow {
                                 if (page === window.webView && !window.privateMode) window.siteNavigation.setTitle(title)
                             }
                             onUrlChanged: {
+                                pagePrinter.cancelFor(page)
                                 sitePermissionQueue.cancelFor(page)
                                 desktopSharePanel.cancelFor(page)
                                 nativeShare.cancelFor(page)
@@ -1021,6 +1041,7 @@ Basic.ApplicationWindow {
                             }
                             onLoadingChanged: function(request) {
                                 if (request.status === WebEngineView.LoadStartedStatus) {
+                                    pagePrinter.cancelFor(page)
                                     viewAdBlock.resetCount()
                                     sitePermissionQueue.cancelFor(page)
                                     desktopSharePanel.cancelFor(page)
@@ -1928,6 +1949,41 @@ Basic.ApplicationWindow {
         id: nativeShare
         objectName: "nativePageShare"
         host: window
+    }
+    PagePrinter {
+        id: pagePrinter
+        objectName: "pagePrinter"
+        host: window
+        onPdfRequested: function(request, pageSize, orientation) {
+            const view = owner
+            if (!view || window.privateCovered || window.shuttingDown) { cancel(); return }
+            view.printToPdf(function(data) { pagePrinter.submit(request, data) }, pageSize, orientation)
+        }
+    }
+    Connections {
+        target: window
+        function onWebViewChanged() { pagePrinter.cancel() }
+        function onPrivateCoveredChanged() { if (window.privateCovered) pagePrinter.cancel() }
+        function onSettingsOpenChanged() { if (window.settingsOpen) pagePrinter.cancel() }
+    }
+    Timer { id: printErrorTimer; interval: 6000 }
+    Connections {
+        target: pagePrinter
+        function onErrorChanged() { if (pagePrinter.error.length) printErrorTimer.restart() }
+    }
+    Basic.Label {
+        visible: printErrorTimer.running && !window.privateCovered
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 88
+        width: Math.min(440, window.width - 32)
+        padding: 12
+        z: 30
+        text: pagePrinter.error
+        textFormat: Text.PlainText
+        wrapMode: Text.Wrap
+        color: Theme.text
+        background: GlassSurface { radius: Theme.tooltipRadius; dense: true }
     }
     Connections {
         target: window

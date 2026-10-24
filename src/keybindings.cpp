@@ -27,6 +27,7 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
     add("sharePage", "Share current page", QKeySequence(QStringLiteral("Ctrl+Shift+S")));
     add("developerTools", "Toggle developer tools for focused view", developerToolsKey);
     add("downloads", "Show downloads", downloadsKey);
+    add("print", "Print current page", QKeySequence(QKeySequence::Print));
     add("extensions", "Show extensions", QKeySequence(QStringLiteral("Ctrl+Shift+X")));
     add("settings", "Settings", QKeySequence(QStringLiteral("Ctrl+,")));
     add("passwords", "Fill or save login", QKeySequence(QStringLiteral("Ctrl+Shift+P")));

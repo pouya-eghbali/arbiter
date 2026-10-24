@@ -189,7 +189,7 @@ Arbiter keeps normalized PNG copies under `backgrounds/` beside `settings.toml`,
 ## Requirements
 
 - Qt **6.12.0 or newer**, including Qt Quick, Quick Controls, **Qt WebEngine**,
-  **Qt WebChannel**, **Qt Positioning**, and **Qt SVG**.
+  **Qt WebChannel**, **Qt Positioning**, **Qt SVG**, **Qt PrintSupport**, and **Qt Pdf**.
 - CMake 3.24+, Ninja, a C++20 compiler, and Rust 1.93+ with Cargo.
 - The current [patched WebEngine SDK](docs/passkey-integration.md#build) for per-view ad blocking and passkeys.
 - QtKeychain 0.14.2+ built with Qt 6. CMake prefers an installed package; otherwise
@@ -200,7 +200,7 @@ Arbiter keeps normalized PNG copies under `backgrounds/` beside `settings.toml`,
 - On macOS, full Xcode 26+ with Icon Composer and `actool` to compile the layered app icon.
 
 On macOS, use the Qt Online Installer / MaintenanceTool to install the Qt 6.12
-macOS desktop kit and the Qt WebEngine, Qt WebChannel, Qt Positioning, and Qt SVG
+macOS desktop kit and the Qt WebEngine, Qt WebChannel, Qt Positioning, Qt SVG, and Qt Pdf
 components. WebChannel and Positioning are required by WebEngine. A Homebrew Qt installation
 without WebEngine is insufficient. Use components from the same Qt installation;
 do not mix the Homebrew libraries with an older Online Installer WebEngine.
@@ -556,6 +556,20 @@ PDF links and local PDF files open in Chromium's built-in viewer inside the tab,
 including split panes and private windows. WebEngine's `pluginsEnabled` and
 `pdfViewerEnabled` settings are enabled on browser views. The SDK already includes
 `webengine_printing_and_pdf`; the separate QtPdf module is not required for viewing.
+
+### Printing
+
+Use **Cmd+P** on macOS / **Ctrl+P** on Windows/Linux, or right-click a page and
+choose **Print…**. The shortcut is customizable in Keyboard settings. Printing
+uses the focused split pane and opens the system print dialog, with printer,
+paper size, orientation, page ranges and copies. Website `window.print()` buttons
+use the same flow. The start page and Settings are not printed.
+
+Native printing requires Qt PrintSupport and Qt Pdf. Chromium prepares the page
+with its print stylesheet; the PDF stays in memory and Qt rasterizes it for the
+chosen printer at 300 DPI. Rendering/spooling runs off the UI thread. Canceling
+the dialog, navigating away, closing the source tab, or locking a private window
+cancels preparation; submitted jobs are managed through the OS print queue.
 
 ### Downloads
 

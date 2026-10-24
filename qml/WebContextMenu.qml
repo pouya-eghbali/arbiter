@@ -10,6 +10,7 @@ UiMenu {
     required property WebEngineView view
     property bool passwordsEnabled: true
     signal inspectRequested()
+    signal printRequested()
     signal passwordsRequested()
     signal passwordSuggestionRequested(var field)
     property int requestGeneration: 0
@@ -40,6 +41,14 @@ UiMenu {
             text: qsTr("Saved passwords…")
             enabled: contextMenu.passwordsEnabled && contextMenu.view.url.toString().startsWith("https://")
             onTriggered: contextMenu.passwordsRequested()
+        }
+    }
+    Component {
+        id: printItem
+        UiMenuItem {
+            objectName: "printPageAction"
+            text: qsTr("Print…")
+            onTriggered: contextMenu.printRequested()
         }
     }
     Component {
@@ -127,6 +136,7 @@ UiMenu {
             addWebAction(WebEngineView.Reload)
         }
         separator()
+        addItem(printItem.createObject(contextMenu.contentItem))
         addItem(passwordsItem.createObject(contextMenu.contentItem))
         const passwordIndex = count - 1
         separator()
