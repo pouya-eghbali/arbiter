@@ -15,7 +15,9 @@ jobs:
         os: [macOS, Windows, Linux]
     # Provisioned builders supply Qt 6.12, native compilers, Ninja, Python,
     # Bluetooth runtime dependencies, OpenSSL 3 and ARBITER_QT_PREFIX. Chromium needs
-    # substantially more disk/RAM than an ordinary application CI job.
+    # substantially more disk/RAM than an ordinary application CI job. Linux
+    # builders also supply compatible system FFmpeg development libraries;
+    # these libraries must not be copied into the uploaded SDK/application.
     runs-on: [self-hosted, '${{ matrix.os }}', arbiter-webengine]
     timeout-minutes: 720
     steps:
@@ -33,6 +35,8 @@ jobs:
           fi
       - name: Install build dependency
         run: python -m pip install html5lib==1.1
+      - name: Test codec packaging policy
+        run: python -m unittest discover -s engine -p test_media_policy.py
       - name: Build pinned SDK
         shell: bash
         run: python engine/build.py --qt-prefix "$ARBITER_QT_PREFIX" --jobs '${{ inputs.jobs }}'

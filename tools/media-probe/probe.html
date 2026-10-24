@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Arbiter media smoke test</title>
+<video id="video" muted playsinline controls style="width:100%;max-height:90vh"></video>
+<script>
+const fail = error => console.log('PROBE_FAIL ' + JSON.stringify({
+  name: error?.name, message: error?.message, code: error?.code, data: error?.data
+}));
+window.addEventListener('error', event => fail(event.error || {message: event.message}));
+window.addEventListener('unhandledrejection', event => fail(event.reason));
+async function probe() {
+  const video = document.querySelector('video');
+  const h264 = 'video/mp4; codecs="avc1.42E01E"';
+  const aac = 'audio/mp4; codecs="mp4a.40.2"';
+  const support = {h264: video.canPlayType(h264), aac: video.canPlayType(aac),
+    mseH264: MediaSource.isTypeSupported(h264), mseAac: MediaSource.isTypeSupported(aac)};
+  console.log('PROBE_CODECS ' + JSON.stringify(support));
+  if (!support.h264 || !support.aac || !support.mseH264 || !support.mseAac)
+    throw new Error('H.264/AAC support missing');
+  console.log('PROBE_PLAYER ' + shaka.Player.version);
+  const access = await navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{
+    initDataTypes: ['cenc'], sessionTypes: ['temporary'],
+    audioCapabilities: [{contentType: aac, robustness: 'SW_SECURE_CRYPTO'}],
+    videoCapabilities: [{contentType: h264, robustness: 'SW_SECURE_CRYPTO'}]
+  }]);
+  console.log('PROBE_WIDEVINE ' + JSON.stringify(access.getConfiguration()));
+  shaka.polyfill.installAll();
+  const player = new shaka.Player();
+  await player.attach(video);
+  player.addEventListener('error', event => fail(event.detail));
+  player.configure({
+    drm: {servers: {'com.widevine.alpha': 'https://cwip-shaka-proxy.appspot.com/no_auth'}},
+    preferredVideoCodecs: ['avc1'], preferredAudioCodecs: ['mp4a'],
+    abr: {enabled: false}
+  });
+  await player.load('https://storage.googleapis.com/shaka-demo-assets/angel-one-widevine/dash.mpd');
+  await video.play();
+  const timer = setInterval(() => {
+    const frames = video.getVideoPlaybackQuality().totalVideoFrames;
+    if (video.currentTime >= 3 && frames >= 15) {
+      clearInterval(timer);
+      const track = player.getVariantTracks().find(track => track.active);
+      if (!track?.videoCodec?.startsWith('avc1') || !track?.audioCodec?.startsWith('mp4a'))
+        return fail(new Error('Expected H.264/AAC track'));
+      console.log('PROBE_PASS ' + JSON.stringify({time: video.currentTime, frames,
+        keySystem: video.mediaKeys ? access.keySystem : null, track, stats: player.getStats()}));
+    }
+  }, 250);
+}
+</script>
+<!-- Public Shaka demo assets and license server; no accounts or private media. -->
+<script src="https://shaka-player-demo.appspot.com/dist/shaka-player.compiled.js"
+        onload="probe().catch(fail)" onerror="fail(new Error('Shaka download failed'))"></script>

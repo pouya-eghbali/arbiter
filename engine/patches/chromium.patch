@@ -87,3 +87,231 @@ index 90f7f44943..1965132ead 100644
        continue;
      }
      discovery->set_observer(this);
+diff --git a/chromium/media/BUILD.gn b/chromium/media/BUILD.gn
+index 10c65d1d0b..d4df6c4826 100644
+--- a/chromium/media/BUILD.gn
++++ b/chromium/media/BUILD.gn
+@@ -93,7 +93,7 @@ buildflag_header("media_buildflags") {
+ 
+ if (proprietary_codecs && media_use_ffmpeg) {
+   assert(
+-      ffmpeg_branding != "Chromium",
++      ffmpeg_branding != "Chromium" || (is_qtwebengine && (is_mac || is_win)),
+       "proprietary codecs and ffmpeg_branding set to Chromium are incompatible")
+ }
+ 
+diff --git a/chromium/media/base/BUILD.gn b/chromium/media/base/BUILD.gn
+index 442f6c8333..6187d4bf6c 100644
+--- a/chromium/media/base/BUILD.gn
++++ b/chromium/media/base/BUILD.gn
+@@ -45,6 +45,7 @@ jumbo_source_set("base") {
+   }
+ 
+   sources = [
++    "arbiter_aac_packet.h",
+     "agtm.cc",
+     "agtm.h",
+     "amplitude_peak_detector.cc",
+diff --git a/chromium/media/filters/mac/audio_toolbox_audio_decoder.cc b/chromium/media/filters/mac/audio_toolbox_audio_decoder.cc
+index 9a697b993a..5127e675b8 100644
+--- a/chromium/media/filters/mac/audio_toolbox_audio_decoder.cc
++++ b/chromium/media/filters/mac/audio_toolbox_audio_decoder.cc
+@@ -19,6 +19,7 @@
+ #include "base/memory/raw_ptr.h"
+ #include "base/task/bind_post_task.h"
+ #include "media/base/audio_buffer.h"
++#include "media/base/arbiter_aac_packet.h"
+ #include "media/base/audio_codecs.h"
+ #include "media/base/audio_discard_helper.h"
+ #include "media/base/channel_layout.h"
+@@ -44,14 +45,14 @@ bool CanUseAudioToolbox(const AudioDecoderConfig& config) {
+     return true;
+   }
+ #endif
+-  // We use AudioToolbox for decoding xHE-AAC content and that's available on
+-  // macOS 10.15 or higher.
+-  return config.profile() == AudioCodecProfile::kXHE_AAC;
++  // The OS supplies ordinary AAC and xHE-AAC decoding (macOS 10.15+).
++  return config.codec() == AudioCodec::kAAC;
+ }
+ 
+ struct InputData {
+   raw_ptr<DecoderBuffer> buffer = nullptr;
+   AudioStreamPacketDescription packet = {};
++  std::span<const uint8_t> payload;
+ };
+ 
+ // Special error code we use to differentiate real errors from end of buffer.
+@@ -71,11 +72,11 @@ OSStatus ProvideInputCallback(AudioConverterRef decoder,
+ 
+   *num_packets = buffer_list->mNumberBuffers = 1;
+   buffer_list->mBuffers[0].mNumberChannels = 0;
+-  buffer_list->mBuffers[0].mDataByteSize = input_data->buffer->size();
++  buffer_list->mBuffers[0].mDataByteSize = input_data->payload.size();
+ 
+   // No const version of this API unfortunately, so we need const_cast().
+   buffer_list->mBuffers[0].mData =
+-      const_cast<uint8_t*>(base::span(*input_data->buffer).data());
++      const_cast<uint8_t*>(input_data->payload.data());
+ 
+   if (packets)
+     *packets = &input_data->packet;
+@@ -120,7 +121,7 @@ void AudioToolboxAudioDecoder::Initialize(const AudioDecoderConfig& config,
+                                           const WaitingCB& waiting_cb) {
+   if (!CanUseAudioToolbox(config)) {
+     DLOG(WARNING)
+-        << "Only xHE-AAC/AC3/E-AC3 decoding is supported by this decoder.";
++        << "Only AAC/AC3/E-AC3 decoding is supported by this decoder.";
+     std::move(init_cb).Run(DecoderStatus::Codes::kUnsupportedCodec);
+     return;
+   }
+@@ -167,8 +168,18 @@ void AudioToolboxAudioDecoder::Decode(scoped_refptr<DecoderBuffer> buffer,
+ 
+   InputData input_data;
+   input_data.buffer = buffer.get();
+-  if (!buffer->end_of_stream())
+-    input_data.packet.mDataByteSize = buffer->size();
++  if (!buffer->end_of_stream()) {
++    input_data.payload = std::span<const uint8_t>(buffer->data(), buffer->size());
++    if (is_aac_) {
++      auto raw = ArbiterRawAacPacket(input_data.payload);
++      if (!raw) {
++        std::move(decode_cb_bound).Run(DecoderStatus::Codes::kMalformedBitstream);
++        return;
++      }
++      input_data.payload = *raw;
++    }
++    input_data.packet.mDataByteSize = input_data.payload.size();
++  }
+ 
+   // Must be filled in each time in case AudioConverterFillComplexBuffer()
+   // modified it during a previous call.
+@@ -233,14 +244,17 @@ bool AudioToolboxAudioDecoder::NeedsBitstreamConversion() const {
+ }
+ 
+ bool AudioToolboxAudioDecoder::CreateDecoder(const AudioDecoderConfig& config) {
++  is_aac_ = config.codec() == AudioCodec::kAAC;
+   AudioStreamBasicDescription input_format = {};
+   std::vector<uint8_t> magic_cookie;
+ 
+   switch (config.codec()) {
+     case AudioCodec::kAAC: {
+-      // Input is xHE-AAC / USAC.
+-      CHECK_EQ(config.profile(), AudioCodecProfile::kXHE_AAC);
+-      input_format.mFormatID = kAudioFormatMPEGD_USAC;
++      // Use the OS for ordinary AAC as well as xHE-AAC. No AAC decoder
++      // implementation is linked into Arbiter's FFmpeg build.
++      input_format.mFormatID = config.profile() == AudioCodecProfile::kXHE_AAC
++                                  ? kAudioFormatMPEGD_USAC
++                                  : kAudioFormatMPEG4AAC;
+       magic_cookie = mp4::ESDescriptor::CreateEsds(config.extra_data());
+ 
+       // Have macOS fill in the rest of the input_format for us.
+@@ -376,7 +390,9 @@ bool AudioToolboxAudioDecoder::CreateDecoder(const AudioDecoderConfig& config) {
+           << "AudioConverterSetProperty() failed";
+       return false;
+     }
++  }
+ 
++  if (config.profile() == AudioCodecProfile::kXHE_AAC) {
+     // macOS doesn't provide a default target loudness. Use the value
+     // recommended by Fraunhofer. AC3/E-AC3 doesn't support set this,
+     // so limit this to xHE-AAC only.
+diff --git a/chromium/media/filters/mac/audio_toolbox_audio_decoder.h b/chromium/media/filters/mac/audio_toolbox_audio_decoder.h
+index 448fe2e2eb..0c17c7d189 100644
+--- a/chromium/media/filters/mac/audio_toolbox_audio_decoder.h
++++ b/chromium/media/filters/mac/audio_toolbox_audio_decoder.h
+@@ -70,6 +70,7 @@ class MEDIA_EXPORT AudioToolboxAudioDecoder : public AudioDecoder {
+ 
+   // Actual sample rate from the decoder, may be different than config.
+   uint32_t sample_rate_ = 0u;
++  bool is_aac_ = false;
+ 
+   // Callback that delivers output frames.
+   OutputCB output_cb_;
+diff --git a/chromium/media/filters/win/media_foundation_audio_decoder.cc b/chromium/media/filters/win/media_foundation_audio_decoder.cc
+index 0767af51a2..c454c68e97 100644
+--- a/chromium/media/filters/win/media_foundation_audio_decoder.cc
++++ b/chromium/media/filters/win/media_foundation_audio_decoder.cc
+@@ -24,6 +24,7 @@
+ #include "base/win/scoped_co_mem.h"
+ #include "base/win/windows_version.h"
+ #include "media/base/audio_buffer.h"
++#include "media/base/arbiter_aac_packet.h"
+ #include "media/base/audio_discard_helper.h"
+ #include "media/base/audio_sample_types.h"
+ #include "media/base/limits.h"
+@@ -106,7 +107,7 @@ std::optional<MFT_REGISTER_TYPE_INFO> GetTypeInfo(
+ #endif
+ #if BUILDFLAG(USE_PROPRIETARY_CODECS)
+     case AudioCodec::kAAC:
+-      if (config.profile() == AudioCodecProfile::kXHE_AAC &&
++      if (config.profile() != AudioCodecProfile::kXHE_AAC ||
+           base::win::GetVersion() >= base::win::Version::WIN11_22H2) {
+         return MFT_REGISTER_TYPE_INFO{MFMediaType_Audio, MFAudioFormat_AAC};
+       }
+@@ -121,7 +122,13 @@ std::optional<MFT_REGISTER_TYPE_INFO> GetTypeInfo(
+   }
+ }
+ 
+-bool PopulateInputSample(IMFSample* sample, const DecoderBuffer& input) {
++bool PopulateInputSample(IMFSample* sample, const DecoderBuffer& input, bool aac) {
++  std::span<const uint8_t> payload(input.data(), input.size());
++  if (aac) {
++    auto raw = ArbiterRawAacPacket(payload);
++    if (!raw) return false;
++    payload = *raw;
++  }
+   Microsoft::WRL::ComPtr<IMFMediaBuffer> buffer;
+   HRESULT hr = sample->GetBufferByIndex(0, &buffer);
+   RETURN_ON_HR_FAILURE(hr, "Failed to get buffer from sample", false);
+@@ -137,11 +144,11 @@ bool PopulateInputSample(IMFSample* sample, const DecoderBuffer& input) {
+   auto destination = UNSAFE_BUFFERS(base::span(destination_ptr, max_length));
+ 
+   RETURN_ON_FAILURE(!current_length, "Input length is zero", false);
+-  RETURN_ON_FAILURE(input.size() <= max_length, "Input length is too long",
++  RETURN_ON_FAILURE(payload.size() <= max_length, "Input length is too long",
+                     false);
+-  destination.copy_prefix_from(input);
++  destination.copy_prefix_from(base::span(payload.data(), payload.size()));
+ 
+-  hr = buffer->SetCurrentLength(input.size());
++  hr = buffer->SetCurrentLength(payload.size());
+   RETURN_ON_HR_FAILURE(hr, "Failed to set buffer length", false);
+ 
+   hr = buffer->Unlock();
+@@ -272,7 +279,7 @@ void MediaFoundationAudioDecoder::Decode(scoped_refptr<DecoderBuffer> buffer,
+     return;
+   }
+ 
+-  if (!PopulateInputSample(sample.Get(), *buffer)) {
++  if (!PopulateInputSample(sample.Get(), *buffer, config_.codec() == AudioCodec::kAAC)) {
+     std::move(decode_cb_bound).Run(DecoderStatus::Codes::kFailed);
+     return;
+   }
+diff --git a/chromium/media/mojo/services/gpu_mojo_media_client_mac.cc b/chromium/media/mojo/services/gpu_mojo_media_client_mac.cc
+index b8f59f2f58..bd3654cd69 100644
+--- a/chromium/media/mojo/services/gpu_mojo_media_client_mac.cc
++++ b/chromium/media/mojo/services/gpu_mojo_media_client_mac.cc
+@@ -33,6 +33,7 @@ class GpuMojoMediaClientMac final : public GpuMojoMediaClient {
+   std::optional<SupportedAudioDecoderConfigs>
+   GetPlatformSupportedAudioDecoderConfigs() final {
+     SupportedAudioDecoderConfigs audio_configs;
++    audio_configs.emplace_back(AudioCodec::kAAC, AudioCodecProfile::kUnknown);
+     audio_configs.emplace_back(AudioCodec::kAAC, AudioCodecProfile::kXHE_AAC);
+ #if BUILDFLAG(ENABLE_PLATFORM_AC3_EAC3_AUDIO)
+     audio_configs.emplace_back(AudioCodec::kAC3, AudioCodecProfile::kUnknown);
+diff --git a/chromium/media/mojo/services/gpu_mojo_media_client_win.cc b/chromium/media/mojo/services/gpu_mojo_media_client_win.cc
+index bd33420bde..982449ff62 100644
+--- a/chromium/media/mojo/services/gpu_mojo_media_client_win.cc
++++ b/chromium/media/mojo/services/gpu_mojo_media_client_win.cc
+@@ -101,6 +101,9 @@ class GpuMojoMediaClientWin final : public GpuMojoMediaClient {
+     }
+ #endif  // BUILDFLAG (ENABLE_PLATFORM_AC3_EAC3_AUDIO)
+ 
++    if (InitializeMediaFoundation()) {
++      audio_configs.emplace_back(AudioCodec::kAAC, AudioCodecProfile::kUnknown);
++    }
+     if (base::win::GetVersion() >= base::win::Version::WIN11_22H2 &&
+         InitializeMediaFoundation()) {
+       audio_configs.emplace_back(AudioCodec::kAAC, AudioCodecProfile::kXHE_AAC);

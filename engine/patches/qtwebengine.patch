@@ -1,5 +1,5 @@
 diff --git a/src/core/CMakeLists.txt b/src/core/CMakeLists.txt
-index e24c961..f9a1ae6 100644
+index e24c961..1541c80 100644
 --- a/src/core/CMakeLists.txt
 +++ b/src/core/CMakeLists.txt
 @@ -200,6 +200,7 @@ foreach(arch ${archs})
@@ -10,6 +10,29 @@ index e24c961..f9a1ae6 100644
                  authenticator_request_client_delegate_qt.cpp authenticator_request_client_delegate_qt.h
                  authenticator_request_dialog_controller.cpp authenticator_request_dialog_controller.h authenticator_request_dialog_controller_p.h
                  content_settings_manager_qt.cpp content_settings_manager_qt.h
+@@ -428,11 +429,20 @@ foreach(arch ${archs})
+             CONDITION QT_FEATURE_webengine_kerberos
+         )
+         extend_gn_list(gnArgArg
+-            ARGS proprietary_codecs rtc_use_h264
++            ARGS proprietary_codecs
+             CONDITION QT_FEATURE_webengine_proprietary_codecs
+         )
++        # Expose H.264/AAC formats without shipping their software decoders.
++        # WebRTC must not pull in a bundled OpenH264 encoder either.
++        list(APPEND gnArgArg rtc_use_h264=false media_use_openh264=false)
+         if(QT_FEATURE_webengine_proprietary_codecs)
+-            list(APPEND gnArgArg ffmpeg_branding="Chrome")
++            if(MACOS OR WIN32)
++                list(APPEND gnArgArg ffmpeg_branding="Chromium")
++            elseif(LINUX AND QT_FEATURE_webengine_system_ffmpeg)
++                list(APPEND gnArgArg ffmpeg_branding="Chrome")
++            else()
++                message(FATAL_ERROR "Arbiter H.264/AAC requires native decoders or system FFmpeg; bundled codecs are forbidden")
++            endif()
+         endif()
+         extend_gn_list(gnArgArg
+             ARGS use_browser_spellchecker
 diff --git a/src/core/api/qtwebenginecoreglobal.h b/src/core/api/qtwebenginecoreglobal.h
 index 334d53d..3b51b78 100644
 --- a/src/core/api/qtwebenginecoreglobal.h

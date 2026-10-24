@@ -232,6 +232,43 @@ The development build uses the installed Qt runtime. Shipping a standalone app
 will require deployment of Qt libraries, QML plugins, WebEngine resources and
 helpers, followed by platform signing/notarization.
 
+## DRM video and codecs
+
+Arbiter's patched WebEngine SDK exposes H.264/AAC formats while relying on
+operating-system decoders on macOS/Windows and system-installed FFmpeg on Linux.
+It excludes bundled H.264/AAC decoders and the bundled OpenH264 encoder.
+H.264 WebRTC encoding/decoding is disabled; WebRTC uses other supported codecs.
+Stock Qt builds may omit format support; an application-only rebuild cannot
+enable formats missing from the engine. On Linux, compatible FFmpeg development
+packages are required at build time and shared libraries at runtime. These
+libraries must be installed separately, rather than copied into Arbiter's bundle.
+Systems without suitable decoders cannot play those formats; there is no bundled
+software fallback. Standalone raw AAC/ADTS playback is not part of the native
+decoder integration; the playback probe checks H.264/AAC in DASH/MP4.
+
+Widevine is not bundled or downloaded by Arbiter. Qt searches for an installed
+CDM at engine startup, including Chrome's standard installation on macOS and
+Windows and supported browser/distro locations on Linux. Install Chrome in its
+standard location and restart Arbiter before testing protected video. Detection
+depends on Qt's search paths; not every browser installation or CPU architecture
+is supported. An explicit local library can be selected before launch using
+`QTWEBENGINE_CHROMIUM_FLAGS="--widevine-path=/absolute/path/to/library"`.
+The library filename is `libwidevinecdm.dylib` on macOS, `widevinecdm.dll` on
+Windows, and `libwidevinecdm.so` on Linux. Its architecture and CDM interface must
+be compatible with the running engine. CDM discovery does not guarantee that a
+particular streaming service will authorize playback or offer HD/4K.
+
+Using OS/system libraries avoids bundling codec implementations; it does not
+establish a blanket exemption from applicable patent and software licenses.
+Deployment tools must preserve this boundary: do not bundle system FFmpeg or a
+Widevine CDM. See
+[Qt's codec and DRM documentation](https://doc.qt.io/qt-6/qtwebengine-features.html#html5-drm).
+
+The manual [media probe](tools/media-probe/README.md) checks H.264/AAC support,
+Widevine negotiation, and actual encrypted playback using public test media.
+See the [developer guide](docs/media-integration.md) for decoder paths, build
+flags, packaging checks, troubleshooting, and platform validation status.
+
 ## Controls
 
 - Cmd+L on macOS / Ctrl+L elsewhere: open the address editor, or focus the empty

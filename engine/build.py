@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+from media_policy import verify as verify_media_policy
 
 HERE = Path(__file__).resolve().parent
 MANIFEST = json.loads((HERE / "manifest.json").read_text())
@@ -93,9 +94,14 @@ def main():
     if args.prepare_only: return
     flags = ["-DCMAKE_BUILD_TYPE=Release", "-DQT_BUILD_EXAMPLES=OFF", "-DQT_BUILD_TESTS=OFF",
              "-DFEATURE_qtwebengine_build=ON", "-DFEATURE_qtpdf_build=OFF",
+             "-DFEATURE_webengine_proprietary_codecs=ON",
              "-DQT_SHOW_EXTRA_IDE_SOURCES=OFF",
              f"-DPython3_EXECUTABLE={sys.executable}", f"-DCMAKE_PREFIX_PATH={args.qt_prefix}",
              f"-DCMAKE_INSTALL_PREFIX={sdk}"]
+    # Linux codec implementations must come from the user's system packages.
+    # On macOS/Windows the patch uses native decoders and codec-free FFmpeg.
+    flags += ["-DFEATURE_webengine_system_ffmpeg=" +
+              ("ON" if sys.platform.startswith("linux") else "OFF")]
     if sys.platform != "win32":
         # This development SDK contains WebEngine only. Its helper is a separate
         # executable and cannot inherit the application's RPATH to base Qt.
@@ -112,6 +118,7 @@ def main():
     run("cmake", "-G", "Ninja", "-S", source, "-B", build, *flags)
     if args.configure_only: return
     run("cmake", "--build", build, "--parallel", args.jobs)
+    verify_media_policy(source, build)
     run("cmake", "--install", build)
     if sys.platform == "darwin": configure_macos_helper(sdk, args.qt_prefix)
     shutil.copyfile(HERE / "manifest.json", sdk / "arbiter-engine-manifest.json")

@@ -166,7 +166,15 @@ metadata can cause Chromium to disable Bluetooth discovery.
 Install native Qt WebEngine prerequisites for the target OS, Ninja, Python 3,
 and base Qt 6.12.0. See [Qt's platform requirements](https://doc.qt.io/qt-6/qtwebengine-platform-notes.html).
 The source checkout and SDK are isolated from the installed Qt kit. The driver
-builds WebEngine and excludes the separate, unused QtPdf module:
+builds WebEngine and excludes the separate, unused QtPdf module.
+
+The same SDK exposes H.264/AAC formats using native macOS/Windows decoders,
+with Chromium's FFmpeg configuration that omits their software decoders. Linux builds require system
+FFmpeg and fail configuration if it is unavailable. Bundled H.264/AAC decoders
+and OpenH264 encoding are excluded; see the README's DRM section and manual
+media probe for playback validation. The proprietary-format feature flag
+enables format negotiation, not permission to bundle codec implementations.
+See the [media developer guide](media-integration.md) for implementation and tests.
 
 ```sh
 python3 -m venv build-engine-python
