@@ -19,13 +19,15 @@ Basic.ApplicationWindow {
     property bool temporaryPill: false
     readonly property bool canSharePage: webView && browserPreferences.shareableUrl(webView.url).toString().length > 0
     property bool uiReady: false
-    Component.onCompleted: { uiReady = true; if (privateCovered) privateShield.forceActiveFocus() }
+    Component.onCompleted: { downloads.setBlocked(privateCovered); uiReady = true; if (privateCovered) privateShield.forceActiveFocus() }
     onPrivateCoveredChanged: {
+        downloads.setBlocked(privateCovered)
         if (!uiReady) return
         if (privateCovered) {
             sitePermissionQueue.clear()
             desktopSharePanel.cancel()
             nativeShare.cancel()
+            downloadsPanel.close()
             temporaryPill = false
             splitWithPicker.close(); workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.close()
             biometricSetup.close(); passkeySetup.close(); tutorial.close()
@@ -64,6 +66,7 @@ Basic.ApplicationWindow {
     required property var tabs
     required property var tabSleep
     required property var history
+    required property var downloads
     required property var onboarding
     required property var adblocker
     required property var browserPreferences
@@ -186,6 +189,7 @@ Basic.ApplicationWindow {
     }
 
     function prepareForShutdown() {
+        downloadsPanel.close()
         nativeShare.cancel()
         temporaryPill = false
         splitWithPicker.close()
@@ -271,6 +275,16 @@ Basic.ApplicationWindow {
         temporaryPill = true
         Qt.callLater(function() { if (!window.privateCovered && !window.settingsOpen && !window.shuttingDown) navigationPill.reveal() })
     }
+    function showDownloads() {
+        if (privateCovered || shuttingDown || window.webauthn.active || sitePermissionQueue.active || desktopSharePanel.request || extensionReview.visible) return
+        nativeShare.cancel()
+        splitWithPicker.close()
+        if (webView) passwordPanel.cancelFor(webView)
+        addressPopup.close(); tabsPopup.close(); historyPanel.close(); workspacePanel.close(); extensionPanel.close()
+        navigationPill.dismissMenu()
+        downloadsPanel.open()
+    }
+    Shortcut { sequence: window.bindings.downloads; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.showDownloads() }
     function showExtensions() {
         if (privateMode || privateCovered || settingsOpen || shuttingDown || window.webauthn.active || sitePermissionQueue.active || desktopSharePanel.request) return
         nativeShare.cancel()
@@ -1107,7 +1121,7 @@ Basic.ApplicationWindow {
                         spacing: 8
                         Repeater {
                             id: settingsNavigation
-                            model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions")]
+                            model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads")]
                             delegate: UiButton {
                                 id: categoryButton
                                 required property int index
@@ -1155,7 +1169,7 @@ Basic.ApplicationWindow {
                     width: Math.min(720, settingsScroll.availableWidth)
                     spacing: 24
                     Basic.Label {
-                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions")][window.settingsCategory]
+                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads")][window.settingsCategory]
                         font.pixelSize: 28
                         font.weight: Font.DemiBold
                         color: Theme.text
@@ -1613,6 +1627,12 @@ Basic.ApplicationWindow {
                             wrapMode: Text.Wrap
                         }
                     }
+                    DownloadsSettings {
+                        visible: window.settingsCategory === 9
+                        Layout.fillWidth: true
+                        manager: window.downloads
+                        onShowRequested: window.showDownloads()
+                    }
                     ExtensionsPage {
                         visible: window.settingsCategory === 8
                         Layout.fillWidth: true
@@ -1827,6 +1847,8 @@ Basic.ApplicationWindow {
         onPasswordsRequested: window.openPasswords()
         onSettingsRequested: window.openSettings()
         onHistoryRequested: window.openHistory()
+        activeDownloads: window.downloads.activeCount
+        onDownloadsRequested: window.showDownloads()
         onWorkspacesRequested: window.openWorkspaces()
         onSplitHorizontalRequested: window.splitHorizontal()
         onSplitVerticalRequested: window.splitVertical()
@@ -1834,6 +1856,15 @@ Basic.ApplicationWindow {
         privateMode: window.privateMode
         onPrivateWindowRequested: window.newPrivateWindow()
         onLockPrivateRequested: window.lockPrivateWindow()
+    }
+    DownloadsPanel {
+        id: downloadsPanel
+        objectName: "downloadsPanel"
+        manager: window.downloads
+    }
+    Connections {
+        target: window.downloads
+        function onStarted() { if (!window.settingsOpen) window.showDownloads() }
     }
     ExtensionReview {
         id: extensionReview

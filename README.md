@@ -8,8 +8,7 @@ The browser has tabs, workspaces, nested split views, an address/search field, b
 reload/stop, loading progress, a persistent local browser profile, and a local
 password manager backed by QtKeychain. It starts
 on a blank page. Search defaults to DuckDuckGo and is configurable. Favicons
-and enabled ad-block filter lists may be fetched in the background. Downloads and credential sync
-are not implemented yet. The required patched-engine integration adds Arbiter
+and enabled ad-block filter lists may be fetched in the background. Credential sync is not implemented yet. The required patched-engine integration adds Arbiter
 passkeys and Chromium's phone QR transport. The custom runtime builds on Apple
 Silicon macOS and passes browser passkey registration/sign-in tests; phone
 sign-in on GitHub was also confirmed manually with an iPhone. Windows/Linux
@@ -549,3 +548,14 @@ PDF links and local PDF files open in Chromium's built-in viewer inside the tab,
 including split panes and private windows. WebEngine's `pluginsEnabled` and
 `pdfViewerEnabled` settings are enabled on browser views. The SDK already includes
 `webengine_printing_and_pdf`; the separate QtPdf module is not required for viewing.
+
+### Downloads
+
+Use the pill’s **Downloads…** menu or **Cmd+Shift+J** on macOS / **Ctrl+J** on
+Windows/Linux (customizable in Keyboard settings). Downloads show progress,
+pause/resume, cancel, retry for resumable interruptions, Open, and Show in folder.
+**Settings → Downloads** chooses the destination; the default is the OS Downloads
+folder. Existing files receive numbered alternatives. Completed files never open
+automatically. Regular history survives restarts; private lists belong only to
+their private window. Clearing the list keeps saved files. See
+[download development notes](docs/downloads.md) for lifecycle and platform details.

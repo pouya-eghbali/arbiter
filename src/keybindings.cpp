@@ -6,11 +6,13 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
 {
 #ifdef Q_OS_MACOS
     const QKeySequence fullscreen(QStringLiteral("Ctrl+Meta+F"));
+    const QKeySequence downloadsKey(QStringLiteral("Ctrl+Shift+J"));
     const QString tabModifier = QStringLiteral("Meta+");
     const QKeySequence back(QStringLiteral("Ctrl+Left")), forward(QStringLiteral("Ctrl+Right"));
     const QKeySequence pageTop(QStringLiteral("Ctrl+Up")), pageBottom(QStringLiteral("Ctrl+Down"));
 #else
     const QKeySequence fullscreen(QStringLiteral("F11"));
+    const QKeySequence downloadsKey(QStringLiteral("Ctrl+J"));
     const QString tabModifier = QStringLiteral("Ctrl+");
     const QKeySequence back(QKeySequence::Back), forward(QKeySequence::Forward);
     const QKeySequence pageTop(QStringLiteral("Ctrl+Home")), pageBottom(QStringLiteral("Ctrl+End"));
@@ -21,6 +23,7 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
     add("address", "Edit address", QKeySequence(QStringLiteral("Ctrl+L")));
     add("showNavigation", "Show navigation pill", QKeySequence(QStringLiteral("Ctrl+Shift+L")));
     add("sharePage", "Share current page", QKeySequence(QStringLiteral("Ctrl+Shift+S")));
+    add("downloads", "Show downloads", downloadsKey);
     add("extensions", "Show extensions", QKeySequence(QStringLiteral("Ctrl+Shift+X")));
     add("settings", "Settings", QKeySequence(QStringLiteral("Ctrl+,")));
     add("passwords", "Fill or save login", QKeySequence(QStringLiteral("Ctrl+Shift+P")));

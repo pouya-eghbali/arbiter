@@ -31,6 +31,7 @@
 #include "systemintegration.h"
 #include <QEventLoop>
 #include "history.h"
+#include "downloads.h"
 #include "browserimporter.h"
 #include "browserimportselection.h"
 #include "browsericons.h"
@@ -43,8 +44,8 @@ void configureMacWindow(QWindow *window);
 
 // Declare the engine last: it releases every page before its models/profiles.
 struct PrivateWindowState final : QObject {
-    explicit PrivateWindowState(PrivateBrowsing *privacy, QObject *parent) : QObject(parent),
-        workspaces(&tabs,QString()), history(QString()) {
+    explicit PrivateWindowState(PrivateBrowsing *privacy, DownloadSettings *downloadSettings, QObject *parent) : QObject(parent),
+        workspaces(&tabs,QString()), downloads(downloadSettings,QString()), history(QString()) {
         profiles.privateMode=true;
         auto *auth=createBiometricAuth(this);
         session=new PrivateSession(privacy,auth,this);
@@ -53,6 +54,7 @@ struct PrivateWindowState final : QObject {
     }
     Tabs tabs;
     Workspaces workspaces;
+    Downloads downloads;
     WebProfiles profiles;
     History history;
     WebAuthnController webauthn;
@@ -92,9 +94,11 @@ int main(int argc, char *argv[])
     TabSleepSettings tabSleep;
     PrivateBrowsing privacy;
     Workspaces workspaces(&tabs);
+    DownloadSettings downloadSettings;
+    Downloads downloads(&downloadSettings);
     WebProfiles webProfiles;
     SitePermissionSettings sitePermissionSettings;
-    webProfiles.profileCreated=[&sitePermissionSettings](QQuickWebEngineProfile *profile) { sitePermissionSettings.trackProfile(profile); };
+    webProfiles.profileCreated=[&sitePermissionSettings,&downloads](QQuickWebEngineProfile *profile) { sitePermissionSettings.trackProfile(profile); downloads.trackProfile(profile); };
     History history;
     PasswordManager passwords;
     BrowserImporter importer(&passwords,&history);
@@ -168,6 +172,7 @@ int main(int argc, char *argv[])
                                  {QStringLiteral("webProfiles"), QVariant::fromValue(&webProfiles)},
                                  {QStringLiteral("sitePermissionSettings"), QVariant::fromValue(&sitePermissionSettings)},
                                  {QStringLiteral("history"), QVariant::fromValue(&history)},
+                                 {QStringLiteral("downloads"), QVariant::fromValue(&downloads)},
                                  {QStringLiteral("passwords"), QVariant::fromValue(&passwords)},
                                  {QStringLiteral("importer"), QVariant::fromValue(&importer)},
                                  {QStringLiteral("webauthn"), QVariant::fromValue(&webauthn)},
@@ -185,9 +190,9 @@ int main(int argc, char *argv[])
         QObject *root = engine.rootObjects().first();
         QObject::connect(root,SIGNAL(preferencesRequested()),root,SLOT(openSettings()));
         QObject::connect(&privacy,&PrivateBrowsing::openRequested,&app,[&,root,initialProperties] {
-            auto *state=new PrivateWindowState(&privacy,&privateWindows);
+            auto *state=new PrivateWindowState(&privacy,&downloadSettings,&privateWindows);
             state->profiles.userAgent=userAgent;
-            state->profiles.profileCreated=[&sitePermissionSettings](QQuickWebEngineProfile *profile) { sitePermissionSettings.trackProfile(profile); };
+            state->profiles.profileCreated=[&sitePermissionSettings,state](QQuickWebEngineProfile *profile) { sitePermissionSettings.trackProfile(profile); state->downloads.trackProfile(profile); };
 #ifdef ARBITER_WEBENGINE_QML_PATH
             state->engine.addImportPath(QString::fromUtf8(ARBITER_WEBENGINE_QML_PATH));
 #endif
@@ -198,6 +203,7 @@ int main(int argc, char *argv[])
             properties["workspaces"]=QVariant::fromValue(&state->workspaces);
             properties["webProfiles"]=QVariant::fromValue(&state->profiles);
             properties["history"]=QVariant::fromValue(&state->history);
+            properties["downloads"]=QVariant::fromValue(&state->downloads);
             properties["webauthn"]=QVariant::fromValue(&state->webauthn);
             properties["passkeys"]=QVariant::fromValue(&state->passkeys);
             properties["browserDiagnostics"]=false;
