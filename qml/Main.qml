@@ -868,6 +868,9 @@ Basic.ApplicationWindow {
                         layer.enabled: true
                         visible: false
                     }
+                    // Chromium’s built-in PDF viewer requires plugin support.
+                    settings.pluginsEnabled: true
+                    settings.pdfViewerEnabled: true
                     settings.focusOnNavigationEnabled: index === window.tabs.currentIndex && url.toString() !== "about:blank"
                     url: initialUrl
                     backgroundColor: window.color

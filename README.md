@@ -542,3 +542,10 @@ and are excluded from private browsing. Store listings show **Add to Arbiter**;
 downloads are signature-verified and require permission review before enabling.
 Automatic updates and full Chrome API compatibility are not provided yet. See
 [extension development notes](docs/extensions.md) for supported behavior and tests.
+
+### PDF viewing
+
+PDF links and local PDF files open in Chromium's built-in viewer inside the tab,
+including split panes and private windows. WebEngine's `pluginsEnabled` and
+`pdfViewerEnabled` settings are enabled on browser views. The SDK already includes
+`webengine_printing_and_pdf`; the separate QtPdf module is not required for viewing.
