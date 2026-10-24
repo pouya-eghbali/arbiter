@@ -34,6 +34,7 @@ FocusScope {
     signal passwordsRequested()
     signal settingsRequested()
     signal historyRequested()
+    signal developerToolsRequested()
     signal downloadsRequested()
     property int activeDownloads: 0
     signal workspacesRequested()
@@ -168,6 +169,7 @@ FocusScope {
         UiMenuItem { text: pill.adBlockActive ? qsTr("Pause ad blocking in this view") : qsTr("Resume ad blocking in this view"); enabled: pill.adBlockEnabled; onTriggered: pill.adBlockRequested() }
         UiMenuItem { text: qsTr("Share current page…"); enabled: pill.canShare; onTriggered: pill.shareRequested() }
         UiMenuItem { text: qsTr("Extensions…"); visible: !pill.privateMode; onTriggered: pill.extensionsRequested() }
+        UiMenuItem { text: qsTr("Developer tools…"); onTriggered: pill.developerToolsRequested() }
         UiMenuItem { text: pill.activeDownloads > 0 ? qsTr("Downloads (%1 active)…").arg(pill.activeDownloads) : qsTr("Downloads…"); onTriggered: pill.downloadsRequested() }
         UiMenuItem { text: qsTr("History…"); onTriggered: pill.historyRequested() }
         UiMenuItem { text: qsTr("Passwords…"); onTriggered: pill.passwordsRequested() }

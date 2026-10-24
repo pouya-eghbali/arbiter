@@ -28,6 +28,7 @@ Basic.ApplicationWindow {
             desktopSharePanel.cancel()
             nativeShare.cancel()
             downloadsPanel.close()
+            developerTools.close()
             temporaryPill = false
             splitWithPicker.close(); workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.close()
             biometricSetup.close(); passkeySetup.close(); tutorial.close()
@@ -106,7 +107,7 @@ Basic.ApplicationWindow {
         Qt.callLater(function() { categoryScroll.revealCategory(window.settingsCategory) })
     }
     onSettingsOpenChanged: {
-        if (uiReady && settingsOpen) { desktopSharePanel.cancel(); nativeShare.cancel(); temporaryPill = false }
+        if (uiReady && settingsOpen) { developerTools.close(); desktopSharePanel.cancel(); nativeShare.cancel(); temporaryPill = false }
         if (uiReady && !settingsOpen) clearPrivacyFields()
         if (importer && !settingsOpen && !importer.importing) importer.cancel()
     }
@@ -189,6 +190,7 @@ Basic.ApplicationWindow {
     }
 
     function prepareForShutdown() {
+        developerTools.close()
         downloadsPanel.close()
         nativeShare.cancel()
         temporaryPill = false
@@ -284,6 +286,7 @@ Basic.ApplicationWindow {
         navigationPill.dismissMenu()
         downloadsPanel.open()
     }
+    Shortcut { sequence: window.bindings.developerTools; enabled: !window.privateCovered && !window.settingsOpen && !window.shuttingDown && window.recordingIndex < 0; onActivated: window.toggleDeveloperTools() }
     Shortcut { sequence: window.bindings.downloads; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.showDownloads() }
     function showExtensions() {
         if (privateMode || privateCovered || settingsOpen || shuttingDown || window.webauthn.active || sitePermissionQueue.active || desktopSharePanel.request) return
@@ -457,6 +460,7 @@ Basic.ApplicationWindow {
         for (let i = first; i <= last; ++i) {
             const view = tabViews.itemAt(i) as WebEngineView
             if (!view) continue
+            developerTools.closeFor(view)
             webAuthnPanel.cancelFor(view)
             passwordPanel.cancelFor(view)
             // Repeater detaches delegates before their deferred destruction.
@@ -588,6 +592,12 @@ Basic.ApplicationWindow {
             toggleSettings()
     }
 
+    function toggleDeveloperTools() {
+        if (privateCovered || settingsOpen || shuttingDown || !webView) return
+        if (developerTools.target === webView) { developerTools.close(); focusPage() }
+        else developerTools.openFor(webView)
+    }
+
     function openPasswords() {
         if (privateCovered) return;
         splitWithPicker.close()
@@ -708,6 +718,7 @@ Basic.ApplicationWindow {
         id: splitViewport
         objectName: "splitViewport"
         anchors.fill: parent
+        anchors.bottomMargin: developerTools.height + (window.splits.multiple ? 4 : 0)
         // Half the divider width keeps the complete pane stroke inside the
         // native window curve, with the same spacing around the whole layout.
         anchors.margins: window.splits.multiple ? 4 : 0
@@ -818,7 +829,7 @@ Basic.ApplicationWindow {
                         objectName: "tabSleep" + page.tabId
                         view: page
                         timeoutSeconds: window.tabSleep.timeoutSeconds
-                        keepAwake: page.inSplit || page === window.webView
+                        keepAwake: page.inSplit || page === window.webView || page === developerTools.target
                     }
                     property string historyVisitId: ""
                     property string historyUrl: ""
@@ -864,8 +875,8 @@ Basic.ApplicationWindow {
                     readonly property bool inSplit: paneGeometry.paneId !== undefined
                     x: inSplit ? paneGeometry.x : 0
                     y: inSplit ? paneGeometry.y : 0
-                    width: inSplit ? Math.max(0, paneGeometry.width) : window.width
-                    height: inSplit ? Math.max(0, paneGeometry.height) : window.height
+                    width: inSplit ? Math.max(0, paneGeometry.width) : splitViewport.width
+                    height: inSplit ? Math.max(0, paneGeometry.height) : splitViewport.height
                     onActiveFocusChanged: if (activeFocus && inSplit && !window.settingsOpen && !window.changingTabs && !window.shuttingDown) window.splits.activate(paneGeometry.paneId)
                     visible: (tabsPopup.visible && workspaceId === window.focusedWorkspaceId) || (inSplit && !window.settingsOpen && url.toString() !== "about:blank")
                     z: 1
@@ -935,6 +946,12 @@ Basic.ApplicationWindow {
                         id: pageContextMenu
                         view: page
                         passwordsEnabled: window.passwords.enabled
+                        onInspectRequested: {
+                            if (!window.privateCovered && !window.shuttingDown && !window.settingsOpen) {
+                                window.splits.activate(page.paneGeometry.paneId)
+                                developerTools.openFor(page, true)
+                            }
+                        }
                         onPasswordsRequested: Qt.callLater(window.openPasswords)
                         onPasswordSuggestionRequested: function(field) {
                             if (page === window.webView && !window.privateCovered && !window.settingsOpen)
@@ -964,6 +981,7 @@ Basic.ApplicationWindow {
                         else webAuthnPanel.show(page, request)
                     }
                     Component.onDestruction: {
+                        developerTools.closeFor(page)
                         sitePermissionQueue.cancelFor(page)
                         desktopSharePanel.cancelFor(page)
                         nativeShare.cancelFor(page)
@@ -1047,6 +1065,16 @@ Basic.ApplicationWindow {
         }
     }
 
+    DeveloperToolsDock {
+        id: developerTools
+        objectName: "developerTools"
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        maximumHeight: Math.max(160, window.height - 160)
+        onPageFocusRequested: window.focusPage()
+    }
+
     component ModalPanel: GlassSurface { radius: 18 }
 
     component ModalBackdrop: Rectangle {
@@ -1056,6 +1084,7 @@ Basic.ApplicationWindow {
     Rectangle {
         id: homePage
         anchors.fill: parent
+        anchors.bottomMargin: developerTools.height
         visible: window.emptyPage && !window.settingsOpen && !window.splits.multiple
         color: "transparent"
 
@@ -1825,7 +1854,7 @@ Basic.ApplicationWindow {
         objectName: "navigationPill"
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 12
+        anchors.bottomMargin: developerTools.height + 12
         z: 21
         visible: (window.appearance.navigationPill || window.temporaryPill) && (!window.emptyPage || window.temporaryPill) && !window.settingsOpen
             && !window.webauthn.active && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible
@@ -1848,6 +1877,7 @@ Basic.ApplicationWindow {
         onSettingsRequested: window.openSettings()
         onHistoryRequested: window.openHistory()
         activeDownloads: window.downloads.activeCount
+        onDeveloperToolsRequested: window.toggleDeveloperTools()
         onDownloadsRequested: window.showDownloads()
         onWorkspacesRequested: window.openWorkspaces()
         onSplitHorizontalRequested: window.splitHorizontal()

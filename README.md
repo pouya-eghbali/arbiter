@@ -19,6 +19,11 @@ per-view ad blocking.
 Standard Qt WebAuthn requests have native account-selection, security-key PIN,
 error, and cancellation UI; actual authenticator availability depends on Qt/OS.
 
+Chromium developer tools dock below the focused page: Cmd+Option+I on macOS or
+Ctrl+Shift+I on Windows/Linux (customizable in Settings → Keyboard), the pill's
+Developer tools item, or right-click → Inspect element. Drag the divider to resize.
+See [developer tools](docs/developer-tools.md) for split-view behavior and validation.
+
 First launch offers a short setup: a logo reveal, optional password/history
 import via browser cards, Minimal/Glacier/Classic presets, theme plus accent and
 background selection, and optional
