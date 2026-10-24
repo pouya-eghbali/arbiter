@@ -9,6 +9,7 @@ class Appearance final : public QObject {
     Q_PROPERTY(QString theme READ theme WRITE setTheme NOTIFY themeChanged)
     Q_PROPERTY(bool dark READ dark NOTIFY colorsChanged)
     Q_PROPERTY(bool navigationPill READ navigationPill WRITE setNavigationPill NOTIFY navigationPillChanged)
+    Q_PROPERTY(bool windowDecorations READ windowDecorations WRITE setWindowDecorations NOTIFY windowDecorationsChanged)
     Q_PROPERTY(QString siteMenuMode READ siteMenuMode WRITE setSiteMenuMode NOTIFY siteMenuModeChanged)
     Q_PROPERTY(QColor lightAccent READ lightAccent WRITE setLightAccent NOTIFY accentColorsChanged)
     Q_PROPERTY(QColor darkAccent READ darkAccent WRITE setDarkAccent NOTIFY accentColorsChanged)
@@ -21,6 +22,8 @@ public:
     bool dark() const;
     bool navigationPill() const { return m_navigationPill; }
     void setNavigationPill(bool enabled);
+    bool windowDecorations() const { return m_windowDecorations; }
+    void setWindowDecorations(bool enabled);
     QString siteMenuMode() const;
     void setSiteMenuMode(const QString &mode);
     QColor lightAccent() const;
@@ -36,6 +39,7 @@ signals:
     void themeChanged();
     void colorsChanged();
     void navigationPillChanged();
+    void windowDecorationsChanged();
     void siteMenuModeChanged();
     void accentColorsChanged();
     void backgroundColorsChanged();
@@ -47,4 +51,5 @@ private:
     Settings m_settings;
     QString m_theme;
     bool m_navigationPill;
+    bool m_windowDecorations;
 };

@@ -5,6 +5,7 @@
 [appearance]
 theme = "system"
 navigationPill = true
+windowDecorations = false
 siteMenuMode = "title"
 lightAccent = "#2868b8"
 darkAccent = "#8dbbff"

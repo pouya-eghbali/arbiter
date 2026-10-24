@@ -6,7 +6,8 @@
 
 Appearance::Appearance(QObject *parent) : QObject(parent),
     m_theme(m_settings.value(QStringLiteral("appearance/theme"), QStringLiteral("system")).toString()),
-    m_navigationPill(m_settings.value(QStringLiteral("appearance/navigationPill"), true).toBool())
+    m_navigationPill(m_settings.value(QStringLiteral("appearance/navigationPill"), true).toBool()),
+    m_windowDecorations(m_settings.value(QStringLiteral("appearance/windowDecorations"), false).toBool())
 {
     if (m_theme != "light" && m_theme != "dark") m_theme = QStringLiteral("system");
     connect(qGuiApp->styleHints(), &QStyleHints::colorSchemeChanged, this, &Appearance::colorsChanged);
@@ -45,6 +46,13 @@ void Appearance::setNavigationPill(bool enabled)
     m_navigationPill = enabled;
     m_settings.setValue(QStringLiteral("appearance/navigationPill"), enabled);
     emit navigationPillChanged();
+}
+void Appearance::setWindowDecorations(bool enabled)
+{
+    if (m_windowDecorations == enabled) return;
+    m_windowDecorations = enabled;
+    m_settings.setValue(QStringLiteral("appearance/windowDecorations"), enabled);
+    emit windowDecorationsChanged();
 }
 QString Appearance::displayAddress(const QUrl &url) const
 {

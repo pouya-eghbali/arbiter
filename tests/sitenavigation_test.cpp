@@ -115,6 +115,20 @@ private slots:
         appearance.setSiteMenuMode("invalid"); QCOMPARE(appearance.siteMenuMode(), QString("navigation"));
         appearance.setSiteMenuMode("off"); QCOMPARE(appearance.siteMenuMode(), QString("off"));
     }
+    void windowDecorationPreference() {
+        Appearance appearance;
+        QVERIFY(!appearance.windowDecorations());
+        QSignalSpy changed(&appearance, &Appearance::windowDecorationsChanged);
+        appearance.setWindowDecorations(true);
+        QCOMPARE(changed.size(), 1);
+        appearance.setWindowDecorations(true);
+        QCOMPARE(changed.size(), 1);
+        Appearance decorated;
+        QVERIFY(decorated.windowDecorations());
+        appearance.setWindowDecorations(false);
+        Appearance restored;
+        QVERIFY(!restored.windowDecorations());
+    }
 };
 QTEST_MAIN(SiteNavigationTest)
 #include "sitenavigation_test.moc"

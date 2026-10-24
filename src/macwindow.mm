@@ -4,6 +4,9 @@
 
 void configureMacWindow(QWindow *window)
 {
+    // Decorated windows retain Qt/AppKit's standard title bar and controls.
+    if (!window->flags().testFlag(Qt::ExpandedClientAreaHint))
+        return;
     // Keep the titled native frame for AppKit's corner clipping and shadow,
     // while Qt extends the page across its transparent title-bar area.
     NSView *view = reinterpret_cast<NSView *>(window->winId());

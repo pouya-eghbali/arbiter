@@ -21,6 +21,9 @@ error, and cancellation UI; actual authenticator availability depends on Qt/OS.
 
 The page fills the window. On macOS, the native frame retains rounded corners
 and shadows while its title text, background, and window buttons are hidden.
+Settings → Appearance → Show native window decorations restores the system title
+bar and window buttons. It defaults to off and applies after restarting Arbiter
+(`appearance.windowDecorations` in the TOML settings).
 The Glacier interface uses frosted overlays with subtle borders and defaults to
 the system color theme. Settings → Appearance offers System, Dark and Light;
 the selection is saved and System follows changes to the OS appearance.

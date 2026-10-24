@@ -18,6 +18,8 @@ Basic.ApplicationWindow {
     required property var tabs
     required property var history
     required property var appearance
+    // Snapshot at launch: changing native window flags can recreate the surface.
+    required property bool windowDecorations
     required property var siteNavigation
     property int siteNavigationGeneration: 0
     readonly property bool siteNavigationEnabled: Qt.platform.os === "osx" && appearance.siteMenuMode !== "off" && !settingsOpen
@@ -47,7 +49,7 @@ Basic.ApplicationWindow {
     minimumWidth: 640
     minimumHeight: 480
     visible: true
-    flags: Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint
+    flags: windowDecorations ? Qt.Window : Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint
     topPadding: 0
     title: settingsOpen ? qsTr("Settings — Arbiter") : !emptyPage && webView && webView.title ? webView.title + " — Arbiter" : "Arbiter"
     color: palette.window
@@ -823,6 +825,20 @@ Basic.ApplicationWindow {
                             }
                         }
                         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.border }
+                        UiCheckBox {
+                            objectName: "windowDecorationsToggle"
+                            text: qsTr("Show native window decorations")
+                            checked: window.appearance.windowDecorations
+                            onToggled: window.appearance.windowDecorations = checked
+                        }
+                        Basic.Label {
+                            text: window.appearance.windowDecorations !== window.windowDecorations
+                                ? qsTr("Restart Arbiter to apply this change.")
+                                : qsTr("Use the system title bar and window buttons. Changes apply after restarting Arbiter.")
+                            color: Theme.muted
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
                         UiColorPicker {
                             objectName: "lightAccentPicker"
                             Layout.fillWidth: true
@@ -1161,6 +1177,7 @@ Basic.ApplicationWindow {
 
     MouseArea {
         id: windowHandle
+        visible: !window.windowDecorations
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top

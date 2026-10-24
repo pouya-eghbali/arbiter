@@ -71,6 +71,7 @@ int main(int argc, char *argv[])
                                  {QStringLiteral("settingsDirectoryUrl"), QUrl::fromLocalFile(QFileInfo(Settings::configFile()).absolutePath())},
                                  {QStringLiteral("settingsError"), settingsError},
                                  {QStringLiteral("appearance"), QVariant::fromValue(&appearance)},
+                                 {QStringLiteral("windowDecorations"), appearance.windowDecorations()},
                                  {QStringLiteral("siteNavigation"), QVariant::fromValue(&siteNavigation)},
                                  {QStringLiteral("keyBindings"), QVariant::fromValue(&keyBindings)},
                                  {QStringLiteral("tabs"), QVariant::fromValue(&tabs)},
