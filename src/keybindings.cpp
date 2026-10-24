@@ -47,6 +47,7 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
     add("nextPane", "Focus next pane", QKeySequence(QStringLiteral("Ctrl+Alt+]")));
     add("previousPane", "Focus previous pane", QKeySequence(QStringLiteral("Ctrl+Alt+[")));
     add("nextHiddenTab", "Show next hidden tab in active pane", QKeySequence(QStringLiteral("Ctrl+Alt+N")));
+    add("toggleAdBlock", "Toggle ad blocking in focused view", QKeySequence(QStringLiteral("Ctrl+Alt+B")));
     add("history", "Show history", QKeySequence(QStringLiteral("Ctrl+Y")));
     Settings settings;
     QSet<QKeySequence> used;

@@ -1,0 +1,16 @@
+[package]
+name = "arbiter-adblock"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+adblock = { version = "=0.13.3", default-features = false, features = ["embedded-domain-resolver", "full-regex-handling"] }
+serde_json = "1"
+
+[profile.release]
+panic = "unwind"
+lto = "thin"

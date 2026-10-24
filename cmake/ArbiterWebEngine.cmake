@@ -10,6 +10,10 @@ if(ARBITER_PATCHED_WEBENGINE)
     if(NOT arbiter_engine_abi EQUAL 1)
         message(FATAL_ERROR "The selected WebEngine SDK has an unsupported Arbiter ABI.")
     endif()
+    string(JSON arbiter_view_interceptor ERROR_VARIABLE arbiter_hook_error GET "${arbiter_engine_manifest}" view_request_interceptor)
+    if(arbiter_hook_error OR NOT arbiter_view_interceptor)
+        message(FATAL_ERROR "Rebuild the current engine patches: this SDK lacks the per-view ad-block interception hook.")
+    endif()
     # Qt6Config normally searches its own sibling component packages before
     # other prefixes. Select every WebEngine component explicitly so headers,
     # libraries and the helper process come from the same patched SDK.

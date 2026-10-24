@@ -1,8 +1,9 @@
 # Arbiter passkey integration
 
 Engine ownership is approved. The integration lives in the application and the
-pinned engine patches under `engine/`; ordinary stock-Qt builds keep local
-passkeys and phone controls disabled. The custom runtime builds locally on
+pinned engine patches under `engine/`. The current app requires that SDK for
+per-view ad blocking as well as passkeys; ordinary stock-Qt test builds can
+still cover components that do not require the patched engine. The custom runtime builds locally on
 Apple Silicon macOS and passes the browser registration/assertion fixture.
 The user confirmed GitHub sign-in using an iPhone through the QR flow on macOS.
 Windows/Linux runtime validation and broader phone interoperability remain pending.

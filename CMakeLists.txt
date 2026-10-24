@@ -22,7 +22,15 @@ arbiter_add_browser_import(arbiter)
 include(cmake/Biometrics.cmake)
 arbiter_add_biometrics(arbiter)
 target_sources(arbiter PRIVATE src/privatebrowsing.cpp src/privatebrowsing.h src/tabsleepsettings.cpp src/tabsleepsettings.h)
-target_sources(arbiter PRIVATE src/sitepermissions.cpp src/sitepermissions.h src/browserpreferences.cpp src/browserpreferences.h)
+target_sources(arbiter PRIVATE src/sitepermissions.cpp src/sitepermissions.h src/browserpreferences.cpp src/browserpreferences.h src/adblocker.cpp src/adblocker.h)
+if(NOT ARBITER_PATCHED_WEBENGINE)
+    message(FATAL_ERROR "Arbiter requires its patched Qt WebEngine SDK for per-view ad blocking. See docs/ad-blocking.md.")
+endif()
+include(cmake/AdBlock.cmake)
+target_link_libraries(arbiter PRIVATE arbiter_adblock_engine)
+qt_add_resources(arbiter adblock_lists PREFIX /adblock BASE assets/adblock FILES assets/adblock/easylist.txt assets/adblock/easyprivacy.txt)
+qt_add_resources(arbiter adblock_script PREFIX /adblock BASE scripts FILES scripts/adblock.js)
+qt_add_resources(arbiter adblock_licenses PREFIX /licenses BASE licenses FILES licenses/AdBlock.txt licenses/AdBlockDependencies.txt licenses/EasyList.txt)
 target_include_directories(arbiter PRIVATE src third_party/qrcodegen)
 arbiter_configure_webengine_runtime(arbiter)
 qt_add_resources(arbiter password_scripts PREFIX /passwords BASE scripts FILES scripts/passwords.js)
@@ -69,6 +77,7 @@ qt_add_qml_module(arbiter
     # Dynamic Qt resolves plugins at runtime. Avoid recursively scanning the
     # isolated Chromium checkout beneath this source directory.
     NO_IMPORT_SCAN
+    IMPORT_PATH ${ARBITER_ENGINE_QML}
     URI Arbiter
     VERSION 1.0
     QML_FILES qml/PermissionPanel.qml qml/DesktopSharePanel.qml qml/SitePermissionsSettings.qml qml/AddressPrompt.qml qml/BrowserBackground.qml qml/ui/UiImagePicker.qml qml/PrivateShield.qml qml/SplitWithPicker.qml qml/TabSleepController.qml qml/ui/UiIcon.qml qml/ui/UiChoiceCard.qml qml/ImportProgress.qml qml/BrowserAccess.qml qml/OnboardingImport.qml qml/Onboarding.qml qml/BrowserPreview.qml qml/Tutorial.qml qml/ImportPage.qml qml/StartPage.qml qml/PaneShape.qml qml/SplitOverlay.qml qml/BiometricSetup.qml qml/WorkspacePanel.qml qml/HistoryPanel.qml qml/Main.qml qml/Theme.qml qml/ui/UiButton.qml qml/ui/UiTextField.qml qml/ui/UiCheckBox.qml qml/ui/UiComboBox.qml qml/ui/UiToolTip.qml qml/ui/UiMenuItem.qml qml/ui/UiColorPicker.qml qml/GlassSurface.qml qml/NavigationPill.qml qml/WebContextMenu.qml qml/PasswordPanel.qml qml/WebAuthnPanel.qml qml/PasskeySetup.qml

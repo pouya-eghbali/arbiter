@@ -5,3 +5,5 @@
 /.cache/
 *.user
 .DS_Store
+
+/rust/adblock/target/

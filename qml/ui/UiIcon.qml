@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 import Arbiter
 
 Item {
@@ -7,6 +8,25 @@ Item {
     property color color: Theme.accent
     implicitWidth: 28
     implicitHeight: 28
+    Shape {
+        anchors.centerIn: parent
+        width: 24; height: 24
+        visible: icon.name === "shield"
+        ShapePath {
+            strokeColor: icon.color
+            strokeWidth: 1.8
+            fillColor: "transparent"
+            capStyle: ShapePath.RoundCap
+            joinStyle: ShapePath.RoundJoin
+            startX: 12; startY: 2
+            PathLine { x: 21; y: 6 }
+            PathLine { x: 20; y: 14 }
+            PathQuad { x: 12; y: 22; controlX: 18; controlY: 19 }
+            PathQuad { x: 4; y: 14; controlX: 6; controlY: 19 }
+            PathLine { x: 3; y: 6 }
+            PathLine { x: 12; y: 2 }
+        }
+    }
     Item {
         anchors.centerIn: parent
         width: 24; height: 24

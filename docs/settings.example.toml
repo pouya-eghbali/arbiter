@@ -16,6 +16,9 @@ darkBackground = "#11161e"
 lightBackgroundImage = ""
 darkBackgroundImage = ""
 
+[AdBlock]
+enabled = true
+
 [Search]
 # duckduckgo, google, bing, brave, ecosia, or startpage
 engine = "duckduckgo"

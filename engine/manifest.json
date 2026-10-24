@@ -5,5 +5,6 @@
   "webengine_repository": "https://github.com/qt/qtwebengine.git",
   "webengine_commit": "e4d8df13c71ea53ac2de3c75d47585bcc0da815d",
   "chromium_commit": "bcc09a68b50a40c60d8dc83f0e6b6dc872614812",
-  "chromium_version": "140.0.7339.225"
+  "chromium_version": "140.0.7339.225",
+  "view_request_interceptor": true
 }

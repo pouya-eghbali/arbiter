@@ -7,15 +7,16 @@ The project's primary branch is `master`.
 The browser has tabs, workspaces, nested split views, an address/search field, back/forward,
 reload/stop, loading progress, a persistent local browser profile, and a local
 password manager backed by QtKeychain. It starts
-on a blank page without making a startup network request. Search queries go to
-DuckDuckGo. Extension management, downloads, and credential sync
-are not implemented yet. An opt-in patched-engine integration adds Arbiter
+on a blank page. Search defaults to DuckDuckGo and is configurable. Favicons
+and enabled ad-block filter lists may be fetched in the background. Extension management, downloads, and credential sync
+are not implemented yet. The required patched-engine integration adds Arbiter
 passkeys and Chromium's phone QR transport. The custom runtime builds on Apple
 Silicon macOS and passes browser passkey registration/sign-in tests; phone
 sign-in on GitHub was also confirmed manually with an iPhone. Windows/Linux
 runtime validation remains pending. See
 [passkey integration](docs/passkey-integration.md) for build instructions and
-current limitations. Stock Qt builds keep those features disabled.
+current limitations. The current app also requires the patched SDK for
+per-view ad blocking.
 Standard Qt WebAuthn requests have native account-selection, security-key PIN,
 error, and cancellation UI; actual authenticator availability depends on Qt/OS.
 
@@ -182,7 +183,8 @@ Arbiter keeps normalized PNG copies under `backgrounds/` beside `settings.toml`,
 
 - Qt **6.12.0 or newer**, including Qt Quick, Quick Controls, **Qt WebEngine**,
   **Qt WebChannel**, and **Qt Positioning**.
-- CMake 3.24+, Ninja, and a C++20 compiler.
+- CMake 3.24+, Ninja, a C++20 compiler, and Rust 1.93+ with Cargo.
+- The current [patched WebEngine SDK](docs/passkey-integration.md#build) for per-view ad blocking and passkeys.
 - QtKeychain 0.14.2+ built with Qt 6. CMake prefers an installed package; otherwise
   it downloads and statically builds the pinned 0.14.2 archive after SHA-256
   verification. The initial configure needs network access or a local source override.
@@ -203,14 +205,18 @@ prompts.
 
 ## Build and run
 
-For the standard Qt Online Installer location:
+Build the current engine patches first using `engine/build.py` (see
+[engine build instructions](docs/passkey-integration.md)). Then, for the standard
+Qt Online Installer location and SDK installed at `build-passkey-sdk`:
 
 ```sh
 cmake -S . -B build-qt612 -G Ninja \
   -DQt6_DIR="$HOME/Qt/6.12.0/macos/lib/cmake/Qt6" \
   -DCMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/macos" \
-  -DCMAKE_BUILD_TYPE=Debug
-cmake --build build-qt612 --parallel
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DARBITER_PATCHED_WEBENGINE=ON \
+  -DARBITER_WEBENGINE_PREFIX="$PWD/build-passkey-sdk"
+cmake --build build-qt612 --parallel 24
 open build-qt612/arbiter.app
 ```
 
@@ -507,3 +513,12 @@ icons are fetched directly from the site’s `/favicon.ico`, without browser
 cookies, and cached as small PNGs under Qt’s platform cache directory. Requests
 are deduplicated, bounded, and time out; unavailable icons retain the letter
 fallback. Private windows use the fallback and make no favicon requests.
+
+### Ad blocking
+
+Built-in blocking uses Brave’s Rust engine with EasyList and EasyPrivacy.
+Enable/disable it globally under **Settings → Privacy**. Use the pill shield or
+**Command+Option+B** (macOS), **Ctrl+Alt+B** (Windows/Linux) to pause/resume the
+focused view. The shortcut is customizable. Rust/Cargo and the current patched
+WebEngine SDK are required to build. See [ad-blocking development notes](docs/ad-blocking.md)
+for list updates, integration details, tests, and licenses.

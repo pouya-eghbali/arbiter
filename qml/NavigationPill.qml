@@ -5,6 +5,10 @@ import QtQuick.Controls.Basic as Basic
 
 FocusScope {
     property bool privateMode: false
+    property bool adBlockEnabled: true
+    property bool adBlockActive: true
+    property int adBlockBlocked: 0
+    signal adBlockRequested()
     function dismissMenu() { more.close() }
     signal privateWindowRequested()
     signal lockPrivateRequested()
@@ -112,6 +116,14 @@ FocusScope {
             contentItem: Basic.Label { text: "●"; color: pill.workspaceColor; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             onClicked: pill.workspacesRequested()
         }
+        NavButton {
+            objectName: "adBlockPillButton"
+            visible: pill.expandedWidth >= 440
+            enabled: pill.adBlockEnabled
+            Accessible.name: pill.adBlockActive ? qsTr("Pause ad blocking in this view (%1 blocked)").arg(pill.adBlockBlocked) : qsTr("Resume ad blocking in this view")
+            contentItem: UiIcon { name: "shield"; color: pill.adBlockActive ? Theme.accent : Theme.muted }
+            onClicked: pill.adBlockRequested()
+        }
         NavButton { objectName: "navigationTabsButton"; text: String(pill.tabCount); font.pixelSize: 13; Accessible.name: pill.tabCount === 1 ? qsTr("Show 1 tab") : qsTr("Show %1 tabs").arg(pill.tabCount); onClicked: pill.tabsRequested() }
         NavButton { text: "⋯"; Accessible.name: qsTr("More browser controls"); onClicked: more.open() }
     }
@@ -132,6 +144,7 @@ FocusScope {
         UiMenuItem { text: qsTr("Split top / bottom"); onTriggered: pill.splitVerticalRequested() }
         UiMenuItem { text: qsTr("Split with…"); onTriggered: pill.splitWithRequested() }
         UiMenuItem { text: qsTr("Workspaces…"); onTriggered: pill.workspacesRequested() }
+        UiMenuItem { text: pill.adBlockActive ? qsTr("Pause ad blocking in this view") : qsTr("Resume ad blocking in this view"); enabled: pill.adBlockEnabled; onTriggered: pill.adBlockRequested() }
         UiMenuItem { text: qsTr("History…"); onTriggered: pill.historyRequested() }
         UiMenuItem { text: qsTr("Passwords…"); onTriggered: pill.passwordsRequested() }
         UiMenuItem { text: qsTr("New private window"); onTriggered: pill.privateWindowRequested() }

@@ -59,6 +59,7 @@ Basic.ApplicationWindow {
     required property var tabSleep
     required property var history
     required property var onboarding
+    required property var adblocker
     required property var browserPreferences
     required property var appearance
     readonly property string focusedWorkspaceId: webView ? webView.workspaceId : workspaces.currentId
@@ -251,6 +252,12 @@ Basic.ApplicationWindow {
         webView.forceActiveFocus()
     }
 
+    function toggleAdBlock() {
+        if (privateCovered || !webView || !window.adblocker.enabled) return
+        webView.adBlock.paused = !webView.adBlock.paused
+        webView.reload()
+    }
+    Shortcut { sequence: window.bindings.toggleAdBlock; enabled: !window.privateCovered && !window.settingsOpen && window.recordingIndex < 0; onActivated: window.toggleAdBlock() }
     Shortcut { sequence: window.bindings.address; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.focusAddress() }
     Shortcut { sequence: window.bindings.workspaces; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.openWorkspaces() }
     Shortcut { sequence: window.bindings.nextWorkspace; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.workspaces.cycle(1) }
@@ -696,6 +703,30 @@ Basic.ApplicationWindow {
                     required property string profileId
                     required property int tabId
                     required property url initialUrl
+                    readonly property alias adBlock: viewAdBlock
+                    urlRequestInterceptor: viewAdBlock
+                    ViewAdBlock {
+                        id: viewAdBlock
+                        manager: window.adblocker
+                        onStateChanged: {
+                            if (!enabled) page.mainFrame.runJavaScript("globalThis.__arbiterAdblock?.clear()", 1, function() {})
+                            else Qt.callLater(page.applyAdBlockCosmetics)
+                        }
+                    }
+                    function applyAdBlockCosmetics() {
+                        if (!viewAdBlock.enabled || page.loading || !page.visible) return
+                        page.mainFrame.runJavaScript("globalThis.__arbiterAdblock?.collect()", 1, function(result) {
+                            if (!result || !viewAdBlock.enabled || result.url !== page.mainFrame.url.toString()) return
+                            const selectors = viewAdBlock.cosmetic(result.url, result.classes, result.ids)
+                            if (selectors.length) page.mainFrame.runJavaScript("globalThis.__arbiterAdblock?.apply(" + JSON.stringify(result.token) + "," + JSON.stringify(selectors) + ")", 1, function() {})
+                        })
+                    }
+                    Timer {
+                        interval: 750
+                        repeat: true
+                        running: viewAdBlock.enabled && page.visible && !page.loading && !window.privateCovered
+                        onTriggered: page.applyAdBlockCosmetics()
+                    }
                     property bool closeQueued: false
                     property string errorText: ""
                     property bool historyReady: false
@@ -808,6 +839,12 @@ Basic.ApplicationWindow {
                         worldId: WebEngineScript.ApplicationWorld,
                         runsOnSubFrames: false,
                         sourceCode: window.passwords.captureScript
+                    }, {
+                        name: "Arbiter ad blocking",
+                        injectionPoint: WebEngineScript.DocumentReady,
+                        worldId: WebEngineScript.ApplicationWorld,
+                        runsOnSubFrames: false,
+                        sourceCode: window.adblocker.cosmeticScript
                     }]
                     WebChannel {
                         id: passwordChannel
@@ -899,6 +936,7 @@ Basic.ApplicationWindow {
                     }
                     onLoadingChanged: function(request) {
                         if (request.status === WebEngineView.LoadStartedStatus) {
+                            viewAdBlock.resetCount()
                             sitePermissionQueue.cancelFor(page)
                             desktopSharePanel.cancelFor(page)
                             historyReady = false
@@ -1559,6 +1597,26 @@ Basic.ApplicationWindow {
                         onVisibleChanged: if (visible && window.privacy) window.privacy.load()
                         spacing: 16
                         Layout.fillWidth: true
+                        Basic.Label { text: qsTr("Ad blocking"); font.pixelSize: 20; font.weight: Font.DemiBold; color: Theme.text; Layout.fillWidth: true }
+                        UiCheckBox {
+                            Layout.fillWidth: true
+                            leftPadding: 0
+                            text: qsTr("Block ads and trackers")
+                            checked: window.adblocker.enabled
+                            onToggled: window.adblocker.enabled = checked
+                        }
+                        Basic.Label {
+                            Layout.fillWidth: true
+                            text: qsTr("EasyList + EasyPrivacy, powered by Brave’s Rust engine. Pause only the focused view using the pill shield or %1. Pauses last until that tab closes. Reload pages after changing the global setting.").arg(window.keyBindings.nativeSequence(window.bindings.toggleAdBlock))
+                            wrapMode: Text.Wrap
+                            color: Theme.muted
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Basic.Label { Layout.fillWidth: true; text: window.adblocker.status; color: Theme.muted; wrapMode: Text.Wrap }
+                            UiButton { text: window.adblocker.updating ? qsTr("Updating…") : qsTr("Update lists"); enabled: !window.adblocker.updating; onClicked: window.adblocker.updateLists() }
+                        }
+                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.border }
                         SitePermissionsSettings { Layout.fillWidth: true; settings: window.sitePermissionSettings; workspaceChoices: window.workspaces.choices }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.border }
                         Basic.Label { text: qsTr("Private browsing"); font.pixelSize: 20; font.weight: Font.DemiBold; color: Theme.text }
@@ -1659,6 +1717,10 @@ Basic.ApplicationWindow {
             && !window.webauthn.active && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible
         view: window.webView
         appearance: window.appearance
+        adBlockEnabled: window.adblocker.enabled
+        adBlockActive: window.webView ? window.webView.adBlock.enabled : false
+        adBlockBlocked: window.webView ? window.webView.adBlock.blocked : 0
+        onAdBlockRequested: window.toggleAdBlock()
         tabCount: window.focusedWorkspace.tabs
         workspaceName: window.workspaces.currentName
         workspaceColor: window.workspaces.currentColor

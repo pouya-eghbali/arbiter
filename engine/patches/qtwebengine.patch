@@ -291,3 +291,101 @@ index 76ea59c..180cd3d 100644
  const char *qWebEngineChromiumVersion() noexcept
  {
      return STRINGIFY_EXPANDED(CHROMIUM_VERSION);
+diff --git a/src/webenginequick/api/qquickwebengineview.cpp b/src/webenginequick/api/qquickwebengineview.cpp
+index 4f1fce6..ee53bc9 100644
+--- a/src/webenginequick/api/qquickwebengineview.cpp
++++ b/src/webenginequick/api/qquickwebengineview.cpp
+@@ -968,6 +968,7 @@ bool QQuickWebEngineViewPrivate::adoptWebContents(WebContentsAdapter *webContent
+     adapterOwner->deleteLater();
+ 
+     adapter = webContents->sharedFromThis();
++    adapter->setRequestInterceptor(m_requestInterceptor);
+     adapter->setClient(this);
+     return true;
+ }
+@@ -1340,6 +1341,27 @@ void QQuickWebEngineView::setProfile(QQuickWebEngineProfile *profile)
+     Q_EMIT profileChanged();
+ }
+ 
++QObject *QQuickWebEngineView::urlRequestInterceptor() const
++{
++    Q_D(const QQuickWebEngineView);
++    return d->m_requestInterceptor.data();
++}
++
++void QQuickWebEngineView::setUrlRequestInterceptor(QObject *object)
++{
++    Q_D(QQuickWebEngineView);
++    auto *interceptor = qobject_cast<QWebEngineUrlRequestInterceptor *>(object);
++    if (object && !interceptor) {
++        qWarning("urlRequestInterceptor must inherit QWebEngineUrlRequestInterceptor");
++        return;
++    }
++    if (d->m_requestInterceptor == interceptor)
++        return;
++    d->m_requestInterceptor = interceptor;
++    d->adapter->setRequestInterceptor(interceptor);
++    Q_EMIT urlRequestInterceptorChanged();
++}
++
+ QQuickWebEngineSettings *QQuickWebEngineView::settings()
+ {
+     Q_D(QQuickWebEngineView);
+@@ -1358,6 +1380,7 @@ void QQuickWebEngineViewPrivate::updateAdapter()
+     // When the profile changes we need to create a new WebContentAdapter and reload the active URL.
+     bool wasInitialized = adapter->isInitialized();
+     adapter = QSharedPointer<WebContentsAdapter>::create();
++    adapter->setRequestInterceptor(m_requestInterceptor);
+     adapter->setClient(this);
+     if (wasInitialized) {
+         if (!m_html.isEmpty())
+diff --git a/src/webenginequick/api/qquickwebengineview_p.h b/src/webenginequick/api/qquickwebengineview_p.h
+index 9be5f11..c48904b 100644
+--- a/src/webenginequick/api/qquickwebengineview_p.h
++++ b/src/webenginequick/api/qquickwebengineview_p.h
+@@ -61,6 +61,8 @@ class Q_WEBENGINEQUICK_EXPORT QQuickWebEngineView : public QQuickItem {
+     Q_OBJECT
+     Q_CLASSINFO("RegisterEnumClassesUnscoped", "false")
+     Q_PROPERTY(QUrl url READ url WRITE setUrl NOTIFY urlChanged FINAL)
++    // Arbiter: a page-local interceptor keeps split-view exceptions independent.
++    Q_PROPERTY(QObject *urlRequestInterceptor READ urlRequestInterceptor WRITE setUrlRequestInterceptor NOTIFY urlRequestInterceptorChanged FINAL)
+     Q_PROPERTY(QUrl icon READ icon NOTIFY iconChanged FINAL)
+     Q_PROPERTY(bool loading READ isLoading NOTIFY loadingChanged FINAL)
+     Q_PROPERTY(int loadProgress READ loadProgress NOTIFY loadProgressChanged FINAL)
+@@ -443,6 +445,8 @@ QT_WARNING_POP
+ 
+     QQuickWebEngineProfile *profile();
+     void setProfile(QQuickWebEngineProfile *);
++    QObject *urlRequestInterceptor() const;
++    void setUrlRequestInterceptor(QObject *interceptor);
+     QQuickWebEngineScriptCollection *userScripts();
+ 
+     QQuickWebEngineSettings *settings();
+@@ -535,6 +539,7 @@ Q_SIGNALS:
+ #endif // QT_DEPRECATED_SINCE(6, 8)
+     Q_REVISION(1,1) void zoomFactorChanged(qreal arg);
+     Q_REVISION(1,1) void profileChanged();
++    void urlRequestInterceptorChanged();
+     Q_REVISION(1,1) void webChannelChanged();
+     Q_REVISION(1,2) void activeFocusOnPressChanged(bool);
+     Q_REVISION(1,2) void backgroundColorChanged();
+diff --git a/src/webenginequick/api/qquickwebengineview_p_p.h b/src/webenginequick/api/qquickwebengineview_p_p.h
+index 5f09790..bebb7d6 100644
+--- a/src/webenginequick/api/qquickwebengineview_p_p.h
++++ b/src/webenginequick/api/qquickwebengineview_p_p.h
+@@ -18,6 +18,7 @@
+ 
+ #include "qquickwebenginetouchhandle_p.h"
+ #include "qquickwebengineview_p.h"
++#include <QtWebEngineCore/qwebengineurlrequestinterceptor.h>
+ #include "render_view_context_menu_qt.h"
+ #include "touch_handle_drawable_client.h"
+ #include "ui_delegates_manager_p.h"
+@@ -155,6 +156,7 @@ public:
+ 
+     QQuickWebEngineProfile *m_profile;
+     QSharedPointer<QtWebEngineCore::WebContentsAdapter> adapter;
++    QPointer<QWebEngineUrlRequestInterceptor> m_requestInterceptor;
+     QScopedPointer<QWebEngineHistory> m_history;
+     QScopedPointer<QQuickWebEngineSettings> m_settings;
+     QQmlComponent *contextMenuExtraItems;
