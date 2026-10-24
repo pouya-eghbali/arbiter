@@ -32,7 +32,7 @@ Rectangle {
         spacing: 14
         Basic.Label {
             Layout.fillWidth: true
-            text: shield.session && shield.session.configured ? qsTr("Private browsing is locked") : qsTr("A little privacy, protected.")
+            text: shield.session && !shield.session.credentialsReady ? qsTr("Unlocking credential store…") : shield.session && shield.session.configured ? qsTr("Private browsing is locked") : qsTr("A little privacy, protected.")
             font.pixelSize: 26
             font.weight: Font.Medium
             color: Theme.text
@@ -40,9 +40,11 @@ Rectangle {
         }
         Basic.Label {
             Layout.fillWidth: true
-            text: shield.session && shield.session.configured
+            text: shield.session && !shield.session.credentialsReady
+                ? qsTr("Your operating system may ask to unlock its credential store. Your private window stays locked until this finishes.")
+                : shield.session && shield.session.configured
                 ? qsTr("Verify to return to your private tabs.")
-                : qsTr("Choose a password for this private window. Use it if biometrics are unavailable. It is kept only for this session; closing the window clears it and its browsing data.")
+                : qsTr("Set a PIN (6+ digits) or password (8+ characters) once for all private windows. It also works when biometrics are unavailable. Change it later in Settings → Privacy.")
             color: Theme.muted
             wrapMode: Text.Wrap
         }
@@ -57,10 +59,11 @@ Rectangle {
         UiTextField {
             id: password
             objectName: "privateSessionPassword"
+            visible: shield.session !== null && shield.session.credentialsReady
             Layout.fillWidth: true
             echoMode: TextInput.Password
             maximumLength: 256
-            placeholderText: qsTr("Private-session password")
+            placeholderText: qsTr("Private-browsing PIN or password")
             enabled: shield.session !== null && !shield.session.busy
             onAccepted: {
                 if (!shield.session.configured) confirmation.forceActiveFocus()
@@ -70,11 +73,11 @@ Rectangle {
         UiTextField {
             id: confirmation
             Layout.fillWidth: true
-            visible: shield.session !== null && !shield.session.configured
+            visible: shield.session !== null && shield.session.credentialsReady && !shield.session.configured
             enabled: shield.session !== null && !shield.session.busy
             echoMode: TextInput.Password
             maximumLength: 256
-            placeholderText: qsTr("Confirm password")
+            placeholderText: qsTr("Confirm PIN or password")
             onAccepted: setupButton.clicked()
         }
         Basic.Label {
@@ -87,14 +90,21 @@ Rectangle {
         Basic.BusyIndicator { running: shield.session !== null && shield.session.busy; visible: running; Layout.alignment: Qt.AlignHCenter }
         UiButton {
             id: setupButton
+            visible: shield.session !== null && shield.session.credentialsReady
             Layout.fillWidth: true
             enabled: shield.session !== null && !shield.session.busy
-            text: shield.session && shield.session.configured ? qsTr("Unlock with password") : qsTr("Start private browsing")
+            text: shield.session && shield.session.configured ? qsTr("Unlock with PIN/password") : qsTr("Start private browsing")
             onClicked: {
                 if (shield.session.configured) shield.session.unlockPassword(password.text)
                 else shield.session.setup(password.text, confirmation.text)
                 password.clear(); confirmation.clear()
             }
+        }
+        UiButton {
+            Layout.fillWidth: true
+            visible: shield.session !== null && !shield.session.credentialsReady && !shield.session.busy
+            text: qsTr("Retry credential store")
+            onClicked: shield.session.retryLoading()
         }
         UiButton { Layout.fillWidth: true; flat: true; text: qsTr("Close private window"); onClicked: shield.closeRequested() }
     }

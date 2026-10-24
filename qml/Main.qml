@@ -73,11 +73,17 @@ Basic.ApplicationWindow {
     readonly property var bindings: keyBindings.bindings
     property bool settingsOpen: false
     property int settingsCategory: 0
+    function clearPrivacyFields() { currentPrivacyPassword.clear(); newPrivacyPassword.clear(); confirmPrivacyPassword.clear() }
+    onActiveChanged: if (!active && uiReady) clearPrivacyFields()
     onSettingsCategoryChanged: {
+        if (uiReady && settingsCategory !== 7) clearPrivacyFields()
         if (importer && settingsCategory !== 5 && !importer.importing) importer.cancel()
         Qt.callLater(function() { categoryScroll.revealCategory(window.settingsCategory) })
     }
-    onSettingsOpenChanged: if (importer && !settingsOpen && !importer.importing) importer.cancel()
+    onSettingsOpenChanged: {
+        if (uiReady && !settingsOpen) clearPrivacyFields()
+        if (importer && !settingsOpen && !importer.importing) importer.cancel()
+    }
     property int recordingIndex: -1
     property string bindingError: ""
     signal shortcutRecordingChanged(bool recording)
@@ -1354,6 +1360,7 @@ Basic.ApplicationWindow {
                     }
                     ColumnLayout {
                         visible: window.settingsCategory === 7
+                        onVisibleChanged: if (visible && window.privacy) window.privacy.load()
                         spacing: 16
                         Layout.fillWidth: true
                         Basic.Label {
@@ -1376,11 +1383,65 @@ Basic.ApplicationWindow {
                         }
                         Basic.Label {
                             Layout.fillWidth: true
-                            text: qsTr("Private windows also lock immediately when switched to the background, minimized, or when your computer locks or sleeps. Use biometrics (or a Windows Hello PIN), or the private-session password to unlock. Forgot it? Close the private window and start a new session.")
+                            text: qsTr("Private windows also lock immediately when switched to the background, minimized, or when your computer locks or sleeps. Use biometrics (or a Windows Hello PIN), or the global private-browsing PIN/password to unlock. Change your PIN/password below by entering its current value.")
                             color: Theme.muted
                             wrapMode: Text.Wrap
                         }
-                        Item { Layout.fillHeight: true }
+                        Basic.Label {
+                            Layout.fillWidth: true
+                            text: window.privacy && window.privacy.configured ? qsTr("Change private-browsing PIN/password") : qsTr("Set private-browsing PIN/password")
+                            color: Theme.text
+                            font.weight: Font.DemiBold
+                        }
+                        Basic.Label {
+                            Layout.fillWidth: true
+                            text: qsTr("One PIN (6+ digits) or password (8+ characters) protects all private windows, including after restarting Arbiter. It is stored securely through your operating system. Changing it locks all open private windows.")
+                            color: Theme.muted
+                            wrapMode: Text.Wrap
+                        }
+                        UiTextField {
+                            id: currentPrivacyPassword
+                            objectName: "currentPrivacyPassword"
+                            Layout.fillWidth: true
+                            visible: window.privacy && window.privacy.configured
+                            enabled: window.privacy && window.privacy.ready && !window.privacy.busy
+                            echoMode: TextInput.Password
+                            maximumLength: 256
+                            placeholderText: qsTr("Current PIN or password")
+                        }
+                        UiTextField {
+                            id: newPrivacyPassword
+                            objectName: "newPrivacyPassword"
+                            Layout.fillWidth: true
+                            enabled: window.privacy && window.privacy.ready && !window.privacy.busy
+                            echoMode: TextInput.Password
+                            maximumLength: 256
+                            placeholderText: qsTr("New PIN or password")
+                        }
+                        UiTextField {
+                            id: confirmPrivacyPassword
+                            objectName: "confirmPrivacyPassword"
+                            Layout.fillWidth: true
+                            enabled: window.privacy && window.privacy.ready && !window.privacy.busy
+                            echoMode: TextInput.Password
+                            maximumLength: 256
+                            placeholderText: qsTr("Confirm new PIN or password")
+                            onAccepted: savePrivacyPassword.clicked()
+                        }
+                        UiButton {
+                            id: savePrivacyPassword
+                            objectName: "savePrivacyPassword"
+                            text: window.privacy && window.privacy.configured ? qsTr("Change PIN/password") : qsTr("Set PIN/password")
+                            enabled: window.privacy && window.privacy.ready && !window.privacy.busy
+                            onClicked: {
+                                if (!enabled) return
+                                window.privacy.setPassword(currentPrivacyPassword.text, newPrivacyPassword.text, confirmPrivacyPassword.text)
+                                currentPrivacyPassword.clear(); newPrivacyPassword.clear(); confirmPrivacyPassword.clear()
+                            }
+                        }
+                        Basic.BusyIndicator { visible: window.privacy && window.privacy.busy; running: visible }
+                        Basic.Label { Layout.fillWidth: true; text: window.privacy ? window.privacy.status : ""; color: Theme.muted; wrapMode: Text.Wrap }
+                        UiButton { visible: window.privacy && !window.privacy.ready && !window.privacy.busy; text: qsTr("Retry credential store"); onClicked: window.privacy.load() }
                     }
                 }
             }

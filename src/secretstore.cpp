@@ -22,6 +22,18 @@ void KeychainSecretStore::read(const QString &key, Callback callback)
     job->start();
 }
 
+void KeychainSecretStore::readOptional(const QString &key, Callback callback)
+{
+    auto *job = new QKeychain::ReadPasswordJob(m_service, this);
+    configure(job, key);
+    connect(job, &QKeychain::Job::finished, this, [job, callback](QKeychain::Job *) {
+        const bool failed=job->error() && job->error()!=QKeychain::EntryNotFound;
+        callback(failed ? tr("Could not read the credential from the system credential store. Unlock your keyring and try again.") : QString(),
+                 job->error() ? QByteArray() : job->binaryData());
+    });
+    job->start();
+}
+
 void KeychainSecretStore::write(const QString &key, const QByteArray &data, Callback callback)
 {
     auto *job = new QKeychain::WritePasswordJob(m_service, this);
