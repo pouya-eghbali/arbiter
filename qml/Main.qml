@@ -1180,7 +1180,7 @@ Basic.ApplicationWindow {
                         spacing: 8
                         Repeater {
                             id: settingsNavigation
-                            model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads")]
+                            model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads"), qsTr("About")]
                             delegate: UiButton {
                                 id: categoryButton
                                 required property int index
@@ -1228,7 +1228,7 @@ Basic.ApplicationWindow {
                     width: Math.min(720, settingsScroll.availableWidth)
                     spacing: 24
                     Basic.Label {
-                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads")][window.settingsCategory]
+                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads"), qsTr("About")][window.settingsCategory]
                         font.pixelSize: 28
                         font.weight: Font.DemiBold
                         color: Theme.text
@@ -1685,6 +1685,10 @@ Basic.ApplicationWindow {
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
+                    }
+                    AboutPage {
+                        visible: window.settingsCategory === 10
+                        Layout.fillWidth: true
                     }
                     DownloadsSettings {
                         visible: window.settingsCategory === 9
