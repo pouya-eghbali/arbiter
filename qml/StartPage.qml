@@ -25,12 +25,36 @@ FocusScope {
         anchors.centerIn: parent
         width: Math.max(0, Math.min(760, start.width - (start.compact ? 24 : 64)))
         spacing: start.compact ? 10 : 16
-        Basic.Label {
+        RowLayout {
+            objectName: "startPageBrand"
             anchors.horizontalCenter: parent.horizontalCenter
-            text: qsTr("Arbiter")
-            font.pixelSize: start.compact ? 26 : 38
-            font.weight: Font.Medium
-            color: Theme.text
+            spacing: start.compact ? 10 : 14
+            Rectangle {
+                Layout.preferredWidth: start.compact ? 36 : 48
+                Layout.preferredHeight: start.compact ? 36 : 48
+                Layout.alignment: Qt.AlignVCenter
+                radius: start.compact ? 10 : 14
+                // Match the app icon's dark tile so the white mark stays legible
+                // over light themes and user-selected background images.
+                color: "#11161e"
+                Image {
+                    objectName: "startPageLogo"
+                    anchors.fill: parent
+                    anchors.margins: start.compact ? 4 : 5
+                    source: "qrc:/brand/valkyrie-source.png"
+                    fillMode: Image.PreserveAspectFit
+                    sourceSize: Qt.size(128, 128)
+                    mipmap: true
+                    Accessible.ignored: true
+                }
+            }
+            Basic.Label {
+                text: qsTr("Arbiter")
+                font.pixelSize: start.compact ? 26 : 38
+                font.weight: Font.Medium
+                color: Theme.text
+                Layout.alignment: Qt.AlignVCenter
+            }
         }
         AddressPrompt {
             id: addressPrompt
