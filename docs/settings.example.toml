@@ -16,6 +16,10 @@ darkBackground = "#11161e"
 lightBackgroundImage = ""
 darkBackgroundImage = ""
 
+[Search]
+# duckduckgo, google, bing, brave, ecosia, or startpage
+engine = "duckduckgo"
+
 [History]
 enabled = true
 

@@ -5,6 +5,8 @@ import QtQuick.Controls.Basic as Basic
 
 FocusScope {
     id: prompt
+    property var browserPreferences: null
+    property bool privateMode: false
     property var history: null
     property var tabs: null
     property int currentTabId: 0
@@ -96,8 +98,8 @@ FocusScope {
     RowLayout {
         id: searchRow
         anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
-        anchors.margins: 18
-        height: 28
+        anchors.leftMargin: 18; anchors.rightMargin: 18
+        height: 64
         spacing: 12
         Item {
             implicitWidth: 20; implicitHeight: 20
@@ -108,6 +110,9 @@ FocusScope {
             id: field
             objectName: "addressPromptField"
             Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.alignment: Qt.AlignVCenter
+            verticalAlignment: TextInput.AlignVCenter
             implicitHeight: 36
             padding: 0
             font.pixelSize: prompt.width < 400 ? 15 : 18
@@ -153,7 +158,31 @@ FocusScope {
                 spacing: 12
                 Rectangle {
                     implicitWidth: 28; implicitHeight: 28; radius: 7; color: Theme.field
-                    Basic.Label { anchors.centerIn: parent; text: suggestion.modelData.title.substring(0,1).toUpperCase(); color: Theme.text; font.pixelSize: 14; font.weight: Font.DemiBold }
+                    id: iconTile
+                    property url iconSource: ""
+                    function refreshIcon() {
+                        iconSource = prompt.browserPreferences && !prompt.privateMode
+                            ? prompt.browserPreferences.favicon(suggestion.modelData.url, true) : ""
+                    }
+                    Component.onCompleted: refreshIcon()
+                    Connections {
+                        target: prompt.browserPreferences
+                        function onFaviconReady(origin: string) {
+                            if (origin === prompt.browserPreferences.siteOrigin(suggestion.modelData.url)) iconTile.refreshIcon()
+                        }
+                    }
+                    Connections { target: suggestion; function onModelDataChanged() { iconTile.refreshIcon() } }
+                    Image {
+                        id: siteIcon
+                        anchors.centerIn: parent
+                        width: 20; height: 20
+                        sourceSize: Qt.size(32, 32)
+                        source: iconTile.iconSource
+                        asynchronous: true
+                        cache: true
+                        fillMode: Image.PreserveAspectFit
+                    }
+                    Basic.Label { anchors.centerIn: parent; visible: siteIcon.status !== Image.Ready; text: suggestion.modelData.title.substring(0,1).toUpperCase(); color: Theme.text; font.pixelSize: 14; font.weight: Font.DemiBold }
                 }
                 ColumnLayout {
                     Layout.fillWidth: true

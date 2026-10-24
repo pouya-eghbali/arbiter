@@ -25,6 +25,7 @@
 #include "webauthncontroller.h"
 #include "passkeycontroller.h"
 #include "appearance.h"
+#include "browserpreferences.h"
 #include "onboarding.h"
 #include "systemintegration.h"
 #include <QEventLoop>
@@ -82,6 +83,7 @@ int main(int argc, char *argv[])
     const QString settingsError=Settings::initialize();
     KeyBindings keyBindings;
     Appearance appearance;
+    BrowserPreferences browserPreferences;
     Onboarding onboarding(&appearance);
     SystemIntegration systemIntegration;
     Tabs tabs;
@@ -152,6 +154,7 @@ int main(int argc, char *argv[])
                                  {QStringLiteral("settingsDirectoryUrl"), QUrl::fromLocalFile(QFileInfo(Settings::configFile()).absolutePath())},
                                  {QStringLiteral("settingsError"), settingsError},
                                  {QStringLiteral("appearance"), QVariant::fromValue(&appearance)},
+                                 {QStringLiteral("browserPreferences"), QVariant::fromValue(&browserPreferences)},
                                  {QStringLiteral("onboarding"), QVariant::fromValue(&onboarding)},
                                  {QStringLiteral("windowDecorations"), appearance.windowDecorations()},
                                  {QStringLiteral("siteNavigation"), QVariant::fromValue(&siteNavigation)},

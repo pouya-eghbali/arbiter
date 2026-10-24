@@ -59,6 +59,7 @@ Basic.ApplicationWindow {
     required property var tabSleep
     required property var history
     required property var onboarding
+    required property var browserPreferences
     required property var appearance
     readonly property string focusedWorkspaceId: webView ? webView.workspaceId : workspaces.currentId
     readonly property var focusedWorkspace: workspaceInfo(focusedWorkspaceId)
@@ -246,7 +247,7 @@ Basic.ApplicationWindow {
         else if (!/\s/.test(text) && (text.includes(".") || /^localhost(:\d+)?(\/|$)/i.test(text)))
             webView.url = (/^localhost(:|\/|$)/i.test(text) ? "http://" : "https://") + text
         else
-            webView.url = "https://duckduckgo.com/?q=" + encodeURIComponent(text)
+            webView.url = window.browserPreferences.searchUrl(text)
         webView.forceActiveFocus()
     }
 
@@ -747,6 +748,8 @@ Basic.ApplicationWindow {
                     StartPage {
                         id: paneStart
                         history: window.history
+                        browserPreferences: window.browserPreferences
+                        privateMode: window.privateMode
                         tabs: window.tabs
                         currentTabId: page.tabId
                         onTabRequested: function(tabId) { window.activateSuggestedTab(tabId) }
@@ -963,6 +966,8 @@ Basic.ApplicationWindow {
         StartPage {
             id: homeStart
             history: window.history
+            browserPreferences: window.browserPreferences
+            privateMode: window.privateMode
             tabs: window.tabs
             currentTabId: window.tabs.idAt(window.tabs.currentIndex)
             onTabRequested: function(tabId) { window.activateSuggestedTab(tabId) }
@@ -1464,6 +1469,16 @@ Basic.ApplicationWindow {
                         visible: window.settingsCategory === 4
                         Layout.fillWidth: true
                         spacing: 16
+                        Basic.Label { text: qsTr("Default search engine"); color: Theme.text; Layout.fillWidth: true }
+                        UiComboBox {
+                            objectName: "defaultSearchEngine"
+                            Layout.fillWidth: true
+                            model: ["DuckDuckGo", "Google", "Bing", "Brave Search", "Ecosia", "Startpage"]
+                            readonly property var engineIds: ["duckduckgo", "google", "bing", "brave", "ecosia", "startpage"]
+                            currentIndex: engineIds.indexOf(window.browserPreferences.searchEngine)
+                            onActivated: window.browserPreferences.searchEngine = engineIds[currentIndex]
+                            Accessible.name: qsTr("Default search engine")
+                        }
                         UiButton {
                             objectName: "replayTutorialButton"
                             text: qsTr("Replay welcome tutorial")
@@ -2022,6 +2037,8 @@ Basic.ApplicationWindow {
             objectName: "popupAddressPrompt"
             maximumHeight: Math.min(640, window.height - 64)
             history: window.history
+            browserPreferences: window.browserPreferences
+            privateMode: window.privateMode
             tabs: window.tabs
             currentTabId: window.tabs.idAt(window.tabs.currentIndex)
             onNavigateRequested: function(input) { window.navigate(input) }

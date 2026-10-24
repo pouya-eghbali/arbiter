@@ -494,3 +494,16 @@ Private windows heavily blur and darken their contents, and mute audio after fiv
 
 
 The start page and **Cmd+L / Ctrl+L** share a rounded address prompt with local suggestions: matching open tabs, frequently visited history pages, and a small built-in set of popular sites. Type to filter, use ↑/↓ and Enter to choose, or press Enter without selecting a row to navigate/search your text. Open-tab suggestions switch to the existing tab and its workspace; visible split panes are focused in place. Long lists scroll within the available space. Suggestions do not fetch remote autocomplete or favicons, and private windows use only their own ephemeral tabs/history.
+
+### Address search and favicons
+
+Choose the default search engine in **Settings → Configuration**. DuckDuckGo
+remains the default; Google, Bing, Brave Search, Ecosia, and Startpage are also
+available. The choice applies to the start page and address shortcut, and is
+saved as `Search.engine` in the TOML preferences.
+
+Address suggestions load favicons from Arbiter’s local cache first. Missing
+icons are fetched directly from the site’s `/favicon.ico`, without browser
+cookies, and cached as small PNGs under Qt’s platform cache directory. Requests
+are deduplicated, bounded, and time out; unavailable icons retain the letter
+fallback. Private windows use the fallback and make no favicon requests.
