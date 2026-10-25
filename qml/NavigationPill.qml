@@ -201,7 +201,7 @@ FocusScope {
         NavButton {
             id: siteAudioButton
             objectName: "siteAudioPillButton"
-            visible: pill.siteMuteAvailable && (pill.siteMuted || (pill.view && pill.view.recentlyAudible === true))
+            visible: pill.siteMuteAvailable
             iconName: pill.siteMuted ? "volume-x" : "volume-2"
             Accessible.name: pill.siteMuted ? qsTr("Unmute site") : qsTr("Mute site")
             iconColor: pill.siteMuted ? Theme.accent : Theme.text
@@ -309,7 +309,6 @@ FocusScope {
         UiMenuItem { text: qsTr("Split with…"); onTriggered: pill.splitWithRequested() }
         UiMenuItem { visible: !adBlockButton.visible; text: pill.adBlockActive ? qsTr("Pause ad blocking in this view") : qsTr("Resume ad blocking in this view"); enabled: pill.adBlockEnabled; onTriggered: pill.adBlockRequested() }
         UiMenuItem { visible: !shareButton.visible; text: qsTr("Share current page…"); enabled: pill.canShare; onTriggered: pill.shareRequested() }
-        UiMenuItem { objectName: "muteSiteMenuItem"; visible: pill.siteMuteAvailable && !siteAudioButton.visible; text: pill.siteMuted ? qsTr("Unmute site") : qsTr("Mute site"); onTriggered: pill.muteSiteRequested() }
         UiMenuItem { text: qsTr("Developer tools…"); onTriggered: pill.developerToolsRequested() }
         UiMenuItem { text: pill.activeDownloads > 0 ? qsTr("Downloads (%1 active)…").arg(pill.activeDownloads) : qsTr("Downloads…"); onTriggered: pill.downloadsRequested() }
         UiMenuItem { text: qsTr("History…"); onTriggered: pill.historyRequested() }
