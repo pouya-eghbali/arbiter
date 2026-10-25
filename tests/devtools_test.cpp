@@ -28,12 +28,13 @@ void DevToolsTest::frontendAndLifecycle()
                 width: root.width; height: root.height - dock.height
                 profile: WebEngineProfile { offTheRecord: true }
                 onContextMenuRequested: request => contextMenu.show(request)
-                Component.onCompleted: loadHtml('<h1 id="fixture">Developer tools fixture</h1><input style="position:absolute;left:20px;top:100px">')
+                Component.onCompleted: loadHtml('<h1 id="fixture">Developer tools fixture</h1><input style="position:absolute;left:20px;top:100px"><a href="https://example.com" style="position:absolute;left:20px;top:200px">Example link</a><img width="60" height="40" style="position:absolute;left:20px;top:260px" src="data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="60" height="40"><rect width="60" height="40" fill="teal"/></svg>') + '">')
             }
             WebContextMenu {
                 id: contextMenu
                 view: first
                 canMuteSite: true
+                shortcutHints: ({print:Qt.platform.os === "osx" ? "⌘P" : "Ctrl+P", passwords:Qt.platform.os === "osx" ? "⇧⌘P" : "Ctrl+Shift+P"})
                 onMuteSiteRequested: { root.muteRequests++; siteMuted = !siteMuted }
                 onInspectRequested: { root.inspectedFromMenu = true; dock.openFor(first, true) }
             }
@@ -58,14 +59,23 @@ void DevToolsTest::frontendAndLifecycle()
     QVERIFY(window);
     const QString inspectAction = "(() => { for (let i = 0; i < contextMenu.count; ++i) { const item = contextMenu.itemAt(i); if (item.objectName === 'inspectElementAction') return item; } return null; })()";
     // Exercise real right-click requests on page content and on an editable field.
-    for (const QPoint point : {QPoint(40, 35), QPoint(40, 115)}) {
+    for (const QPoint point : {QPoint(700, 35), QPoint(40, 115), QPoint(40, 215), QPoint(40, 275)}) {
         QTest::mouseClick(window, Qt::RightButton, Qt::NoModifier, point);
         QTRY_VERIFY(evaluate("contextMenu.visible").toBool());
         QVERIFY(evaluate("contextMenu.width >= 200").toBool());
+        QCOMPARE(evaluate("contextMenu.itemAt(0).objectName").toString(),QString("contextQuickActions"));
+        if(point.y()!=215) QCOMPARE(evaluate("contextMenu.itemAt(0).actions[0].label").toString(),point.y()==115?QString("Cut"):point.y()==275?QString("Copy image"):QString("Back"));
+        else QVERIFY(evaluate("(() => { for(let i=0;i<contextMenu.count;i++)if(contextMenu.itemAt(i).iconName==='external-link')return true;return false })()").toBool());
+        if(point.y()==115) QVERIFY(!evaluate("contextMenu.itemAt(0).actions[0].allowed").toBool());
+        if(point.y()==275) QCOMPARE(evaluate("contextMenu.itemAt(0).actions.length").toInt(),2);
+        if(const auto path=qEnvironmentVariable("ARBITER_TEST_CONTEXT_IMAGE");!path.isEmpty()) {
+            QTest::qWait(250);
+            QVERIFY(window->grabWindow().save(path+"-"+QString::number(point.y())+".png"));
+        }
         QVERIFY(evaluate("(() => { for (let i = 0; i < contextMenu.count; ++i) if (contextMenu.itemAt(i).objectName === 'printPageAction') return true; return false; })()").toBool());
         auto *muteAction=evaluate("(() => { for(let i=0;i<contextMenu.count;i++) { const item=contextMenu.itemAt(i);if(item.objectName==='muteSiteAction')return item };return null })()").value<QObject *>();
         QVERIFY(muteAction);
-        QCOMPARE(muteAction->property("text").toString(),point.y()==35?QString("Mute site"):QString("Unmute site"));
+        QCOMPARE(muteAction->property("text").toString(),root->property("muteRequests").toInt()%2==0?QString("Mute site"):QString("Unmute site"));
         QVERIFY(QMetaObject::invokeMethod(muteAction,"triggered"));
         auto *action = evaluate(inspectAction).value<QObject *>();
         QVERIFY(action);
@@ -75,7 +85,24 @@ void DevToolsTest::frontendAndLifecycle()
         evaluate("contextMenu.close()");
         QTRY_VERIFY(!evaluate("contextMenu.visible").toBool());
     }
-    QCOMPARE(root->property("muteRequests").toInt(),2);
+    QCOMPARE(root->property("muteRequests").toInt(),4);
+    QTest::mouseClick(window,Qt::RightButton,Qt::NoModifier,QPoint(700,35));
+    QTRY_VERIFY(evaluate("contextMenu.visible").toBool());
+    auto *toolbar=evaluate("contextMenu.itemAt(0)").value<QObject *>();QVERIFY(toolbar);
+    auto *reload=evaluate("contextMenu.itemAt(0).actions[2].action").value<QObject *>();QVERIFY(reload);
+    QSignalSpy reloaded(reload,SIGNAL(triggered()));QVERIFY(reloaded.isValid());
+    QVERIFY(QMetaObject::invokeMethod(toolbar,"triggered"));
+    QCOMPARE(reloaded.count(),0);
+    evaluate("contextMenu.close()");
+    QTest::mouseClick(window,Qt::RightButton,Qt::NoModifier,QPoint(700,35));
+    QTRY_VERIFY(evaluate("contextMenu.visible").toBool());
+    evaluate("contextMenu.currentIndex=0;contextMenu.itemAt(0).forceActiveFocus()");
+    QTest::keyClick(window,Qt::Key_Right);
+    QCOMPARE(evaluate("contextMenu.itemAt(0).selectedAction").toInt(),2);
+    QTest::keyClick(window,Qt::Key_Return);
+    QTRY_COMPARE(reloaded.count(),1);
+    QTRY_VERIFY(!evaluate("contextMenu.visible").toBool());
+    QTRY_VERIFY(!evaluate("first.loading").toBool());
     QVERIFY(root->property("inspectedFromMenu").toBool());
     QTRY_VERIFY_WITH_TIMEOUT(evaluate("dock.frontend && !dock.frontend.loading && dock.frontend.url.toString().startsWith('devtools://')").toBool(), 15000);
     QVERIFY(evaluate("first.devToolsView === dock.frontend && dock.target === first").toBool());

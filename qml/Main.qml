@@ -1033,6 +1033,10 @@ Basic.ApplicationWindow {
                                 passwordsEnabled: window.passwords.enabled
                                 siteMuted: page.siteMuted
                                 canMuteSite: window.siteAudio.siteHost(page.url).length > 0
+                                shortcutHints: ({
+                                    print: window.keyBindings.nativeSequence(window.bindings.print),
+                                    passwords: window.keyBindings.nativeSequence(window.bindings.passwords)
+                                })
                                 onMuteSiteRequested: {
                                     if (!window.privateCovered && !window.shuttingDown)
                                         window.siteAudio.setMuted(page.url, !page.siteMuted)

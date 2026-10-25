@@ -45,3 +45,17 @@ resize dragging and the native context-menu inspect path.
 
 Runtime verification is on macOS. Windows/Linux use the same Qt APIs; runtime
 validation on those platforms remains pending.
+
+## Page context menu
+
+Right-click uses Arbiter's themed glass menu, with a compact icon-and-label strip
+for common actions. It shows navigation on ordinary pages, cut/copy/paste in text
+fields, copy for a selection, image copy/save, or playback controls for media.
+Regular rows have aligned Lucide icons, separators between context/site/extension/
+developer actions, and shortcut hints; Print and Saved passwords follow customized
+bindings. Text editing stays with Chromium's native actions and edit flags.
+
+The action strip supports left/right selection and Enter/Space activation. Clicking
+empty strip space does not execute an action. Menus keep native disabled states,
+spell-check suggestions, extension check/radio state, and the password-field probe.
+The menu closes on navigation so it cannot act on a different document.
