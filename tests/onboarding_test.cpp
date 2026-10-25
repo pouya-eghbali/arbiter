@@ -119,6 +119,25 @@ private slots:
         QVERIFY(button->property("enabled").toBool());
         item->setParentItem(nullptr);
     }
+    void edgeNavigationPreferencesPersistAndRejectInvalidValues() {
+        Appearance appearance;
+        QCOMPARE(appearance.navigationRevealMode(), QString("handle"));
+        QCOMPARE(appearance.pageEdgeMode(), QString("hover"));
+        appearance.setNavigationRevealMode("edge");
+        appearance.setPageEdgeMode("drag");
+        appearance.setNavigationPill(false);
+        Appearance restored;
+        QCOMPARE(restored.navigationRevealMode(), QString("edge"));
+        QCOMPARE(restored.pageEdgeMode(), QString("drag"));
+        QVERIFY(!restored.navigationPill());
+        restored.setNavigationRevealMode("invalid");
+        restored.setPageEdgeMode("invalid");
+        QCOMPARE(restored.navigationRevealMode(), QString("edge"));
+        QCOMPARE(restored.pageEdgeMode(), QString("drag"));
+        restored.setPageEdgeMode("off");
+        Appearance disabled;
+        QCOMPARE(disabled.pageEdgeMode(), QString("off"));
+    }
     void resumeAndPresets() {
         Appearance appearance;
         Onboarding setup(&appearance);

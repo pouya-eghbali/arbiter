@@ -7,6 +7,7 @@ Item {
     id: panel
     required property var manager
     required property var activeView
+    readonly property bool overlayVisible: suggestionPopup.visible || fillPopup.visible || savePopup.visible || managePopup.visible || editPopup.visible || deletePopup.visible
     property var target: null
     property var accounts: []
     property string origin: ""

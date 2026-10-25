@@ -33,6 +33,13 @@ FocusScope {
     required property int tabCount
     property bool revealed: false
     property bool focusAddressPending: false
+    readonly property bool edgeReveal: appearance.navigationRevealMode === "edge"
+    property bool edgeHovered: false
+    readonly property bool engaged: expanded || revealProgress > 0.001
+    onEdgeHoveredChanged: {
+        if (edgeHovered) { collapse.stop(); revealed = true }
+        else collapse.restart()
+    }
     property bool shown: true
     property bool forceHidden: false
     readonly property bool presented: shown && !forceHidden
@@ -84,7 +91,7 @@ FocusScope {
             else collapse.restart()
         }
     }
-    Timer { id: collapse; interval: 1000; onTriggered: if (!hover.hovered && !pill.activeFocus && !more.visible) pill.revealed = false }
+    Timer { id: collapse; interval: 1000; onTriggered: if (!hover.hovered && !pill.edgeHovered && !pill.activeFocus && !more.visible) pill.revealed = false }
     GlassSurface {
         id: pillSurface
         anchors.horizontalCenter: parent.horizontalCenter

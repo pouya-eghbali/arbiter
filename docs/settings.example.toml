@@ -5,6 +5,10 @@
 [appearance]
 theme = "system"
 navigationPill = true
+# handle or edge; navigationPill=false gives shortcut-only navigation.
+navigationRevealMode = "handle"
+# hover (clickable buttons), drag (inward then release), or off.
+pageEdgeMode = "hover"
 windowDecorations = false
 siteMenuMode = "title"
 lightAccent = "#2868b8"

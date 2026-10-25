@@ -53,6 +53,27 @@ void Appearance::setNavigationPill(bool enabled)
     m_settings.setValue(QStringLiteral("appearance/navigationPill"), enabled);
     emit navigationPillChanged();
 }
+QString Appearance::navigationRevealMode() const
+{
+    return m_settings.value("appearance/navigationRevealMode").toString() == "edge" ? QStringLiteral("edge") : QStringLiteral("handle");
+}
+void Appearance::setNavigationRevealMode(const QString &mode)
+{
+    if ((mode != "handle" && mode != "edge") || mode == navigationRevealMode()) return;
+    m_settings.setValue("appearance/navigationRevealMode", mode);
+    emit navigationRevealModeChanged();
+}
+QString Appearance::pageEdgeMode() const
+{
+    const auto mode = m_settings.value("appearance/pageEdgeMode", "hover").toString();
+    return mode == "off" || mode == "drag" ? mode : QStringLiteral("hover");
+}
+void Appearance::setPageEdgeMode(const QString &mode)
+{
+    if ((mode != "off" && mode != "hover" && mode != "drag") || mode == pageEdgeMode()) return;
+    m_settings.setValue("appearance/pageEdgeMode", mode);
+    emit pageEdgeModeChanged();
+}
 void Appearance::setWindowDecorations(bool enabled)
 {
     if (m_windowDecorations == enabled) return;

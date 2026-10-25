@@ -9,6 +9,8 @@ class Appearance final : public QObject {
     Q_PROPERTY(QString theme READ theme WRITE setTheme NOTIFY themeChanged)
     Q_PROPERTY(bool dark READ dark NOTIFY colorsChanged)
     Q_PROPERTY(bool navigationPill READ navigationPill WRITE setNavigationPill NOTIFY navigationPillChanged)
+    Q_PROPERTY(QString navigationRevealMode READ navigationRevealMode WRITE setNavigationRevealMode NOTIFY navigationRevealModeChanged)
+    Q_PROPERTY(QString pageEdgeMode READ pageEdgeMode WRITE setPageEdgeMode NOTIFY pageEdgeModeChanged)
     Q_PROPERTY(bool windowDecorations READ windowDecorations WRITE setWindowDecorations NOTIFY windowDecorationsChanged)
     Q_PROPERTY(QString siteMenuMode READ siteMenuMode WRITE setSiteMenuMode NOTIFY siteMenuModeChanged)
     Q_PROPERTY(QColor lightAccent READ lightAccent WRITE setLightAccent NOTIFY accentColorsChanged)
@@ -24,6 +26,10 @@ public:
     bool dark() const;
     bool navigationPill() const { return m_navigationPill; }
     void setNavigationPill(bool enabled);
+    QString navigationRevealMode() const;
+    void setNavigationRevealMode(const QString &mode);
+    QString pageEdgeMode() const;
+    void setPageEdgeMode(const QString &mode);
     bool windowDecorations() const { return m_windowDecorations; }
     void setWindowDecorations(bool enabled);
     QString siteMenuMode() const;
@@ -45,6 +51,8 @@ signals:
     void themeChanged();
     void colorsChanged();
     void navigationPillChanged();
+    void navigationRevealModeChanged();
+    void pageEdgeModeChanged();
     void windowDecorationsChanged();
     void siteMenuModeChanged();
     void accentColorsChanged();

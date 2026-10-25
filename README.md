@@ -55,7 +55,8 @@ Buttons, fields and other shared controls live in [`qml/ui`](qml/ui/README.md)
 and are reused across Settings, navigation and credential dialogs.
 A bottom navigation pill expands on hover or click, then shrinks to a tiny
 handle after the pointer leaves. It stays open while using its keyboard controls
-or menu. Settings → Appearance → Show navigation pill turns it off completely;
+or menu. Settings → Appearance → Navigation pill offers a visible handle, an invisible
+bottom-edge reveal zone, or shortcut-only navigation;
 keyboard shortcuts and native menus remain available.
 On macOS, Appearance → Website navigation in the menu bar offers Tab title
 (the default), Top-level navigation, or Off. Arbiter reads visible links from
@@ -593,3 +594,20 @@ folder. Existing files receive numbered alternatives. Completed files never open
 automatically. Regular history survives restarts; private lists belong only to
 their private window. Clearing the list keeps saved files. See
 [download development notes](docs/downloads.md) for lifecycle and platform details.
+
+### Mouse edge navigation
+
+Settings → Appearance → Navigation pill → **Reveal at bottom edge** removes the
+mini handle. Pause for 180 ms within the centered bottom strip to reveal the
+pill; it stays open over its controls and menus, then collapses after leaving.
+The existing shortcut works in all three modes, including **Shortcut only**.
+
+**Page edge controls** offers hover buttons (the default), inward drag gestures,
+or Off. Hover for 180 ms at the middle of a view’s left/right edge for Back/Forward,
+or near its top-right corner for Tabs. Hovering alone never navigates.
+In drag mode, start within the outer 10 pixels and release after dragging inward
+at least 64 pixels for Back/Forward, or diagonally down-left at least 48 pixels in
+both directions for Tabs. A short or wrong-direction drag cancels. Each split
+view acts on its own page/workspace. Scrolling and the split-swap modifier gesture
+remain available; edge drags use the left mouse button with no modifiers.
+Edge controls are suspended behind dialogs, preferences, and private-window locks.

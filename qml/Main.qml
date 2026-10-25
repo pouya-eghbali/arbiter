@@ -17,6 +17,13 @@ Basic.ApplicationWindow {
     function newPrivateWindow() { if (privacy) privacy.open() }
     function lockPrivateWindow() { if (privateSession) privateSession.lock() }
     property bool temporaryPill: false
+    readonly property bool edgeActionsAllowed: window.active && !privateCovered && !shuttingDown && !settingsOpen
+        && !window.webauthn.active && !sitePermissionQueue.active && !desktopSharePanel.request
+        && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible
+        && !downloadsPanel.visible && !extensionPanel.visible && !extensionReview.visible
+        && !splitWithPicker.visible && !tutorial.visible && !passkeySetup.visible && !biometricSetup.visible
+        && !pagePrinter.busy && !nativeShare.active && !passwordPanel.overlayVisible
+
     readonly property bool canSharePage: webView && browserPreferences.shareableUrl(webView.url).toString().length > 0
     property bool uiReady: false
     Component.onCompleted: { downloads.setBlocked(privateCovered); uiReady = true; if (privateCovered) privateShield.forceActiveFocus() }
@@ -844,6 +851,21 @@ Basic.ApplicationWindow {
                                     color: Theme.text
                                 }
                             }
+                            PageEdgeControls {
+                                parent: pageEdgeOverlay
+                                x: page.x - splitViewport.contentX
+                                y: page.y - splitViewport.contentY
+                                width: page.width; height: page.height
+                                z: 6
+                                visible: page.visible
+                                enabled: window.edgeActionsAllowed && !pageContextMenu.visible
+                                mode: window.appearance.pageEdgeMode
+                                canGoBack: page.canGoBack
+                                canGoForward: page.canGoForward
+                                onBackRequested: { window.splits.activate(page.paneGeometry.paneId); page.goBack() }
+                                onForwardRequested: { window.splits.activate(page.paneGeometry.paneId); page.goForward() }
+                                onTabsRequested: { window.splits.activate(page.paneGeometry.paneId); window.showTabs() }
+                            }
                             TabSleepController {
                                 objectName: "tabSleep" + page.tabId
                                 view: page
@@ -1123,6 +1145,15 @@ Basic.ApplicationWindow {
 
         }
 
+    // Keep glass controls outside their backdrop capture, and clip them to the
+    // visible split canvas when a large layout requires scrolling.
+    Item {
+        id: pageEdgeOverlay
+        x: splitViewport.x; y: splitViewport.y
+        width: splitViewport.width; height: splitViewport.height
+        clip: true
+        z: 5
+    }
     DeveloperToolsDock {
         id: developerTools
         objectName: "developerTools"
@@ -1366,17 +1397,38 @@ Basic.ApplicationWindow {
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
-                        UiCheckBox {
-                            objectName: "navigationPillToggle"
-                            text: qsTr("Show navigation pill")
-                            checked: window.appearance.navigationPill
-                            onToggled: window.appearance.navigationPill = checked
+                        Basic.Label { text: qsTr("Navigation pill"); color: Theme.text }
+                        UiComboBox {
+                            objectName: "navigationPillModeChoice"
+                            Layout.fillWidth: true
+                            model: [qsTr("Visible handle"), qsTr("Reveal at bottom edge"), qsTr("Shortcut only")]
+                            currentIndex: !window.appearance.navigationPill ? 2 : window.appearance.navigationRevealMode === "edge" ? 1 : 0
+                            Accessible.name: qsTr("Navigation pill")
+                            onActivated: {
+                                if (currentIndex !== 2) window.appearance.navigationRevealMode = currentIndex === 1 ? "edge" : "handle"
+                                window.appearance.navigationPill = currentIndex !== 2
+                            }
                         }
                         Basic.Label {
-                            text: qsTr("Reveal navigation by hovering over the small handle. Keyboard shortcuts also work with the pill hidden.")
+                            text: qsTr("In bottom-edge mode, pause near the center of the bottom edge to reveal navigation. Move away to hide it. The navigation shortcut works in every mode.")
                             color: Theme.muted
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
+                        }
+                        Basic.Label { text: qsTr("Page edge controls"); color: Theme.text }
+                        UiComboBox {
+                            objectName: "pageEdgeModeChoice"
+                            Layout.fillWidth: true
+                            model: [qsTr("Hover to show buttons"), qsTr("Drag inward"), qsTr("Off")]
+                            currentIndex: ["hover", "drag", "off"].indexOf(window.appearance.pageEdgeMode)
+                            Accessible.name: qsTr("Page edge controls")
+                            onActivated: window.appearance.pageEdgeMode = ["hover", "drag", "off"][currentIndex]
+                        }
+                        Basic.Label {
+                            Layout.fillWidth: true
+                            text: qsTr("Back and Forward live at the middle of each view’s left and right edges. Tabs lives in its top-right corner. Hover briefly to reveal a button, or drag inward and release to act; drag diagonally down-left for Tabs. A short drag cancels. Page scrolling and keyboard shortcuts keep working.")
+                            wrapMode: Text.Wrap
+                            color: Theme.muted
                         }
                         Basic.Label {
                             visible: Qt.platform.os === "osx"
@@ -1880,6 +1932,30 @@ Basic.ApplicationWindow {
     }
 
     // Window movement remains available above every website without a toolbar.
+    Item {
+        id: pillEdgeZone
+        objectName: "pillEdgeZone"
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: developerTools.height
+        width: Math.min(320, parent.width * 0.5)
+        height: 12
+        z: 22
+        enabled: window.edgeActionsAllowed && window.appearance.navigationPill && window.appearance.navigationRevealMode === "edge"
+        HoverHandler {
+            id: pillEdgeHover
+            onHoveredChanged: {
+                if (hovered) pillEdgeDwell.restart()
+                else { pillEdgeDwell.stop(); navigationPill.edgeHovered = false }
+            }
+        }
+        Timer {
+            id: pillEdgeDwell
+            interval: 180
+            onTriggered: if (pillEdgeZone.enabled && pillEdgeHover.hovered) navigationPill.edgeHovered = true
+        }
+        onEnabledChanged: if (!enabled) { pillEdgeDwell.stop(); navigationPill.edgeHovered = false }
+    }
     NavigationPill {
         id: navigationPill
         objectName: "navigationPill"
@@ -1888,7 +1964,7 @@ Basic.ApplicationWindow {
         anchors.bottomMargin: developerTools.height + 12 - slideOffset
         z: 21
         forceHidden: window.privateCovered || window.shuttingDown
-        shown: (window.appearance.navigationPill || window.temporaryPill) && (!window.emptyPage || window.temporaryPill) && !window.settingsOpen
+        shown: ((window.appearance.navigationPill && (!edgeReveal || engaged)) || window.temporaryPill) && (!window.emptyPage || window.temporaryPill || edgeReveal) && !window.settingsOpen
             && !window.webauthn.active && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible
         view: window.webView
         appearance: window.appearance
