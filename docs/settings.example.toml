@@ -7,8 +7,6 @@ theme = "system"
 navigationPill = true
 # handle or edge; navigationPill=false gives shortcut-only navigation.
 navigationRevealMode = "handle"
-# Tabs corner: hover (clickable button), drag (diagonally down-left), or off.
-pageEdgeMode = "hover"
 # Compositor-backed trackpad/precision-scroll history navigation.
 historySwipeEnabled = true
 windowDecorations = false

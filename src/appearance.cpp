@@ -70,17 +70,6 @@ void Appearance::setHistorySwipeEnabled(bool enabled)
     m_settings.setValue("appearance/historySwipeEnabled",enabled);
     emit historySwipeEnabledChanged();
 }
-QString Appearance::pageEdgeMode() const
-{
-    const auto mode = m_settings.value("appearance/pageEdgeMode", "hover").toString();
-    return mode == "off" || mode == "drag" ? mode : QStringLiteral("hover");
-}
-void Appearance::setPageEdgeMode(const QString &mode)
-{
-    if ((mode != "off" && mode != "hover" && mode != "drag") || mode == pageEdgeMode()) return;
-    m_settings.setValue("appearance/pageEdgeMode", mode);
-    emit pageEdgeModeChanged();
-}
 void Appearance::setWindowDecorations(bool enabled)
 {
     if (m_windowDecorations == enabled) return;

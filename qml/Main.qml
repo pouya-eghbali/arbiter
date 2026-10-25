@@ -869,23 +869,12 @@ Basic.ApplicationWindow {
                             }
                             Shortcut { sequence: "Escape"; enabled: historySwipe.active; onActivated: historySwipe.cancel() }
                             HistorySwipeOverlay {
-                                parent: pageEdgeOverlay
+                                parent: historySwipeLayer
                                 x: page.x - splitViewport.contentX
                                 y: page.y - splitViewport.contentY
                                 width: page.width; height: page.height
                                 visible: page.visible
                                 controller: historySwipe
-                            }
-                            TabsCornerControl {
-                                parent: pageEdgeOverlay
-                                x: page.x - splitViewport.contentX
-                                y: page.y - splitViewport.contentY
-                                width: page.width; height: page.height
-                                z: 6
-                                visible: page.visible
-                                enabled: window.edgeActionsAllowed && !pageContextMenu.visible
-                                mode: window.appearance.pageEdgeMode
-                                onTabsRequested: { window.splits.activate(page.paneGeometry.paneId); window.showTabs() }
                             }
                             TabSleepController {
                                 objectName: "tabSleep" + page.tabId
@@ -1169,7 +1158,7 @@ Basic.ApplicationWindow {
     // Keep glass controls outside their backdrop capture, and clip them to the
     // visible split canvas when a large layout requires scrolling.
     Item {
-        id: pageEdgeOverlay
+        id: historySwipeLayer
         x: splitViewport.x; y: splitViewport.y
         width: splitViewport.width; height: splitViewport.height
         clip: true
@@ -1446,21 +1435,6 @@ Basic.ApplicationWindow {
                             text: qsTr("At a page’s horizontal boundary, start a new two-finger swipe. Keep swiping until the arrow fills, then release to navigate. Reverse direction or press Escape to cancel. Scrollable content gets priority, and ordinary mouse-wheel scrolling never navigates.")
                             color: Theme.muted
                             wrapMode: Text.Wrap
-                        }
-                        Basic.Label { text: qsTr("Tabs corner control"); color: Theme.text }
-                        UiComboBox {
-                            objectName: "pageEdgeModeChoice"
-                            Layout.fillWidth: true
-                            model: [qsTr("Hover to show buttons"), qsTr("Drag inward"), qsTr("Off")]
-                            currentIndex: ["hover", "drag", "off"].indexOf(window.appearance.pageEdgeMode)
-                            Accessible.name: qsTr("Tabs corner control")
-                            onActivated: window.appearance.pageEdgeMode = ["hover", "drag", "off"][currentIndex]
-                        }
-                        Basic.Label {
-                            Layout.fillWidth: true
-                            text: qsTr("Tabs lives just below each view’s top-right corner. Hover briefly to reveal a button, or drag diagonally down-left and release. A short drag cancels.")
-                            wrapMode: Text.Wrap
-                            color: Theme.muted
                         }
                         Basic.Label {
                             visible: Qt.platform.os === "osx"

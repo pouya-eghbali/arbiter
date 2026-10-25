@@ -613,12 +613,4 @@ traditional mouse-wheel scrolling cannot start navigation. It works with input
 backends that supply phased scroll gestures; it does not emulate trackpad input
 for a conventional wheel. Each split view navigates its own history.
 
-**Tabs corner control** offers a hover button (the default), a diagonal inward
-drag, or Off. Hover briefly just below a view’s top-right corner; the button stays
-visible while hovered or pressed, with a grace period after leaving. In drag
-mode, start in that corner and drag at least 48 pixels both left and down, then
-release. A short drag cancels. The split-swap modifier gesture and keyboard
-shortcuts remain available. Edge controls are suspended behind dialogs,
-preferences, and private-window locks.
-
 See [the implementation and validation notes](docs/history-swipes.md).

@@ -2,7 +2,8 @@
 
 Arbiter uses horizontal precision scrolling at a page boundary for Back/Forward.
 Side hover buttons and mouse edge-drag history navigation have been removed.
-The bottom-edge pill reveal and the top-right Tabs hover/drag control are separate.
+The bottom-edge pill reveal is separate. Tabs remains available through the pill,
+menus, and its customizable keyboard shortcut; there is no corner gesture.
 
 ## Behavior researched
 
@@ -50,9 +51,7 @@ locking, and a 1.5-second stalled-input timeout cancel it. Momentum cannot start
 or add progress to a gesture. No DOM `scrollWidth` heuristics are used.
 
 Back/Forward actions activate the originating split view. Settings → Appearance
-controls history swiping independently of the Tabs corner's hover/drag/off mode.
-The latter retains the existing TOML key `appearance.pageEdgeMode`;
-`appearance.historySwipeEnabled` defaults to true. The existing keyboard bindings
+controls history swiping; `appearance.historySwipeEnabled` defaults to true. The existing keyboard bindings
 are unchanged. Phased gestures depend on the OS/input backend; ordinary mouse
 wheels are deliberately unsupported.
 

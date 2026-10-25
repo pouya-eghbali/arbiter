@@ -11,7 +11,6 @@ class Appearance final : public QObject {
     Q_PROPERTY(bool navigationPill READ navigationPill WRITE setNavigationPill NOTIFY navigationPillChanged)
     Q_PROPERTY(QString navigationRevealMode READ navigationRevealMode WRITE setNavigationRevealMode NOTIFY navigationRevealModeChanged)
     Q_PROPERTY(bool historySwipeEnabled READ historySwipeEnabled WRITE setHistorySwipeEnabled NOTIFY historySwipeEnabledChanged)
-    Q_PROPERTY(QString pageEdgeMode READ pageEdgeMode WRITE setPageEdgeMode NOTIFY pageEdgeModeChanged)
     Q_PROPERTY(bool windowDecorations READ windowDecorations WRITE setWindowDecorations NOTIFY windowDecorationsChanged)
     Q_PROPERTY(QString siteMenuMode READ siteMenuMode WRITE setSiteMenuMode NOTIFY siteMenuModeChanged)
     Q_PROPERTY(QColor lightAccent READ lightAccent WRITE setLightAccent NOTIFY accentColorsChanged)
@@ -31,8 +30,6 @@ public:
     void setNavigationRevealMode(const QString &mode);
     bool historySwipeEnabled() const;
     void setHistorySwipeEnabled(bool enabled);
-    QString pageEdgeMode() const;
-    void setPageEdgeMode(const QString &mode);
     bool windowDecorations() const { return m_windowDecorations; }
     void setWindowDecorations(bool enabled);
     QString siteMenuMode() const;
@@ -55,7 +52,6 @@ signals:
     void colorsChanged();
     void navigationPillChanged();
     void navigationRevealModeChanged();
-    void pageEdgeModeChanged();
     void historySwipeEnabledChanged();
     void windowDecorationsChanged();
     void siteMenuModeChanged();
