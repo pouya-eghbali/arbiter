@@ -5,6 +5,12 @@ import QtQuick.Controls.Basic as Basic
 
 FocusScope {
     property bool privateMode: false
+    property var installedExtensions: []
+    property bool extensionsMode: false
+    signal extensionRequested(string id, bool options)
+    signal manageExtensionsRequested()
+    onViewChanged: extensionsMode = false
+    onPrivateModeChanged: if (privateMode) extensionsMode = false
     property bool adBlockEnabled: true
     property bool adBlockActive: true
     property int adBlockBlocked: 0
@@ -12,6 +18,7 @@ FocusScope {
     function dismissMenu() { more.close() }
     function shareAnchor() { return shareButton.visible ? shareButton.mapToItem(null, shareButton.width / 2, shareButton.height / 2) : Qt.point(pill.x + pill.width / 2, pill.y) }
     function reveal() {
+        extensionsMode = false
         collapse.stop()
         focusAddressPending = true
         revealFocusAnchor.forceActiveFocus(Qt.ShortcutFocusReason)
@@ -51,9 +58,8 @@ FocusScope {
     Behavior on presenceProgress {
         NumberAnimation { duration: pill.forceHidden ? 0 : pill.presented ? Theme.enterDuration : Theme.exitDuration; easing.type: Easing.OutCubic }
     }
-    readonly property bool expanded: revealed || activeFocus || more.visible
+    readonly property bool expanded: extensionsMode || revealed || activeFocus || more.visible
     signal shareRequested()
-    signal extensionsRequested()
     property bool canShare: false
     signal addressRequested()
     signal tabsRequested()
@@ -76,10 +82,10 @@ FocusScope {
         NumberAnimation { duration: Theme.reducedMotion ? 0 : 240; easing.type: Easing.OutCubic }
     }
     onRevealProgressChanged: focusAddressIfReady()
-    onVisibleChanged: if (!visible) { focusAddressPending = false; revealed = false; focus = false; collapse.stop() }
+    onVisibleChanged: if (!visible) { extensionsMode = false; focusAddressPending = false; revealed = false; focus = false; collapse.stop() }
     onActiveFocusChanged: if (!activeFocus && !hover.hovered) collapse.restart()
     Keys.onShortcutOverride: function(event) { if (event.key === Qt.Key_Escape && expanded) event.accepted = true }
-    Keys.onEscapePressed: { revealed = false; focus = false; if (view) view.forceActiveFocus() }
+    Keys.onEscapePressed: { if (extensionsMode) { extensionsMode = false; extensionsButton.forceActiveFocus(); return }; revealed = false; focus = false; if (view) view.forceActiveFocus() }
     // Keep shortcut focus stable while the controls are still clipped/hidden.
     // Once the reveal finishes it moves to the address button.
     Item { id: revealFocusAnchor; Accessible.ignored: true }
@@ -135,6 +141,7 @@ FocusScope {
         visible: opacity > 0
         enabled: pill.expanded && pill.revealProgress > 0.95
     RowLayout {
+        visible: !pill.extensionsMode
         width: pill.expandedWidth - 20
         height: 36
         anchors.centerIn: parent
@@ -188,8 +195,88 @@ FocusScope {
             iconColor: pill.canShare ? Theme.text : Theme.muted
             onPressed: pill.shareRequested()
         }
+        NavButton {
+            id: extensionsButton
+            objectName: "extensionsPillButton"
+            visible: !pill.privateMode
+            iconName: "puzzle"
+            Accessible.name: qsTr("Extensions")
+            onClicked: { pill.extensionsMode = true; pill.revealed = true; extensionsBackButton.forceActiveFocus() }
+        }
         NavButton { objectName: "navigationTabsButton"; text: String(pill.tabCount); font.pixelSize: 13; Accessible.name: pill.tabCount === 1 ? qsTr("Show 1 tab") : qsTr("Show %1 tabs").arg(pill.tabCount); onClicked: pill.tabsRequested() }
         NavButton { iconName: "ellipsis"; Accessible.name: qsTr("More browser controls"); onClicked: more.open() }
+    }
+    Item {
+        anchors.fill: parent
+        visible: pill.extensionsMode
+        NavButton {
+            id: extensionsBackButton
+            objectName: "extensionsBackButton"
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            iconName: "arrow-left"
+            Accessible.name: qsTr("Back to navigation")
+            onClicked: { pill.extensionsMode = false; pill.revealed = true; extensionsButton.forceActiveFocus() }
+        }
+        Flickable {
+            id: extensionStrip
+            objectName: "pillExtensionStrip"
+            anchors.left: parent.left; anchors.right: parent.right
+            anchors.leftMargin: 42; anchors.rightMargin: 42
+            height: 36; anchors.verticalCenter: parent.verticalCenter
+            clip: true
+            contentWidth: Math.max(width, extensionIcons.implicitWidth)
+            contentHeight: height
+            boundsBehavior: Flickable.StopAtBounds
+            flickableDirection: Flickable.HorizontalFlick
+            onContentWidthChanged: contentX = Math.min(contentX, Math.max(0, contentWidth - width))
+            WheelHandler {
+                target: null
+                onWheel: function(event) {
+                    if (extensionStrip.contentWidth <= extensionStrip.width) { event.accepted = false; return }
+                    const delta = event.pixelDelta.x || event.pixelDelta.y || event.angleDelta.x / 2 || event.angleDelta.y / 2
+                    extensionStrip.contentX = Math.max(0, Math.min(extensionStrip.contentWidth - extensionStrip.width, extensionStrip.contentX - delta))
+                    event.accepted = true
+                }
+            }
+            Row {
+                id: extensionIcons
+                x: Math.max(0, (extensionStrip.width - width) / 2)
+                height: 36
+                spacing: 6
+                Repeater {
+                    model: pill.installedExtensions
+                    delegate: NavButton {
+                        id: extensionButton
+                        required property var modelData
+                        objectName: "pillExtension-" + modelData.id
+                        enabled: modelData.enabled && (modelData.hasPopup || modelData.hasOptions)
+                        Accessible.name: modelData.name + (modelData.enabled ? "" : qsTr(" · Disabled"))
+                        contentItem: Item {
+                            Image {
+                                id: extensionImage
+                                anchors.centerIn: parent
+                                width: 24; height: 24
+                                source: extensionButton.modelData.icon || ""
+                                sourceSize: Qt.size(48, 48)
+                                fillMode: Image.PreserveAspectFit
+                                smooth: true
+                                visible: status === Image.Ready
+                            }
+                            UiIcon { objectName: "extensionFallbackIcon"; anchors.centerIn: parent; width: 22; height: 22; name: "puzzle"; visible: !extensionImage.visible }
+                        }
+                        onClicked: pill.extensionRequested(modelData.id, !modelData.hasPopup)
+                    }
+                }
+            }
+            UiButton {
+                anchors.centerIn: parent
+                visible: pill.installedExtensions.length === 0
+                height: 36; flat: true
+                text: qsTr("Manage extensions…")
+                onClicked: pill.manageExtensionsRequested()
+            }
+        }
     }
     }
     UiMenu {
@@ -209,7 +296,6 @@ FocusScope {
         UiMenuItem { text: qsTr("Split with…"); onTriggered: pill.splitWithRequested() }
         UiMenuItem { visible: !adBlockButton.visible; text: pill.adBlockActive ? qsTr("Pause ad blocking in this view") : qsTr("Resume ad blocking in this view"); enabled: pill.adBlockEnabled; onTriggered: pill.adBlockRequested() }
         UiMenuItem { visible: !shareButton.visible; text: qsTr("Share current page…"); enabled: pill.canShare; onTriggered: pill.shareRequested() }
-        UiMenuItem { text: qsTr("Extensions…"); visible: !pill.privateMode; onTriggered: pill.extensionsRequested() }
         UiMenuItem { text: qsTr("Developer tools…"); onTriggered: pill.developerToolsRequested() }
         UiMenuItem { text: pill.activeDownloads > 0 ? qsTr("Downloads (%1 active)…").arg(pill.activeDownloads) : qsTr("Downloads…"); onTriggered: pill.downloadsRequested() }
         UiMenuItem { text: qsTr("History…"); onTriggered: pill.historyRequested() }

@@ -24,8 +24,12 @@ macOS.
    the action buttons stay visible.
 4. Reload existing pages so their content scripts take effect.
 
-The pill's More menu → Extensions, or Cmd+Shift+X on macOS / Ctrl+Shift+X on
-Windows/Linux, lists installed extensions. Enabled extensions with action popups
+The pill's Extensions icon replaces navigation controls with a centered row of
+installed extension icons and a back button. Larger collections scroll horizontally
+(with wheel or trackpad). Disabled extensions remain dimmed; click an enabled icon
+to open its popup, or its settings tab when it only has options. An empty row links
+to extension management. The pill restores navigation on Escape, back, or a profile/view
+change. Cmd+Shift+X on macOS / Ctrl+Shift+X on Windows/Linux also lists installed extensions. Enabled extensions with action popups
 or options pages can be opened here; Settings also has Open/Options buttons.
 Keyboard settings can change this shortcut, including with the pill hidden.
 Extension action popups open in a compact, non-modal floating panel with rounded

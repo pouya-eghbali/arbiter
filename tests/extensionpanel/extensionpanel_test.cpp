@@ -1,9 +1,90 @@
 #include <QtTest>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QQuickItem>
+#include <functional>
 #include <QtWebEngineQuick>
 
 #include "extensionpanel_test.h"
+void ExtensionPanelTest::extensionPillMode() {
+    QQmlApplicationEngine engine;
+    engine.loadData(R"QML(
+import QtQuick
+import QtQuick.Controls.Basic as Basic
+import Arbiter
+Basic.ApplicationWindow {
+    id:owner;visible:true;width:800;height:220
+    property string chosenId:""
+    property bool chosenOptions:false
+    property alias extensionsMode:pill.extensionsMode
+    property alias privateMode:pill.privateMode
+    property var items:[
+        {id:"popup",name:"Popup extension",enabled:true,hasPopup:true,hasOptions:true},
+        {id:"options",name:"Options extension",enabled:true,hasPopup:false,hasOptions:true},
+        {id:"disabled",name:"Disabled extension",enabled:false,hasPopup:true,hasOptions:true}
+    ]
+    QtObject {id:fakeView;property bool canGoBack:false;property bool canGoForward:false;property bool loading:false;property string url:"https://example.com"}
+    QtObject {id:fakeAppearance;property string navigationRevealMode:"pill";function displayAddress(url){return url}}
+    NavigationPill {
+        id:pill;anchors.centerIn:parent;revealed:true
+        view:fakeView;appearance:fakeAppearance;workspaceName:"Personal";workspaceColor:"blue";tabCount:1
+        installedExtensions:owner.items
+        onExtensionRequested:function(id,options){owner.chosenId=id;owner.chosenOptions=options}
+    }
+    function manyExtensions(){
+        const next=[]
+        for(let i=0;i<30;i++)next.push({id:"extra"+i,name:"Extension "+i,enabled:true,hasPopup:true,hasOptions:false})
+        items=next
+    }
+})QML", QUrl("qrc:/extension-pill-test.qml"));
+    QVERIFY(!engine.rootObjects().isEmpty());auto *root=engine.rootObjects().first();
+    auto *toggle=root->findChild<QObject *>("extensionsPillButton");QVERIFY(toggle);
+    QTRY_VERIFY(toggle->property("visible").toBool());
+    QVERIFY(QMetaObject::invokeMethod(toggle,"clicked"));
+    QVERIFY(root->property("extensionsMode").toBool());
+    QVERIFY(!toggle->property("visible").toBool());
+    std::function<QQuickItem *(QQuickItem *,const QString &)> findItem = [&](QQuickItem *item,const QString &name)->QQuickItem * {
+        if(item->objectName()==name)return item;
+        for(auto *child:item->childItems())if(auto *found=findItem(child,name))return found;
+        return nullptr;
+    };
+    auto *window=qobject_cast<QQuickWindow *>(root);QVERIFY(window);
+    QQuickItem *popup=nullptr;
+    QTRY_VERIFY((popup=findItem(window->contentItem(),"pillExtension-popup")));
+    QTRY_VERIFY(popup->isVisible());
+    QVERIFY(QMetaObject::invokeMethod(popup,"clicked"));
+    QCOMPARE(root->property("chosenId").toString(),QString("popup"));
+    QVERIFY(!root->property("chosenOptions").toBool());
+    auto *options=findItem(window->contentItem(),"pillExtension-options");QVERIFY(options);
+    QVERIFY(QMetaObject::invokeMethod(options,"clicked"));
+    QVERIFY(root->property("chosenOptions").toBool());
+    auto *disabled=findItem(window->contentItem(),"pillExtension-disabled");QVERIFY(disabled);
+    QVERIFY(!disabled->property("enabled").toBool());
+    QTRY_VERIFY(qAbs((popup->mapToScene(QPointF()).x()+disabled->mapToScene(QPointF(disabled->width(),0)).x())/2-window->width()/2.)<1);
+    auto *fallback=findItem(popup,"extensionFallbackIcon");QVERIFY(fallback);
+    QTRY_COMPARE(fallback->property("status").toInt(),1); // Image.Ready
+    QTest::qWait(150);
+    if(const auto path=qEnvironmentVariable("ARBITER_TEST_PILL_IMAGE");!path.isEmpty())
+        QVERIFY(window->grabWindow().save(path));
+    auto *back=root->findChild<QObject *>("extensionsBackButton");QVERIFY(back);
+    QVERIFY(QMetaObject::invokeMethod(back,"clicked"));
+    QVERIFY(!root->property("extensionsMode").toBool());
+    QVERIFY(toggle->property("visible").toBool());
+    QVERIFY(QMetaObject::invokeMethod(toggle,"clicked"));
+    QVERIFY(QMetaObject::invokeMethod(root,"manyExtensions"));
+    auto *strip=root->findChild<QObject *>("pillExtensionStrip");QVERIFY(strip);
+    QTRY_VERIFY(strip->property("contentWidth").toReal()>strip->property("width").toReal());
+    auto *stripItem=qobject_cast<QQuickItem *>(strip);QVERIFY(stripItem);
+    const auto position=stripItem->mapToScene(QPointF(stripItem->width()/2,stripItem->height()/2));
+    QWheelEvent wheel(position,window->mapToGlobal(position.toPoint()),QPoint(),QPoint(0,-120),Qt::NoButton,Qt::NoModifier,Qt::NoScrollPhase,false);
+    QCoreApplication::sendEvent(window,&wheel);
+    QTRY_VERIFY(strip->property("contentX").toReal()>0);
+    QCOMPARE(stripItem->rotation(),0.);
+    root->setProperty("privateMode",true);
+    QVERIFY(!root->property("extensionsMode").toBool());
+    QVERIFY(!toggle->property("visible").toBool());
+}
+
 void ExtensionPanelTest::cookieWarningAppearsBeforeApproval() {
         QQmlApplicationEngine engine;
         engine.loadData(R"QML(

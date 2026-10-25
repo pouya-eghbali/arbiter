@@ -2042,7 +2042,9 @@ Basic.ApplicationWindow {
         workspaceColor: window.workspaces.currentColor
         onAddressRequested: window.focusAddress()
         canShare: window.canSharePage
-        onExtensionsRequested: window.showExtensions()
+        installedExtensions: window.extensionCatalog ? window.extensionCatalog.items : []
+        onExtensionRequested: function(id, options) { extensionPanel.showExtension(id, options) }
+        onManageExtensionsRequested: { window.openSettings(); window.settingsCategory = 8 }
         onShareRequested: window.sharePage()
         onRevealProgressChanged: if (!expanded && revealProgress <= 0.001) window.temporaryPill = false
         onTabsRequested: window.showTabs()

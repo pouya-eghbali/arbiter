@@ -1,6 +1,8 @@
 #include "extensioncatalog.h"
 #include "crxpackage.h"
 #include <QCryptographicHash>
+#include <QBuffer>
+#include <QImageReader>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -18,6 +20,39 @@ QByteArray manifestBytes(const QWebEngineExtensionInfo &info) {
 }
 QJsonObject manifest(const QWebEngineExtensionInfo &info) {
     return QJsonDocument::fromJson(manifestBytes(info)).object();
+}
+QString extensionIcon(const QWebEngineExtensionInfo &info, const QJsonObject &json) {
+    auto icons = json.value(QStringLiteral("action")).toObject().value(QStringLiteral("default_icon"));
+    if (icons.isUndefined()) icons = json.value(QStringLiteral("icons"));
+    QString path = icons.toString();
+    int best = 0;
+    const auto sizes = icons.toObject();
+    for (auto it = sizes.begin(); it != sizes.end(); ++it) {
+        bool ok = false; const int size = it.key().toInt(&ok);
+        if (!ok || size <= 0 || !it.value().isString()) continue;
+        if (!best || (size >= 48 && (best < 48 || size < best)) || (best < 48 && size > best)) {
+            best = size; path = it.value().toString();
+        }
+    }
+    const QUrl url(path);
+    if (path.isEmpty() || !url.isRelative() || url.hasQuery() || url.hasFragment()) return {};
+    const auto root = QFileInfo(info.path()).canonicalFilePath();
+    const auto filePath = QFileInfo(QDir(root).filePath(path)).canonicalFilePath();
+    if (root.isEmpty() || !filePath.startsWith(root + '/')) return {};
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly) || file.size() > 1024 * 1024) return {};
+    QImageReader reader(&file);
+    // Raster formats only: never let a vector icon resolve external resources.
+    const auto format = reader.format();
+    if (format != "png" && format != "jpeg" && format != "webp" && format != "bmp" && format != "ico" && format != "gif") return {};
+    const auto size = reader.size();
+    if (!size.isValid() || size.width() > 1024 || size.height() > 1024) return {};
+    reader.setScaledSize(size.scaled(48, 48, Qt::KeepAspectRatio));
+    const auto image = reader.read();
+    if (image.isNull()) return {};
+    QByteArray bytes; QBuffer buffer(&bytes); buffer.open(QIODevice::WriteOnly);
+    if (!image.save(&buffer, "PNG")) return {};
+    return QStringLiteral("data:image/png;base64,") + QString::fromLatin1(bytes.toBase64());
 }
 QUrl extensionPage(const QWebEngineExtensionInfo &info, const QString &path) {
     if (!info.isEnabled() || path.isEmpty()) return {};
@@ -112,6 +147,7 @@ void ExtensionCatalog::refresh() {
         permissions.removeDuplicates(); permissions.sort();
         m_items.append(QVariantMap{{"id", info.id()}, {"name", info.name()}, {"description", info.description()},
             {"version", json.value(QStringLiteral("version")).toString()}, {"enabled", info.isEnabled()},
+            {"icon", extensionIcon(info, json)},
             {"permissions", permissions}, {"cookieAccess", json.value(QStringLiteral("permissions")).toArray().contains(QStringLiteral("cookies"))}, {"hasPopup", !info.actionPopupUrl().isEmpty()},
             {"hasOptions", !optionsUrl(info.id()).isEmpty()}});
     }
