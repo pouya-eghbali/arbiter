@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 850">
+  <defs>
+    <filter id="paper"><feTurbulence baseFrequency=".7" numOctaves="3" seed="8" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".08"/></feComponentTransfer><feBlend in="SourceGraphic" mode="multiply"/></filter>
+    <linearGradient id="orange" x2="1" y2="1"><stop stop-color="#ff6b18"/><stop offset="1" stop-color="#f54a19"/></linearGradient>
+  </defs>
+  <g filter="url(#paper)">
+    <path fill="#f1e5cc" d="M0 0h600v850H0z"/>
+    <path fill="url(#orange)" d="M0 0h300v850H0z"/>
+    <circle cx="450" cy="210" r="125" fill="#ee4a24"/>
+    <path fill="#ad3b18" d="m0 455 300 130v265H0z"/>
+    <path fill="#fc8a27" d="m0 455 190 80v315H0z"/>
+    <path fill="#9c3619" d="M300 585h140v265H300z"/>
+    <path fill="#1f3537" d="M440 710h160v140H440z"/>
+    <path fill="#eb4a20" d="m0 730 300-65 300 140v45H0z"/>
+    <path fill="#f89632" d="m300 665 140 65-140 32z"/>
+    <path fill="#d63a1c" d="m0 730 300 32v88H0z"/>
+  </g>
+</svg>

@@ -230,6 +230,9 @@ prompts.
 
 ## Build and run
 
+The Svelte website lives in [website/](website/README.md). It has its own Node.js
+toolchain and static build; it is independent of the browser's CMake build.
+
 Build the current engine patches first using `engine/build.py` (see
 [engine build instructions](docs/passkey-integration.md)). Then, for the standard
 Qt Online Installer location and SDK installed at `build-passkey-sdk`:

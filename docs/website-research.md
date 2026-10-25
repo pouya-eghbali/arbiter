@@ -126,7 +126,24 @@ useful references. Lead with Arbiter's own identity and demonstrated workflows;
 being an Arc alternative can be a secondary discovery page rather than the whole
 brand promise.
 
-## Recommended direction for Arbiter
+## Approved direction and implementation
+
+The selected direction is feature-led and image-first, following the product
+storytelling of [Dia](https://www.diabrowser.com/), [Ardia](https://ardia.dev/#features),
+and [Crest](https://crestbrowser.com/). A warm paper canvas, bold sans-serif
+headlines, and yellow/periwinkle stages frame large product demonstrations.
+The headline is **The web. On your terms.**
+
+The Svelte implementation lives in [website/](../website/README.md), with
+interactive illustrations of the pill, resizable split views, workspaces and
+appearance controls. It uses Arbiter's actual logo and the shared Lucide icons.
+The illustrations are explicitly identified as sample UI, not browser captures.
+Build instructions and release links reflect the current source-first status.
+The first version is English; browser UI translations are separate.
+
+The initial dark scenic concept below was not selected.
+
+## Initial recommendation (superseded by the approved direction)
 
 A Glacier-inspired product site: deep ink and soft off-white surfaces, a restrained
 cool accent, large editorial typography, and selective tinted glass over beautiful
