@@ -253,6 +253,36 @@ index 84101d4..ca49604 100644
        "//chrome/renderer/media/webrtc_logging_agent_impl.cc",
        "//chrome/renderer/media/webrtc_logging_agent_impl.h",
      ]
+diff --git a/src/core/extensions/extension_host_delegate_qt.cpp b/src/core/extensions/extension_host_delegate_qt.cpp
+index ad1c5f9..485d358 100644
+--- a/src/core/extensions/extension_host_delegate_qt.cpp
++++ b/src/core/extensions/extension_host_delegate_qt.cpp
+@@ -60,6 +60,14 @@ void ExtensionHostDelegateQt::ProcessMediaAccessRequest(content::WebContents *we
+                                                         const Extension *extension)
+ {
+     Q_UNUSED(extension);
++    auto *view = WebContentsViewQt::from(static_cast<content::WebContentsImpl *>(web_contents)->GetView());
++    // Hidden extension documents have no permission UI. Refuse capture rather
++    // than invoking a null adapter client or granting access without consent.
++    if (!view || !view->client()) {
++        std::move(callback).Run(blink::mojom::StreamDevicesSet(),
++                                blink::mojom::MediaStreamRequestResult::PERMISSION_DENIED, nullptr);
++        return;
++    }
+     base::OnceCallback<void(content::DesktopMediaID)> cb = base::BindOnce(
+             &processMediaAccessRequest, web_contents, std::move(request), std::move(callback));
+ 
+@@ -85,7 +93,9 @@ bool ExtensionHostDelegateQt::CheckMediaAccessPermission(
+     Q_UNUSED(type);
+     Q_UNUSED(extension);
+ 
+-    Q_UNREACHABLE_RETURN(false);
++    // Chromium calls this for device enumeration in offscreen extension pages.
++    // No media grant exists for these hidden hosts; the query is not an error.
++    return false;
+ }
+ 
+ content::PictureInPictureResult ExtensionHostDelegateQt::EnterPictureInPicture(content::WebContents *web_contents)
 diff --git a/src/core/extensions/extension_web_contents_observer_qt.cpp b/src/core/extensions/extension_web_contents_observer_qt.cpp
 index f20fc92..7881365 100644
 --- a/src/core/extensions/extension_web_contents_observer_qt.cpp
@@ -404,10 +434,21 @@ index 838fa3b..4962aa3 100644
              if (subscription->permission != permissionTypeBlink)
                  continue;
 diff --git a/src/core/render_widget_host_view_qt.cpp b/src/core/render_widget_host_view_qt.cpp
-index cb77820..4ee83d7 100644
+index cb77820..8536e8f 100644
 --- a/src/core/render_widget_host_view_qt.cpp
 +++ b/src/core/render_widget_host_view_qt.cpp
-@@ -1019,12 +1019,55 @@ void RenderWidgetHostViewQt::WheelEventAck(const blink::WebMouseWheelEvent &even
+@@ -351,7 +351,9 @@ void RenderWidgetHostViewQt::Focus()
+ 
+ bool RenderWidgetHostViewQt::HasFocus()
+ {
+-    return m_delegate->hasKeyboardFocus();
++    // Extension offscreen documents have a renderer view but no Qt UI delegate.
++    // Chromium queries focus even for these views during media-device enumeration.
++    return m_delegate && m_delegate->hasKeyboardFocus();
+ }
+ 
+ bool RenderWidgetHostViewQt::IsPointerLocked()
+@@ -1019,12 +1021,55 @@ void RenderWidgetHostViewQt::WheelEventAck(const blink::WebMouseWheelEvent &even
      }
  }
  

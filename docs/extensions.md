@@ -260,3 +260,25 @@ extension remains open, checks that its document is retained, drags its handle,
 resizes the window, and closes it using its button. It runs offscreen by default;
 `QT_QPA_PLATFORM=cocoa build-patched-tests/extensionpanel/extensionpanel_test`
 checks the same interactions with native macOS rendering.
+
+Hidden extension documents can enumerate media devices without a UI delegate.
+They have no camera/microphone grant, and capture requests without a permission
+UI are denied. `offscreenMediaDeviceEnumeration` covers creation, enumeration and
+capture denial and explicit close; it reproduced the opening crash before the engine fix.
+
+To smoke-test a trusted, already unpacked Awesome Screenshot package in a
+**disposable profile** (no personal extension storage is copied):
+
+```sh
+ARBITER_TEST_AWESOME_SOURCE=/path/to/unpacked/extension \
+  QT_QPA_PLATFORM=cocoa DYLD_FRAMEWORK_PATH="$PWD/build-passkey-sdk/lib" \
+  build-patched-tests/extensions_test awesomeScreenshotPopupSmoke
+```
+
+This enables the supplied extension code and may make its normal network requests.
+It checks popup startup and renderer survival, not complete capture/recording
+compatibility. No media permissions are granted by the test.
+
+The popup startup smoke test passed on macOS with Awesome Screenshot 4.4.44.
+Its worker still reports unsupported `action.setIcon`; startup survival does not
+establish complete extension API compatibility.

@@ -142,6 +142,117 @@ private slots:
         QVERIFY(!catalog.items().first().toMap().value("enabled").toBool());
         QVERIFY(catalog.status().contains("changed"));
     }
+    void awesomeScreenshotPopupSmoke() {
+        const QString source = qEnvironmentVariable("ARBITER_TEST_AWESOME_SOURCE");
+        if (source.isEmpty()) QSKIP("Set ARBITER_TEST_AWESOME_SOURCE to a trusted unpacked package for an opt-in popup smoke test.");
+        QTemporaryDir temp; QQuickWebEngineProfile profile(profileName(temp.path())); configure(profile, {});
+        ExtensionCatalog catalog(&profile); catalog.install(QUrl::fromLocalFile(source));
+        QTRY_VERIFY_WITH_TIMEOUT(!catalog.busy(),30000); QCOMPARE(catalog.items().size(),1); catalog.approve();
+        const auto id=catalog.items().first().toMap().value("id").toString();
+        QQmlApplicationEngine engine;
+#ifdef ARBITER_WEBENGINE_QML_PATH
+        engine.addImportPath(QString::fromUtf8(ARBITER_WEBENGINE_QML_PATH));
+#endif
+        engine.rootContext()->setContextProperty("testProfile", &profile);
+        engine.rootContext()->setContextProperty("popupUrl", catalog.popupUrl(id));
+        engine.loadData(R"QML(
+import QtQuick
+import QtWebEngine
+Window {
+    id:owner;visible:true;width:600;height:600
+    property bool ready:false
+    property bool rendererTerminated:false
+    WebEngineView {
+        anchors.fill:parent;profile:testProfile;url:popupUrl
+        onLoadingChanged: function(request) { if(request.status===WebEngineView.LoadSucceededStatus) owner.ready=true }
+        onRenderProcessTerminated: owner.rendererTerminated=true
+        onPermissionRequested: function(permission) { permission.deny() }
+        onDesktopMediaRequested: function(request) { request.cancel() }
+    }
+})QML",QUrl("qrc:/awesome-popup-smoke.qml"));
+        QVERIFY(!engine.rootObjects().isEmpty()); auto *root=engine.rootObjects().first();
+        QTRY_VERIFY_WITH_TIMEOUT(root->property("ready").toBool(),15000);
+        // Its popup starts asynchronous offscreen media-device discovery.
+        QTest::qWait(5000);
+        QVERIFY(!root->property("rendererTerminated").toBool());
+    }
+
+    void offscreenMediaDeviceEnumeration() {
+        QTemporaryDir temp;
+        QQuickWebEngineProfile profile(profileName(temp.path())); configure(profile, {});
+        const auto source = fixture(temp.path());
+        QFile manifest(source + "/manifest.json"); QVERIFY(manifest.open(QIODevice::ReadOnly));
+        auto json = QJsonDocument::fromJson(manifest.readAll()).object(); manifest.close();
+        json.remove("host_permissions"); json.remove("content_scripts");
+        json.insert("permissions", QJsonArray{"storage", "offscreen"});
+        write(manifest.fileName(), QJsonDocument(json).toJson());
+        write(source + "/offscreen.html", "<!doctype html><script src='offscreen.js'></script>");
+        write(source + "/offscreen.js", R"JS(
+            navigator.mediaDevices.enumerateDevices().then(
+                async () => {
+                    let denied=false;
+                    try {
+                        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+                        stream.getTracks().forEach(track=>track.stop());
+                    } catch(error) { denied=error.name==='NotAllowedError'; }
+                    chrome.runtime.sendMessage({enumerated:denied,error:'Hidden capture was not denied'});
+                },
+                error => chrome.runtime.sendMessage({enumerated:false,error:error.name}));
+        )JS");
+        write(source + "/worker.js", R"JS(
+            chrome.runtime.onMessage.addListener(message => {
+                if ('enumerated' in message)
+                    chrome.storage.local.set({mediaProbe:message.enumerated?'passed':'FAILED: '+message.error});
+            });
+        )JS");
+        json.insert("background", QJsonObject{{"service_worker", "worker.js"}});
+        write(manifest.fileName(), QJsonDocument(json).toJson());
+        write(source + "/popup.js", R"JS(
+            window.startProbe=async()=>{
+                try {
+                    await chrome.storage.local.set({mediaProbe:''});
+                    await chrome.offscreen.createDocument({url:'offscreen.html',reasons:['USER_MEDIA'],justification:'Test hidden-document device enumeration without requesting capture'});
+                } catch(error) { await chrome.storage.local.set({mediaProbe:'FAILED: '+error.message}); }
+            };
+            window.readProbe=async()=>document.body.dataset.probe=(await chrome.storage.local.get('mediaProbe')).mediaProbe||'';
+            window.closeProbe=async()=>{await chrome.offscreen.closeDocument();document.body.dataset.closed='yes'};
+        )JS");
+        ExtensionCatalog catalog(&profile); catalog.install(QUrl::fromLocalFile(source));
+        QTRY_VERIFY_WITH_TIMEOUT(!catalog.busy(),15000); QCOMPARE(catalog.items().size(),1); catalog.approve();
+        const auto id = catalog.items().first().toMap().value("id").toString();
+        QQmlApplicationEngine engine;
+#ifdef ARBITER_WEBENGINE_QML_PATH
+        engine.addImportPath(QString::fromUtf8(ARBITER_WEBENGINE_QML_PATH));
+#endif
+        engine.rootContext()->setContextProperty("testProfile", &profile);
+        engine.rootContext()->setContextProperty("popupUrl", catalog.popupUrl(id));
+        engine.loadData(R"QML(
+import QtQuick
+import QtWebEngine
+Window {
+    id:owner
+    visible:true;width:600;height:450
+    property bool ready:false
+    property string result:""
+    property bool closed:false
+    WebEngineView {
+        id:popup;anchors.fill:parent;profile:testProfile;url:popupUrl
+        onLoadingChanged: function(request) { if(request.status===WebEngineView.LoadSucceededStatus) owner.ready=true }
+    }
+    function start(){result="";closed=false;popup.mainFrame.runJavaScript("startProbe()",0,function(){})}
+    function inspect(){popup.mainFrame.runJavaScript("readProbe();document.body.dataset.probe||''",0,value=>result=value||'')}
+    function closeDocument(){popup.mainFrame.runJavaScript("closeProbe()",0,function(){})}
+    function inspectClosed(){popup.mainFrame.runJavaScript("document.body.dataset.closed==='yes'",0,value=>closed=!!value)}
+})QML", QUrl("qrc:/offscreen-media-test.qml"));
+        QVERIFY(!engine.rootObjects().isEmpty()); auto *root=engine.rootObjects().first();
+        QTRY_VERIFY_WITH_TIMEOUT(root->property("ready").toBool(),15000);
+        QVERIFY(QMetaObject::invokeMethod(root,"start"));
+        QTRY_VERIFY_WITH_TIMEOUT((QMetaObject::invokeMethod(root,"inspect"),!root->property("result").toString().isEmpty()),15000);
+        QCOMPARE(root->property("result").toString(),QString("passed"));
+        QVERIFY(QMetaObject::invokeMethod(root,"closeDocument"));
+        QTRY_VERIFY_WITH_TIMEOUT((QMetaObject::invokeMethod(root,"inspectClosed"),root->property("closed").toBool()),10000);
+    }
+
     void activeTabGrantIsScopedAndRevoked() {
         QTemporaryDir temp; QQuickWebEngineProfile profile(profileName(temp.path())); configure(profile, {});
         const auto source = fixture(temp.path());
