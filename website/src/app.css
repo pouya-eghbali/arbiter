@@ -277,27 +277,6 @@ button:disabled {
   position: relative;
   transition: background 0.35s;
 }
-.window-dots {
-  position: absolute;
-  top: 13px;
-  left: 17px;
-  display: flex;
-  gap: 5px;
-  z-index: 3;
-  pointer-events: none;
-}
-.window-dots i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #ed6255;
-}
-.window-dots i:nth-child(2) {
-  background: #e9bd44;
-}
-.window-dots i:nth-child(3) {
-  background: #67b56e;
-}
 .hero-browser-content {
   position: relative;
   aspect-ratio: 2.02;
@@ -596,13 +575,14 @@ button:disabled {
   width: 65%;
   z-index: 3;
 }
-.workspace-overlay::before {
-  content: '';
+.workspace-backdrop {
   position: absolute;
-  inset: -200px;
+  inset: 0;
   background: #1517151f;
+  -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
-  z-index: -1;
+  z-index: 2;
+  pointer-events: none;
 }
 .theme-controls {
   position: absolute;
@@ -1667,15 +1647,6 @@ button:disabled {
   .edition,
   .journal-footnote {
     font-size: 0.7cqw;
-  }
-  .window-dots {
-    left: 9px;
-    top: 8px;
-    gap: 3px;
-  }
-  .window-dots i {
-    width: 4px;
-    height: 4px;
   }
   .hero-pill {
     bottom: 10px;

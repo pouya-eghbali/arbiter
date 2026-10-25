@@ -38,7 +38,6 @@
   style:--demo-accent={accent}
 >
   <div class="hero-browser" class:custom-dark={dark && selected === 3}>
-    <div class="window-dots" aria-hidden="true"><i></i><i></i><i></i></div>
     <div
       id="feature-panel"
       role="tabpanel"
@@ -48,7 +47,10 @@
     >
       {#if selected === 1}<SplitDemo />{:else}
         <Journal />
-        {#if selected === 2}<div class="workspace-overlay"><WorkspaceDemo compact /></div>{/if}
+        {#if selected === 2}
+          <div class="workspace-backdrop" aria-hidden="true"></div>
+          <div class="workspace-overlay"><WorkspaceDemo compact /></div>
+        {/if}
         {#if selected === 3}<div class="theme-controls">
             <span>MAKE YOURSELF AT HOME</span>
             <div class="theme-swatches">
