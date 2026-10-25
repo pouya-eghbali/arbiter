@@ -28,6 +28,12 @@ The pill's More menu → Extensions, or Cmd+Shift+X on macOS / Ctrl+Shift+X on
 Windows/Linux, lists installed extensions. Enabled extensions with action popups
 or options pages can be opened here; Settings also has Open/Options buttons.
 Keyboard settings can change this shortcut, including with the pill hidden.
+Extension documents open in a compact, non-modal floating panel with rounded
+content and a slim bottom drag handle/close button. Clicking the page leaves the
+panel open and usable; drag the handle to move it away from page controls. Escape
+while the panel has focus, or its close button, dismisses it. Options pages use a
+wider panel. The extension list is non-modal too.
+
 Extension pages use their original Chromium profile, so storage and runtime
 messaging work. Their views are destroyed when the panel closes; navigation,
 profile changes, private locks, and shutdown dismiss the panel. External HTTP(S)
@@ -194,11 +200,11 @@ machine. There is no exported extension backup/restore facility in this release.
 
 ## Validation
 
-Build `crxpackage_test` and `extensions_test` in the existing patched test build, then run:
+Build the extension tests in the existing patched test build, then run:
 
 ```sh
-cmake --build build-patched-tests --target crxpackage_test extensions_test --parallel 24
-ctest --test-dir build-patched-tests -R '^(crxpackage|extensions)$' --output-on-failure
+cmake --build build-patched-tests --target crxpackage_test extensions_test extensionpanel_test --parallel 24
+ctest --test-dir build-patched-tests -R '^(crxpackage|extensions|extensionpanel)$' --output-on-failure
 ```
 
 The test uses synthetic MV3 folders/ZIPs and disposable profile names. It covers
@@ -248,3 +254,9 @@ ARBITER_TEST_EXTENSION_CAPTURE=1 QT_QPA_PLATFORM=cocoa \
 This decodes the returned PNG and dispatches the manifest shortcut through a real
 Qt window. It uses a synthetic extension and disposable profile, not personal
 browsing data.
+
+The panel UI regression test clicks and types into a real web page while the
+extension remains open, checks that its document is retained, drags its handle,
+resizes the window, and closes it using its button. It runs offscreen by default;
+`QT_QPA_PLATFORM=cocoa build-patched-tests/extensionpanel/extensionpanel_test`
+checks the same interactions with native macOS rendering.

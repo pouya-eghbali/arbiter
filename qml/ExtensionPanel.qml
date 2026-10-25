@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 import QtWebEngine
@@ -12,7 +13,15 @@ UiPopup {
     required property var browserProfile
     property string extensionId: ""
     property url extensionUrl: ""
-    property string pageTitle: ""
+    property bool optionsPage: false
+    function place() {
+        x = extensionId.length ? Math.max(16, parent.width - width - 20) : (parent.width - width) / 2
+        y = Math.max(16, (parent.height - height) / 2)
+    }
+    function keepInBounds() {
+        x = Math.max(0, Math.min(x, parent.width - width))
+        y = Math.max(0, Math.min(y, parent.height - height))
+    }
     signal invoked(string id)
     signal manageRequested()
     signal newWindowRequested(var request)
@@ -23,21 +32,28 @@ UiPopup {
         if (!options) invoked(id)
         extensionId = id
         extensionUrl = url
-        pageTitle = qsTr("Extension")
+        optionsPage = options
+        place()
         open()
     }
-    function showList() { extensionId = ""; extensionUrl = ""; pageTitle = qsTr("Extensions"); open() }
+    function showList() { extensionId = ""; extensionUrl = ""; optionsPage = false; place(); open() }
     parent: Basic.Overlay.overlay
-    anchors.centerIn: parent
-    width: Math.min(extensionId.length ? 680 : 460, parent.width - 32)
+    width: Math.min(optionsPage ? 680 : 460, parent.width - 32)
     height: Math.min(extensionId.length ? 600 : 440, parent.height - 48)
-    padding: 16
-    modal: true
-    dim: true
+    padding: extensionId.length ? 8 : 16
+    modal: false
+    dim: false
     focus: true
-    closePolicy: Basic.Popup.CloseOnEscape | Basic.Popup.CloseOnPressOutside
+    // Keep the extension document alive while the user interacts with its page.
+    closePolicy: Basic.Popup.CloseOnEscape
     background: GlassSurface { dense: true; radius: Theme.panelRadius }
-    Basic.Overlay.modal: Rectangle { color: Theme.scrim }
+    onWidthChanged: if (visible) keepInBounds()
+    onHeightChanged: if (visible) keepInBounds()
+    Connections {
+        target: panel.parent
+        function onWidthChanged() { panel.keepInBounds() }
+        function onHeightChanged() { panel.keepInBounds() }
+    }
     onClosed: { extensionId = ""; extensionUrl = "" }
     onControllerChanged: close()
     Connections {
@@ -45,10 +61,11 @@ UiPopup {
         function onChanged() { if (panel.extensionId.length && !panel.controller.popupUrl(panel.extensionId).toString().length && !panel.controller.optionsUrl(panel.extensionId).toString().length) panel.close() }
     }
     contentItem: ColumnLayout {
-        spacing: 12
+        spacing: panel.extensionId.length ? 6 : 12
         RowLayout {
+            visible: !panel.extensionId.length
             Layout.fillWidth: true
-            Basic.Label { Layout.fillWidth: true; text: panel.pageTitle; textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 20; elide: Text.ElideRight }
+            Basic.Label { Layout.fillWidth: true; text: qsTr("Extensions"); textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 20; elide: Text.ElideRight }
             UiIconButton { label: qsTr("Close"); iconName: "x"; onClicked: panel.close() }
         }
         Basic.ScrollView {
@@ -94,7 +111,16 @@ UiPopup {
                     profile: panel.browserProfile
                     url: panel.extensionUrl
                     backgroundColor: "white"
-                    onTitleChanged: panel.pageTitle = title || qsTr("Extension")
+                    layer.enabled: true
+                    layer.effect: MultiEffect { maskEnabled: true; maskSource: popupMask }
+                    Rectangle {
+                        id: popupMask
+                        anchors.fill: parent
+                        radius: Math.max(8, Theme.panelRadius - panel.padding)
+                        color: "white"
+                        layer.enabled: true
+                        visible: false
+                    }
                     onWindowCloseRequested: panel.close()
                     onNewWindowRequested: function(request) { panel.newWindowRequested(request) }
                     onPermissionRequested: function(permission) { permission.deny() }
@@ -111,6 +137,36 @@ UiPopup {
                     Basic.BusyIndicator { anchors.centerIn: parent; visible: extensionView.loading; running: visible }
                 }
             }
+        }
+        RowLayout {
+            visible: panel.extensionId.length > 0
+            Layout.fillWidth: true
+            spacing: 4
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 28
+                Accessible.role: Accessible.Grip
+                Accessible.name: qsTr("Extension")
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 36; height: 4; radius: 2
+                    color: dragHandler.active ? Theme.text : Theme.muted
+                    opacity: 0.6
+                }
+                HoverHandler { cursorShape: dragHandler.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor }
+                DragHandler {
+                    id: dragHandler
+                    target: null
+                    property point startPosition
+                    onActiveChanged: if (active) startPosition = Qt.point(panel.x, panel.y)
+                    onTranslationChanged: {
+                        panel.x = startPosition.x + translation.x
+                        panel.y = startPosition.y + translation.y
+                        panel.keepInBounds()
+                    }
+                }
+            }
+            UiIconButton { label: qsTr("Close"); iconName: "x"; implicitWidth: 28; implicitHeight: 28; onClicked: panel.close() }
         }
         UiButton { visible: !panel.extensionId.length; Layout.fillWidth: true; text: qsTr("Manage extensions…"); onClicked: { panel.close(); panel.manageRequested() } }
     }
