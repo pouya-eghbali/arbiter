@@ -169,6 +169,7 @@ FocusScope {
             onClicked: pill.workspacesRequested()
         }
         NavButton {
+            id: adBlockButton
             objectName: "adBlockPillButton"
             visible: pill.expandedWidth >= 440
             enabled: pill.adBlockEnabled
@@ -206,9 +207,8 @@ FocusScope {
         UiMenuItem { text: qsTr("Split left / right"); onTriggered: pill.splitHorizontalRequested() }
         UiMenuItem { text: qsTr("Split top / bottom"); onTriggered: pill.splitVerticalRequested() }
         UiMenuItem { text: qsTr("Split with…"); onTriggered: pill.splitWithRequested() }
-        UiMenuItem { text: qsTr("Workspaces…"); onTriggered: pill.workspacesRequested() }
-        UiMenuItem { text: pill.adBlockActive ? qsTr("Pause ad blocking in this view") : qsTr("Resume ad blocking in this view"); enabled: pill.adBlockEnabled; onTriggered: pill.adBlockRequested() }
-        UiMenuItem { text: qsTr("Share current page…"); enabled: pill.canShare; onTriggered: pill.shareRequested() }
+        UiMenuItem { visible: !adBlockButton.visible; text: pill.adBlockActive ? qsTr("Pause ad blocking in this view") : qsTr("Resume ad blocking in this view"); enabled: pill.adBlockEnabled; onTriggered: pill.adBlockRequested() }
+        UiMenuItem { visible: !shareButton.visible; text: qsTr("Share current page…"); enabled: pill.canShare; onTriggered: pill.shareRequested() }
         UiMenuItem { text: qsTr("Extensions…"); visible: !pill.privateMode; onTriggered: pill.extensionsRequested() }
         UiMenuItem { text: qsTr("Developer tools…"); onTriggered: pill.developerToolsRequested() }
         UiMenuItem { text: pill.activeDownloads > 0 ? qsTr("Downloads (%1 active)…").arg(pill.activeDownloads) : qsTr("Downloads…"); onTriggered: pill.downloadsRequested() }

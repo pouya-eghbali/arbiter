@@ -5,7 +5,7 @@ import Arbiter
 
 Basic.MenuItem {
     id: control
-    implicitHeight: 36
+    implicitHeight: visible ? 36 : 0
     font.pixelSize: 13
     opacity: enabled ? 1 : 0.45
     horizontalPadding: 12
