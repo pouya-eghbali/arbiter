@@ -2209,10 +2209,10 @@ Basic.ApplicationWindow {
         anchors.centerIn: parent
         width: Math.min(1080, window.width - 48)
         readonly property real chromeHeight: topPadding + bottomPadding
-            + tabsHeading.implicitHeight + tabsSplitActions.implicitHeight
+            + tabsHeading.implicitHeight
             + tabSearch.implicitHeight + tabsHelp.implicitHeight
             + (tabsEmptyMessage.visible ? tabsEmptyMessage.implicitHeight : 0)
-            + tabsContent.spacing * (tabsEmptyMessage.visible ? 5 : 4)
+            + tabsContent.spacing * (tabsEmptyMessage.visible ? 4 : 3)
         readonly property int rowCount: Math.max(1, Math.ceil(tabChoices.count / tabList.columns))
         // Reserve the real header/footer sizes before allocating complete rows.
         // Only the available window height may force the first row to be clipped.
@@ -2235,23 +2235,21 @@ Basic.ApplicationWindow {
                 Layout.fillHeight: false
                 Layout.fillWidth: true
                 ColumnLayout {
+                    Layout.fillWidth: true
                     spacing: 3
-                    Basic.Label { text: window.focusedWorkspace.name; textFormat: Text.PlainText; font.pixelSize: 22; font.weight: Font.DemiBold }
-                    Basic.Label { text: qsTr("%1 open · Pick up where you left off").arg(window.focusedWorkspace.tabs); color: window.mutedText; font.pixelSize: 12 }
+                    Basic.Label { Layout.fillWidth: true; elide: Text.ElideRight; text: window.focusedWorkspace.name; textFormat: Text.PlainText; font.pixelSize: 22; font.weight: Font.DemiBold }
+                    Basic.Label { Layout.fillWidth: true; elide: Text.ElideRight; text: qsTr("%1 open · Pick up where you left off").arg(window.focusedWorkspace.tabs); color: window.mutedText; font.pixelSize: 12 }
                 }
-                Item { Layout.fillWidth: true }
-                UiButton { text: qsTr("Workspaces…"); onClicked: window.openWorkspaces() }
-                UiButton { text: qsTr("New tab"); onClicked: window.newTab() }
-            }
-            RowLayout {
-                id: tabsSplitActions
-                Layout.fillHeight: false
-                Layout.fillWidth: true
-                UiButton { text: qsTr("Split left / right"); onClicked: window.splitHorizontal() }
-                UiButton { text: qsTr("Split top / bottom"); onClicked: window.splitVertical() }
-                UiButton { text: qsTr("Split with…"); onClicked: window.openSplitWith() }
-                Item { Layout.fillWidth: true }
-                UiButton { visible: window.splits.multiple; text: qsTr("Single pane"); onClicked: { tabsPopup.close(); window.singlePane() } }
+                RowLayout {
+                    spacing: 4
+                    UiIconButton { objectName: "tabsSplitHorizontalButton"; label: qsTr("Split left / right"); iconName: "columns-2"; onClicked: window.splitHorizontal() }
+                    UiIconButton { objectName: "tabsSplitVerticalButton"; label: qsTr("Split top / bottom"); iconName: "rows-2"; onClicked: window.splitVertical() }
+                    UiIconButton { objectName: "tabsSplitWithButton"; label: qsTr("Split with…"); iconName: "panels-top-left"; onClicked: window.openSplitWith() }
+                    UiIconButton { visible: window.splits.multiple; label: qsTr("Single pane"); iconName: "maximize-2"; onClicked: { tabsPopup.close(); window.singlePane() } }
+                    Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 20; Layout.leftMargin: 6; Layout.rightMargin: 6; color: Theme.border }
+                    UiIconButton { objectName: "tabsWorkspacesButton"; label: qsTr("Workspaces…"); iconName: "layers"; onClicked: window.openWorkspaces() }
+                    UiIconButton { objectName: "tabsNewTabButton"; label: qsTr("New tab"); iconName: "plus"; onClicked: window.newTab() }
+                }
             }
             UiTextField {
                 id: tabSearch
