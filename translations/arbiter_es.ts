@@ -5126,6 +5126,14 @@
         <source>Delete workspace…</source>
         <translation>Eliminar espacio de trabajo…</translation>
     </message>
+    <message>
+        <source>+ 1 other tab</source>
+        <translation>+ 1 pestaña más</translation>
+    </message>
+    <message>
+        <source>+ %1 other tabs</source>
+        <translation>+ %1 pestañas más</translation>
+    </message>
 </context>
 <context>
     <name>Workspaces</name>

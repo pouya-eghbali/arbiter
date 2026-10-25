@@ -2118,6 +2118,10 @@ Basic.ApplicationWindow {
         objectName: "workspacePanel"
         manager: window.workspaces
         tabs: window.tabs
+        browserPreferences: window.browserPreferences
+        privateMode: window.privateMode
+        onTabRequested: index => window.selectTab(index)
+        onMoreTabsRequested: Qt.callLater(window.showTabs)
         onClosed: Qt.callLater(window.focusPage)
     }
     HistoryPanel {

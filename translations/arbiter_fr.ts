@@ -5126,6 +5126,14 @@
         <source>Delete workspace…</source>
         <translation>Supprimer l&apos;espace de travail…</translation>
     </message>
+    <message>
+        <source>+ 1 other tab</source>
+        <translation>+ 1 autre onglet</translation>
+    </message>
+    <message>
+        <source>+ %1 other tabs</source>
+        <translation>+ %1 autres onglets</translation>
+    </message>
 </context>
 <context>
     <name>Workspaces</name>

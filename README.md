@@ -118,7 +118,17 @@ workspace defaults to Cmd+Option+Right/Left on macOS and Ctrl+Alt+Right/Left
 elsewhere. All three shortcuts can be changed in Settings → Keyboard, and
 switching remains available when the pill is disabled.
 The switcher supports creating, renaming, coloring, reordering and deleting
-workspaces. Tabs stay alive while switching; workspace names, order, colors,
+workspaces. Its glass panel shows workspace columns with colored markers,
+session labels, and up to three tab previews. A “+ N other tabs” button opens
+that workspace's full tab overview. Select a workspace heading to switch, or
+a tab row to open that tab directly. Cached favicons and site names identify
+tabs without waking sleeping pages or fetching new icons. Private windows use
+letter placeholders. Additional workspaces appear in rows that scroll vertically,
+and narrow windows show one column. In very short windows the three previews can
+scroll too. Arrow keys navigate workspaces; Tab enters their controls, Up/Down
+moves between tab rows, and Enter selects.
+Each workspace's ellipsis menu retains its edit, reorder, move/copy and delete
+actions. Tabs stay alive while switching; workspace names, order, colors,
 tabs, pins and selection are saved locally and restored at startup. Restarting
 restores page addresses, not unsaved form contents or per-tab Back/Forward lists.
 Pin/unpin tabs with the diamond button in the tab overview; pinned tabs appear

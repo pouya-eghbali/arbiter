@@ -5126,6 +5126,14 @@
         <source>Delete workspace…</source>
         <translation>删除工作区...</translation>
     </message>
+    <message>
+        <source>+ 1 other tab</source>
+        <translation>+ 其他 1 个标签页</translation>
+    </message>
+    <message>
+        <source>+ %1 other tabs</source>
+        <translation>+ 其他 %1 个标签页</translation>
+    </message>
 </context>
 <context>
     <name>Workspaces</name>

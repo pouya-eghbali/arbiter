@@ -5126,6 +5126,14 @@
         <source>Delete workspace…</source>
         <translation>ワークスペースを削除します…</translation>
     </message>
+    <message>
+        <source>+ 1 other tab</source>
+        <translation>+ 他 1 個のタブ</translation>
+    </message>
+    <message>
+        <source>+ %1 other tabs</source>
+        <translation>+ 他 %1 個のタブ</translation>
+    </message>
 </context>
 <context>
     <name>Workspaces</name>
