@@ -799,19 +799,19 @@ Basic.ApplicationWindow {
                             required property url initialUrl
                             readonly property alias adBlock: viewAdBlock
                             urlRequestInterceptor: viewAdBlock
-                            required property bool pinned
+                            required property bool tabPinned
                             extensionContext: QtObject {
                                 id: extensionTabContext
                                 property int extensionTabId: -1
                                 readonly property QtObject window: page.Window.window
                                 readonly property int index: page.index
                                 readonly property bool active: page === page.Window.window.webView
-                                readonly property bool pinned: page.pinned
+                                readonly property bool pinned: page.tabPinned
                                 readonly property bool blocked: page.Window.window.privateMode || page.Window.window.privateCovered || page.Window.window.shuttingDown
                                 function activate() { page.Window.window.selectTab(page.index) }
                                 function closeTab() { page.Window.window.closeTab(page.index) }
                                 function setPinned(value: bool) {
-                                    if (page.pinned !== value) page.Window.window.tabs.togglePinned(page.index)
+                                    if (page.tabPinned !== value) page.Window.window.tabs.togglePinned(page.index)
                                 }
                                 function createTab(url: string, active: bool): int {
                                     const owner = page.Window.window
