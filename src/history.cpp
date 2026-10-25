@@ -8,6 +8,7 @@
 #include <QUuid>
 #include <QHash>
 #include <QRegularExpression>
+#include <QSet>
 #include <algorithm>
 
 namespace {
@@ -56,8 +57,9 @@ QVariant History::data(const QModelIndex &index, int role) const {
     case PageTitle: return entry.title.isEmpty() ? entry.url.host() : entry.title;
     case PageUrl: return entry.url.toString(QUrl::FullyEncoded);
     case VisitedAt: return entry.time;
+    case Website: return entry.url.host();
     case Day: {
-        const auto date = entry.time.date();
+        const auto date = entry.time.toLocalTime().date();
         if (date == QDate::currentDate()) return tr("Today");
         if (date == QDate::currentDate().addDays(-1)) return tr("Yesterday");
         return QLocale().toString(date, QLocale::LongFormat);
@@ -66,21 +68,60 @@ QVariant History::data(const QModelIndex &index, int role) const {
     }
 }
 QHash<int, QByteArray> History::roleNames() const {
-    return {{VisitId,"visitId"}, {PageTitle,"pageTitle"}, {PageUrl,"pageUrl"}, {VisitedAt,"visitedAt"}, {Day,"day"}};
+    return {{VisitId,"visitId"}, {PageTitle,"pageTitle"}, {PageUrl,"pageUrl"}, {VisitedAt,"visitedAt"}, {Day,"day"}, {Website,"website"}};
 }
 bool History::fail(const QString &message) { m_error = message; emit errorChanged(); return false; }
 void History::filter(bool resetting) {
     if (!resetting) beginResetModel();
     m_visible.clear();
     const auto text = m_search.trimmed();
-    for (int i = 0; i < m_entries.size(); ++i)
-        if (text.isEmpty() || m_entries[i].title.contains(text, Qt::CaseInsensitive)
-                || m_entries[i].url.toDisplayString().contains(text, Qt::CaseInsensitive)) m_visible.append(i);
+    for (int i = 0; i < m_entries.size(); ++i) {
+        const auto &entry = m_entries[i];
+        const auto host = entry.url.host();
+        const auto date = entry.time.toLocalTime().date();
+        if (!m_website.isEmpty() && host.compare(m_website, Qt::CaseInsensitive) != 0
+            && !host.endsWith("." + m_website, Qt::CaseInsensitive)) continue;
+        if (m_fromDate.isValid() && date < m_fromDate) continue;
+        if (m_toDate.isValid() && date > m_toDate) continue;
+        if (text.isEmpty() || entry.title.contains(text, Qt::CaseInsensitive)
+            || entry.url.toDisplayString().contains(text, Qt::CaseInsensitive)) m_visible.append(i);
+    }
     endResetModel(); emit countChanged();
 }
 void History::setSearch(const QString &value) {
     if (value == m_search) return;
-    m_search = value; filter(); emit searchChanged();
+    m_search = value; filter(); emit searchChanged(); emit filtersChanged();
+}
+void History::setWebsite(const QString &value) {
+    auto site = value.trimmed().toLower();
+    if (!site.isEmpty()) {
+        const auto url = QUrl(site.contains("://") ? site : "https://" + site);
+        // Invalid host input should match nothing, never silently expose all visits.
+        site = url.host().isEmpty() ? site : url.host();
+        while (site.endsWith('.')) site.chop(1);
+        if (site.isEmpty()) site = QStringLiteral("<invalid>");
+    }
+    if (site == m_website) return;
+    m_website = site; filter(); emit filtersChanged();
+}
+void History::resetFilters() {
+    if (!hasFilters()) return;
+    m_search.clear(); m_website.clear(); m_fromDate = {}; m_toDate = {};
+    filter(); emit searchChanged(); emit filtersChanged();
+}
+bool History::setDateRange(const QString &from, const QString &through) {
+    const auto first = QDate::fromString(from, Qt::ISODate);
+    const auto last = QDate::fromString(through, Qt::ISODate);
+    if ((!from.isEmpty() && (!first.isValid() || first.toString(Qt::ISODate) != from))
+        || (!through.isEmpty() && (!last.isValid() || last.toString(Qt::ISODate) != through))
+        || (first.isValid() && last.isValid() && first > last)) return false;
+    if (first == m_fromDate && last == m_toDate) return true;
+    m_fromDate = first; m_toDate = last; filter(); emit filtersChanged(); return true;
+}
+QStringList History::matchingIds() const {
+    QStringList ids;
+    for (const int i : m_visible) ids.append(m_entries[i].id);
+    return ids;
 }
 void History::setEnabled(bool value) {
     if (!m_db.isValid()) return; // In-memory private-session placeholder is always disabled.
@@ -127,6 +168,22 @@ bool History::clear() {
     QSqlQuery query(m_db);
     if (!query.exec("DELETE FROM visits")) return fail(tr("Could not clear browsing history."));
     beginResetModel(); m_entries.clear(); filter(true); return true;
+}
+bool History::removeVisits(const QStringList &ids) {
+    if (!m_error.isEmpty() || !m_db.isOpen()) return false;
+    if (ids.isEmpty()) return true;
+    // Delete a snapshot of the confirmed results, even if new visits arrive.
+    const QSet<QString> selected(ids.cbegin(), ids.cend());
+    if (!m_db.transaction()) return fail(tr("Could not delete matching history."));
+    QSqlQuery query(m_db); query.prepare("DELETE FROM visits WHERE id=?");
+    for (const auto &id : selected) {
+        query.bindValue(0, id);
+        if (!query.exec()) { m_db.rollback(); return fail(tr("Could not delete matching history.")); }
+    }
+    if (!m_db.commit()) { m_db.rollback(); return fail(tr("Could not delete matching history.")); }
+    beginResetModel();
+    m_entries.removeIf([&](const Entry &entry) { return selected.contains(entry.id); });
+    filter(true); return true;
 }
 
 int History::importVisits(const QList<ImportedVisit> &visits) {

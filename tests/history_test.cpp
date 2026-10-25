@@ -146,6 +146,81 @@ private slots:
         QVERIFY(corrupted.record(QUrl("https://example.test/"), "No overwrite").isEmpty());
         QFile file(broken.filePath("history.sqlite")); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), original);
     }
+    void combinedWebsiteAndInclusiveLocalDateFilters() {
+        QTemporaryDir directory; History history(directory.path());
+        QAbstractItemModelTester tester(&history, QAbstractItemModelTester::FailureReportingMode::QtTest);
+        const auto day = QDate::currentDate().addDays(-3);
+        const auto start = day.startOfDay();
+        const auto end = day.addDays(1).startOfDay().addMSecs(-1);
+        QCOMPARE(history.importVisits({
+            {QUrl("https://example.test/start"), "Docs start", start},
+            {QUrl("https://docs.example.test/end"), "Docs end", end},
+            {QUrl("https://example.test/earlier"), "Docs earlier", start.addMSecs(-1)},
+            {QUrl("https://example.test/later"), "Docs later", end.addMSecs(1)},
+            {QUrl("https://notexample.test/"), "Docs unrelated", start},
+            {QUrl("https://example.test.evil.test/"), "Docs deceptive", start},
+            {QUrl("https://example.test/other"), "Other title", start}
+        }), 7);
+        history.setWebsite(" HTTPS://EXAMPLE.TEST/path ");
+        QCOMPARE(history.website(), QString("example.test"));
+        QCOMPARE(history.count(), 5);
+        QVERIFY(history.setDateRange(day.toString(Qt::ISODate), day.toString(Qt::ISODate)));
+        QCOMPARE(history.count(), 3);
+        history.setSearch("Docs"); QCOMPARE(history.count(), 2);
+        QVERIFY(history.hasFilters());
+        QCOMPARE(history.data(history.index(0), History::Website).toString(), QString("docs.example.test"));
+        QVERIFY(!history.setDateRange("2026-02-30", ""));
+        QVERIFY(!history.setDateRange(day.addDays(1).toString(Qt::ISODate), day.toString(Qt::ISODate)));
+        QCOMPARE(history.count(), 2); QCOMPARE(history.fromDate(), day);
+        history.setWebsite("missing.test"); QCOMPARE(history.count(), 0);
+        history.resetFilters(); QVERIFY(!history.hasFilters()); QCOMPARE(history.count(), 7);
+        history.setWebsite("."); QCOMPARE(history.count(), 0);
+        history.resetFilters();
+        QVERIFY(history.setDateRange("", day.addDays(-1).toString(Qt::ISODate))); QCOMPARE(history.count(), 1);
+        QVERIFY(history.setDateRange(day.addDays(1).toString(Qt::ISODate), "")); QCOMPARE(history.count(), 1);
+        history.resetFilters(); QCOMPARE(history.suggestions("Docs", 20).size(), 6);
+    }
+    void deletesOnlyConfirmedMatchingSnapshotAndPersists() {
+        QTemporaryDir directory;
+        {
+            History history(directory.path());
+            QAbstractItemModelTester tester(&history, QAbstractItemModelTester::FailureReportingMode::QtTest);
+            history.record(QUrl("https://keep.test/"), "Keep me");
+            history.record(QUrl("https://remove.test/a"), "Remove A");
+            history.record(QUrl("https://remove.test/b"), "Remove B");
+            history.setWebsite("remove.test");
+            const auto confirmed = history.matchingIds(); QCOMPARE(confirmed.size(), 2);
+            history.record(QUrl("https://remove.test/new"), "New after confirmation");
+            history.resetFilters(); // A later filter change must not broaden a captured deletion.
+            QVERIFY(history.removeVisits(confirmed)); QCOMPARE(history.totalCount(), 2);
+            QVERIFY(history.removeVisits(confirmed)); QCOMPARE(history.totalCount(), 2);
+            QVERIFY(history.removeVisits({})); QCOMPARE(history.totalCount(), 2);
+            history.setWebsite("remove.test"); QCOMPARE(history.count(), 1);
+            QCOMPARE(history.data(history.index(0), History::PageTitle).toString(), QString("New after confirmation"));
+        }
+        History restored(directory.path()); QCOMPARE(restored.totalCount(), 2);
+        restored.setSearch("Remove A"); QCOMPARE(restored.count(), 0);
+        QVERIFY(restored.clear()); QCOMPARE(restored.totalCount(), 0);
+        History privateHistory(QString{}); QVERIFY(!privateHistory.removeVisits({"1"}));
+    }
+    void matchingDeletionRollsBackOnStorageFailure() {
+        QTemporaryDir directory; History history(directory.path());
+        history.record(QUrl("https://example.test/a"), "Allowed");
+        history.record(QUrl("https://example.test/b"), "Blocked");
+        {
+            auto db = QSqlDatabase::addDatabase("QSQLITE", "history-delete-failure");
+            db.setDatabaseName(directory.filePath("history.sqlite")); QVERIFY(db.open());
+            {
+                QSqlQuery query(db);
+                QVERIFY(query.exec("CREATE TRIGGER fail_delete BEFORE DELETE ON visits WHEN OLD.title='Blocked' BEGIN SELECT RAISE(ABORT,'synthetic storage failure'); END"));
+            }
+            db.close();
+        }
+        QSqlDatabase::removeDatabase("history-delete-failure");
+        QVERIFY(!history.removeVisits(history.matchingIds()));
+        QVERIFY(!history.error().isEmpty()); QCOMPARE(history.totalCount(), 2);
+        History restored(directory.path()); QCOMPARE(restored.totalCount(), 2);
+    }
 };
 QTEST_GUILESS_MAIN(HistoryTest)
 #include "history_test.moc"

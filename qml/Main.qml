@@ -2107,6 +2107,7 @@ Basic.ApplicationWindow {
         privateMode: window.privateMode
         objectName: "historyPanel"
         manager: window.history
+        browserPreferences: window.browserPreferences
         onClosed: Qt.callLater(window.focusPage)
         onVisitRequested: function(url, newTab) {
             close()
