@@ -1,5 +1,5 @@
 // Copyright 2026 Arbiter contributors
-// SPDX-License-Identifier: BSD-3-Clause
+// SPDX-License-Identifier: GPL-3.0-only
 #ifndef MEDIA_BASE_ARBITER_AAC_PACKET_H_
 #define MEDIA_BASE_ARBITER_AAC_PACKET_H_
 

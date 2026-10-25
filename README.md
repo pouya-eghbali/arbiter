@@ -257,6 +257,11 @@ documented in the [site permissions developer guide](docs/site-permissions.md).
 
 ## DRM video and codecs
 
+Arbiter does not bundle or download Widevine. When available, it can use a
+compatible Widevine module already installed on your device. Widevine is
+proprietary Google software governed by applicable Google license terms.
+Compatibility with streaming services and playback quality are not guaranteed.
+
 Arbiter's patched WebEngine SDK exposes H.264/AAC formats while relying on
 operating-system decoders on macOS/Windows and system-installed FFmpeg on Linux.
 It excludes bundled H.264/AAC decoders and the bundled OpenH264 encoder.
@@ -269,8 +274,7 @@ Systems without suitable decoders cannot play those formats; there is no bundled
 software fallback. Standalone raw AAC/ADTS playback is not part of the native
 decoder integration; the playback probe checks H.264/AAC in DASH/MP4.
 
-Widevine is not bundled or downloaded by Arbiter. Qt searches for an installed
-CDM at engine startup, including Chrome's standard installation on macOS and
+Qt searches for an installed CDM at engine startup, including Chrome's standard installation on macOS and
 Windows and supported browser/distro locations on Linux. Install Chrome in its
 standard location and restart Arbiter before testing protected video. Detection
 depends on Qt's search paths; not every browser installation or CPU architecture
@@ -614,3 +618,12 @@ backends that supply phased scroll gestures; it does not emulate trackpad input
 for a conventional wheel. Each split view navigates its own history.
 
 See [the implementation and validation notes](docs/history-swipes.md).
+
+## License
+
+Arbiter is licensed under the **GNU General Public License, version 3 only**
+(`GPL-3.0-only`). See [LICENSE](LICENSE) for the full license text.
+
+Third-party libraries, icons, filter lists, and upstream Qt/Chromium files retain
+their respective license notices. See [third-party notices](licenses/) and the
+[engine license notice](engine/LICENSE).

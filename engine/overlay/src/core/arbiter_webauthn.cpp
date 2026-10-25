@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSD-3-Clause
+// SPDX-License-Identifier: GPL-3.0-only
 #include "arbiter_webauthn.h"
 #include <QCoreApplication>
 #include <algorithm>

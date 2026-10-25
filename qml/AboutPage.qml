@@ -49,6 +49,12 @@ ColumnLayout {
         color: Theme.muted
         wrapMode: Text.Wrap
     }
+    Basic.Label {
+        Layout.fillWidth: true
+        text: qsTr("Licensed under the GNU General Public License, version 3 (GPL-3.0-only).")
+        color: Theme.muted
+        wrapMode: Text.Wrap
+    }
     Flow {
         Layout.fillWidth: true
         spacing: 8
@@ -63,6 +69,11 @@ ColumnLayout {
             text: qsTr("Report an issue")
             iconName: "external-link"
             onClicked: Qt.openUrlExternally(page.projectUrl + "/issues")
+        }
+        UiButton {
+            text: qsTr("GPL v3 license")
+            iconName: "external-link"
+            onClicked: Qt.openUrlExternally(page.projectUrl + "/blob/master/LICENSE")
         }
     }
     Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.border }
@@ -121,5 +132,17 @@ ColumnLayout {
         text: qsTr("Third-party license notices")
         iconName: "external-link"
         onClicked: Qt.openUrlExternally(page.projectUrl + "/tree/master/licenses")
+    }
+    Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.border }
+    ColumnLayout {
+        Layout.fillWidth: true
+        spacing: 8
+        Basic.Label { text: qsTr("Widevine & DRM"); font.pixelSize: 20; font.weight: Font.DemiBold; color: Theme.text }
+        Basic.Label {
+            Layout.fillWidth: true
+            text: qsTr("Arbiter does not bundle or download Widevine. When available, it can use a compatible Widevine module already installed on your device. Widevine is proprietary Google software governed by applicable Google license terms. Compatibility with streaming services and playback quality are not guaranteed.")
+            wrapMode: Text.Wrap
+            color: Theme.muted
+        }
     }
 }
