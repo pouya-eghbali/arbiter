@@ -13,12 +13,14 @@ UiPopup {
     property string extensionId: ""
     property url extensionUrl: ""
     property string pageTitle: ""
+    signal invoked(string id)
     signal manageRequested()
     signal newWindowRequested(var request)
     signal visitRequested(string url)
     function showExtension(id: string, options: bool) {
         const url = options ? controller.optionsUrl(id) : controller.popupUrl(id)
         if (!url.toString().length) return
+        if (!options) invoked(id)
         extensionId = id
         extensionUrl = url
         pageTitle = qsTr("Extension")

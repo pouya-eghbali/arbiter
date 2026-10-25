@@ -7,5 +7,6 @@
   "chromium_commit": "bcc09a68b50a40c60d8dc83f0e6b6dc872614812",
   "chromium_version": "140.0.7339.225",
   "view_request_interceptor": true,
-  "history_overscroll": true
+  "history_overscroll": true,
+  "extension_api_bridge": 1
 }

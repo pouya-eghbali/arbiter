@@ -80,10 +80,10 @@ if(APPLE)
         "${ARBITER_ICON_OUTPUT}/Assets.car" "${ARBITER_ICON_OUTPUT}/Arbiter.icns"
         PROPERTIES MACOSX_PACKAGE_LOCATION Resources
     )
-    set_source_files_properties(LICENSE licenses/QtKeychain.txt licenses/QRCodeGenerator.txt licenses/TomlPlusPlus.txt PROPERTIES MACOSX_PACKAGE_LOCATION Resources/licenses)
+    set_source_files_properties(LICENSE licenses/QtKeychain.txt licenses/QRCodeGenerator.txt licenses/TomlPlusPlus.txt licenses/Chromium.txt PROPERTIES MACOSX_PACKAGE_LOCATION Resources/licenses)
     target_sources(arbiter PRIVATE
         "${ARBITER_ICON_OUTPUT}/Assets.car" "${ARBITER_ICON_OUTPUT}/Arbiter.icns"
-        LICENSE licenses/QtKeychain.txt licenses/QRCodeGenerator.txt licenses/TomlPlusPlus.txt
+        LICENSE licenses/QtKeychain.txt licenses/QRCodeGenerator.txt licenses/TomlPlusPlus.txt licenses/Chromium.txt
     )
 endif()
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
@@ -150,7 +150,7 @@ install(TARGETS arbiter
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 if(NOT APPLE)
-    install(FILES LICENSE licenses/QtKeychain.txt licenses/QRCodeGenerator.txt licenses/TomlPlusPlus.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/arbiter/licenses)
+    install(FILES LICENSE licenses/QtKeychain.txt licenses/QRCodeGenerator.txt licenses/TomlPlusPlus.txt licenses/Chromium.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/arbiter/licenses)
 endif()
 if(UNIX AND NOT APPLE)
     install(FILES cmake/com.arbiter.browser.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)

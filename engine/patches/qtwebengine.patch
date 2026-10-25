@@ -1,16 +1,17 @@
 diff --git a/src/core/CMakeLists.txt b/src/core/CMakeLists.txt
-index e24c961..1541c80 100644
+index e24c961..e702fe0 100644
 --- a/src/core/CMakeLists.txt
 +++ b/src/core/CMakeLists.txt
-@@ -200,6 +200,7 @@ foreach(arch ${archs})
+@@ -200,6 +200,8 @@ foreach(arch ${archs})
                  web_engine_settings.cpp web_engine_settings.h
                  web_event_factory.cpp web_event_factory.h
                  web_usb_detector_qt.cpp web_usb_detector_qt.h
 +                arbiter_webauthn.cpp arbiter_webauthn.h
++                arbiter_extensions.cpp arbiter_extensions.h
                  authenticator_request_client_delegate_qt.cpp authenticator_request_client_delegate_qt.h
                  authenticator_request_dialog_controller.cpp authenticator_request_dialog_controller.h authenticator_request_dialog_controller_p.h
                  content_settings_manager_qt.cpp content_settings_manager_qt.h
-@@ -428,11 +429,20 @@ foreach(arch ${archs})
+@@ -428,11 +430,20 @@ foreach(arch ${archs})
              CONDITION QT_FEATURE_webengine_kerberos
          )
          extend_gn_list(gnArgArg
@@ -34,10 +35,10 @@ index e24c961..1541c80 100644
          extend_gn_list(gnArgArg
              ARGS use_browser_spellchecker
 diff --git a/src/core/api/qtwebenginecoreglobal.h b/src/core/api/qtwebenginecoreglobal.h
-index 334d53d..3b51b78 100644
+index 334d53d..6479080 100644
 --- a/src/core/api/qtwebenginecoreglobal.h
 +++ b/src/core/api/qtwebenginecoreglobal.h
-@@ -9,9 +9,12 @@
+@@ -9,9 +9,13 @@
  #include <QtWebEngineCore/qtwebenginecore-config.h>
  #include <QtWebEngineCore/qtwebenginecoreexports.h>
  
@@ -47,6 +48,7 @@ index 334d53d..3b51b78 100644
  
  class QUrl;
 +Q_WEBENGINECORE_EXPORT int qWebEngineArbiterWebAuthnAbi() noexcept;
++Q_WEBENGINECORE_EXPORT int qWebEngineArbiterExtensionApiAbi() noexcept;
  
  #define ASSERT_ENUMS_MATCH(A, B) Q_STATIC_ASSERT_X(static_cast<int>(A) == static_cast<int>(B), "The enum values must match");
  
@@ -239,6 +241,129 @@ index 668a248..d9baf91 100644
          adapterClient->showWebAuthDialog(m_request);
          m_isDialogCreated = true;
      } else {
+diff --git a/src/core/configure/BUILD.root.gn.in b/src/core/configure/BUILD.root.gn.in
+index 84101d4..ca49604 100644
+--- a/src/core/configure/BUILD.root.gn.in
++++ b/src/core/configure/BUILD.root.gn.in
+@@ -586,6 +586,7 @@ source_set("qtwebengine_sources") {
+       "//chrome/browser/media/webrtc/webrtc_text_log_handler.h",
+       "//chrome/browser/ui/webui/media/webrtc_logs_ui.cc",
+       "//chrome/browser/ui/webui/media/webrtc_logs_ui.h",
++      "//chrome/renderer/extensions/api/tabs_hooks_delegate.cc",
+       "//chrome/renderer/media/webrtc_logging_agent_impl.cc",
+       "//chrome/renderer/media/webrtc_logging_agent_impl.h",
+     ]
+diff --git a/src/core/extensions/extension_web_contents_observer_qt.cpp b/src/core/extensions/extension_web_contents_observer_qt.cpp
+index f20fc92..7881365 100644
+--- a/src/core/extensions/extension_web_contents_observer_qt.cpp
++++ b/src/core/extensions/extension_web_contents_observer_qt.cpp
+@@ -7,6 +7,7 @@
+ // found in the LICENSE file.
+ 
+ #include "extension_web_contents_observer_qt.h"
++#include "arbiter_extensions.h"
+ 
+ #include "content/browser/renderer_host/render_frame_host_impl.h"
+ #include "content/public/browser/child_process_security_policy.h"
+@@ -42,6 +43,9 @@ void ExtensionWebContentsObserverQt::CreateForWebContents(content::WebContents *
+ void ExtensionWebContentsObserverQt::RenderFrameCreated(content::RenderFrameHost *render_frame_host)
+ {
+     ExtensionWebContentsObserver::RenderFrameCreated(render_frame_host);
++    int tabId = -1;
++    QtWebEngineCore::arbiterExtensionIds(web_contents(), &tabId, nullptr);
++    if (tabId >= 0) if (auto *frame = GetLocalFrame(render_frame_host)) frame->SetTabId(tabId);
+     QtWebEngineCore::RenderWidgetHostViewQt::registerInputEventObserver(web_contents(),
+                                                                         render_frame_host);
+ 
+diff --git a/src/core/extensions/extensions_browser_client_qt.cpp b/src/core/extensions/extensions_browser_client_qt.cpp
+index ad62c92..7c11365 100644
+--- a/src/core/extensions/extensions_browser_client_qt.cpp
++++ b/src/core/extensions/extensions_browser_client_qt.cpp
+@@ -8,6 +8,7 @@
+ // found in the LICENSE file.
+ 
+ #include "extensions_browser_client_qt.h"
++#include "arbiter_extensions.h"
+ 
+ #include <utility>
+ 
+@@ -241,6 +242,7 @@ public:
+     {
+         // Generated APIs from QtWebEngine.
+         api::QtWebEngineGeneratedFunctionRegistry::RegisterAll(registry);
++        QtWebEngineCore::arbiterRegisterExtensionFunctions(registry);
+     }
+ };
+ 
+@@ -263,6 +265,16 @@ void ExtensionsBrowserClientQt::Init()
+     AddAPIProvider(std::make_unique<QtWebEngineExtensionsBrowserAPIProvider>());
+ }
+ 
++void ExtensionsBrowserClientQt::GetTabAndWindowIdForWebContents(content::WebContents *contents, int *tab, int *window) {
++    QtWebEngineCore::arbiterExtensionIds(contents, tab, window);
++}
++bool ExtensionsBrowserClientQt::IsValidTabId(content::BrowserContext *context, int id, bool, content::WebContents **out) const {
++    *out = QtWebEngineCore::arbiterExtensionContents(context, id); return *out != nullptr;
++}
++ScriptExecutor *ExtensionsBrowserClientQt::GetScriptExecutorForTab(content::WebContents &contents) {
++    return QtWebEngineCore::arbiterExtensionScriptExecutor(&contents);
++}
++
+ bool ExtensionsBrowserClientQt::IsShuttingDown()
+ {
+     return false;
+diff --git a/src/core/extensions/extensions_browser_client_qt.h b/src/core/extensions/extensions_browser_client_qt.h
+index 5f8c35f..2131f77 100644
+--- a/src/core/extensions/extensions_browser_client_qt.h
++++ b/src/core/extensions/extensions_browser_client_qt.h
+@@ -29,6 +29,9 @@ public:
+     // ExtensionsBrowserClient overrides:
+     void Init() override;
+     bool IsShuttingDown() override;
++    void GetTabAndWindowIdForWebContents(content::WebContents *, int *, int *) override;
++    bool IsValidTabId(content::BrowserContext *, int, bool, content::WebContents **) const override;
++    ScriptExecutor *GetScriptExecutorForTab(content::WebContents &) override;
+     bool AreExtensionsDisabled(const base::CommandLine &command_line,
+                                content::BrowserContext *context) override;
+     bool IsValidContext(void*) override;
+diff --git a/src/core/extensions/messaging_delegate_qt.cpp b/src/core/extensions/messaging_delegate_qt.cpp
+index 222a27c..ace5df8 100644
+--- a/src/core/extensions/messaging_delegate_qt.cpp
++++ b/src/core/extensions/messaging_delegate_qt.cpp
+@@ -3,6 +3,7 @@
+ // Qt-Security score:significant reason:default
+ 
+ #include "messaging_delegate_qt.h"
++#include "arbiter_extensions.h"
+ 
+ #include <QtGlobal>
+ 
+@@ -14,8 +15,11 @@ MessagingDelegateQt::MessagingDelegateQt()
+ 
+ std::optional<base::Value::Dict> MessagingDelegateQt::MaybeGetTabInfo(content::WebContents *web_contents)
+ {
+-    Q_UNUSED(web_contents);
+-    return std::nullopt;
++    return QtWebEngineCore::arbiterExtensionTabInfo(web_contents);
++}
++
++content::WebContents *MessagingDelegateQt::GetWebContentsByTabId(content::BrowserContext *context, int id) {
++    return QtWebEngineCore::arbiterExtensionContents(context, id);
+ }
+ 
+ } // namespace extensions
+diff --git a/src/core/extensions/messaging_delegate_qt.h b/src/core/extensions/messaging_delegate_qt.h
+index 1f89e2d..44ef98b 100644
+--- a/src/core/extensions/messaging_delegate_qt.h
++++ b/src/core/extensions/messaging_delegate_qt.h
+@@ -21,6 +21,7 @@ class MessagingDelegateQt : public MessagingDelegate
+ {
+ public:
+     MessagingDelegateQt();
++    content::WebContents *GetWebContentsByTabId(content::BrowserContext *, int) override;
+ 
+     // MessagingDelegate implementation.
+     std::optional<base::Value::Dict> MaybeGetTabInfo(content::WebContents *web_contents) override;
 diff --git a/src/core/location_provider_qt.cpp b/src/core/location_provider_qt.cpp
 index 779efdc..71eb96d 100644
 --- a/src/core/location_provider_qt.cpp
@@ -351,35 +476,173 @@ index 395334f..a42a18d 100644
      void GestureEventAck(const blink::WebGestureEvent &event,
                           blink::mojom::InputEventResultSource ack_source,
                           blink::mojom::InputEventResultState ack_result) override;
+diff --git a/src/core/renderer/extensions/extensions_renderer_api_provider_qt.cpp b/src/core/renderer/extensions/extensions_renderer_api_provider_qt.cpp
+index 2ca1348..cb91669 100644
+--- a/src/core/renderer/extensions/extensions_renderer_api_provider_qt.cpp
++++ b/src/core/renderer/extensions/extensions_renderer_api_provider_qt.cpp
+@@ -3,12 +3,19 @@
+ // Qt-Security score:significant reason:default
+ 
+ #include "extensions_renderer_api_provider_qt.h"
++#include "chrome/renderer/extensions/api/tabs_hooks_delegate.h"
++#include "extensions/renderer/native_extension_bindings_system.h"
++
+ 
+ #include "chrome/grit/renderer_resources.h"
+ #include "extensions/renderer/resource_bundle_source_map.h"
+ 
+ namespace extensions {
+ 
++void ExtensionsRendererAPIProviderQt::AddBindingsSystemHooks(Dispatcher *, NativeExtensionBindingsSystem *bindings) const {
++    bindings->api_system()->RegisterHooksDelegate("tabs", std::make_unique<TabsHooksDelegate>(bindings->messaging_service()));
++}
++
+ void ExtensionsRendererAPIProviderQt::PopulateSourceMap(ResourceBundleSourceMap *source_map) const
+ {
+     source_map->RegisterSource("webrtcDesktopCapturePrivate",
+diff --git a/src/core/renderer/extensions/extensions_renderer_api_provider_qt.h b/src/core/renderer/extensions/extensions_renderer_api_provider_qt.h
+index edb4397..7527a36 100644
+--- a/src/core/renderer/extensions/extensions_renderer_api_provider_qt.h
++++ b/src/core/renderer/extensions/extensions_renderer_api_provider_qt.h
+@@ -23,7 +23,7 @@ public:
+                                 V8SchemaRegistry *v8_schema_registry,
+                                 ScriptContext *context) const override {}
+     void AddBindingsSystemHooks(Dispatcher *dispatcher,
+-                                NativeExtensionBindingsSystem *bindings_system) const override {}
++                                NativeExtensionBindingsSystem *bindings_system) const override;
+     void EnableCustomElementAllowlist() const override { }
+     void RequireWebViewModules(ScriptContext *context) const override { }
+ };
+diff --git a/src/core/web_contents_adapter.cpp b/src/core/web_contents_adapter.cpp
+index 5ea0939..9a35aec 100644
+--- a/src/core/web_contents_adapter.cpp
++++ b/src/core/web_contents_adapter.cpp
+@@ -7,6 +7,7 @@
+ // found in the LICENSE.Chromium file.
+ 
+ #include "web_contents_adapter.h"
++#include "arbiter_extensions.h"
+ 
+ #include "autofill_client_qt.h"
+ #include "content_browser_client_qt.h"
+@@ -434,11 +435,26 @@ WebContentsAdapter::WebContentsAdapter()
+ 
+ WebContentsAdapter::~WebContentsAdapter()
+ {
++    arbiterRemoveExtensionTab(this);
+     if (m_devToolsFrontend)
+         closeDevToolsFrontend();
+     Q_ASSERT(!m_devToolsFrontend);
+ }
+ 
++
++void WebContentsAdapter::setExtensionContext(QObject *context)
++{
++    if (m_extensionContext == context) return;
++    arbiterRemoveExtensionTab(this);
++    m_extensionContext = context;
++    arbiterEnsureExtensionTabId(context);
++    arbiterRegisterExtensionTab(this);
++}
++QObject *WebContentsAdapter::extensionContext() const { return m_extensionContext.data(); }
++void WebContentsAdapter::grantExtensionActiveTab(const QString &id) { arbiterGrantActiveTab(this, id); }
++QVariantList WebContentsAdapter::extensionMenuItems(const QVariantMap &data) const { return arbiterExtensionMenuItems(const_cast<WebContentsAdapter *>(this), data); }
++void WebContentsAdapter::invokeExtensionMenu(const QString &key, const QVariantMap &data) { arbiterInvokeExtensionMenu(this, key, data); }
++
+ void WebContentsAdapter::setClient(WebContentsAdapterClient *adapterClient)
+ {
+     Q_ASSERT(!isInitialized());
+@@ -489,6 +505,7 @@ void WebContentsAdapter::initialize(content::SiteInstance *site)
+ #endif
+ #if BUILDFLAG(ENABLE_EXTENSIONS)
+     extensions::ExtensionWebContentsObserverQt::CreateForWebContents(webContents());
++    arbiterRegisterExtensionTab(this);
+ #endif
+ 
+     content::BrowserContext *context = webContents()->GetBrowserContext();
+@@ -2224,6 +2241,7 @@ void WebContentsAdapter::unfreeze()
+ 
+ void WebContentsAdapter::discard()
+ {
++    arbiterRemoveExtensionTab(this, false);
+     // Based on TabLifecycleUnitSource::TabLifecycleUnit::FinishDiscard
+ 
+     if (m_webContents->IsLoading()) {
+@@ -2271,6 +2289,7 @@ void WebContentsAdapter::discard()
+ #endif
+ #if BUILDFLAG(ENABLE_EXTENSIONS)
+     extensions::ExtensionWebContentsObserverQt::CreateForWebContents(webContents());
++    arbiterRegisterExtensionTab(this, false);
+ #endif
+ }
+ 
+diff --git a/src/core/web_contents_adapter.h b/src/core/web_contents_adapter.h
+index f23afaa..d9844ca 100644
+--- a/src/core/web_contents_adapter.h
++++ b/src/core/web_contents_adapter.h
+@@ -241,6 +241,11 @@ public:
+     content::WebContents *guestWebContents() const;
+     WebContentsAdapterClient *adapterClient();
+     void updateRecommendedState();
++    void setExtensionContext(QObject *context);
++    QObject *extensionContext() const;
++    void grantExtensionActiveTab(const QString &id);
++    QVariantList extensionMenuItems(const QVariantMap &) const;
++    void invokeExtensionMenu(const QString &, const QVariantMap &);
+     void setRequestInterceptor(QWebEngineUrlRequestInterceptor *interceptor);
+     QWebEngineUrlRequestInterceptor* requestInterceptor() const;
+ 
+@@ -287,6 +292,7 @@ private:
+     LifecycleState m_recommendedState = LifecycleState::Active;
+     bool m_inspector = false;
+     bool m_documentIsHandlingDrag = false;
++    QPointer<QObject> m_extensionContext;
+     QPointer<QWebEngineUrlRequestInterceptor> m_requestInterceptor;
+ };
+ 
 diff --git a/src/core/web_engine_context.cpp b/src/core/web_engine_context.cpp
-index 76ea59c..180cd3d 100644
+index 76ea59c..2998044 100644
 --- a/src/core/web_engine_context.cpp
 +++ b/src/core/web_engine_context.cpp
-@@ -1025,6 +1025,8 @@ const char *qWebEngineProcessName() noexcept
+@@ -1025,6 +1025,9 @@ const char *qWebEngineProcessName() noexcept
      return STRINGIFY_EXPANDED(QTWEBENGINEPROCESS_NAME);
  }
  
 +int qWebEngineArbiterWebAuthnAbi() noexcept { return 1; }
++int qWebEngineArbiterExtensionApiAbi() noexcept { return 1; }
 +
  const char *qWebEngineChromiumVersion() noexcept
  {
      return STRINGIFY_EXPANDED(CHROMIUM_VERSION);
 diff --git a/src/webenginequick/api/qquickwebengineview.cpp b/src/webenginequick/api/qquickwebengineview.cpp
-index 4f1fce6..ee53bc9 100644
+index 4f1fce6..ad85288 100644
 --- a/src/webenginequick/api/qquickwebengineview.cpp
 +++ b/src/webenginequick/api/qquickwebengineview.cpp
-@@ -968,6 +968,7 @@ bool QQuickWebEngineViewPrivate::adoptWebContents(WebContentsAdapter *webContent
+@@ -968,6 +968,8 @@ bool QQuickWebEngineViewPrivate::adoptWebContents(WebContentsAdapter *webContent
      adapterOwner->deleteLater();
  
      adapter = webContents->sharedFromThis();
 +    adapter->setRequestInterceptor(m_requestInterceptor);
++    adapter->setExtensionContext(m_extensionContext);
      adapter->setClient(this);
      return true;
  }
-@@ -1340,6 +1341,27 @@ void QQuickWebEngineView::setProfile(QQuickWebEngineProfile *profile)
+@@ -1340,6 +1342,39 @@ void QQuickWebEngineView::setProfile(QQuickWebEngineProfile *profile)
      Q_EMIT profileChanged();
  }
  
++QObject *QQuickWebEngineView::extensionContext() const { Q_D(const QQuickWebEngineView); return d->m_extensionContext.data(); }
++void QQuickWebEngineView::setExtensionContext(QObject *context) {
++    Q_D(QQuickWebEngineView);
++    if (d->m_extensionContext == context) return;
++    d->m_extensionContext = context;
++    d->adapter->setExtensionContext(context);
++    Q_EMIT extensionContextChanged();
++}
++void QQuickWebEngineView::grantExtensionActiveTab(const QString &id) { Q_D(QQuickWebEngineView); d->adapter->grantExtensionActiveTab(id); }
++QVariantList QQuickWebEngineView::extensionMenuItems(const QVariantMap &data) const { Q_D(const QQuickWebEngineView); return d->adapter->extensionMenuItems(data); }
++void QQuickWebEngineView::invokeExtensionMenu(const QString &key, const QVariantMap &data) { Q_D(QQuickWebEngineView); d->adapter->invokeExtensionMenu(key, data); }
++
 +QObject *QQuickWebEngineView::urlRequestInterceptor() const
 +{
 +    Q_D(const QQuickWebEngineView);
@@ -404,46 +667,54 @@ index 4f1fce6..ee53bc9 100644
  QQuickWebEngineSettings *QQuickWebEngineView::settings()
  {
      Q_D(QQuickWebEngineView);
-@@ -1358,6 +1380,7 @@ void QQuickWebEngineViewPrivate::updateAdapter()
+@@ -1358,6 +1393,8 @@ void QQuickWebEngineViewPrivate::updateAdapter()
      // When the profile changes we need to create a new WebContentAdapter and reload the active URL.
      bool wasInitialized = adapter->isInitialized();
      adapter = QSharedPointer<WebContentsAdapter>::create();
 +    adapter->setRequestInterceptor(m_requestInterceptor);
++    adapter->setExtensionContext(m_extensionContext);
      adapter->setClient(this);
      if (wasInitialized) {
          if (!m_html.isEmpty())
 diff --git a/src/webenginequick/api/qquickwebengineview_p.h b/src/webenginequick/api/qquickwebengineview_p.h
-index 9be5f11..c48904b 100644
+index 9be5f11..cc0a137 100644
 --- a/src/webenginequick/api/qquickwebengineview_p.h
 +++ b/src/webenginequick/api/qquickwebengineview_p.h
-@@ -61,6 +61,8 @@ class Q_WEBENGINEQUICK_EXPORT QQuickWebEngineView : public QQuickItem {
+@@ -61,6 +61,9 @@ class Q_WEBENGINEQUICK_EXPORT QQuickWebEngineView : public QQuickItem {
      Q_OBJECT
      Q_CLASSINFO("RegisterEnumClassesUnscoped", "false")
      Q_PROPERTY(QUrl url READ url WRITE setUrl NOTIFY urlChanged FINAL)
 +    // Arbiter: a page-local interceptor keeps split-view exceptions independent.
 +    Q_PROPERTY(QObject *urlRequestInterceptor READ urlRequestInterceptor WRITE setUrlRequestInterceptor NOTIFY urlRequestInterceptorChanged FINAL)
++    Q_PROPERTY(QObject *extensionContext READ extensionContext WRITE setExtensionContext NOTIFY extensionContextChanged FINAL)
      Q_PROPERTY(QUrl icon READ icon NOTIFY iconChanged FINAL)
      Q_PROPERTY(bool loading READ isLoading NOTIFY loadingChanged FINAL)
      Q_PROPERTY(int loadProgress READ loadProgress NOTIFY loadProgressChanged FINAL)
-@@ -443,6 +445,8 @@ QT_WARNING_POP
+@@ -443,6 +446,13 @@ QT_WARNING_POP
  
      QQuickWebEngineProfile *profile();
      void setProfile(QQuickWebEngineProfile *);
++    QObject *extensionContext() const;
++    void setExtensionContext(QObject *context);
++    Q_INVOKABLE void grantExtensionActiveTab(const QString &id);
++    Q_INVOKABLE QVariantList extensionMenuItems(const QVariantMap &data) const;
++    Q_INVOKABLE void invokeExtensionMenu(const QString &key, const QVariantMap &data);
 +    QObject *urlRequestInterceptor() const;
 +    void setUrlRequestInterceptor(QObject *interceptor);
      QQuickWebEngineScriptCollection *userScripts();
  
      QQuickWebEngineSettings *settings();
-@@ -535,6 +539,7 @@ Q_SIGNALS:
+@@ -535,6 +545,8 @@ Q_SIGNALS:
  #endif // QT_DEPRECATED_SINCE(6, 8)
      Q_REVISION(1,1) void zoomFactorChanged(qreal arg);
      Q_REVISION(1,1) void profileChanged();
 +    void urlRequestInterceptorChanged();
++    void extensionContextChanged();
      Q_REVISION(1,1) void webChannelChanged();
      Q_REVISION(1,2) void activeFocusOnPressChanged(bool);
      Q_REVISION(1,2) void backgroundColorChanged();
 diff --git a/src/webenginequick/api/qquickwebengineview_p_p.h b/src/webenginequick/api/qquickwebengineview_p_p.h
-index 5f09790..bebb7d6 100644
+index 5f09790..6d3a744 100644
 --- a/src/webenginequick/api/qquickwebengineview_p_p.h
 +++ b/src/webenginequick/api/qquickwebengineview_p_p.h
 @@ -18,6 +18,7 @@
@@ -454,10 +725,11 @@ index 5f09790..bebb7d6 100644
  #include "render_view_context_menu_qt.h"
  #include "touch_handle_drawable_client.h"
  #include "ui_delegates_manager_p.h"
-@@ -155,6 +156,7 @@ public:
+@@ -155,6 +156,8 @@ public:
  
      QQuickWebEngineProfile *m_profile;
      QSharedPointer<QtWebEngineCore::WebContentsAdapter> adapter;
++    QPointer<QObject> m_extensionContext;
 +    QPointer<QWebEngineUrlRequestInterceptor> m_requestInterceptor;
      QScopedPointer<QWebEngineHistory> m_history;
      QScopedPointer<QQuickWebEngineSettings> m_settings;

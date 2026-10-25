@@ -36,6 +36,14 @@ UiMenu {
         Controls.MenuSeparator { contentItem: Rectangle { implicitHeight: 1; color: Theme.border } }
     }
     Component {
+        id: extensionItem
+        UiMenuItem {
+            required property string extensionKey
+            required property var menuContext
+            onTriggered: contextMenu.view.invokeExtensionMenu(extensionKey, menuContext)
+        }
+    }
+    Component {
         id: passwordsItem
         UiMenuItem {
             text: qsTr("Saved passwords…")
@@ -141,6 +149,25 @@ UiMenu {
         const passwordIndex = count - 1
         separator()
         addItem(inspectItem.createObject(contextMenu.contentItem))
+        const menuContext = {
+            pageUrl: view.mainFrame.url.toString(),
+            linkUrl: request.linkUrl.toString(),
+            srcUrl: request.mediaUrl.toString(),
+            selectionText: request.selectedText,
+            editable: request.isContentEditable,
+            mediaType: request.mediaType === ContextMenuRequest.MediaTypeImage ? "image"
+                : request.mediaType === ContextMenuRequest.MediaTypeVideo ? "video"
+                : request.mediaType === ContextMenuRequest.MediaTypeAudio ? "audio" : ""
+        }
+        const extensionItems = view.extensionMenuItems(menuContext)
+        if (extensionItems.length) separator()
+        for (const entry of extensionItems) {
+            if (entry.separator) separator()
+            else addItem(extensionItem.createObject(contextMenu.contentItem, {
+                extensionKey: entry.key, menuContext: menuContext, text: entry.title,
+                enabled: entry.enabled, checkable: entry.checkable, checked: entry.checked
+            }))
+        }
         request.accepted = true
         const position = Qt.point(request.position.x, request.position.y)
         const committedUrl = view.mainFrame.url.toString()

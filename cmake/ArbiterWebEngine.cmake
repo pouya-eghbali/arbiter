@@ -18,6 +18,10 @@ if(ARBITER_PATCHED_WEBENGINE)
     if(arbiter_swipe_error OR NOT arbiter_history_overscroll)
         message(FATAL_ERROR "Rebuild the current engine patches: this SDK lacks compositor-backed history overscroll.")
     endif()
+    string(JSON arbiter_extension_bridge ERROR_VARIABLE arbiter_extension_error GET "${arbiter_engine_manifest}" extension_api_bridge)
+    if(arbiter_extension_error OR NOT arbiter_extension_bridge EQUAL 1)
+        message(FATAL_ERROR "Rebuild the current engine patches: this SDK lacks Arbiter's native extension API integration.")
+    endif()
     # Qt6Config normally searches its own sibling component packages before
     # other prefixes. Select every WebEngine component explicitly so headers,
     # libraries and the helper process come from the same patched SDK.

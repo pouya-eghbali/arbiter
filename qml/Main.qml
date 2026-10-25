@@ -799,6 +799,30 @@ Basic.ApplicationWindow {
                             required property url initialUrl
                             readonly property alias adBlock: viewAdBlock
                             urlRequestInterceptor: viewAdBlock
+                            required property bool pinned
+                            extensionContext: QtObject {
+                                id: extensionTabContext
+                                property int extensionTabId: -1
+                                readonly property QtObject window: page.Window.window
+                                readonly property int index: page.index
+                                readonly property bool active: page === page.Window.window.webView
+                                readonly property bool pinned: page.pinned
+                                readonly property bool blocked: page.Window.window.privateMode || page.Window.window.privateCovered || page.Window.window.shuttingDown
+                                function activate() { page.Window.window.selectTab(page.index) }
+                                function closeTab() { page.Window.window.closeTab(page.index) }
+                                function setPinned(value: bool) {
+                                    if (page.pinned !== value) page.Window.window.tabs.togglePinned(page.index)
+                                }
+                                function createTab(url: string, active: bool): int {
+                                    const owner = page.Window.window
+                                    if (blocked) return -1
+                                    const row = owner.workspaces.addTab(page.workspaceId, url, false)
+                                    const view = tabViews.itemAt(row) as WebEngineView
+                                    if (!view) return -1
+                                    if (active) owner.selectTab(row)
+                                    return view.extensionContext.extensionTabId
+                                }
+                            }
                             ViewAdBlock {
                                 id: viewAdBlock
                                 manager: window.adblocker
@@ -1014,7 +1038,7 @@ Basic.ApplicationWindow {
                                         passwordSession.suggestPassword(page.mainFrame.url, field)
                                 }
                             }
-                            onContextMenuRequested: function(request) { passwordPanel.cancelFor(page); pageContextMenu.show(request) }
+                            onContextMenuRequested: function(request) { if (page.inSplit) window.splits.activate(page.paneGeometry.paneId); passwordPanel.cancelFor(page); pageContextMenu.show(request) }
                             onNewWindowRequested: function(request) { window.openWebRequest(request, workspaceId) }
                             onWindowCloseRequested: {
                                 if (closeQueued) return
@@ -2055,6 +2079,7 @@ Basic.ApplicationWindow {
         objectName: "extensionPanel"
         controller: window.extensionCatalog
         browserProfile: window.webView ? window.webView.profile : null
+        onInvoked: function(id) { if (window.webView) window.webView.grantExtensionActiveTab(id) }
         onManageRequested: { window.openSettings(); window.settingsCategory = 8 }
         onNewWindowRequested: function(request) { window.openWebRequest(request, window.focusedWorkspaceId) }
         onVisitRequested: function(url) { extensionPanel.close(); window.openExternalUrl(url) }

@@ -47,14 +47,10 @@ necessarily be undone automatically.
   removed, account-gated, or browser-version-incompatible items can fail with a
   visible error. Local `.crx` import is not exposed. Already installed IDs are
   rejected rather than overwritten. There is no automatic extension updater.
-- **A subset of Chrome extension APIs.** Qt does not provide Chrome's complete
-  tabs/windows/toolbar integration. In particular, `chrome.tabs.query` and
-  active-tab-dependent workflows are not supplied by this initial integration.
-  Toolbar actions without `default_popup` cannot be triggered through Arbiter's
-  panel. Extensions can still operate as background/content-script extensions.
-  Native messaging, Chrome account sync, and extension shortcut commands have
-  not been integrated. Test each real extension rather than assuming that a
-  successful installation establishes compatibility.
+- **A subset of Chrome extension APIs.** Arbiter extends Qt's native bindings with
+  the tab, window, scripting, messaging, command, and context-menu integrations
+  described below. This is not the complete Chrome API surface. Test each real
+  extension rather than assuming installation establishes compatibility.
 - Each persistent Chromium profile has its own extension catalog, files,
   approvals, and storage. Workspaces sharing a profile share extensions; isolated
   profiles do not. Split views follow their respective profiles.
@@ -62,72 +58,79 @@ necessarily be undone automatically.
   extension installation is unavailable. Qt's built-in PDF and Hangouts
   components are left untouched and excluded from user extension lists.
 
+## Native browser API integration
+
+Upstream-derived API schemas retain Chromium's BSD license; its notice is included
+in `licenses/Chromium.txt` and packaged with Arbiter.
+
+These APIs are implemented in the patched engine for extensions generally, with
+no extension-ID special cases or injected API shims:
+
+| Area | Supported operations |
+| --- | --- |
+| Tabs | `query`, `get`, `getCurrent`, `getSelected`, `getAllInWindow`, `create`, `update`, `remove`, `reload`, `goBack`, `goForward`, `getZoom`, `setZoom` |
+| Page capture | `tabs.captureVisibleTab`, PNG/JPEG data URLs from the authorized visible page surface |
+| Messaging | `tabs.sendMessage`, `tabs.connect`, native content-script routing and `sender.tab` |
+| Windows | `get`, `getCurrent`, `getLastFocused`, `getAll`, `update`, `remove` |
+| Scripting | `executeScript`, `insertCSS`, `removeCSS`, using Chromium's frame targeting and execution worlds |
+| Context menus | `create`, `update`, `remove`, `removeAll`, native click events and checkbox/radio state |
+| Commands | `getAll`, manifest keyboard shortcuts and `commands.onCommand` |
+| Action metadata | Get/set title, badge text, badge background color, badge text color |
+| Permissions | `contains`, `getAll`, `request` for access already approved |
+
+Tab creation, updates, activation and removal, and window focus changes emit native
+events. Tabs have stable IDs, including across sleeping/discarding. The focused
+split view is the active tab; extension popups are not browser tabs. Each call
+resolves only tabs belonging to the calling extension's profile. Private and
+locked views are excluded. URL/title/favicon metadata is scrubbed unless the
+extension has the relevant permission.
+
+Opening an action popup, invoking a command, or choosing an extension context-menu
+item can grant declared `activeTab` access to that page. This temporary grant is
+revoked on an origin change or when the page is discarded/closed. Injection uses
+Chromium's permission checks, isolated worlds and resource loader; it does not
+execute privileged extension code as ordinary website JavaScript. Capture checks
+page permissions again when its asynchronous result returns. Restricted browser,
+file, other-extension and store pages are not capture/injection targets. Capture
+is limited to two calls per second per extension per tab.
+
+Important limits:
+
+- `permissions.request` never silently expands access. New optional permissions
+  return an error until an additional permission-review UI is implemented.
+- Action metadata is stored, but badge graphics are not drawn in Arbiter's
+  extension list. Actions without `default_popup`, reserved `_execute_action`
+  commands, dynamic popup changes and `action.setIcon` are not integrated.
+- Tab creation supports URL, active/selected, window and pinned options. Tab
+  updates support URL, activation/highlighting, mute and pin. Unsupported options
+  and query filters return errors. Tab movement/grouping and `windows.create`
+  are not implemented. Window state/geometry/focus updates are supported.
+- Extension context menus use Arbiter's styled, scrollable page menu. Nested items
+  are flattened with parent labels. Qt's context-menu request does not identify
+  the originating subframe, so click data uses the main-page context (`frameId: 0`).
+- Recording APIs (`desktopCapture` and `tabCapture`), native messaging, Chrome
+  account sync and automatic extension updates remain unsupported. Permission
+  requests from extension popup documents are still rejected.
+
+The bridge uses Qt/Chromium code shared by macOS, Windows and Linux. Runtime
+validation of this addition has been performed on macOS; Windows/Linux builds and
+real-extension compatibility still need platform testing.
+
 ## Investigated compatibility: Awesome Screenshot
 
 Awesome Screen Recorder & Screenshot **4.4.44** (store ID
-`nlipoenfbbikpbjkfpfillcgkoblgpmj`) installs and opens its popup, but page screenshot
-capture is **not supported by the current engine integration**. Installation and
-permission approval do not establish runtime API compatibility.
+`nlipoenfbbikpbjkfpfillcgkoblgpmj`) originally installed and opened, but its popup
+could not locate a tab: Qt exposed neither `windows.getCurrent` nor `tabs.query`.
+Its screenshot workflow also needed capture, content messaging, scripting and
+result-tab creation. A disposable-profile probe reproduced those missing APIs on
+2026-10-25. This was an engine API limitation, not a missing macOS screen-recording
+approval.
 
-The installed package's `popup.bundle.js` calls `chrome.windows.getCurrent` and
-`chrome.tabs.query` to identify the active page. Its `serviceWorker.bundle.js`
-uses `chrome.tabs.captureVisibleTab` for image capture, and tab/window operations
-to activate the page and open the result. These calls cannot complete with our
-current Qt API subset.
-
-A local synthetic MV3 extension with `tabs`, `activeTab`, `scripting`,
-`desktopCapture`, `tabCapture`, and `<all_urls>` permissions was loaded into a
-**disposable profile against Arbiter's patched SDK** on macOS. The runtime probe
-on 2026-10-25 returned:
-
-| API | Runtime availability |
-| --- | --- |
-| `chrome.windows.getCurrent`, `chrome.windows.update` | Undefined |
-| `chrome.tabs.query`, `chrome.tabs.create` | Undefined |
-| `chrome.tabs.captureVisibleTab`, `chrome.tabs.sendMessage` | Undefined |
-| `chrome.scripting.executeScript` | Undefined |
-| `chrome.desktopCapture.chooseDesktopMedia` | Undefined |
-| `chrome.tabCapture.getMediaStreamId` | Undefined |
-| `chrome.tabs.update`, `chrome.offscreen.createDocument` | Functions exposed; behavior not validated by this probe |
-
-Calling the same `chrome.windows.getCurrent` expression used by the popup produced
-`Cannot read properties of undefined (reading 'getCurrent')` in the synthetic
-probe. This reproduces the missing-API failure without running the third-party
-extension against real browsing data. The installed extension code and the
-engine schemas/registrations corroborate it: Qt's
-`qtwebengine/common/extensions/api/tabs.json` declares only `tabs.update`, and its
-browser function registry does not register `tabs.query` or
-`tabs.captureVisibleTab`.
-
-This is not a missing macOS screen-recording approval. That approval cannot add
-undefined extension APIs. Arbiter also currently rejects media/website permission
-requests made inside extension popups (`qml/ExtensionPanel.qml`); that is an
-additional integration boundary for recording, distinct from the screenshot API
-failure above. Other platforms were not runtime-tested in this investigation.
-
-Supporting this extension requires extending the pinned engine and application
-integration together:
-
-1. Map Arbiter windows and tabs to stable extension IDs. Resolve the **focused
-   split view** as the active tab, without treating the extension popup itself as
-   the target, and respect profile/private-window boundaries.
-2. Implement the tab/window lookup, activation, messaging, script-injection, and
-   result-tab creation operations used by the extension, with Chromium's permission
-   checks and properly scoped user-invoked `activeTab` grants.
-3. Implement `tabs.captureVisibleTab` against the authorized page surface,
-   returning the expected image data URL with Chromium-compatible error handling,
-   restricted-page checks, format options, and capture limits.
-4. Validate visible, selected-area, and full-page capture with the real extension.
-   Full-page capture also needs its scrolling/content-script/stitching workflow to
-   succeed; exposing a single screenshot method is insufficient.
-5. Treat desktop/tab **recording** as separate work, including source selection,
-   media permissions, and capture lifecycle. Do not claim recording compatibility
-   from a successful page screenshot.
-
-Use native extension bindings and browser-side authorization rather than injecting
-privileged JavaScript into arbitrary websites or modifying the installed extension.
-A built-in screenshot command would be an independent feature and would not repair
-this extension's missing APIs.
+The general bridge above now supplies these page APIs. Synthetic extensions verify
+real screenshot capture and the supporting operations, but **full compatibility
+with Awesome Screenshot has not yet been established**. Selected-area and full-page
+capture also depend on its content-script/scrolling/stitching workflow. Desktop/tab
+recording remains separate unsupported functionality.
 
 References: [Chrome tabs API](https://developer.chrome.com/docs/extensions/reference/api/tabs),
 [Awesome Screenshot capture workflow](https://support.awesomescreenshot.com/hc/en-us/articles/53641390758169-How-to-take-capture-a-full-page-screenshot-using-Awesome-Screenshot-extensions).
@@ -226,3 +229,22 @@ It downloads Dark Reader from the real store, verifies and installs it into a
 disposable profile, checks that the store ID is preserved and permission review
 is pending, then removes it without enabling it. This validates installation,
 not compatibility of Dark Reader's runtime APIs. The live test passed on macOS.
+
+The native API fixture additionally covers profile isolation, stable tab IDs,
+query/creation/navigation/pinning, window lookup, messaging sender metadata,
+MAIN versus isolated script worlds, file injection and CSS removal, unsafe
+resource rejection, action metadata, permission expansion refusal, context-menu
+updates/clicks, and scoped `activeTab` grants revoked after cross-origin navigation.
+
+Real compositor capture and actual keyboard command delivery need a visible
+native window. On macOS, run the opt-in check against the patched SDK:
+
+```sh
+ARBITER_TEST_EXTENSION_CAPTURE=1 QT_QPA_PLATFORM=cocoa \
+  DYLD_FRAMEWORK_PATH="$PWD/build-passkey-sdk/lib" \
+  build-patched-tests/extensions_test nativeTabsWindowsMessagingAndScripting
+```
+
+This decodes the returned PNG and dispatches the manifest shortcut through a real
+Qt window. It uses a synthetic extension and disposable profile, not personal
+browsing data.
