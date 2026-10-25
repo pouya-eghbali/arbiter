@@ -39,7 +39,7 @@ public:
     void restore(const QVariantList &entries, const QHash<QString,QString> &profiles, const QVariantMap &selections);
 
     Q_INVOKABLE int add(const QUrl &url = QUrl(QStringLiteral("about:blank")), bool activate = true);
-    int addToWorkspace(const QUrl &url, const QString &workspace, const QString &profile);
+    int addToWorkspace(const QUrl &url, const QString &workspace, const QString &profile, int index = -1);
     Q_INVOKABLE void close(int index);
     Q_INVOKABLE void cycle(int direction);
     Q_INVOKABLE bool reopen();

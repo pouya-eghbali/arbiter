@@ -53,7 +53,9 @@ ExtensionCatalog::ExtensionCatalog(QQuickWebEngineProfile *profile) : QObject(pr
     refresh();
 }
 QString ExtensionCatalog::fingerprint(const QWebEngineExtensionInfo &info) const {
-    const auto bytes = manifestBytes(info);
+    auto bytes = manifestBytes(info);
+    if (QJsonDocument::fromJson(bytes).object().value(QStringLiteral("permissions")).toArray().contains(QStringLiteral("cookies")))
+        bytes.prepend("Arbiter cookie-read consent v1\n");
     return bytes.isEmpty() ? QString() : QString::fromLatin1(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex());
 }
 QWebEngineExtensionInfo ExtensionCatalog::find(const QString &id) const {
@@ -110,7 +112,7 @@ void ExtensionCatalog::refresh() {
         permissions.removeDuplicates(); permissions.sort();
         m_items.append(QVariantMap{{"id", info.id()}, {"name", info.name()}, {"description", info.description()},
             {"version", json.value(QStringLiteral("version")).toString()}, {"enabled", info.isEnabled()},
-            {"permissions", permissions}, {"hasPopup", !info.actionPopupUrl().isEmpty()},
+            {"permissions", permissions}, {"cookieAccess", json.value(QStringLiteral("permissions")).toArray().contains(QStringLiteral("cookies"))}, {"hasPopup", !info.actionPopupUrl().isEmpty()},
             {"hasOptions", !optionsUrl(info.id()).isEmpty()}});
     }
     std::sort(m_items.begin(), m_items.end(), [](const auto &a, const auto &b) {

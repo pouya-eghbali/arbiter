@@ -1,7 +1,7 @@
-add_executable(extensionpanel_test extensionpanel_test.cpp)
+add_executable(extensionpanel_test extensionpanel_test.cpp extensionpanel_test.h)
 target_link_libraries(extensionpanel_test PRIVATE Qt6::Quick Qt6::WebEngineQuick Qt6::Test)
 set(panel_qml
-    ../../qml/ExtensionPanel.qml ../../qml/Theme.qml ../../qml/GlassSurface.qml
+    ../../qml/ExtensionPanel.qml ../../qml/ExtensionReview.qml ../../qml/Theme.qml ../../qml/GlassSurface.qml
     ../../qml/ui/UiPopup.qml ../../qml/ui/UiIconButton.qml ../../qml/ui/UiButton.qml
     ../../qml/ui/UiIcon.qml ../../qml/ui/UiToolTip.qml ../../qml/ui/LucideIcons.js)
 foreach(panel_file IN LISTS panel_qml)

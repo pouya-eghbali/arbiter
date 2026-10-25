@@ -253,6 +253,56 @@ index 84101d4..ca49604 100644
        "//chrome/renderer/media/webrtc_logging_agent_impl.cc",
        "//chrome/renderer/media/webrtc_logging_agent_impl.h",
      ]
+diff --git a/src/core/content_browser_client_qt.cpp b/src/core/content_browser_client_qt.cpp
+index c207a79..3efe7bd 100644
+--- a/src/core/content_browser_client_qt.cpp
++++ b/src/core/content_browser_client_qt.cpp
+@@ -282,6 +282,17 @@ content::MediaObserver *ContentBrowserClientQt::GetMediaObserver()
+     return MediaCaptureDevicesDispatcher::GetInstance();
+ }
+ 
++bool ContentBrowserClientQt::ShouldUseFirstPartyStorageKey(const url::Origin &origin)
++{
++#if BUILDFLAG(ENABLE_EXTENSIONS)
++    // Match Chromium: embedded extension documents share their own extension's
++    // storage key with its top-level pages and worker, including blob URLs.
++    return origin.scheme() == extensions::kExtensionScheme;
++#else
++    return false;
++#endif
++}
++
+ void ContentBrowserClientQt::OverrideWebPreferences(content::WebContents *webContents,
+                                                     content::SiteInstance &mainFrameSite,
+                                                     blink::web_pref::WebPreferences *webPrefs)
+@@ -291,6 +302,7 @@ void ContentBrowserClientQt::OverrideWebPreferences(content::WebContents *webCon
+     if (guest_view::GuestViewBase::IsGuest(webContents))
+         return;
+ 
++
+     // A page is not allowed to close a window it did not open, and Blink counts
+     // a hash route as history, so an extension popup that routes by hash cannot
+     // close itself after it has done its work. Chrome exempts extension
+@@ -312,6 +324,7 @@ void ContentBrowserClientQt::OverrideWebPreferences(content::WebContents *webCon
+             webPrefs->allow_scripts_to_close_windows = true;
+     }
+ 
++
+     WebContentsViewQt *view = WebContentsViewQt::from(static_cast<content::WebContentsImpl *>(webContents)->GetView());
+     if (!view->client())
+         return;
+diff --git a/src/core/content_browser_client_qt.h b/src/core/content_browser_client_qt.h
+index adc2ec8..1df6fe1 100644
+--- a/src/core/content_browser_client_qt.h
++++ b/src/core/content_browser_client_qt.h
+@@ -35,6 +35,7 @@ public:
+     std::unique_ptr<content::BrowserMainParts> CreateBrowserMainParts(bool is_integration_test) override;
+     void RenderProcessWillLaunch(content::RenderProcessHost *host) override;
+     content::MediaObserver* GetMediaObserver() override;
++    bool ShouldUseFirstPartyStorageKey(const url::Origin &origin) override;
+     void OverrideWebPreferences(content::WebContents *,
+                                 content::SiteInstance &,
+                                 blink::web_pref::WebPreferences *) override;
 diff --git a/src/core/extensions/extension_host_delegate_qt.cpp b/src/core/extensions/extension_host_delegate_qt.cpp
 index ad1c5f9..485d358 100644
 --- a/src/core/extensions/extension_host_delegate_qt.cpp
@@ -283,6 +333,60 @@ index ad1c5f9..485d358 100644
  }
  
  content::PictureInPictureResult ExtensionHostDelegateQt::EnterPictureInPicture(content::WebContents *web_contents)
+diff --git a/src/core/extensions/extension_loader.cpp b/src/core/extensions/extension_loader.cpp
+index eafb641..a11fa02 100644
+--- a/src/core/extensions/extension_loader.cpp
++++ b/src/core/extensions/extension_loader.cpp
+@@ -3,6 +3,9 @@
+ // Qt-Security score:significant reason:default
+ 
+ #include "extension_loader.h"
++#include "extensions/browser/api/runtime/runtime_api.h"
++#include "extensions/browser/extension_prefs.h"
++#include "base/task/single_thread_task_runner.h"
+ 
+ #include "extension_manager.h"
+ #include "type_conversion.h"
+@@ -123,6 +126,26 @@ void ExtensionLoader::disableExtension(const std::string &id)
+         m_extensionRegistrar->DisableExtension(id, {extensions::disable_reason::DISABLE_USER_ACTION});
+ }
+ 
++void ExtensionLoader::PostActivateExtension(scoped_refptr<const Extension> extension)
++{
++    // Installation stays disabled until Arbiter's permission review is approved.
++    // Deliver initialization once per version, only after activation, rather than
++    // running extension code when its files are merely installed.
++    if (extension->location() == extensions::mojom::ManifestLocation::kComponent
++        || extension->location() == extensions::mojom::ManifestLocation::kExternalComponent) return;
++    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(FROM_HERE,
++        base::BindOnce([](base::WeakPtr<ExtensionLoader> loader, std::string id) {
++            if (!loader || !loader->isExtensionEnabled(id)) return;
++            auto extension = loader->getExtensionById(id);
++            auto *prefs = extensions::ExtensionPrefs::Get(loader->m_browserContext);
++            std::string previous;
++            prefs->ReadPrefAsString(id, "arbiter_initialized_version", &previous);
++            if (previous == extension->version().GetString()) return;
++            prefs->UpdateExtensionPref(id, "arbiter_initialized_version", base::Value(extension->version().GetString()));
++            extensions::RuntimeEventRouter::DispatchOnInstalledEvent(loader->m_browserContext, id, base::Version(previous), false);
++        }, m_weakFactory.GetWeakPtr(), extension->id()));
++}
++
+ void ExtensionLoader::enableExtension(const std::string &id)
+ {
+     if (isExtensionLoaded(id) && !isExtensionEnabled(id))
+diff --git a/src/core/extensions/extension_loader.h b/src/core/extensions/extension_loader.h
+index 34d3c5c..675e030 100644
+--- a/src/core/extensions/extension_loader.h
++++ b/src/core/extensions/extension_loader.h
+@@ -61,7 +61,7 @@ private:
+     // ExtensionRegistrar::Delegate:
+     void PreAddExtension(const extensions::Extension *extension,
+                          const extensions::Extension *old_extension) override { }
+-    void PostActivateExtension(scoped_refptr<const extensions::Extension> extension) override { }
++    void PostActivateExtension(scoped_refptr<const extensions::Extension> extension) override;
+     void PostDeactivateExtension(scoped_refptr<const extensions::Extension> extension) override { }
+     void PreUninstallExtension(scoped_refptr<const extensions::Extension> extension) override { }
+     void PostUninstallExtension(scoped_refptr<const extensions::Extension> extension, base::OnceClosure done_callback) override
 diff --git a/src/core/extensions/extension_web_contents_observer_qt.cpp b/src/core/extensions/extension_web_contents_observer_qt.cpp
 index f20fc92..7881365 100644
 --- a/src/core/extensions/extension_web_contents_observer_qt.cpp
@@ -642,7 +746,7 @@ index f23afaa..d9844ca 100644
  };
  
 diff --git a/src/core/web_engine_context.cpp b/src/core/web_engine_context.cpp
-index 76ea59c..2998044 100644
+index 76ea59c..33951ce 100644
 --- a/src/core/web_engine_context.cpp
 +++ b/src/core/web_engine_context.cpp
 @@ -1025,6 +1025,9 @@ const char *qWebEngineProcessName() noexcept
@@ -650,7 +754,7 @@ index 76ea59c..2998044 100644
  }
  
 +int qWebEngineArbiterWebAuthnAbi() noexcept { return 1; }
-+int qWebEngineArbiterExtensionApiAbi() noexcept { return 1; }
++int qWebEngineArbiterExtensionApiAbi() noexcept { return 2; }
 +
  const char *qWebEngineChromiumVersion() noexcept
  {

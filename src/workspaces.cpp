@@ -122,10 +122,10 @@ bool Workspaces::copyTab(int row, const QString &id) {
     if(row<0 || row>=m_tabs->count() || indexOf(id)<0) return false;
     const auto url=m_tabs->data(m_tabs->index(row),Tabs::Url).toUrl(); activate(id); m_tabs->add(url); return true;
 }
-int Workspaces::addTab(const QString &id, const QUrl &url, bool activateTab) {
+int Workspaces::addTab(const QString &id, const QUrl &url, bool activateTab, int index) {
     const int i=indexOf(id); if(i<0) return -1;
     if(activateTab) activate(id);
-    const int row=m_tabs->addToWorkspace(url,id,profile(m_spaces[i]));
+    const int row=m_tabs->addToWorkspace(url,id,profile(m_spaces[i]),index);
     if(activateTab) m_tabs->setCurrentIndex(row);
     return row;
 }

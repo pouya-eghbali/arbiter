@@ -10,6 +10,11 @@
 #include <QWindow>
 #include <QShortcut>
 #include <QColor>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QImageReader>
+#include "ui/gfx/image/image.h"
 #include "extensions/browser/extension_registry_observer.h"
 #include "extensions/common/manifest.h"
 #include "base/supports_user_data.h"
@@ -20,6 +25,9 @@
 #include <map>
 #include <deque>
 #include "base/base64.h"
+#include "content/public/browser/storage_partition.h"
+#include "net/cookies/canonical_cookie.h"
+#include "services/network/public/mojom/cookie_manager.mojom.h"
 #include "base/json/json_writer.h"
 #include "extensions/browser/scripting_utils.h"
 #include "extensions/common/mojom/code_injection.mojom.h"
@@ -520,6 +528,8 @@ public:
     ResponseAction Run() override;
     base::Value::Dict injection;
     base::Value::Dict creation;
+    base::Value::Dict cookieQuery;
+    void cookies(const std::vector<net::CanonicalCookie> &cookies);
     void inject(std::vector<extensions::scripting::InjectedFileSource> files, std::optional<std::string> error);
     void injected(std::vector<extensions::ScriptExecutor::FrameResult> results);
     void created(int id, int attempt = 0);
@@ -551,6 +561,7 @@ FUNCTION(ArbiterWindowsRemove, "windows.remove", WINDOWS_REMOVE)
 FUNCTION(ArbiterScriptingExecute, "scripting.executeScript", SCRIPTING_EXECUTESCRIPT)
 FUNCTION(ArbiterScriptingInsertCSS, "scripting.insertCSS", SCRIPTING_INSERTCSS)
 FUNCTION(ArbiterScriptingRemoveCSS, "scripting.removeCSS", SCRIPTING_REMOVECSS)
+FUNCTION(ArbiterActionSetIcon, "action.setIcon", ACTION_SETICON)
 FUNCTION(ArbiterActionGetBadge, "action.getBadgeText", ACTION_GETBADGETEXT)
 FUNCTION(ArbiterActionSetBadge, "action.setBadgeText", ACTION_SETBADGETEXT)
 FUNCTION(ArbiterActionGetTitle, "action.getTitle", ACTION_GETTITLE)
@@ -567,6 +578,11 @@ FUNCTION(ArbiterActionGetBadgeColor, "action.getBadgeBackgroundColor", ACTION_GE
 FUNCTION(ArbiterActionSetBadgeColor, "action.setBadgeBackgroundColor", ACTION_SETBADGEBACKGROUNDCOLOR)
 FUNCTION(ArbiterActionGetTextColor, "action.getBadgeTextColor", ACTION_GETBADGETEXTCOLOR)
 FUNCTION(ArbiterActionSetTextColor, "action.setBadgeTextColor", ACTION_SETBADGETEXTCOLOR)
+FUNCTION(ArbiterExtensionFileAccess, "extension.isAllowedFileSchemeAccess", EXTENSION_ISALLOWEDFILESCHEMEACCESS)
+FUNCTION(ArbiterExtensionIncognitoAccess, "extension.isAllowedIncognitoAccess", EXTENSION_ISALLOWEDINCOGNITOACCESS)
+FUNCTION(ArbiterCookiesGet, "cookies.get", COOKIES_GET)
+FUNCTION(ArbiterCookiesGetAll, "cookies.getAll", COOKIES_GETALL)
+FUNCTION(ArbiterCookiesStores, "cookies.getAllCookieStores", COOKIES_GETALLCOOKIESTORES)
 #undef FUNCTION
 ExtensionFunction::ResponseAction ArbiterFunction::Run() {
     const std::string method = name();
@@ -581,6 +597,29 @@ ExtensionFunction::ResponseAction ArbiterFunction::Run() {
     if ((method == "tabs.query" || method == "tabs.create" || method.starts_with("scripting.") || method.starts_with("permissions.") && method != "permissions.getAll" || method.starts_with("action.set")) && (input.empty() || !input[0].is_dict())) return error("A properties object is required.");
     if (method == "contextMenus.create" && (input.empty() || !input[0].is_dict())) return error("A menu properties object is required.");
     if (method == "contextMenus.update" && (input.size() < 2 || !input[1].is_dict())) return error("Menu update properties are required.");
+    if (method == "extension.isAllowedFileSchemeAccess" || method == "extension.isAllowedIncognitoAccess")
+        return result(base::Value(false));
+    if (method.starts_with("cookies.")) {
+        if (browser_context()->IsOffTheRecord() || !extension()->permissions_data()->HasAPIPermission(extensions::mojom::APIPermissionID::kCookie)) return error("The cookies permission is required.");
+        if (method == "cookies.getAllCookieStores") {
+            base::Value::List ids; for (auto *tab : available(browser_context())) ids.Append(tab->id);
+            base::Value::List stores; stores.Append(base::Value::Dict().Set("id", "0").Set("tabIds", std::move(ids)));
+            return result(base::Value(std::move(stores)));
+        }
+        if (input.empty() || !input[0].is_dict()) return error("Cookie query details are required.");
+        if (const auto *store = object.FindString("storeId"); store && *store != "0") return error("Unknown cookie store in this profile.");
+        if (object.contains("partitionKey")) return error("Partitioned cookie queries are not supported yet.");
+        for (const auto [key, value] : object)
+            if (key != "url" && key != "name" && key != "domain" && key != "path" && key != "secure" && key != "session" && key != "storeId") return error("Unsupported cookie query option: " + key);
+        if (const auto *url = object.FindString("url")) {
+            const GURL target(*url);
+            if (!target.SchemeIsHTTPOrHTTPS() || !extension()->permissions_data()->HasHostPermission(target)) return error("No host permission for the cookie URL.");
+        } else if (method == "cookies.get") return error("A cookie URL is required.");
+        if (method == "cookies.get" && !object.FindString("name")) return error("A cookie name is required.");
+        cookieQuery = object.Clone();
+        browser_context()->GetDefaultStoragePartition()->GetCookieManagerForBrowserProcess()->GetAllCookies(base::BindOnce(&ArbiterFunction::cookies, this));
+        return RespondLater();
+    }
     if (method == "commands.getAll") {
         base::Value::List values;
         if (const auto *commands = extension()->manifest()->FindDictPath("commands")) for (const auto [name, value] : *commands) if (value.is_dict()) {
@@ -649,6 +688,32 @@ ExtensionFunction::ResponseAction ArbiterFunction::Run() {
         if (id >= 0 && !target(browser_context(), id)) return error("No tab with the specified ID exists in this profile.");
         auto *action = extensions::ExtensionActionManager::Get(browser_context())->GetExtensionAction(*extension());
         if (!action) return error("The extension does not define an action.");
+        if (method == "action.setIcon") {
+            if (object.contains("imageData")) return error("ImageData action icons are not supported yet; use a packaged PNG path.");
+            std::string path;
+            if (const auto *value = object.FindString("path")) path = *value;
+            else if (const auto *paths = object.FindDict("path")) {
+                int best = -1;
+                for (const auto [key, value] : *paths) {
+                    bool ok = false; const int size = QString::fromStdString(key).toInt(&ok);
+                    if (!ok || size <= 0 || !value.is_string()) return error("Invalid icon size or path.");
+                    if (size > best) { path = value.GetString(); best = size; }
+                }
+            }
+            if (path.empty()) return error("A packaged icon path is required.");
+            const GURL resource = extension()->GetResourceURL(path);
+            if (!resource.SchemeIs("chrome-extension") || resource.host() != extension()->id() || resource.has_query() || resource.has_ref()) return error("Invalid icon resource URL.");
+            const QDir root(QString::fromStdString(extension()->path().AsUTF8Unsafe()));
+            const QString filePath = QFileInfo(root.filePath(QUrl(QString::fromStdString(resource.spec())).path().mid(1))).canonicalFilePath();
+            if (filePath.isEmpty() || !filePath.startsWith(root.canonicalPath() + '/')) return error("Icon must be inside this extension.");
+            QFile file(filePath); if (!file.open(QIODevice::ReadOnly) || file.size() > 1024 * 1024) return error("Icon resource is unavailable or too large.");
+            QImageReader reader(&file); const auto size = reader.size();
+            if (reader.format() != "png" || size.width() <= 0 || size.height() <= 0 || size.width() > 1024 || size.height() > 1024) return error("Use a PNG icon no larger than 1024 pixels.");
+            file.seek(0); const auto bytes = file.readAll();
+            const auto image = gfx::Image::CreateFrom1xPNGBytes(base::span(reinterpret_cast<const uint8_t *>(bytes.constData()), static_cast<size_t>(bytes.size())));
+            if (image.IsEmpty()) return error("Invalid PNG icon.");
+            action->SetIcon(id, image); return RespondNow(NoArguments());
+        }
         if (method.find("Color") != std::string::npos) {
             const bool textColor = method.find("TextColor") != std::string::npos;
             if (method.find(".set") != std::string::npos) {
@@ -771,10 +836,15 @@ ExtensionFunction::ResponseAction ArbiterFunction::Run() {
         if (!(url.SchemeIsHTTPOrHTTPS() || url == GURL("about:blank") || (url.SchemeIs("chrome-extension") && url.host() == extension()->id())))
             return error("Cannot create a tab with this restricted URL.");
         for (const auto [key, value] : object)
-            if (key != "url" && key != "active" && key != "selected" && key != "windowId" && key != "pinned") return error("Unsupported tabs.create option: " + key);
+            if (key != "url" && key != "active" && key != "selected" && key != "windowId" && key != "pinned" && key != "index") return error("Unsupported tabs.create option: " + key);
         creation = object.Clone();
         int id = -1;
-        const bool invoked = QMetaObject::invokeMethod(parent->context, "createTab", Q_RETURN_ARG(int, id), Q_ARG(QString, QString::fromStdString(url.spec())), Q_ARG(bool, object.FindBool("active").value_or(object.FindBool("selected").value_or(true))));
+        const QString address = QString::fromStdString(url.spec());
+        const bool active = object.FindBool("active").value_or(object.FindBool("selected").value_or(true));
+        if (auto index = object.FindInt("index"); index && *index < -1) return error("Invalid tab insertion index.");
+        const bool invoked = object.contains("index")
+            ? QMetaObject::invokeMethod(parent->context, "createTabAt", Q_RETURN_ARG(int, id), Q_ARG(QString, address), Q_ARG(bool, active), Q_ARG(int, object.FindInt("index").value_or(-1)))
+            : QMetaObject::invokeMethod(parent->context, "createTab", Q_RETURN_ARG(int, id), Q_ARG(QString, address), Q_ARG(bool, active));
         if (!invoked || id <= 0) return error("Browser could not create the tab.");
         created(id);
         return did_respond() ? AlreadyResponded() : RespondLater();
@@ -920,6 +990,53 @@ void ArbiterFunction::injected(std::vector<extensions::ScriptExecutor::FrameResu
     }
     Respond(WithArguments(std::move(values)));
 }
+void ArbiterFunction::cookies(const std::vector<net::CanonicalCookie> &cookies) {
+    if (!browser_context()) { Respond(Error("Browser profile was closed.")); return; }
+    if (extensions::ExtensionRegistry::Get(browser_context())->enabled_extensions().GetByID(extension()->id()) != extension()) {
+        Respond(Error("The extension is no longer enabled.")); return;
+    }
+    const bool single = std::string(name()) == "cookies.get";
+    const auto *requestedUrl = cookieQuery.FindString("url");
+    const GURL url(requestedUrl ? *requestedUrl : "");
+    base::Value::List values;
+    std::vector<const net::CanonicalCookie *> matches;
+    for (const auto &cookie : cookies) {
+        if (cookie.IsPartitioned()) continue;
+        const std::string host = cookie.Domain().starts_with(".") ? cookie.Domain().substr(1) : cookie.Domain();
+        if (!extension()->permissions_data()->HasHostPermission(GURL("https://" + host + "/"))
+            && (cookie.IsSecure() || !extension()->permissions_data()->HasHostPermission(GURL("http://" + host + "/")))) continue;
+        if (requestedUrl && (!cookie.IsDomainMatch(url.host()) || !cookie.IsOnPath(url.path()) || (cookie.IsSecure() && !url.SchemeIsCryptographic()))) continue;
+        if (const auto *name = cookieQuery.FindString("name"); name && *name != cookie.Name()) continue;
+        if (const auto *path = cookieQuery.FindString("path"); path && *path != cookie.Path()) continue;
+        if (auto secure = cookieQuery.FindBool("secure"); secure && *secure != cookie.IsSecure()) continue;
+        if (auto session = cookieQuery.FindBool("session"); session && *session != !cookie.IsPersistent()) continue;
+        if (const auto *domain = cookieQuery.FindString("domain")) {
+            std::string filter = *domain; if (filter.starts_with(".")) filter.erase(0,1);
+            if (host != filter && !host.ends_with("." + filter)) continue;
+        }
+        matches.push_back(&cookie);
+    }
+    std::stable_sort(matches.begin(), matches.end(), [](auto *a, auto *b) {
+        return a->Path().size() != b->Path().size() ? a->Path().size() > b->Path().size() : a->CreationDate() < b->CreationDate();
+    });
+    for (const auto *cookie : matches) {
+        std::string sameSite = "unspecified";
+        switch (cookie->SameSite()) {
+        case net::CookieSameSite::NO_RESTRICTION: sameSite = "no_restriction"; break;
+        case net::CookieSameSite::LAX_MODE: sameSite = "lax"; break;
+        case net::CookieSameSite::STRICT_MODE: sameSite = "strict"; break;
+        default: break;
+        }
+        base::Value::Dict value;
+        value.Set("name", cookie->Name()); value.Set("value", cookie->Value()); value.Set("domain", cookie->Domain());
+        value.Set("hostOnly", !cookie->IsDomainCookie()); value.Set("path", cookie->Path()); value.Set("secure", cookie->IsSecure());
+        value.Set("httpOnly", cookie->IsHttpOnly()); value.Set("sameSite", sameSite); value.Set("session", !cookie->IsPersistent()); value.Set("storeId", "0");
+        if (cookie->IsPersistent()) value.Set("expirationDate", cookie->ExpiryDate().InSecondsFSinceUnixEpoch());
+        if (single) { Respond(WithArguments(std::move(value))); return; }
+        values.Append(std::move(value));
+    }
+    if (single) Respond(WithArguments(base::Value())); else Respond(WithArguments(std::move(values)));
+}
 void ArbiterFunction::captured(int id, const GURL &url, std::string format, int quality, const SkBitmap &bitmap) {
     auto *tab = target(browser_context(), id); std::string reason;
     if (!tab || tab->web_contents()->GetLastCommittedURL() != url || !access(extension(), tab, &reason)) { Respond(Error("Page changed or access was revoked during capture.")); return; }
@@ -943,6 +1060,9 @@ void arbiterRegisterExtensionFunctions(ExtensionFunctionRegistry *registry) {
     REGISTER(ArbiterCommandsGetAll) REGISTER(ArbiterMenusCreate) REGISTER(ArbiterMenusUpdate) REGISTER(ArbiterMenusRemove) REGISTER(ArbiterMenusRemoveAll)
     REGISTER(ArbiterPermissionsContains) REGISTER(ArbiterPermissionsGetAll) REGISTER(ArbiterPermissionsRequest)
     REGISTER(ArbiterActionGetBadgeColor) REGISTER(ArbiterActionSetBadgeColor) REGISTER(ArbiterActionGetTextColor) REGISTER(ArbiterActionSetTextColor)
+    REGISTER(ArbiterExtensionFileAccess) REGISTER(ArbiterExtensionIncognitoAccess)
+    REGISTER(ArbiterCookiesGet) REGISTER(ArbiterCookiesGetAll) REGISTER(ArbiterCookiesStores)
+    REGISTER(ArbiterActionSetIcon)
 #undef REGISTER
 }
 }

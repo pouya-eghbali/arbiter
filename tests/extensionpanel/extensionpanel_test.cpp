@@ -3,10 +3,35 @@
 #include <QQuickWindow>
 #include <QtWebEngineQuick>
 
-class ExtensionPanelTest : public QObject {
-    Q_OBJECT
-private slots:
-    void pageInteractionKeepsExtensionOpen() {
+#include "extensionpanel_test.h"
+void ExtensionPanelTest::cookieWarningAppearsBeforeApproval() {
+        QQmlApplicationEngine engine;
+        engine.loadData(R"QML(
+import QtQuick
+import QtQuick.Controls.Basic as Basic
+import Arbiter
+Basic.ApplicationWindow {
+    id:owner;visible:true;width:800;height:700
+    property bool approved:false
+    QtObject {
+        id:catalog
+        property var review: ({id:"fixture",name:"Cookie fixture",cookieAccess:true,permissions:["cookies","https://allowed.example/"]})
+        property string status:""
+        signal changed()
+        function cancelReview(){review=({});changed()}
+        function approve(){owner.approved=true;review=({});changed()}
+    }
+    ExtensionReview { catalog:catalog }
+})QML",QUrl("qrc:/extension-cookie-review-test.qml"));
+        QVERIFY(!engine.rootObjects().isEmpty());auto *root=engine.rootObjects().first();
+        auto *panel=root->findChild<QObject *>("extensionPermissionReview");QVERIFY(panel);
+        QTRY_VERIFY(panel->property("opened").toBool());
+        auto *warning=root->findChild<QObject *>("extensionCookieWarning");QVERIFY(warning);
+        QVERIFY(warning->property("visible").toBool());
+        QVERIFY(warning->property("text").toString().contains("session data"));
+        QVERIFY(!root->property("approved").toBool());
+    }
+void ExtensionPanelTest::pageInteractionKeepsExtensionOpen() {
         QQmlApplicationEngine engine;
 #ifdef ARBITER_WEBENGINE_QML_PATH
         engine.addImportPath(QString::fromUtf8(ARBITER_WEBENGINE_QML_PATH));
@@ -96,11 +121,9 @@ Basic.ApplicationWindow {
         QTRY_VERIFY(!window->property("panelOpen").toBool());
         QTRY_VERIFY(!window->findChild<QObject *>("extensionPopupView"));
     }
-};
 int main(int argc, char **argv) {
     QtWebEngineQuick::initialize();
     QGuiApplication app(argc, argv);
     ExtensionPanelTest test;
     return QTest::qExec(&test, argc, argv);
 }
-#include "extensionpanel_test.moc"

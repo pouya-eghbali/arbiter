@@ -6,6 +6,18 @@ class TabsTest : public QObject
 {
     Q_OBJECT
 private slots:
+    void insertionPreservesSelectedIdentity() {
+        Tabs tabs;
+        QAbstractItemModelTester tester(&tabs, QAbstractItemModelTester::FailureReportingMode::QtTest);
+        tabs.add(QUrl("https://example.com/"));
+        const int selectedId=tabs.idAt(tabs.currentIndex());
+        QCOMPARE(tabs.addToWorkspace(QUrl("https://example.org/"),"main","Default",0),0);
+        QCOMPARE(tabs.currentIndex(),2);
+        QCOMPARE(tabs.idAt(tabs.currentIndex()),selectedId);
+        QCOMPARE(tabs.data(tabs.index(0),Tabs::Url).toUrl(),QUrl("https://example.org/"));
+        QCOMPARE(tabs.addToWorkspace(QUrl("about:blank"),"main","Default",999),3);
+        QCOMPARE(tabs.idAt(tabs.currentIndex()),selectedId);
+    }
     void closingPreservesSelectedPage() {
         Tabs tabs;
         QAbstractItemModelTester tester(&tabs, QAbstractItemModelTester::FailureReportingMode::QtTest);

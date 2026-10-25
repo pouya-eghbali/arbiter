@@ -37,13 +37,16 @@ int Tabs::add(const QUrl &url, bool activate)
     if (activate || m_currentIndex < 0) setCurrentIndex(row);
     return row;
 }
-int Tabs::addToWorkspace(const QUrl &url, const QString &workspace, const QString &profile)
+int Tabs::addToWorkspace(const QUrl &url, const QString &workspace, const QString &profile, int index)
 {
-    const int row = count();
+    const int row = index < 0 ? count() : qMin(index, count());
     const QUrl initial = url.isEmpty() ? QUrl(QStringLiteral("about:blank")) : url;
     beginInsertRows({}, row, row);
-    m_tabs.append({m_nextId++, initial, {}, initial, workspace, profile});
+    m_tabs.insert(row, {m_nextId++, initial, {}, initial, workspace, profile});
+    const bool selectionShifted = m_currentIndex >= row;
+    if (selectionShifted) ++m_currentIndex;
     endInsertRows();
+    if (selectionShifted) emit currentIndexChanged();
     emit countChanged();
     emit workspaceChanged();
     emit sessionChanged();

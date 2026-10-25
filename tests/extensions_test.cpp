@@ -9,6 +9,7 @@
 #include <QStandardPaths>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include <QCryptographicHash>
 #include <QTcpServer>
 #include <QTcpSocket>
 
@@ -119,6 +120,44 @@ private slots:
             QVERIFY(catalog.items().isEmpty());
         }
     }
+    void cookiePermissionRequiresUpdatedConsent() {
+        QTemporaryDir temp; const auto name=profileName(temp.path());
+        QString id, statePath;
+        {
+            QQuickWebEngineProfile profile(name); configure(profile, {});
+            const auto source=fixture(temp.path());
+            QFile file(source+"/manifest.json"); QVERIFY(file.open(QIODevice::ReadOnly));
+            auto json=QJsonDocument::fromJson(file.readAll()).object();file.close();
+            json.insert("permissions",QJsonArray{"storage","cookies"});write(file.fileName(),QJsonDocument(json).toJson());
+            ExtensionCatalog catalog(&profile);catalog.install(QUrl::fromLocalFile(source));
+            QTRY_VERIFY_WITH_TIMEOUT(!catalog.busy(),15000);
+            QVERIFY(catalog.review().value("cookieAccess").toBool());
+            id=catalog.review().value("id").toString();
+            const auto infos=profile.extensionManager()->extensions();
+            for(const auto &info:infos) if(info.id()==id) {
+                QFile installed(info.path()+"/manifest.json");QVERIFY(installed.open(QIODevice::ReadOnly));
+                const auto oldHash=QString::fromLatin1(QCryptographicHash::hash(installed.readAll(),QCryptographicHash::Sha256).toHex());
+                statePath=profile.persistentStoragePath()+"/arbiter-extension-consent.json";
+                // A pre-cookie-support approval must not enable this new capability.
+                write(statePath,QJsonDocument(QJsonObject{{id,oldHash}}).toJson());
+            }
+        }
+        QCoreApplication::processEvents();
+        {
+            QQuickWebEngineProfile profile(name);configure(profile,{});ExtensionCatalog catalog(&profile);
+            QTRY_COMPARE_WITH_TIMEOUT(catalog.items().size(),1,15000);
+            QVERIFY(!catalog.items().first().toMap().value("enabled").toBool());
+            catalog.requestEnable(id);QVERIFY(catalog.review().value("cookieAccess").toBool());catalog.approve();
+            QVERIFY(catalog.items().first().toMap().value("enabled").toBool());
+        }
+        QCoreApplication::processEvents();
+        {
+            QQuickWebEngineProfile profile(name);configure(profile,{});ExtensionCatalog catalog(&profile);
+            QTRY_COMPARE_WITH_TIMEOUT(catalog.items().size(),1,15000);
+            QVERIFY(catalog.items().first().toMap().value("enabled").toBool());
+        }
+    }
+
     void zipAndFailures() {
         QTemporaryDir temp; QQuickWebEngineProfile profile(profileName(temp.path())); configure(profile, temp.path() + "/profile");
         ExtensionCatalog catalog(&profile);
@@ -142,6 +181,134 @@ private slots:
         QVERIFY(!catalog.items().first().toMap().value("enabled").toBool());
         QVERIFY(catalog.status().contains("changed"));
     }
+    void awesomeScreenshotVisibleCapture() {
+        const QString source=qEnvironmentVariable("ARBITER_TEST_AWESOME_SOURCE");
+        if(source.isEmpty()) QSKIP("Set ARBITER_TEST_AWESOME_SOURCE for the opt-in real capture test.");
+        QTemporaryDir temp; QQuickWebEngineProfile profile(profileName(temp.path())); configure(profile,{});
+        auto userAgent=profile.httpUserAgent();
+        userAgent.remove(QRegularExpression(QStringLiteral("\\s+(?:QtWebEngine|Arbiter)/[^\\s]+")));
+        profile.setHttpUserAgent(userAgent);
+        ExtensionCatalog catalog(&profile);catalog.install(QUrl::fromLocalFile(source));
+        QTRY_VERIFY_WITH_TIMEOUT(!catalog.busy(),30000);QCOMPARE(catalog.items().size(),1);catalog.approve();
+        const auto id=catalog.items().first().toMap().value("id").toString();
+        QTcpServer server;QVERIFY(server.listen(QHostAddress::LocalHost));
+        connect(&server,&QTcpServer::newConnection,this,[&]{auto *socket=server.nextPendingConnection();connect(socket,&QTcpSocket::readyRead,socket,[socket]{socket->readAll();const QByteArray body("<!doctype html><title>Capture fixture</title><body style='background:#42a5a5'><h1>Capture fixture</h1><p>Local screenshot content</p></body>");socket->write("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: "+QByteArray::number(body.size())+"\r\nConnection: close\r\n\r\n"+body);socket->disconnectFromHost();});connect(socket,&QTcpSocket::disconnected,socket,&QObject::deleteLater);});
+        QQmlApplicationEngine engine;
+#ifdef ARBITER_WEBENGINE_QML_PATH
+        engine.addImportPath(QString::fromUtf8(ARBITER_WEBENGINE_QML_PATH));
+#endif
+        engine.rootContext()->setContextProperty("testProfile",&profile);
+        engine.rootContext()->setContextProperty("testUrl",QUrl(QString("http://127.0.0.1:%1/").arg(server.serverPort())));
+        engine.rootContext()->setContextProperty("popupUrl",catalog.popupUrl(id));
+        engine.rootContext()->setContextProperty("extensionId",id);
+        engine.loadData(R"QML(
+import QtQuick
+import QtWebEngine
+Window {
+ id:owner;visible:true;width:1100;height:800
+ property bool pageReady:false
+ property bool popupReady:false
+ property bool annotationReady:false
+ property bool initialized:false
+ property int selected:0
+ property var spawned:[]
+ property string editorUrl:""
+ property string editorProbe:""
+ property point capturePoint:Qt.point(-1,-1)
+ function createTab(address:string,active:bool):int {
+  const view=dynamicPage.createObject(contentItem,{url:address,extensionIndex:spawned.length+1})
+  spawned.push(view)
+  if(active) selected=view.extensionContext.extensionTabId
+  if(address.includes('edit-react.html')) editorUrl=address
+  if(address.includes('setup-react.html')) initialized=true
+  return view.extensionContext.extensionTabId
+ }
+ Component {
+  id:dynamicPage
+  WebEngineView {
+   id:extra;property int extensionIndex:1
+   width:700;height:700;visible:owner.selected===extensionContext.extensionTabId;profile:testProfile
+   extensionContext:QtObject {
+    property int extensionTabId:-1
+    readonly property QtObject window:owner
+    readonly property int index:extra.extensionIndex
+    readonly property bool active:owner.selected===extensionTabId
+    property bool pinned:false
+    property bool blocked:false
+    function activate(){owner.selected=extensionTabId}
+    function createTab(address:string,active:bool):int{return owner.createTab(address,active)}
+    function createTabAt(address:string,active:bool,index:int):int{return owner.createTab(address,active)}
+    function closeTab(){extra.destroy()}
+   }
+  }
+ }
+ WebEngineView {
+  id:page;width:700;height:700;profile:testProfile;url:testUrl
+  onLoadingChanged:function(request){if(request.status===WebEngineView.LoadSucceededStatus) owner.pageReady=true}
+  extensionContext:QtObject {
+   property int extensionTabId:-1
+   readonly property QtObject window:owner
+   property int index:0
+   readonly property bool active:owner.selected===0 || owner.selected===extensionTabId
+   property bool pinned:false
+   property bool blocked:false
+   function activate(){owner.selected=extensionTabId}
+   function createTab(address:string,active:bool):int{return owner.createTab(address,active)}
+    function createTabAt(address:string,active:bool,index:int):int{return owner.createTab(address,active)}
+  }
+ }
+ WebEngineView {id:popup;x:720;width:360;height:700;profile:testProfile;url:"about:blank";onWindowCloseRequested:visible=false}
+ function openPopup(){owner.selected=page.extensionContext.extensionTabId;page.forceActiveFocus();page.grantExtensionActiveTab(extensionId);popup.url=popupUrl}
+ function inspectPopup(){popup.mainFrame.runJavaScript("!!document.getElementById('visible')&&!document.body.classList.contains('popup-booting')",0,value=>popupReady=!!value)}
+ function capture(){
+  page.grantExtensionActiveTab(extensionId)
+  page.mainFrame.runJavaScript("addEventListener('message',e=>{if(e.data?.type==='clear')document.body.dataset.fixtureAnnotationReady='yes'})",0,function(){})
+  popup.mainFrame.runJavaScript("document.getElementById('visible').click()",0,function(){})
+ }
+ function inspectAnnotationReady(){page.mainFrame.runJavaScript("document.body.dataset.fixtureAnnotationReady==='yes'",0,value=>annotationReady=!!value)}
+
+ function finishCapture(doClick:bool){
+  const script=`(() => {
+   const roots=[document];
+   for(let i=0;i<roots.length;i++) for(const node of roots[i].querySelectorAll('*')) {
+    if(node.shadowRoot) roots.push(node.shadowRoot)
+    if(node.id==='awesome_image_local_btn' && node.checkVisibility({checkOpacity:true,checkVisibilityCSS:true})) {const r=node.getBoundingClientRect();if(r.width&&r.height){if(${doClick})node.click();return {x:r.x+r.width/2,y:r.y+r.height/2}}}
+   }
+   return false
+  })()`
+  for(const frame of [page.mainFrame,...page.mainFrame.children]) frame.runJavaScript(script,0,value=>{if(value) capturePoint=Qt.point(value.x,value.y)})
+ }
+ function inspectEditor(){
+  for(const view of spawned) if(view.url.toString().includes('edit-react.html'))
+   view.mainFrame.runJavaScript("JSON.stringify({title:document.title,ready:document.readyState,canvas:[...document.querySelectorAll('canvas')].map(c=>{let pixel=[];try{pixel=Array.from(c.getContext('2d').getImageData(Math.max(0,c.width-50),Math.max(0,c.height-50),1,1).data)}catch(e){}return [c.width,c.height,pixel]}),text:document.body?.innerText.slice(0,300)})",0,value=>editorProbe=value||'')
+ }
+})QML",QUrl("qrc:/awesome-capture-test.qml"));
+        QVERIFY(!engine.rootObjects().isEmpty());auto *root=engine.rootObjects().first();
+        QTRY_VERIFY_WITH_TIMEOUT(root->property("pageReady").toBool(),15000);
+        QTRY_VERIFY_WITH_TIMEOUT(root->property("initialized").toBool(),30000);
+        QVERIFY(QMetaObject::invokeMethod(root,"openPopup"));
+        QTRY_VERIFY_WITH_TIMEOUT((QMetaObject::invokeMethod(root,"inspectPopup"),root->property("popupReady").toBool()),30000);
+        QVERIFY(QMetaObject::invokeMethod(root,"capture"));
+        QTRY_VERIFY_WITH_TIMEOUT((QMetaObject::invokeMethod(root,"inspectAnnotationReady"),root->property("annotationReady").toBool()),15000);
+        QTRY_VERIFY_WITH_TIMEOUT((QMetaObject::invokeMethod(root,"finishCapture",Q_ARG(bool,false)),root->property("capturePoint").toPointF().x()>=0),15000);
+        QTest::qWait(2000);
+        QVERIFY(QMetaObject::invokeMethod(root,"finishCapture",Q_ARG(bool,true)));
+        QTRY_VERIFY_WITH_TIMEOUT(root->property("editorUrl").toString().contains("edit-react.html"),30000);
+        auto imageReady=[&] {
+            QMetaObject::invokeMethod(root,"inspectEditor");
+            const auto json=QJsonDocument::fromJson(root->property("editorProbe").toString().toUtf8()).object();
+            for(const auto &value:json.value("canvas").toArray()) {
+                const auto canvas=value.toArray();if(canvas.size()!=3||canvas[0].toInt()<700||canvas[1].toInt()<700)continue;
+                const auto pixel=canvas[2].toArray();
+                if(pixel.size()==4 && qAbs(pixel[0].toInt()-66)<5 && qAbs(pixel[1].toInt()-165)<5 && qAbs(pixel[2].toInt()-165)<5 && pixel[3].toInt()==255) return true;
+            }
+            return false;
+        };
+        QTRY_VERIFY2_WITH_TIMEOUT(imageReady(),qPrintable(root->property("editorProbe").toString()),15000);
+        if(const auto path=qEnvironmentVariable("ARBITER_TEST_CAPTURE_IMAGE");!path.isEmpty())
+            if(auto *window=qobject_cast<QQuickWindow *>(root)) QVERIFY(window->grabWindow().save(path));
+    }
+
     void awesomeScreenshotPopupSmoke() {
         const QString source = qEnvironmentVariable("ARBITER_TEST_AWESOME_SOURCE");
         if (source.isEmpty()) QSKIP("Set ARBITER_TEST_AWESOME_SOURCE to a trusted unpacked package for an opt-in popup smoke test.");
@@ -259,13 +426,16 @@ Window {
         QFile manifest(source + "/manifest.json"); QVERIFY(manifest.open(QIODevice::ReadOnly));
         auto json = QJsonDocument::fromJson(manifest.readAll()).object(); manifest.close();
         json.remove("host_permissions"); json.remove("content_scripts"); json.remove("background");
-        json.insert("permissions", QJsonArray{"activeTab", "scripting"});
+        json.insert("permissions", QJsonArray{"activeTab", "scripting", "cookies"});
         write(manifest.fileName(), QJsonDocument(json).toJson());
         write(source + "/popup.js", R"JS(
             window.probeAccess=async(granted)=>{
                 try {
                     const [tab]=await chrome.tabs.query({active:true});
                     if(!tab)throw Error('Missing browser tab');
+                    if((await chrome.cookies.getAll({})).length)throw Error('Cookie host permission filtering failed');
+                    let cookieDenied=false;try{await chrome.cookies.get({url:tab.url,name:'fixture'})}catch(e){cookieDenied=true}
+                    if(!cookieDenied)throw Error('activeTab must not grant cookie access');
                     if(Boolean(tab.url)!==granted)throw Error('Tab URL permission filtering failed');
                     let allowed=false;
                     try { const value=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>document.title}); allowed=value[0]?.result==='Access fixture'; } catch(e) {}
@@ -334,22 +504,39 @@ Window {
         const auto source = fixture(temp.path(), 3, true);
         QFile manifest(source + "/manifest.json"); QVERIFY(manifest.open(QIODevice::ReadOnly));
         auto json = QJsonDocument::fromJson(manifest.readAll()).object(); manifest.close();
-        json.insert("permissions", QJsonArray{"storage", "tabs", "scripting", "activeTab", "contextMenus"});
+        json.insert("permissions", QJsonArray{"storage", "tabs", "scripting", "activeTab", "contextMenus", "cookies"});
         json.insert("commands", QJsonObject{{"probe-command", QJsonObject{{"suggested_key", QJsonObject{{"default", "Alt+Shift+Y"}}}, {"description", "Test command"}}}});
         json.insert("host_permissions", QJsonArray{"<all_urls>"});
+        json.insert("web_accessible_resources", QJsonArray{QJsonObject{{"resources", QJsonArray{"blob.html", "blob.js"}}, {"matches", QJsonArray{"http://127.0.0.1/*"}}}});
         write(manifest.fileName(), QJsonDocument(json).toJson());
         write(source + "/content.js", R"JS(
             document.body.dataset.ready='yes';
+            const frame=document.createElement('iframe');frame.src=chrome.runtime.getURL('blob.html');document.body.append(frame);
+            addEventListener('message',e=>{if(e.source===frame.contentWindow&&e.data?.blobProbe)document.body.dataset.blobProbe=e.data.blobProbe});
             chrome.runtime.onMessage.addListener((message,sender,reply)=>{
                 if(message.probe){chrome.runtime.sendMessage({senderProbe:true},reply);return true;}
             });
         )JS");
-        write(source + "/worker.js", R"JS(chrome.runtime.onMessage.addListener((message,sender,reply)=>{if(message.senderProbe) reply({tab:sender.tab?.id,window:sender.tab?.windowId});});)JS");
+        write(source + "/blob.html", "<!doctype html><script src='blob.js'></script>");
+        write(source + "/blob.js", R"JS(
+            const url=URL.createObjectURL(new Blob(['extension image transfer']));
+            chrome.runtime.sendMessage({blobProbe:url},response=>{parent.postMessage({blobProbe:response?.text||'failed'},'*');URL.revokeObjectURL(url)});
+        )JS");
+        QImage icon(16,16,QImage::Format_ARGB32);icon.fill(Qt::blue);QVERIFY(icon.save(source+"/icon.png"));
+        write(source + "/worker.js", R"JS(
+            chrome.runtime.onInstalled.addListener(async details=>{
+                const old=await chrome.storage.local.get('installCount');
+                await chrome.storage.local.set({installCount:(old.installCount||0)+1,installReason:details.reason});
+            });
+            chrome.runtime.onMessage.addListener((message,sender,reply)=>{if(message.senderProbe) reply({tab:sender.tab?.id,window:sender.tab?.windowId});if(message.blobProbe){fetch(message.blobProbe).then(r=>r.text()).then(text=>reply({text})).catch(()=>reply({text:'failed'}));return true;}});
+        )JS");
         write(source + "/injected.js", "document.body.dataset.injectedFile='yes';'file-result';");
         write(source + "/popup.js", R"JS(
             window.runProbe=async(capture)=>{
                 const assert=(ok,message)=>{if(!ok)throw Error(message)};
                 try{
+                    const initialization=await chrome.storage.local.get(['installCount','installReason']);
+                    assert(initialization.installCount===1&&initialization.installReason==='install','approved extension installation event');
                     const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
                     assert(tab?.id>0 && tab.url.startsWith('http://127.0.0.1:'),'active browser tab');
                     assert((await chrome.tabs.query({})).length===1,'profile isolation and popup exclusion');
@@ -368,6 +555,11 @@ Window {
                     await chrome.tabs.update(tab.id,{pinned:false});
                     const message=await chrome.tabs.sendMessage(tab.id,{probe:true});
                     assert(message?.tab===tab.id && message.window===w.id,'content messaging and sender.tab');
+                    const blob=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>document.body.dataset.blobProbe});
+                    assert(blob[0]?.result==='extension image transfer','embedded extension blob can be read by its own worker');
+                    await chrome.action.setIcon({path:'icon.png'});
+                    await chrome.action.setIcon({path:{16:'icon.png'}});
+                    failed=false;try{await chrome.action.setIcon({path:'file:///tmp/foreign-icon.png'})}catch(e){failed=true}assert(failed,'unsafe icon resource rejected');
                     const injected=await chrome.scripting.executeScript({target:{tabId:tab.id},func:(value)=>{globalThis.__arbiterIsolatedProbe=value;return document.title+':'+value},args:['isolated']});
                     assert(injected[0]?.result==='Native API page:isolated' && injected[0].frameId===0,'function injection');
                     const main=await chrome.scripting.executeScript({target:{tabId:tab.id},world:'MAIN',func:()=>typeof globalThis.__arbiterIsolatedProbe});
@@ -386,6 +578,14 @@ Window {
                         const decoded=new Image();decoded.src=image;await decoded.decode();
                         assert(decoded.width>0&&decoded.height>0,'screenshot pixels');
                     }
+                    assert(await chrome.extension.isAllowedFileSchemeAccess()===false,'file access status');
+                    assert(await chrome.extension.isAllowedIncognitoAccess()===false,'incognito access status');
+                    const cookie=await chrome.cookies.get({url:tab.url,name:'fixture'});
+                    assert(cookie?.value==='local'&&cookie.httpOnly&&cookie.hostOnly&&cookie.storeId==='0','profile-scoped HttpOnly cookie read');
+                    assert((await chrome.cookies.getAll({name:'fixture'})).every(c=>c.value==='local'),'foreign profile cookies excluded');
+                    assert((await chrome.cookies.getAllCookieStores())[0].tabIds.length===1,'cookie store tab profile isolation');
+                    failed=false;try{await chrome.cookies.getAll({storeId:'other'})}catch(e){failed=true}assert(failed,'unknown cookie store rejected');
+                    failed=false;try{await chrome.cookies.getAll({partitionKey:{}})}catch(e){failed=true}assert(failed,'unsupported partition query rejected');
                     assert(await chrome.permissions.contains({permissions:['activeTab']}),'approved permission query');
                     assert(await chrome.permissions.request({permissions:['activeTab']}),'already-approved permission request');
                     failed=false;try{await chrome.permissions.request({permissions:['downloads']})}catch(e){failed=true}assert(failed,'optional permission cannot silently expand access');
@@ -417,8 +617,8 @@ Window {
         QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
         connect(&server, &QTcpServer::newConnection, this, [&] {
             auto *socket = server.nextPendingConnection(); connect(socket, &QTcpSocket::readyRead, socket, [socket] {
-                socket->readAll(); const QByteArray body("<!doctype html><title>Native API page</title><body style='background:white;color:black'>Native API fixture</body>");
-                socket->write("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + QByteArray::number(body.size()) + "\r\nConnection: close\r\n\r\n" + body); socket->disconnectFromHost();
+                const auto request=socket->readAll(); const QByteArray cookie=request.contains("GET /foreign")?"foreign":"local"; const QByteArray body("<!doctype html><title>Native API page</title><body style='background:white;color:black'>Native API fixture</body>");
+                socket->write("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + QByteArray::number(body.size()) + "\r\nSet-Cookie: fixture=" + cookie + "; Path=/; HttpOnly; SameSite=Lax\r\nConnection: close\r\n\r\n" + body); socket->disconnectFromHost();
             }); connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
         });
         QQmlApplicationEngine engine;
@@ -481,7 +681,7 @@ Window {
         }
     }
     WebEngineView {
-        id: foreign; width: 100; height: 100; visible: false; profile: otherProfile; url: testUrl
+        id: foreign; width: 100; height: 100; visible: false; profile: otherProfile; url: testUrl.toString()+"foreign"
         extensionContext: QtObject {
             property int extensionTabId: -1
             readonly property QtObject window: testWindow

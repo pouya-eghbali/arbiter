@@ -82,6 +82,18 @@ Basic.Popup {
             color: Theme.muted
             wrapMode: Text.Wrap
         }
+        Basic.Label {
+            objectName: "extensionCookieWarning"
+            visible: panel.details.cookieAccess === true
+            Layout.fillWidth: true
+            text: qsTr("This extension can read cookies, including sign-in and session data, on the websites it is allowed to access. Only approve extensions you trust.")
+            textFormat: Text.PlainText
+            color: Theme.text
+            font.weight: Font.DemiBold
+            wrapMode: Text.Wrap
+            padding: 12
+            background: Rectangle { color: Theme.selection; radius: 12 }
+        }
         Basic.ScrollView {
             id: permissionsScroll
             objectName: "extensionReviewPermissions"

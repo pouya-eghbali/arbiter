@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 {
     QtWebEngineQuick::initialize();
     BrowserApplication app(argc, argv);
-    if (qWebEngineArbiterExtensionApiAbi() != 1) qFatal("Arbiter requires its current native extension API engine.");
+    if (qWebEngineArbiterExtensionApiAbi() != 2) qFatal("Arbiter requires its current native extension API engine.");
     QCoreApplication::setOrganizationName(QStringLiteral("Arbiter"));
     QCoreApplication::setApplicationName(QStringLiteral("Arbiter"));
     QCoreApplication::setApplicationVersion(QStringLiteral("0.1.0"));

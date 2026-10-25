@@ -813,10 +813,11 @@ Basic.ApplicationWindow {
                                 function setPinned(value: bool) {
                                     if (page.tabPinned !== value) page.Window.window.tabs.togglePinned(page.index)
                                 }
-                                function createTab(url: string, active: bool): int {
+                                function createTab(url: string, active: bool): int { return createTabAt(url, active, -1) }
+                                function createTabAt(url: string, active: bool, index: int): int {
                                     const owner = page.Window.window
                                     if (blocked) return -1
-                                    const row = owner.workspaces.addTab(page.workspaceId, url, false)
+                                    const row = owner.workspaces.addTab(page.workspaceId, url, false, index)
                                     const view = tabViews.itemAt(row) as WebEngineView
                                     if (!view) return -1
                                     if (active) owner.selectTab(row)

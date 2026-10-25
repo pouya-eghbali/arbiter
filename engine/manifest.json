@@ -8,5 +8,5 @@
   "chromium_version": "140.0.7339.225",
   "view_request_interceptor": true,
   "history_overscroll": true,
-  "extension_api_bridge": 1
+  "extension_api_bridge": 2
 }

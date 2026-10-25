@@ -84,11 +84,21 @@ no extension-ID special cases or injected API shims:
 | Scripting | `executeScript`, `insertCSS`, `removeCSS`, using Chromium's frame targeting and execution worlds |
 | Context menus | `create`, `update`, `remove`, `removeAll`, native click events and checkbox/radio state |
 | Commands | `getAll`, manifest keyboard shortcuts and `commands.onCommand` |
-| Action metadata | Get/set title, badge text, badge background color, badge text color |
+| Action metadata | Get/set title, badge text, badge background color, badge text color; `setIcon` with packaged PNG paths |
+| Extension status | `extension.isAllowedFileSchemeAccess`, `isAllowedIncognitoAccess` (both false) |
+| Cookies | `get`, `getAll`, `getAllCookieStores`, restricted to approved hosts in the calling profile |
 | Permissions | `contains`, `getAll`, `request` for access already approved |
 
 Tab creation, updates, activation and removal, and window focus changes emit native
-events. Tabs have stable IDs, including across sleeping/discarding. The focused
+events. `runtime.onInstalled` initializes approved user extensions on their first
+activation, with a persisted version marker so disable/enable and restarts do not
+repeat installation. A different extension version receives an update reason.
+No extension initialization runs merely because its package was installed.
+Embedded extension documents use their own extension's first-party storage key,
+matching Chromium, so image blobs can be passed to its worker and editor without
+relaxing ordinary website storage partitioning.
+
+Tabs have stable IDs, including across sleeping/discarding. The focused
 split view is the active tab; extension popups are not browser tabs. Each call
 resolves only tabs belonging to the calling extension's profile. Private and
 locked views are excluded. URL/title/favicon metadata is scrubbed unless the
@@ -109,8 +119,9 @@ Important limits:
   return an error until an additional permission-review UI is implemented.
 - Action metadata is stored, but badge graphics are not drawn in Arbiter's
   extension list. Actions without `default_popup`, reserved `_execute_action`
-  commands, dynamic popup changes and `action.setIcon` are not integrated.
-- Tab creation supports URL, active/selected, window and pinned options. Tab
+  commands and dynamic popup changes are not integrated. `setIcon` accepts packaged
+  PNG paths (including size maps); ImageData icons are not supported yet.
+- Tab creation supports URL, active/selected, insertion index, window and pinned options. Tab
   updates support URL, activation/highlighting, mute and pin. Unsupported options
   and query filters return errors. Tab movement/grouping and `windows.create`
   are not implemented. Window state/geometry/focus updates are supported.
@@ -125,6 +136,21 @@ The bridge uses Qt/Chromium code shared by macOS, Windows and Linux. Runtime
 validation of this addition has been performed on macOS; Windows/Linux builds and
 real-extension compatibility still need platform testing.
 
+## Cookie permission and consent
+
+Cookie reads require **both** the extension's approved `cookies` API permission
+and matching host permission. They can include HttpOnly cookies and sign-in/session
+material. The approval dialog displays a prominent warning explaining that access,
+in addition to the declared permissions and host list. Existing cookie-capable
+extensions approved before this implementation are left disabled until the user
+reviews and approves this warning; other extension approvals remain valid.
+
+`activeTab` does not grant cookie access. Store IDs resolve only within the calling
+profile, private-profile reads are denied, and asynchronous results recheck that
+the extension remains enabled. Cookie writes, change events, and partition-key
+queries are not implemented. Unsupported partition queries return an error;
+ordinary queries exclude partitioned cookies.
+
 ## Investigated compatibility: Awesome Screenshot
 
 Awesome Screen Recorder & Screenshot **4.4.44** (store ID
@@ -135,11 +161,33 @@ result-tab creation. A disposable-profile probe reproduced those missing APIs on
 2026-10-25. This was an engine API limitation, not a missing macOS screen-recording
 approval.
 
-The general bridge above now supplies these page APIs. Synthetic extensions verify
-real screenshot capture and the supporting operations, but **full compatibility
-with Awesome Screenshot has not yet been established**. Selected-area and full-page
-capture also depend on its content-script/scrolling/stitching workflow. Desktop/tab
-recording remains separate unsupported functionality.
+The native integration also supplies the extension status queries, cookie reads,
+packaged action icons, installation event, and tab insertion index used by this
+extension. Embedded extension image blobs share storage with the extension's own
+worker, as in Chrome; without that rule the capture toolbar appeared but its
+image could not reach the editor.
+
+A disposable-profile test with the unmodified **4.4.44** package verifies visible
+page capture, the inline annotation toolbar, and **More annotation tools** opening
+`edit-react.html`. It checks the captured fixture's pixels in the editor canvas,
+rather than accepting an empty editor. Run the opt-in test with a trusted unpacked
+package (no existing profile or credentials are copied):
+
+```sh
+ARBITER_TEST_AWESOME_SOURCE=/path/to/unpacked-extension \
+  build-patched-tests/extensions_test awesomeScreenshotVisibleCapture
+```
+
+Set `ARBITER_TEST_CAPTURE_IMAGE` to save a test-window screenshot. Use Cocoa on
+macOS for a rendered capture; an offscreen run does not establish visible-page
+capture compatibility. Existing installations requesting cookies must be enabled
+again and approved in the permission dialog before using these new APIs.
+
+This verifies the visible-page capture/editor path on macOS, not every feature of
+the extension. Selected-area and full-page capture still need separate tests.
+Recording remains unsupported, and Qt does not provide `storage.sync`; the
+extension can report sync-counter errors even though its captured image reaches
+the editor. No Google account synchronization is provided.
 
 References: [Chrome tabs API](https://developer.chrome.com/docs/extensions/reference/api/tabs),
 [Awesome Screenshot capture workflow](https://support.awesomescreenshot.com/hc/en-us/articles/53641390758169-How-to-take-capture-a-full-page-screenshot-using-Awesome-Screenshot-extensions).
@@ -283,5 +331,4 @@ It checks popup startup and renderer survival, not complete capture/recording
 compatibility. No media permissions are granted by the test.
 
 The popup startup smoke test passed on macOS with Awesome Screenshot 4.4.44.
-Its worker still reports unsupported `action.setIcon`; startup survival does not
-establish complete extension API compatibility.
+Startup survival does not establish complete extension API compatibility.

@@ -36,7 +36,7 @@ public:
     Q_INVOKABLE void reorder(const QString &id, int direction);
     Q_INVOKABLE bool moveTab(int row, const QString &id);
     Q_INVOKABLE bool copyTab(int row, const QString &id);
-    Q_INVOKABLE int addTab(const QString &id, const QUrl &url, bool activate);
+    Q_INVOKABLE int addTab(const QString &id, const QUrl &url, bool activate, int index = -1);
     Q_INVOKABLE void flush();
 signals:
     void changed();

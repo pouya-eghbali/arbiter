@@ -88,13 +88,15 @@ index 90f7f44943..1965132ead 100644
      }
      discovery->set_observer(this);
 diff --git a/chromium/extensions/common/api/_webengine_api_features.json b/chromium/extensions/common/api/_webengine_api_features.json
-index 12ce082c12..ba5d22d892 100644
+index 12ce082c12..da176adff2 100644
 --- a/chromium/extensions/common/api/_webengine_api_features.json
 +++ b/chromium/extensions/common/api/_webengine_api_features.json
-@@ -32,6 +32,12 @@
+@@ -32,6 +32,14 @@
      "dependencies": ["permission:pdfViewerPrivate"],
      "contexts": ["privileged_extension"]
    },
++  "extension": { "contexts": ["privileged_extension"], "channel": "stable" },
++  "cookies": { "contexts": ["privileged_extension"], "dependencies": ["permission:cookies"] },
 +  "commands": { "contexts": ["privileged_extension"], "channel": "stable" },
 +  "contextMenus": { "contexts": ["privileged_extension"], "dependencies": ["permission:contextMenus"] },
 +  "permissions": { "contexts": ["privileged_extension"], "channel": "stable" },
@@ -367,10 +369,10 @@ index d23d81f3c9..aa6c4ea85a 100644
  
  bool TabsUpdateFunction::UpdateURL(const std::string& url_string,
 diff --git a/chromium/qtwebengine/common/extensions/api/schema.gni b/chromium/qtwebengine/common/extensions/api/schema.gni
-index 06d99b1689..10005826b9 100644
+index 06d99b1689..d9e966f9a8 100644
 --- a/chromium/qtwebengine/common/extensions/api/schema.gni
 +++ b/chromium/qtwebengine/common/extensions/api/schema.gni
-@@ -2,6 +2,12 @@ webengine_extensions_api_schema_files_ = [
+@@ -2,6 +2,14 @@ webengine_extensions_api_schema_files_ = [
    "pdf_viewer_private.idl",
    "resources_private.idl",
    "tabs.json",
@@ -380,6 +382,8 @@ index 06d99b1689..10005826b9 100644
 +  "permissions.json",
 +  "context_menus.json",
 +  "commands.json",
++  "extension.json",
++  "cookies.json",
    "webrtc_desktop_capture_private.idl",
  ]
  
