@@ -173,7 +173,7 @@ FocusScope {
             visible: pill.expandedWidth >= 440
             enabled: pill.adBlockEnabled
             Accessible.name: pill.adBlockActive ? qsTr("Pause ad blocking in this view (%1 blocked)").arg(pill.adBlockBlocked) : qsTr("Resume ad blocking in this view")
-            iconName: "shield"
+            iconName: pill.adBlockActive ? "shield-check" : "shield"
             iconColor: pill.adBlockActive ? Theme.accent : Theme.muted
             onClicked: pill.adBlockRequested()
         }
