@@ -1328,14 +1328,18 @@ Basic.ApplicationWindow {
                                 onClicked: window.editingDarkAppearance = true
                             }
                         }
-                        ColumnLayout {
+                        GridLayout {
                             objectName: "lightAppearanceEditor"
                             visible: !window.editingDarkAppearance
                             Layout.fillWidth: true
-                            spacing: 20
+                            columns: width >= 640 ? 2 : 1
+                            columnSpacing: 16
+                            rowSpacing: 16
                             UiColorPicker {
                                 objectName: "lightAccentPicker"
                                 Layout.fillWidth: true
+                                framed: true
+                                Layout.fillHeight: true
                                 title: qsTr("Accent color")
                                 value: window.appearance.lightAccent
                                 defaultColor: "#2868b8"
@@ -1344,6 +1348,8 @@ Basic.ApplicationWindow {
                             UiColorPicker {
                                 objectName: "lightBackgroundPicker"
                                 Layout.fillWidth: true
+                                framed: true
+                                Layout.fillHeight: true
                                 title: qsTr("Background color")
                                 value: window.appearance.lightBackground
                                 defaultColor: "#edf2f7"
@@ -1354,20 +1360,26 @@ Basic.ApplicationWindow {
                                 id: lightImagePicker
                                 objectName: "lightBackgroundImagePicker"
                                 Layout.fillWidth: true
+                                Layout.columnSpan: parent.columns
+                                backgroundColor: window.appearance.lightBackground
                                 title: qsTr("Background image")
                                 value: window.appearance.lightBackgroundImage
                                 onFileSelected: function(file) { error = window.appearance.setBackgroundImage(false, file) }
                                 onRemoveRequested: window.appearance.clearBackgroundImage(false)
                             }
                         }
-                        ColumnLayout {
+                        GridLayout {
                             objectName: "darkAppearanceEditor"
                             visible: window.editingDarkAppearance
                             Layout.fillWidth: true
-                            spacing: 20
+                            columns: width >= 640 ? 2 : 1
+                            columnSpacing: 16
+                            rowSpacing: 16
                             UiColorPicker {
                                 objectName: "darkAccentPicker"
                                 Layout.fillWidth: true
+                                framed: true
+                                Layout.fillHeight: true
                                 title: qsTr("Accent color")
                                 value: window.appearance.darkAccent
                                 defaultColor: "#8dbbff"
@@ -1376,6 +1388,8 @@ Basic.ApplicationWindow {
                             UiColorPicker {
                                 objectName: "darkBackgroundPicker"
                                 Layout.fillWidth: true
+                                framed: true
+                                Layout.fillHeight: true
                                 title: qsTr("Background color")
                                 value: window.appearance.darkBackground
                                 defaultColor: "#11161e"
@@ -1386,6 +1400,8 @@ Basic.ApplicationWindow {
                                 id: darkImagePicker
                                 objectName: "darkBackgroundImagePicker"
                                 Layout.fillWidth: true
+                                Layout.columnSpan: parent.columns
+                                backgroundColor: window.appearance.darkBackground
                                 title: qsTr("Background image")
                                 value: window.appearance.darkBackgroundImage
                                 onFileSelected: function(file) { error = window.appearance.setBackgroundImage(true, file) }

@@ -13,8 +13,9 @@ A consumer may override presentation for a special purpose (for example an
 invisible navigation reveal target), while keeping standard interaction behavior.
 
 Light and dark accent and background colors are stored independently by `Appearance`.
-`UiColorPicker` uses Qt Quick Dialogs for the centered in-app color picker. It only
-emits a new color when accepted; cancellation keeps the saved color. Include the
+`UiColorPicker` uses Qt Quick Dialogs for the centered in-app color picker. It
+supports a `framed` card presentation for responsive settings grids. A new color
+is emitted only when accepted; cancellation keeps the saved color. Include the
 `QtQuick.Dialogs` QML module when deploying the app. Background-derived colors
 are centralized in `Theme`, including dense and glass surfaces. Selection
 and focus colors follow the active accent. Text on a solid accent chooses black
@@ -25,7 +26,8 @@ subtle; reserve accent borders for keyboard focus.
 
 `UiImagePicker` provides a local-file chooser, preview, and removal control. It emits
 file selection for `Appearance` to validate and copy; cancellation preserves the
-saved image. `BrowserBackground` paints the active image with a centered crop,
+saved image. Its `backgroundColor` shows the selected mode’s fallback color in the
+preview, with image selection and removal actions alongside it. `BrowserBackground` paints the active image with a centered crop,
 using the theme background color while loading or if the image is unavailable.
 
 `UiIcon` renders the bundled Lucide SVG subset with a theme-aware `color` and a
