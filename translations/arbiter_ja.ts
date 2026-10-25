@@ -911,12 +911,12 @@
 <context>
     <name>ExtensionCatalog</name>
     <message>
-        <location filename="../src/extensioncatalog.cpp" line="+48"/>
+        <location filename="../src/extensioncatalog.cpp" line="+83"/>
         <source>Extension removed.</source>
         <translation>拡張機能が削除されました。</translation>
     </message>
     <message>
-        <location line="+23"/>
+        <location line="+25"/>
         <source>The installed extension&apos;s identity did not match the verified store package. It has been left disabled.</source>
         <translation>インストールされた拡張機能の ID が、検証されたストア パッケージと一致しませんでした。無効のままになっています。</translation>
     </message>
@@ -932,7 +932,7 @@
         <translation>拡張機能の設定を保存できませんでした。</translation>
     </message>
     <message>
-        <location line="+30"/>
+        <location line="+31"/>
         <source>Choose an unpacked Manifest V3 extension folder or a ZIP with manifest.json at its root.</source>
         <translation>解凍された Manifest V3 拡張フォルダー、またはルートに manifest.json が含まれる ZIP を選択します。</translation>
     </message>
@@ -980,23 +980,23 @@
 <context>
     <name>ExtensionPanel</name>
     <message>
-        <location filename="../qml/ExtensionPanel.qml" line="+24"/>
-        <location line="+71"/>
+        <location filename="../qml/ExtensionPanel.qml" line="+184"/>
         <source>Extension</source>
-        <translation>拡張子</translation>
+        <translation>拡張機能</translation>
     </message>
     <message>
-        <location line="-68"/>
+        <location line="-92"/>
         <source>Extensions</source>
         <translation>拡張機能</translation>
     </message>
     <message>
-        <location line="+23"/>
+        <location line="+1"/>
+        <location line="+111"/>
         <source>Close</source>
         <translation>閉じる</translation>
     </message>
     <message>
-        <location line="+14"/>
+        <location line="-97"/>
         <source>Install extensions in Settings to get started.</source>
         <translation>設定で拡張機能をインストールして開始してください。</translation>
     </message>
@@ -1011,7 +1011,7 @@
         <translation>バックグラウンド拡張機能はポップアップなしで実行されます。ポップアップのないツールバーのアクションはまだサポートされていません。</translation>
     </message>
     <message>
-        <location line="+34"/>
+        <location line="+84"/>
         <source>Manage extensions…</source>
         <translation>拡張機能を管理…</translation>
     </message>
@@ -1029,7 +1029,12 @@
         <translation>この拡張機能に要求された権限と Web サイトへのアクセスを確認してください。拡張機能を追加すると、これらの権限が承認され、このブラウザ プロファイルで有効になります。</translation>
     </message>
     <message>
-        <location line="+17"/>
+        <location line="+8"/>
+        <source>This extension can read cookies, including sign-in and session data, on the websites it is allowed to access. Only approve extensions you trust.</source>
+        <translation>この拡張機能は、アクセスが許可されたウェブサイトの Cookie（ログイン情報やセッションデータを含む）を読み取ることができます。信頼できる拡張機能のみを承認してください。</translation>
+    </message>
+    <message>
+        <location line="+21"/>
         <source>No permissions or website access declared.</source>
         <translation>許可または Web サイトへのアクセスが宣言されていません。</translation>
     </message>
@@ -1878,7 +1883,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+133"/>
+        <location filename="../qml/Main.qml" line="+134"/>
         <source>Private browsing — Arbiter</source>
         <translation>プライベート ブラウジング — Arbiter</translation>
     </message>
@@ -1889,19 +1894,21 @@
     </message>
     <message>
         <location line="+586"/>
-        <location line="+1551"/>
+        <location line="+1623"/>
+        <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>新しいタブ</translation>
     </message>
     <message>
-        <location line="-1548"/>
-        <location line="+1635"/>
+        <location line="-1620"/>
+        <location line="+1707"/>
         <location line="+13"/>
+        <location filename="../qml/WorkspacePanel.qml" line="+3"/>
         <source>Start page</source>
         <translation>スタートページ</translation>
     </message>
     <message>
-        <location line="-1171"/>
+        <location line="-1204"/>
         <source>Settings</source>
         <translation>設定</translation>
     </message>
@@ -2020,20 +2027,20 @@
         <translation>暗い外観を編集する</translation>
     </message>
     <message>
-        <location line="+14"/>
-        <location line="+32"/>
+        <location line="+18"/>
+        <location line="+40"/>
         <source>Accent color</source>
         <translation>アクセントカラー</translation>
     </message>
     <message>
-        <location line="-24"/>
-        <location line="+32"/>
+        <location line="-30"/>
+        <location line="+40"/>
         <source>Background color</source>
         <translation>背景色</translation>
     </message>
     <message>
-        <location line="-22"/>
-        <location line="+32"/>
+        <location line="-28"/>
+        <location line="+40"/>
         <source>Background image</source>
         <translation>背景画像</translation>
     </message>
@@ -2529,7 +2536,7 @@
         <translation>Arbiter に追加</translation>
     </message>
     <message>
-        <location line="+315"/>
+        <location line="+332"/>
         <source>%1 open · Pick up where you left off</source>
         <translation>%1 が開いています · 中断したところから再開します</translation>
     </message>
@@ -2616,12 +2623,12 @@
 <context>
     <name>NavigationPill</name>
     <message>
-        <location filename="../qml/NavigationPill.qml" line="+107"/>
+        <location filename="../qml/NavigationPill.qml" line="+116"/>
         <source>Show navigation</source>
         <translation>ナビゲーションを表示</translation>
     </message>
     <message>
-        <location line="+35"/>
+        <location line="+36"/>
         <source>Back</source>
         <translation>戻る</translation>
     </message>
@@ -2651,23 +2658,38 @@
         <translation>ワークスペース: %1</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>Pause ad blocking in this view (%1 blocked)</source>
         <translation>このビューでの広告ブロックを一時停止します (%1 がブロックされました)</translation>
     </message>
     <message>
         <location line="+0"/>
-        <location line="+35"/>
+        <location line="+124"/>
         <source>Resume ad blocking in this view</source>
         <translation>このビューで広告ブロックを再開します</translation>
     </message>
     <message>
-        <location line="-25"/>
+        <location line="-114"/>
         <source>Share current page</source>
         <translation>現在のページを共有する</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+10"/>
+        <source>Unmute site</source>
+        <translation>サイトのミュートを解除</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Mute site</source>
+        <translation>サイトをミュート</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Extensions</source>
+        <translation>拡張機能</translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>Show 1 tab</source>
         <translation>1 つのタブを表示</translation>
     </message>
@@ -2682,7 +2704,22 @@
         <translation>ブラウザコントロールの追加</translation>
     </message>
     <message>
-        <location line="+15"/>
+        <location line="+11"/>
+        <source>Back to navigation</source>
+        <translation>ナビゲーションに戻る</translation>
+    </message>
+    <message>
+        <location line="+36"/>
+        <source> · Disabled</source>
+        <translation> · 無効</translation>
+    </message>
+    <message>
+        <location line="+22"/>
+        <source>Manage extensions…</source>
+        <translation>拡張機能を管理…</translation>
+    </message>
+    <message>
+        <location line="+19"/>
         <source>Split left / right</source>
         <translation>左/右に分割</translation>
     </message>
@@ -2698,11 +2735,6 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Workspaces…</source>
-        <translation>ワークスペース…</translation>
-    </message>
-    <message>
-        <location line="+1"/>
         <source>Pause ad blocking in this view</source>
         <translation>このビューで広告ブロックを一時停止します</translation>
     </message>
@@ -2710,11 +2742,6 @@
         <location line="+1"/>
         <source>Share current page…</source>
         <translation>現在のページを共有…</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Extensions…</source>
-        <translation>拡張機能…</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -3846,7 +3873,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+252"/>
+        <location filename="../src/main.cpp" line="+258"/>
         <source>Settings…</source>
         <translation>設定…</translation>
     </message>
@@ -4425,18 +4452,18 @@
 <context>
     <name>UiColorPicker</name>
     <message>
-        <location filename="../qml/ui/UiColorPicker.qml" line="+32"/>
+        <location filename="../qml/ui/UiColorPicker.qml" line="+40"/>
         <source>%1: %2</source>
         <translation>%1: %2</translation>
     </message>
     <message>
         <location line="+26"/>
-        <location line="+17"/>
+        <location line="+18"/>
         <source>Choose %1 color</source>
         <translation>%1 色を選択してください</translation>
     </message>
     <message>
-        <location line="-13"/>
+        <location line="-14"/>
         <source>Choose color…</source>
         <translation>色を選択してください…</translation>
     </message>
@@ -4482,7 +4509,7 @@
 <context>
     <name>UiImagePicker</name>
     <message>
-        <location filename="../qml/ui/UiImagePicker.qml" line="+39"/>
+        <location filename="../qml/ui/UiImagePicker.qml" line="+46"/>
         <source>Use background color</source>
         <translation>背景色を使用する</translation>
     </message>
@@ -4497,23 +4524,23 @@
         <translation>スタート ページと分割ビューの背景</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+8"/>
         <source>Choose image…</source>
         <translation>画像を選択してください…</translation>
     </message>
     <message>
-        <location line="+0"/>
-        <location line="+6"/>
+        <location line="+1"/>
+        <location line="+17"/>
         <source>Choose %1</source>
         <translation>%1 を選択してください</translation>
     </message>
     <message>
-        <location line="-5"/>
+        <location line="-12"/>
         <source>Remove</source>
         <translation>削除</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+15"/>
         <source>Images (*.png *.jpg *.jpeg *.webp *.avif *.heic *.bmp *.tif *.tiff)</source>
         <translation>画像 (*.png *.jpg *.jpeg *.webp *.avif *.heic *.bmp *.tif *.tiff)</translation>
     </message>
@@ -4868,24 +4895,100 @@
 <context>
     <name>WebContextMenu</name>
     <message>
-        <location filename="../qml/WebContextMenu.qml" line="+41"/>
+        <location filename="../qml/WebContextMenu.qml" line="+49"/>
+        <source>Quick actions</source>
+        <translation>クイック操作</translation>
+    </message>
+    <message>
+        <location line="+101"/>
         <source>Saved passwords…</source>
         <translation>保存されたパスワード…</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+12"/>
         <source>Print…</source>
         <translation>印刷…</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+10"/>
+        <source>Unmute site</source>
+        <translation>サイトのミュートを解除</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Mute site</source>
+        <translation>サイトをミュート</translation>
+    </message>
+    <message>
+        <location line="+12"/>
         <source>Inspect element</source>
         <translation>要素の検査</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+11"/>
         <source>Suggest password</source>
         <translation>パスワードの提案</translation>
+    </message>
+    <message>
+        <location line="+30"/>
+        <source>Cut</source>
+        <translation>切り取り</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+3"/>
+        <source>Copy</source>
+        <translation>コピー</translation>
+    </message>
+    <message>
+        <location line="-2"/>
+        <source>Paste</source>
+        <translation>貼り付け</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Copy image</source>
+        <translation>画像をコピー</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Save image</source>
+        <translation>画像を保存</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Play</source>
+        <translation>再生</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Pause</source>
+        <translation>一時停止</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Unmute</source>
+        <translation>ミュート解除</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Mute</source>
+        <translation>ミュート</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Back</source>
+        <translation>戻る</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Forward</source>
+        <translation>進む</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Reload</source>
+        <translation>再読み込み</translation>
     </message>
 </context>
 <context>
@@ -4945,7 +5048,7 @@
 <context>
     <name>WorkspacePanel</name>
     <message>
-        <location filename="../qml/WorkspacePanel.qml" line="+73"/>
+        <location filename="../qml/WorkspacePanel.qml" line="+75"/>
         <source>Back to workspaces</source>
         <translation>ワークスペースに戻る</translation>
     </message>
@@ -5040,7 +5143,7 @@
         <translation>削除</translation>
     </message>
     <message>
-        <location line="+28"/>
+        <location line="+42"/>
         <source>1 tab</source>
         <translation>1 タブ</translation>
     </message>
@@ -5050,34 +5153,34 @@
         <translation>%1 タブ</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+28"/>
         <source>%1, %2, %3%4</source>
         <translation>%1、%2、%3%4</translation>
     </message>
     <message>
         <location line="+1"/>
-        <location line="+35"/>
+        <location line="+30"/>
         <source>Separate session</source>
         <translation>独立したセッション</translation>
     </message>
     <message>
-        <location line="-35"/>
-        <location line="+35"/>
+        <location line="-30"/>
+        <location line="+30"/>
         <source>Shared session</source>
         <translation>共有セッション</translation>
     </message>
     <message>
-        <location line="-34"/>
+        <location line="-29"/>
         <source>, current workspace</source>
         <translation>、現在のワークスペース</translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+21"/>
         <source>Actions for %1</source>
         <translation>%1 のアクション</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+125"/>
         <source>Cancel</source>
         <translation>キャンセル</translation>
     </message>
@@ -5092,12 +5195,12 @@
         <translation>ワークスペースの作成</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+16"/>
         <source>↑ ↓ Navigate    ↵ Switch    Esc Close</source>
         <translation>↑ ↓ ナビゲート ↵ Esc スイッチ 閉じる</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="+9"/>
         <source>Edit workspace…</source>
         <translation>ワークスペースを編集…</translation>
     </message>
@@ -5127,10 +5230,12 @@
         <translation>ワークスペースを削除します…</translation>
     </message>
     <message>
+        <location line="-59"/>
         <source>+ 1 other tab</source>
         <translation>+ 他 1 個のタブ</translation>
     </message>
     <message>
+        <location line="+0"/>
         <source>+ %1 other tabs</source>
         <translation>+ 他 %1 個のタブ</translation>
     </message>

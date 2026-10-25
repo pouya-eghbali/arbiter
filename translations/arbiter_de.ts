@@ -911,12 +911,12 @@
 <context>
     <name>ExtensionCatalog</name>
     <message>
-        <location filename="../src/extensioncatalog.cpp" line="+48"/>
+        <location filename="../src/extensioncatalog.cpp" line="+83"/>
         <source>Extension removed.</source>
         <translation>Erweiterung entfernt.</translation>
     </message>
     <message>
-        <location line="+23"/>
+        <location line="+25"/>
         <source>The installed extension&apos;s identity did not match the verified store package. It has been left disabled.</source>
         <translation>Die Identität der installierten Erweiterung stimmte nicht mit dem überprüften Store-Paket überein. Es wurde deaktiviert gelassen.</translation>
     </message>
@@ -932,7 +932,7 @@
         <translation>Erweiterungseinstellungen konnten nicht gespeichert werden.</translation>
     </message>
     <message>
-        <location line="+30"/>
+        <location line="+31"/>
         <source>Choose an unpacked Manifest V3 extension folder or a ZIP with manifest.json at its root.</source>
         <translation>Wählen Sie einen entpackten Manifest V3-Erweiterungsordner oder eine ZIP-Datei mit manifest.json im Stammverzeichnis.</translation>
     </message>
@@ -980,23 +980,23 @@
 <context>
     <name>ExtensionPanel</name>
     <message>
-        <location filename="../qml/ExtensionPanel.qml" line="+24"/>
-        <location line="+71"/>
+        <location filename="../qml/ExtensionPanel.qml" line="+184"/>
         <source>Extension</source>
         <translation>Erweiterung</translation>
     </message>
     <message>
-        <location line="-68"/>
+        <location line="-92"/>
         <source>Extensions</source>
         <translation>Erweiterungen</translation>
     </message>
     <message>
-        <location line="+23"/>
+        <location line="+1"/>
+        <location line="+111"/>
         <source>Close</source>
         <translation>Schließen</translation>
     </message>
     <message>
-        <location line="+14"/>
+        <location line="-97"/>
         <source>Install extensions in Settings to get started.</source>
         <translation>Installieren Sie Erweiterungen in den Einstellungen, um loszulegen.</translation>
     </message>
@@ -1011,7 +1011,7 @@
         <translation>Hintergrunderweiterungen werden ohne Popup ausgeführt. Symbolleistenaktionen ohne Popup werden noch nicht unterstützt.</translation>
     </message>
     <message>
-        <location line="+34"/>
+        <location line="+84"/>
         <source>Manage extensions…</source>
         <translation>Erweiterungen verwalten…</translation>
     </message>
@@ -1029,7 +1029,12 @@
         <translation>Überprüfen Sie die angeforderten Berechtigungen und den Website-Zugriff dieser Erweiterung. „Erweiterung hinzufügen“ genehmigt diese Berechtigungen und aktiviert sie in diesem Browserprofil.</translation>
     </message>
     <message>
-        <location line="+17"/>
+        <location line="+8"/>
+        <source>This extension can read cookies, including sign-in and session data, on the websites it is allowed to access. Only approve extensions you trust.</source>
+        <translation>Diese Erweiterung kann auf den Websites, auf die sie zugreifen darf, Cookies lesen, einschließlich Anmelde- und Sitzungsdaten. Genehmige nur Erweiterungen, denen du vertraust.</translation>
+    </message>
+    <message>
+        <location line="+21"/>
         <source>No permissions or website access declared.</source>
         <translation>Keine Berechtigungen oder Website-Zugriff angegeben.</translation>
     </message>
@@ -1878,7 +1883,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+133"/>
+        <location filename="../qml/Main.qml" line="+134"/>
         <source>Private browsing — Arbiter</source>
         <translation>Privates Surfen – Arbiter</translation>
     </message>
@@ -1889,19 +1894,21 @@
     </message>
     <message>
         <location line="+586"/>
-        <location line="+1551"/>
+        <location line="+1623"/>
+        <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>Neuer Tab</translation>
     </message>
     <message>
-        <location line="-1548"/>
-        <location line="+1635"/>
+        <location line="-1620"/>
+        <location line="+1707"/>
         <location line="+13"/>
+        <location filename="../qml/WorkspacePanel.qml" line="+3"/>
         <source>Start page</source>
         <translation>Startseite</translation>
     </message>
     <message>
-        <location line="-1171"/>
+        <location line="-1204"/>
         <source>Settings</source>
         <translation>Einstellungen</translation>
     </message>
@@ -2020,20 +2027,20 @@
         <translation>Dunkles Erscheinungsbild bearbeiten</translation>
     </message>
     <message>
-        <location line="+14"/>
-        <location line="+32"/>
+        <location line="+18"/>
+        <location line="+40"/>
         <source>Accent color</source>
         <translation>Akzentfarbe</translation>
     </message>
     <message>
-        <location line="-24"/>
-        <location line="+32"/>
+        <location line="-30"/>
+        <location line="+40"/>
         <source>Background color</source>
         <translation>Hintergrundfarbe</translation>
     </message>
     <message>
-        <location line="-22"/>
-        <location line="+32"/>
+        <location line="-28"/>
+        <location line="+40"/>
         <source>Background image</source>
         <translation>Hintergrundbild</translation>
     </message>
@@ -2529,7 +2536,7 @@
         <translation>Zu Arbiter hinzufügen</translation>
     </message>
     <message>
-        <location line="+315"/>
+        <location line="+332"/>
         <source>%1 open · Pick up where you left off</source>
         <translation>%1 geöffnet · Machen Sie dort weiter, wo Sie aufgehört haben</translation>
     </message>
@@ -2616,12 +2623,12 @@
 <context>
     <name>NavigationPill</name>
     <message>
-        <location filename="../qml/NavigationPill.qml" line="+107"/>
+        <location filename="../qml/NavigationPill.qml" line="+116"/>
         <source>Show navigation</source>
         <translation>Navigation anzeigen</translation>
     </message>
     <message>
-        <location line="+35"/>
+        <location line="+36"/>
         <source>Back</source>
         <translation>Zurück</translation>
     </message>
@@ -2651,23 +2658,38 @@
         <translation>Arbeitsbereiche: %1</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>Pause ad blocking in this view (%1 blocked)</source>
         <translation>Werbeblockierung in dieser Ansicht pausieren (%1 blockiert)</translation>
     </message>
     <message>
         <location line="+0"/>
-        <location line="+35"/>
+        <location line="+124"/>
         <source>Resume ad blocking in this view</source>
         <translation>Setzen Sie die Werbeblockierung in dieser Ansicht fort</translation>
     </message>
     <message>
-        <location line="-25"/>
+        <location line="-114"/>
         <source>Share current page</source>
         <translation>Aktuelle Seite teilen</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+10"/>
+        <source>Unmute site</source>
+        <translation>Stummschaltung der Website aufheben</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Mute site</source>
+        <translation>Website stummschalten</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Extensions</source>
+        <translation>Erweiterungen</translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>Show 1 tab</source>
         <translation>1 Registerkarte anzeigen</translation>
     </message>
@@ -2682,7 +2704,22 @@
         <translation>Weitere Browser-Steuerelemente</translation>
     </message>
     <message>
-        <location line="+15"/>
+        <location line="+11"/>
+        <source>Back to navigation</source>
+        <translation>Zurück zur Navigation</translation>
+    </message>
+    <message>
+        <location line="+36"/>
+        <source> · Disabled</source>
+        <translation> · Deaktiviert</translation>
+    </message>
+    <message>
+        <location line="+22"/>
+        <source>Manage extensions…</source>
+        <translation>Erweiterungen verwalten…</translation>
+    </message>
+    <message>
+        <location line="+19"/>
         <source>Split left / right</source>
         <translation>Links / rechts teilen</translation>
     </message>
@@ -2698,11 +2735,6 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Workspaces…</source>
-        <translation>Arbeitsbereiche…</translation>
-    </message>
-    <message>
-        <location line="+1"/>
         <source>Pause ad blocking in this view</source>
         <translation>Werbeblocker in dieser Ansicht pausieren</translation>
     </message>
@@ -2710,11 +2742,6 @@
         <location line="+1"/>
         <source>Share current page…</source>
         <translation>Aktuelle Seite teilen…</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Extensions…</source>
-        <translation>Erweiterungen…</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -3846,7 +3873,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+252"/>
+        <location filename="../src/main.cpp" line="+258"/>
         <source>Settings…</source>
         <translation>Einstellungen…</translation>
     </message>
@@ -4425,18 +4452,18 @@
 <context>
     <name>UiColorPicker</name>
     <message>
-        <location filename="../qml/ui/UiColorPicker.qml" line="+32"/>
+        <location filename="../qml/ui/UiColorPicker.qml" line="+40"/>
         <source>%1: %2</source>
         <translation>%1: %2</translation>
     </message>
     <message>
         <location line="+26"/>
-        <location line="+17"/>
+        <location line="+18"/>
         <source>Choose %1 color</source>
         <translation>Wählen Sie %1 Farbe</translation>
     </message>
     <message>
-        <location line="-13"/>
+        <location line="-14"/>
         <source>Choose color…</source>
         <translation>Farbe wählen…</translation>
     </message>
@@ -4482,7 +4509,7 @@
 <context>
     <name>UiImagePicker</name>
     <message>
-        <location filename="../qml/ui/UiImagePicker.qml" line="+39"/>
+        <location filename="../qml/ui/UiImagePicker.qml" line="+46"/>
         <source>Use background color</source>
         <translation>Verwenden Sie Hintergrundfarbe</translation>
     </message>
@@ -4497,23 +4524,23 @@
         <translation>Startseite und Split-View-Hintergrund</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+8"/>
         <source>Choose image…</source>
         <translation>Bild auswählen…</translation>
     </message>
     <message>
-        <location line="+0"/>
-        <location line="+6"/>
+        <location line="+1"/>
+        <location line="+17"/>
         <source>Choose %1</source>
         <translation>Wählen Sie %1</translation>
     </message>
     <message>
-        <location line="-5"/>
+        <location line="-12"/>
         <source>Remove</source>
         <translation>Entfernen</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+15"/>
         <source>Images (*.png *.jpg *.jpeg *.webp *.avif *.heic *.bmp *.tif *.tiff)</source>
         <translation>Bilder (*.png *.jpg *.jpeg *.webp *.avif *.heic *.bmp *.tif *.tiff)</translation>
     </message>
@@ -4868,24 +4895,100 @@
 <context>
     <name>WebContextMenu</name>
     <message>
-        <location filename="../qml/WebContextMenu.qml" line="+41"/>
+        <location filename="../qml/WebContextMenu.qml" line="+49"/>
+        <source>Quick actions</source>
+        <translation>Schnellaktionen</translation>
+    </message>
+    <message>
+        <location line="+101"/>
         <source>Saved passwords…</source>
         <translation>Gespeicherte Passwörter…</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+12"/>
         <source>Print…</source>
         <translation>Drucken…</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+10"/>
+        <source>Unmute site</source>
+        <translation>Stummschaltung der Website aufheben</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Mute site</source>
+        <translation>Website stummschalten</translation>
+    </message>
+    <message>
+        <location line="+12"/>
         <source>Inspect element</source>
         <translation>Element prüfen</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+11"/>
         <source>Suggest password</source>
         <translation>Passwort vorschlagen</translation>
+    </message>
+    <message>
+        <location line="+30"/>
+        <source>Cut</source>
+        <translation>Ausschneiden</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+3"/>
+        <source>Copy</source>
+        <translation>Kopieren</translation>
+    </message>
+    <message>
+        <location line="-2"/>
+        <source>Paste</source>
+        <translation>Einfügen</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Copy image</source>
+        <translation>Bild kopieren</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Save image</source>
+        <translation>Bild speichern</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Play</source>
+        <translation>Wiedergabe</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Pause</source>
+        <translation>Pause</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Unmute</source>
+        <translation>Ton einschalten</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Mute</source>
+        <translation>Stummschalten</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Back</source>
+        <translation>Zurück</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Forward</source>
+        <translation>Vorwärts</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Reload</source>
+        <translation>Neu laden</translation>
     </message>
 </context>
 <context>
@@ -4945,7 +5048,7 @@
 <context>
     <name>WorkspacePanel</name>
     <message>
-        <location filename="../qml/WorkspacePanel.qml" line="+73"/>
+        <location filename="../qml/WorkspacePanel.qml" line="+75"/>
         <source>Back to workspaces</source>
         <translation>Zurück zu den Arbeitsbereichen</translation>
     </message>
@@ -5040,7 +5143,7 @@
         <translation>Löschen</translation>
     </message>
     <message>
-        <location line="+28"/>
+        <location line="+42"/>
         <source>1 tab</source>
         <translation>1 Tab</translation>
     </message>
@@ -5050,34 +5153,34 @@
         <translation>%1 Tabs</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+28"/>
         <source>%1, %2, %3%4</source>
         <translation>%1, %2, %3%4</translation>
     </message>
     <message>
         <location line="+1"/>
-        <location line="+35"/>
+        <location line="+30"/>
         <source>Separate session</source>
         <translation>Separate Sitzung</translation>
     </message>
     <message>
-        <location line="-35"/>
-        <location line="+35"/>
+        <location line="-30"/>
+        <location line="+30"/>
         <source>Shared session</source>
         <translation>Gemeinsame Sitzung</translation>
     </message>
     <message>
-        <location line="-34"/>
+        <location line="-29"/>
         <source>, current workspace</source>
         <translation>, aktueller Arbeitsbereich</translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+21"/>
         <source>Actions for %1</source>
         <translation>Aktionen für %1</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+125"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
@@ -5092,12 +5195,12 @@
         <translation>Arbeitsbereich erstellen</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+16"/>
         <source>↑ ↓ Navigate    ↵ Switch    Esc Close</source>
         <translation>↑ ↓ Navigieren ↵ Schalter Esc Schließen</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="+9"/>
         <source>Edit workspace…</source>
         <translation>Arbeitsbereich bearbeiten…</translation>
     </message>
@@ -5127,10 +5230,12 @@
         <translation>Arbeitsbereich löschen…</translation>
     </message>
     <message>
+        <location line="-59"/>
         <source>+ 1 other tab</source>
         <translation>+ 1 weiterer Tab</translation>
     </message>
     <message>
+        <location line="+0"/>
         <source>+ %1 other tabs</source>
         <translation>+ %1 weitere Tabs</translation>
     </message>

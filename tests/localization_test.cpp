@@ -66,6 +66,10 @@ private slots:
             QVERIFY2(!translator.translate("QObject", "New Tab").isEmpty(), code);
             QVERIFY2(!translator.translate("KeyBindings", "Edit address").isEmpty(), code);
             QVERIFY2(!translator.translate("BiometricAuth", "Touch ID is available.").isEmpty(), code);
+            QVERIFY2(!translator.translate("NavigationPill", "Back to navigation").isEmpty(), code);
+            QVERIFY2(!translator.translate("NavigationPill", "Mute site").isEmpty(), code);
+            QVERIFY2(!translator.translate("WebContextMenu", "Copy image").isEmpty(), code);
+            QVERIFY2(!translator.translate("ExtensionReview", "This extension can read cookies, including sign-in and session data, on the websites it is allowed to access. Only approve extensions you trust.").isEmpty(), code);
             // Qt's standard widget catalogs are merged into the same offline resource.
             QVERIFY2(!translator.translate("QPlatformTheme", "Cancel").isEmpty(), code);
         }
