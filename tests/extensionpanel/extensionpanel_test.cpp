@@ -46,6 +46,15 @@ Basic.ApplicationWindow {
     function showExtension() { panel.showExtension("fixture", false) }
     function showOptions() { panel.showExtension("fixture", true) }
     function dismiss() { panel.close() }
+    function findPopup(item) {
+        if (item.objectName === "extensionPopupView") return item
+        for (const child of item.children || []) { const found=findPopup(child); if(found) return found }
+        return null
+    }
+    function resizePopup(width:int,height:int) {
+        const view=findPopup(panel.contentItem)
+        if(view) view.mainFrame.runJavaScript("document.open();document.write('<!doctype html><body style=\"margin:0;width:"+width+"px;height:"+height+"px\">Popup content</body>');document.close()",0,function(){})
+    }
 })QML", QUrl("qrc:/extension-panel-test.qml"));
         QVERIFY(!engine.rootObjects().isEmpty());
         auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
@@ -54,9 +63,15 @@ Basic.ApplicationWindow {
         QTRY_VERIFY(window->property("pageLoaded").toBool());
         QVERIFY(QMetaObject::invokeMethod(window, "showExtension"));
         QTRY_VERIFY(window->property("panelOpen").toBool());
-        QCOMPARE(window->property("panelWidth").toInt(), 460);
         auto *popup = window->findChild<QObject *>("extensionPopupView");
         QTRY_VERIFY((popup = window->findChild<QObject *>("extensionPopupView")));
+        QVERIFY(QMetaObject::invokeMethod(window, "resizePopup", Q_ARG(int,325), Q_ARG(int,240)));
+        QTRY_COMPARE(window->property("panelWidth").toInt(), 341);
+        QTRY_COMPARE(window->property("panelHeight").toInt(), 290);
+        QVERIFY(QMetaObject::invokeMethod(window, "resizePopup", Q_ARG(int,325), Q_ARG(int,320)));
+        QTRY_COMPARE(window->property("panelHeight").toInt(), 370);
+        QVERIFY(QMetaObject::invokeMethod(window, "resizePopup", Q_ARG(int,325), Q_ARG(int,200)));
+        QTRY_COMPARE(window->property("panelHeight").toInt(), 250);
         QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, QPoint(60, 140));
         QTest::keyClick(window, Qt::Key_A);
         QTRY_VERIFY((QMetaObject::invokeMethod(window, "inspectPage"), window->property("fieldValue").toString() == "a"));
