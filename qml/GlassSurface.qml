@@ -6,6 +6,7 @@ import Arbiter
 Rectangle {
     id: glass
     radius: Theme.panelRadius
+    antialiasing: true
     color: "transparent"
     border.width: 0
     property bool dense: false
@@ -57,6 +58,7 @@ Rectangle {
     }
     Rectangle {
         id: roundedMask
+        antialiasing: true
         anchors.fill: parent
         radius: glass.radius
         color: "white"
@@ -65,6 +67,7 @@ Rectangle {
     }
     ShaderEffectSource {
         id: maskCapture
+        smooth: true
         anchors.fill: parent
         sourceItem: glass.samplesBackdrop ? roundedMask : null
         hideSource: true
@@ -82,13 +85,17 @@ Rectangle {
     }
     Item {
         anchors.fill: parent
-        visible: glass.samplesBackdrop
-        clip: true
+        // Composite blur, tint and sheen first. Masking each separately leaves
+        // a bright fringe where their partially covered corner pixels overlap.
         layer.enabled: glass.samplesBackdrop
         layer.effect: MultiEffect {
             autoPaddingEnabled: false
             maskEnabled: true
             maskSource: maskCapture
+            // Preserve the rounded mask's antialiased coverage instead of
+            // turning every nonzero alpha pixel into a hard opaque edge.
+            maskThresholdMin: 0.5
+            maskSpreadAtMin: 1.0
         }
         // Blur the surrounding page before cropping to the rounded surface.
         // Even a six-pixel pill gets the same radius as a full-size panel.
@@ -97,6 +104,7 @@ Rectangle {
             y: glass.captureRect.y - glass.samplePosition.y
             width: capture.width
             height: capture.height
+            visible: glass.samplesBackdrop
             source: capture
             blurEnabled: true
             blurMax: glass.blurRadius
@@ -105,22 +113,24 @@ Rectangle {
             brightness: Theme.darkSurface ? -0.22 : -0.04
             autoPaddingEnabled: false
         }
-    }
-    Rectangle {
-        anchors.fill: parent
-        radius: glass.radius
-        border.width: 0
-        color: glass.samplesBackdrop ? (glass.dense ? Theme.glassDense : Theme.glass) : Theme.popupSolid
-    }
-    // A broad, quiet sheen gives depth without drawing a bright perimeter.
-    Rectangle {
-        anchors.fill: parent
-        radius: glass.radius
-        border.width: 0
-        gradient: Gradient {
-            GradientStop { position: 0; color: Theme.panelSheen }
-            GradientStop { position: 0.45; color: "transparent" }
-            GradientStop { position: 1; color: "#05000000" }
+        Rectangle {
+            anchors.fill: parent
+            radius: glass.samplesBackdrop ? 0 : glass.radius
+            antialiasing: true
+            border.width: 0
+            color: glass.samplesBackdrop ? (glass.dense ? Theme.glassDense : Theme.glass) : Theme.popupSolid
+        }
+        // A broad, quiet sheen gives depth without drawing a bright perimeter.
+        Rectangle {
+            anchors.fill: parent
+            radius: glass.samplesBackdrop ? 0 : glass.radius
+            antialiasing: true
+            border.width: 0
+            gradient: Gradient {
+                GradientStop { position: 0; color: Theme.panelSheen }
+                GradientStop { position: 0.45; color: "transparent" }
+                GradientStop { position: 1; color: "#05000000" }
+            }
         }
     }
 }

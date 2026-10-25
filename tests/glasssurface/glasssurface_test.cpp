@@ -42,6 +42,7 @@ void GlassSurfaceTest::backdropBlur()
                 GlassSurface { objectName: "pill"; width: 240; height: 56; radius: 28; shadowEnabled: false }
                 GlassSurface { objectName: "collapsed"; y: 100; width: 240; height: 6; radius: 3; shadowEnabled: false }
             }
+            UiToolTip { parent: window.contentItem; x: 70; y: 320; text: "Workspaces: Personal"; visible: true; delay: 0; timeout: -1 }
             GlassSurface { objectName: "panel"; x: 360; y: 80; width: 240; height: 220; shadowEnabled: false }
         }
     )QML");
@@ -74,6 +75,8 @@ void GlassSurfaceTest::backdropBlur()
     };
     const QImage stripes = window->grabWindow();
     QVERIFY(!stripes.isNull());
+    if (const auto path=qEnvironmentVariable("ARBITER_TEST_GLASS_IMAGE");!path.isEmpty())
+        QVERIFY(stripes.save(path));
     // Sharp stripes behind a translucent tint retain strong contrast. Actual
     // backdrop blur must suppress them, including on the six-pixel pill.
     for (auto *surface : {pill, collapsed, panel}) {
