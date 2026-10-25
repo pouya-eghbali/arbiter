@@ -278,6 +278,79 @@ index 838fa3b..4962aa3 100644
                  continue;
              if (subscription->permission != permissionTypeBlink)
                  continue;
+diff --git a/src/core/render_widget_host_view_qt.cpp b/src/core/render_widget_host_view_qt.cpp
+index cb77820..4ee83d7 100644
+--- a/src/core/render_widget_host_view_qt.cpp
++++ b/src/core/render_widget_host_view_qt.cpp
+@@ -1019,12 +1019,55 @@ void RenderWidgetHostViewQt::WheelEventAck(const blink::WebMouseWheelEvent &even
+     }
+ }
+ 
++// Private browser-process bridge. Renderer content cannot access this QObject.
++QObject *RenderWidgetHostViewQt::arbiterHistorySwipe() const
++{
++    return m_adapterClient ? m_adapterClient->holdingQObject()->property("_arbiterHistorySwipe").value<QObject *>() : nullptr;
++}
++
++void RenderWidgetHostViewQt::DidOverscroll(const ui::DidOverscrollParams &params)
++{
++    // Compositor overscroll offsets have the opposite sign to gesture deltas.
++    if (auto *receiver = arbiterHistorySwipe())
++        QMetaObject::invokeMethod(receiver, "overscroll", Qt::QueuedConnection,
++            Q_ARG(double, -double(params.latest_overscroll_delta.x())),
++            Q_ARG(double, -double(params.latest_overscroll_delta.y())),
++            Q_ARG(bool, params.overscroll_behavior.x == cc::OverscrollBehavior::Type::kAuto));
++}
++
+ void RenderWidgetHostViewQt::GestureEventAck(const blink::WebGestureEvent &event,
+                                              blink::mojom::InputEventResultSource ack_source,
+                                              blink::mojom::InputEventResultState ack_result)
+ {
+     ForwardTouchpadZoomEventIfNecessary(event, ack_result);
+ 
++    // Use compositor ACKs and root overscroll, not DOM scroll-width guesses.
++    // Synthetic wheel sequences and momentum must never start a history swipe.
++    if (auto *receiver = arbiterHistorySwipe()) {
++        switch (event.GetType()) {
++        case blink::WebInputEvent::Type::kGestureScrollBegin:
++            QMetaObject::invokeMethod(receiver, "beginGesture", Qt::QueuedConnection,
++                Q_ARG(bool, event.SourceDevice() == blink::WebGestureDevice::kTouchpad
++                    && !event.data.scroll_begin.synthetic
++                    && event.data.scroll_begin.inertial_phase != blink::WebGestureEvent::InertialPhaseState::kMomentum
++                    && !(event.GetModifiers() & (blink::WebInputEvent::kControlKey | blink::WebInputEvent::kShiftKey
++                                               | blink::WebInputEvent::kAltKey | blink::WebInputEvent::kMetaKey))));
++            break;
++        case blink::WebInputEvent::Type::kGestureScrollUpdate:
++            if (event.data.scroll_update.inertial_phase != blink::WebGestureEvent::InertialPhaseState::kMomentum)
++                QMetaObject::invokeMethod(receiver, "scrollUpdate", Qt::QueuedConnection,
++                    Q_ARG(double, double(event.data.scroll_update.delta_x)),
++                    Q_ARG(double, double(event.data.scroll_update.delta_y)),
++                    Q_ARG(bool, ack_result == blink::mojom::InputEventResultState::kConsumed));
++            break;
++        case blink::WebInputEvent::Type::kGestureScrollEnd:
++            QMetaObject::invokeMethod(receiver, "endGesture", Qt::QueuedConnection);
++            break;
++        default:
++            break;
++        }
++    }
++
+     // Forward unhandled scroll events back as wheel events
+     if (event.GetType() != blink::WebInputEvent::Type::kGestureScrollUpdate)
+         return;
+diff --git a/src/core/render_widget_host_view_qt.h b/src/core/render_widget_host_view_qt.h
+index 395334f..a42a18d 100644
+--- a/src/core/render_widget_host_view_qt.h
++++ b/src/core/render_widget_host_view_qt.h
+@@ -95,6 +95,8 @@ public:
+     void UpdateTooltip(const std::u16string& tooltip_text) override;
+     void WheelEventAck(const blink::WebMouseWheelEvent &event,
+                        blink::mojom::InputEventResultState ack_result) override;
++    void DidOverscroll(const ui::DidOverscrollParams &params) override;
++    QObject *arbiterHistorySwipe() const;
+     void GestureEventAck(const blink::WebGestureEvent &event,
+                          blink::mojom::InputEventResultSource ack_source,
+                          blink::mojom::InputEventResultState ack_result) override;
 diff --git a/src/core/web_engine_context.cpp b/src/core/web_engine_context.cpp
 index 76ea59c..180cd3d 100644
 --- a/src/core/web_engine_context.cpp

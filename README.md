@@ -602,12 +602,23 @@ mini handle. Pause for 180 ms within the centered bottom strip to reveal the
 pill; it stays open over its controls and menus, then collapses after leaving.
 The existing shortcut works in all three modes, including **Shortcut only**.
 
-**Page edge controls** offers hover buttons (the default), inward drag gestures,
-or Off. Hover for 180 ms at the middle of a view’s left/right edge for Back/Forward,
-or near its top-right corner for Tabs. Hovering alone never navigates.
-In drag mode, start within the outer 10 pixels and release after dragging inward
-at least 64 pixels for Back/Forward, or diagonally down-left at least 48 pixels in
-both directions for Tabs. A short or wrong-direction drag cancels. Each split
-view acts on its own page/workspace. Scrolling and the split-swap modifier gesture
-remain available; edge drags use the left mouse button with no modifiers.
-Edge controls are suspended behind dialogs, preferences, and private-window locks.
+**Swipe back and forward with horizontal overscroll** is enabled by default.
+At a horizontal page boundary, start a new two-finger/precision-scroll gesture
+and keep swiping until the glass arrow’s ring fills, then release to navigate.
+Swipe right for Back and left for Forward with natural scrolling. A short swipe,
+reversal, Escape, focus loss, or a dialog cancels. It uses Chromium compositor
+ACKs and root overscroll, so content scrolling (including nested scroll areas)
+and CSS `overscroll-behavior: contain/none` take priority. Momentum alone and
+traditional mouse-wheel scrolling cannot start navigation. It works with input
+backends that supply phased scroll gestures; it does not emulate trackpad input
+for a conventional wheel. Each split view navigates its own history.
+
+**Tabs corner control** offers a hover button (the default), a diagonal inward
+drag, or Off. Hover briefly just below a view’s top-right corner; the button stays
+visible while hovered or pressed, with a grace period after leaving. In drag
+mode, start in that corner and drag at least 48 pixels both left and down, then
+release. A short drag cancels. The split-swap modifier gesture and keyboard
+shortcuts remain available. Edge controls are suspended behind dialogs,
+preferences, and private-window locks.
+
+See [the implementation and validation notes](docs/history-swipes.md).

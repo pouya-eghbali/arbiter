@@ -18,6 +18,7 @@
 #include "privatebrowsing.h"
 #include <QPointer>
 #include "splitswapgesture.h"
+#include "historyswipe.h"
 #include "workspaces.h"
 #include "webprofiles.h"
 #include "sitepermissions.h"

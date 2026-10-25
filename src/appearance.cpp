@@ -63,6 +63,13 @@ void Appearance::setNavigationRevealMode(const QString &mode)
     m_settings.setValue("appearance/navigationRevealMode", mode);
     emit navigationRevealModeChanged();
 }
+bool Appearance::historySwipeEnabled() const { return m_settings.value("appearance/historySwipeEnabled",true).toBool(); }
+void Appearance::setHistorySwipeEnabled(bool enabled)
+{
+    if(enabled==historySwipeEnabled()) return;
+    m_settings.setValue("appearance/historySwipeEnabled",enabled);
+    emit historySwipeEnabledChanged();
+}
 QString Appearance::pageEdgeMode() const
 {
     const auto mode = m_settings.value("appearance/pageEdgeMode", "hover").toString();

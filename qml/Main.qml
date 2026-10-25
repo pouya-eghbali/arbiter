@@ -851,7 +851,32 @@ Basic.ApplicationWindow {
                                     color: Theme.text
                                 }
                             }
-                            PageEdgeControls {
+                            HistorySwipe {
+                                id: historySwipe
+                                view: page
+                                enabled: window.edgeActionsAllowed && page.visible && !pageContextMenu.visible && window.appearance.historySwipeEnabled
+                                canGoBack: page.canGoBack
+                                canGoForward: page.canGoForward
+                                onTriggered: function(direction) {
+                                    window.splits.activate(page.paneGeometry.paneId)
+                                    if (direction < 0) page.goBack(); else page.goForward()
+                                }
+                            }
+                            Connections {
+                                target: page
+                                function onUrlChanged() { historySwipe.cancel() }
+                                function onWidthChanged() { historySwipe.cancel() }
+                            }
+                            Shortcut { sequence: "Escape"; enabled: historySwipe.active; onActivated: historySwipe.cancel() }
+                            HistorySwipeOverlay {
+                                parent: pageEdgeOverlay
+                                x: page.x - splitViewport.contentX
+                                y: page.y - splitViewport.contentY
+                                width: page.width; height: page.height
+                                visible: page.visible
+                                controller: historySwipe
+                            }
+                            TabsCornerControl {
                                 parent: pageEdgeOverlay
                                 x: page.x - splitViewport.contentX
                                 y: page.y - splitViewport.contentY
@@ -860,10 +885,6 @@ Basic.ApplicationWindow {
                                 visible: page.visible
                                 enabled: window.edgeActionsAllowed && !pageContextMenu.visible
                                 mode: window.appearance.pageEdgeMode
-                                canGoBack: page.canGoBack
-                                canGoForward: page.canGoForward
-                                onBackRequested: { window.splits.activate(page.paneGeometry.paneId); page.goBack() }
-                                onForwardRequested: { window.splits.activate(page.paneGeometry.paneId); page.goForward() }
                                 onTabsRequested: { window.splits.activate(page.paneGeometry.paneId); window.showTabs() }
                             }
                             TabSleepController {
@@ -1415,18 +1436,29 @@ Basic.ApplicationWindow {
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
-                        Basic.Label { text: qsTr("Page edge controls"); color: Theme.text }
+                        UiCheckBox {
+                            text: qsTr("Swipe back and forward with horizontal overscroll")
+                            checked: window.appearance.historySwipeEnabled
+                            onToggled: window.appearance.historySwipeEnabled = checked
+                        }
+                        Basic.Label {
+                            Layout.fillWidth: true
+                            text: qsTr("At a page’s horizontal boundary, start a new two-finger swipe. Keep swiping until the arrow fills, then release to navigate. Reverse direction or press Escape to cancel. Scrollable content gets priority, and ordinary mouse-wheel scrolling never navigates.")
+                            color: Theme.muted
+                            wrapMode: Text.Wrap
+                        }
+                        Basic.Label { text: qsTr("Tabs corner control"); color: Theme.text }
                         UiComboBox {
                             objectName: "pageEdgeModeChoice"
                             Layout.fillWidth: true
                             model: [qsTr("Hover to show buttons"), qsTr("Drag inward"), qsTr("Off")]
                             currentIndex: ["hover", "drag", "off"].indexOf(window.appearance.pageEdgeMode)
-                            Accessible.name: qsTr("Page edge controls")
+                            Accessible.name: qsTr("Tabs corner control")
                             onActivated: window.appearance.pageEdgeMode = ["hover", "drag", "off"][currentIndex]
                         }
                         Basic.Label {
                             Layout.fillWidth: true
-                            text: qsTr("Back and Forward live at the middle of each view’s left and right edges. Tabs lives in its top-right corner. Hover briefly to reveal a button, or drag inward and release to act; drag diagonally down-left for Tabs. A short drag cancels. Page scrolling and keyboard shortcuts keep working.")
+                            text: qsTr("Tabs lives just below each view’s top-right corner. Hover briefly to reveal a button, or drag diagonally down-left and release. A short drag cancels.")
                             wrapMode: Text.Wrap
                             color: Theme.muted
                         }

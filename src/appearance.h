@@ -10,6 +10,7 @@ class Appearance final : public QObject {
     Q_PROPERTY(bool dark READ dark NOTIFY colorsChanged)
     Q_PROPERTY(bool navigationPill READ navigationPill WRITE setNavigationPill NOTIFY navigationPillChanged)
     Q_PROPERTY(QString navigationRevealMode READ navigationRevealMode WRITE setNavigationRevealMode NOTIFY navigationRevealModeChanged)
+    Q_PROPERTY(bool historySwipeEnabled READ historySwipeEnabled WRITE setHistorySwipeEnabled NOTIFY historySwipeEnabledChanged)
     Q_PROPERTY(QString pageEdgeMode READ pageEdgeMode WRITE setPageEdgeMode NOTIFY pageEdgeModeChanged)
     Q_PROPERTY(bool windowDecorations READ windowDecorations WRITE setWindowDecorations NOTIFY windowDecorationsChanged)
     Q_PROPERTY(QString siteMenuMode READ siteMenuMode WRITE setSiteMenuMode NOTIFY siteMenuModeChanged)
@@ -28,6 +29,8 @@ public:
     void setNavigationPill(bool enabled);
     QString navigationRevealMode() const;
     void setNavigationRevealMode(const QString &mode);
+    bool historySwipeEnabled() const;
+    void setHistorySwipeEnabled(bool enabled);
     QString pageEdgeMode() const;
     void setPageEdgeMode(const QString &mode);
     bool windowDecorations() const { return m_windowDecorations; }
@@ -53,6 +56,7 @@ signals:
     void navigationPillChanged();
     void navigationRevealModeChanged();
     void pageEdgeModeChanged();
+    void historySwipeEnabledChanged();
     void windowDecorationsChanged();
     void siteMenuModeChanged();
     void accentColorsChanged();
