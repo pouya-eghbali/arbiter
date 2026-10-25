@@ -93,8 +93,9 @@ History item, or Cmd+Y on macOS / Ctrl+Y elsewhere. The shortcut can be changed
 in Settings → Keyboard. The timeline groups visits by day with visit times and
 cached site icons. Combine title/address search with a website filter (including
 its subdomains) and Today, Yesterday, Last 7/30 days, or a custom date range.
-Custom dates use YYYY-MM-DD, are inclusive in your local time zone, and may be
-left blank for an open-ended range. Entries can be opened in the current or a
+Custom dates have calendar pickers with month navigation, Today, and Clear;
+you can also type YYYY-MM-DD. Ranges are inclusive in your local time zone and
+either date may be left blank for an open-ended range. Entries can be opened in the current or a
 new tab or deleted individually. The Delete menu separates all saved history
 from matching results, with a confirmation showing the scope. Matching deletion
 only removes the confirmed visits; visits recorded afterward are kept. Save

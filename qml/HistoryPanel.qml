@@ -115,9 +115,9 @@ UiPopup {
             Layout.fillWidth: true
             spacing: 10
             Basic.Label { text: qsTr("From"); color: Theme.muted }
-            UiTextField { id: fromField; objectName: "historyFromDate"; Layout.fillWidth: true; placeholderText: "YYYY-MM-DD"; maximumLength: 10; Accessible.name: qsTr("First date, YYYY-MM-DD; blank for no lower limit"); onTextChanged: if (dateRange.currentIndex === 5) panel.applyCustomDates() }
+            UiDateField { id: fromField; pickerTitle: qsTr("First date"); objectName: "historyFromDate"; Layout.fillWidth: true; placeholderText: "YYYY-MM-DD"; maximumLength: 10; Accessible.name: qsTr("First date, YYYY-MM-DD; blank for no lower limit"); onTextChanged: if (dateRange.currentIndex === 5) panel.applyCustomDates() }
             Basic.Label { text: qsTr("Through"); color: Theme.muted }
-            UiTextField { id: throughField; objectName: "historyThroughDate"; Layout.fillWidth: true; placeholderText: "YYYY-MM-DD"; maximumLength: 10; Accessible.name: qsTr("Last date, YYYY-MM-DD; blank for no upper limit"); onTextChanged: if (dateRange.currentIndex === 5) panel.applyCustomDates() }
+            UiDateField { id: throughField; pickerTitle: qsTr("Last date"); objectName: "historyThroughDate"; Layout.fillWidth: true; placeholderText: "YYYY-MM-DD"; maximumLength: 10; Accessible.name: qsTr("Last date, YYYY-MM-DD; blank for no upper limit"); onTextChanged: if (dateRange.currentIndex === 5) panel.applyCustomDates() }
         }
         Basic.Label {
             visible: !panel.dateValid
