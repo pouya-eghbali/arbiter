@@ -60,6 +60,7 @@ Basic.ApplicationWindow {
     required property var webProfiles
     readonly property string currentStoreItem: !privateMode && extensionCatalog && webView ? extensionCatalog.storeItemId(webView.url.toString()) : ""
     readonly property var extensionCatalog: webView ? webProfiles.extensions(webView.profile) : null
+    required property var localization
     required property var sitePermissionSettings
 
     SitePermissions {
@@ -1686,6 +1687,23 @@ Basic.ApplicationWindow {
                         visible: window.settingsCategory === 4
                         Layout.fillWidth: true
                         spacing: 16
+                        Basic.Label { text: qsTr("Interface language"); color: Theme.text; Layout.fillWidth: true }
+                        UiComboBox {
+                            objectName: "interfaceLanguage"
+                            Layout.fillWidth: true
+                            model: window.localization.languages
+                            textRole: "name"
+                            currentIndex: window.localization.languages.findIndex(item => item.code === window.localization.language)
+                            onActivated: window.localization.language = window.localization.languages[currentIndex].code
+                            Accessible.name: qsTr("Interface language")
+                        }
+                        Basic.Label {
+                            text: window.localization.restartRequired ? qsTr("Restart Arbiter to apply the new language.")
+                                : qsTr("Use your system language or choose a language for Arbiter. Websites keep their own content and language.")
+                            color: Theme.muted
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
                         Basic.Label { text: qsTr("Default search engine"); color: Theme.text; Layout.fillWidth: true }
                         UiComboBox {
                             objectName: "defaultSearchEngine"

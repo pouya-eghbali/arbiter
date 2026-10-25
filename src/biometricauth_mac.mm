@@ -19,14 +19,14 @@ public:
         [NSWorkspace.sharedWorkspace.notificationCenter removeObserver:m_session];
         [NSDistributedNotificationCenter.defaultCenter removeObserver:m_screen];
     }
-    QString name() const override { return tr("Touch ID"); }
+    QString name() const override { return BiometricAuth::tr("Touch ID"); }
     bool nativePromptCanTakeFocus() const override { return true; }
     void refresh() override {
         if(busy()) return;
         LAContext *context=[LAContext new];
         NSError *error=nil;
         const bool supported=[context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error];
-        availability(supported,supported ? tr("Touch ID is available.") : tr("Touch ID is unavailable. Enroll a fingerprint in macOS settings, or use your vault passphrase."));
+        availability(supported,supported ? BiometricAuth::tr("Touch ID is available.") : BiometricAuth::tr("Touch ID is unavailable. Enroll a fingerprint in macOS settings, or use your vault passphrase."));
     }
 protected:
     void startNative(const QString &reason, quint64 token) override {
@@ -36,7 +36,7 @@ protected:
         NSError *error=nil;
         if(![m_context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
             m_context=nil;
-            complete(token,false,tr("Touch ID is unavailable or locked out. Use your vault passphrase.")); return;
+            complete(token,false,BiometricAuth::tr("Touch ID is unavailable or locked out. Use your vault passphrase.")); return;
         }
         QPointer<MacBiometricAuth> self(this);
         [m_context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
@@ -44,7 +44,7 @@ protected:
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if(!self || !self->current(token)) return;
                     self->m_context=nil;
-                    self->complete(token,success,success ? QString() : tr("Touch ID did not verify. Use your vault passphrase or try again."));
+                    self->complete(token,success,success ? QString() : BiometricAuth::tr("Touch ID did not verify. Use your vault passphrase or try again."));
                 });
             }];
     }

@@ -10,6 +10,7 @@
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
 #include "keybindings.h"
 #include "settings.h"
+#include "localization.h"
 #include "browserapplication.h"
 #include "browserinstance.h"
 #include <QStandardPaths>
@@ -85,6 +86,7 @@ int main(int argc, char *argv[])
     QObject::connect(&instance, &BrowserInstance::urlReceived, &app, &BrowserApplication::receiveUrl);
     QObject::connect(&instance, &BrowserInstance::activationRequested, &app, [&app] { app.receiveUrl(QUrl()); });
     const QString settingsError=Settings::initialize();
+    Localization localization;
     KeyBindings keyBindings;
     Appearance appearance;
     BrowserPreferences browserPreferences;
@@ -155,7 +157,8 @@ int main(int argc, char *argv[])
     userAgent.remove(QRegularExpression(QStringLiteral("\\s+(?:QtWebEngine|Arbiter)/[^\\s]+")));
     webProfiles.userAgent = userAgent;
     const bool diagnostics = qEnvironmentVariableIsSet("ARBITER_DIAGNOSTICS");
-    const QVariantMap initialProperties{{QStringLiteral("privacy"), QVariant::fromValue(&privacy)},
+    const QVariantMap initialProperties{{QStringLiteral("localization"), QVariant::fromValue(&localization)},
+                                 {QStringLiteral("privacy"), QVariant::fromValue(&privacy)},
                                  {QStringLiteral("browserUserAgent"), userAgent},
                                  {QStringLiteral("settingsFile"), Settings::configFile()},
                                  {QStringLiteral("settingsDirectoryUrl"), QUrl::fromLocalFile(QFileInfo(Settings::configFile()).absolutePath())},

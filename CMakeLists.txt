@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(cmake/ArbiterWebEngine.cmake)
-find_package(Qt6 6.12 REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick Widgets WebChannel Sql Concurrent Network Positioning CorePrivate Svg PrintSupport Pdf)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick Widgets WebChannel Sql Concurrent Network Positioning CorePrivate Svg PrintSupport Pdf LinguistTools)
 get_target_property(arbiter_webengine_features Qt6::WebEngineCore QT_ENABLED_PUBLIC_FEATURES)
 if(NOT "webengine_extensions" IN_LIST arbiter_webengine_features)
     message(FATAL_ERROR "Arbiter requires Qt WebEngine with FEATURE_webengine_extensions=ON. Rebuild the SDK using engine/build.py.")
@@ -35,6 +35,8 @@ arbiter_add_file_icons(arbiter)
 include(cmake/NativeShare.cmake)
 arbiter_add_native_share(arbiter)
 target_sources(arbiter PRIVATE src/pageprinter.cpp src/pageprinter.h)
+target_sources(arbiter PRIVATE src/localization.cpp src/localization.h)
+qt_add_resources(arbiter language_index PREFIX /i18n BASE translations FILES translations/languages.json)
 target_link_libraries(arbiter PRIVATE Qt6::PrintSupport Qt6::Pdf)
 include(cmake/AdBlock.cmake)
 target_link_libraries(arbiter PRIVATE arbiter_adblock_engine)
@@ -94,6 +96,8 @@ qt_add_qml_module(arbiter
     VERSION 1.0
     QML_FILES qml/ui/UiDateField.qml qml/HistorySwipeOverlay.qml qml/AboutPage.qml qml/ui/UiPopup.qml qml/ui/UiIconButton.qml qml/ui/UiMenu.qml qml/ui/LucideIcons.js qml/DeveloperToolsDock.qml qml/DownloadsPanel.qml qml/DownloadsSettings.qml qml/ExtensionReview.qml qml/ExtensionsPage.qml qml/ExtensionPanel.qml qml/PermissionPanel.qml qml/DesktopSharePanel.qml qml/SitePermissionsSettings.qml qml/AddressPrompt.qml qml/BrowserBackground.qml qml/ui/UiImagePicker.qml qml/PrivateShield.qml qml/SplitWithPicker.qml qml/TabSleepController.qml qml/ui/UiIcon.qml qml/ui/UiChoiceCard.qml qml/ImportProgress.qml qml/BrowserAccess.qml qml/OnboardingImport.qml qml/Onboarding.qml qml/BrowserPreview.qml qml/Tutorial.qml qml/ImportPage.qml qml/StartPage.qml qml/PaneShape.qml qml/SplitOverlay.qml qml/BiometricSetup.qml qml/WorkspacePanel.qml qml/HistoryPanel.qml qml/Main.qml qml/Theme.qml qml/ui/UiButton.qml qml/ui/UiTextField.qml qml/ui/UiCheckBox.qml qml/ui/UiComboBox.qml qml/ui/UiToolTip.qml qml/ui/UiMenuItem.qml qml/ui/UiColorPicker.qml qml/GlassSurface.qml qml/NavigationPill.qml qml/WebContextMenu.qml qml/PasswordPanel.qml qml/WebAuthnPanel.qml qml/PasskeySetup.qml
 )
+include(cmake/Translations.cmake)
+arbiter_add_translations(arbiter)
 target_link_libraries(arbiter PRIVATE
     arbiter_settings
     Qt6::Quick

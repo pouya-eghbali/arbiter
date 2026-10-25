@@ -32,18 +32,18 @@ public:
             || (event->message==WM_POWERBROADCAST && event->wParam==PBT_APMSUSPEND))) emit sessionLocked();
         return false;
     }
-    QString name() const override { return tr("Windows Hello"); }
+    QString name() const override { return BiometricAuth::tr("Windows Hello"); }
     bool nativePromptCanTakeFocus() const override { return true; }
     void refresh() override {
         if(busy() || m_checking) return;
-        if(!m_notifications) { availability(false,tr("Windows session-lock notifications are unavailable. Use your vault passphrase.")); return; }
+        if(!m_notifications) { availability(false,BiometricAuth::tr("Windows session-lock notifications are unavailable. Use your vault passphrase.")); return; }
         m_checking=true;
         auto *watcher=new QFutureWatcher<bool>(this);
         connect(watcher,&QFutureWatcher<bool>::finished,this,[this,watcher] {
             const bool ok=watcher->result(); watcher->deleteLater(); m_checking=false;
             if(busy()) return;
-            availability(ok,ok ? tr("Windows Hello is available (biometrics or your Windows Hello PIN).")
-                : tr("Windows Hello is unavailable. Configure Windows Hello on Windows 11, or use your vault passphrase."));
+            availability(ok,ok ? BiometricAuth::tr("Windows Hello is available (biometrics or your Windows Hello PIN).")
+                : BiometricAuth::tr("Windows Hello is unavailable. Configure Windows Hello on Windows 11, or use your vault passphrase."));
         });
         watcher->setFuture(QtConcurrent::run([] {
             try {
@@ -57,7 +57,7 @@ public:
 protected:
     void startNative(const QString &reason, quint64 token) override {
         auto *window=QGuiApplication::focusWindow();
-        if(!window) { complete(token,false,tr("Focus the browser window and try again.")); return; }
+        if(!window) { complete(token,false,BiometricAuth::tr("Focus the browser window and try again.")); return; }
         try {
             winrt::init_apartment(winrt::apartment_type::single_threaded);
             const auto cleanup=qScopeGuard([] { winrt::uninit_apartment(); });
@@ -71,7 +71,7 @@ protected:
                 const bool ok=watcher->result(); watcher->deleteLater();
                 if(!current(token)) return;
                 m_operation=nullptr;
-                complete(token,ok,ok ? QString() : tr("Windows Hello did not verify. Use your vault passphrase or try again."));
+                complete(token,ok,ok ? QString() : BiometricAuth::tr("Windows Hello did not verify. Use your vault passphrase or try again."));
             });
             watcher->setFuture(QtConcurrent::run([operation] {
                 try {
@@ -80,7 +80,7 @@ protected:
                     return operation.get()==UserConsentVerificationResult::Verified;
                 } catch(...) { return false; }
             }));
-        } catch(...) { complete(token,false,tr("Windows Hello could not start. Use your vault passphrase.")); }
+        } catch(...) { complete(token,false,BiometricAuth::tr("Windows Hello could not start. Use your vault passphrase.")); }
     }
     void cancelNative() override { if(m_operation) { try { m_operation.Cancel(); } catch(...) {} m_operation=nullptr; } }
 private:

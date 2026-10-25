@@ -16,7 +16,7 @@ void KeychainSecretStore::read(const QString &key, Callback callback)
     auto *job = new QKeychain::ReadPasswordJob(m_service, this);
     configure(job, key);
     connect(job, &QKeychain::Job::finished, this, [job, callback](QKeychain::Job *) {
-        callback(job->error() ? tr("Could not read the credential from the system credential store. Unlock your keyring and try again.") : QString(),
+        callback(job->error() ? QObject::tr("Could not read the credential from the system credential store. Unlock your keyring and try again.") : QString(),
                  job->error() ? QByteArray() : job->binaryData());
     });
     job->start();
@@ -28,7 +28,7 @@ void KeychainSecretStore::readOptional(const QString &key, Callback callback)
     configure(job, key);
     connect(job, &QKeychain::Job::finished, this, [job, callback](QKeychain::Job *) {
         const bool failed=job->error() && job->error()!=QKeychain::EntryNotFound;
-        callback(failed ? tr("Could not read the credential from the system credential store. Unlock your keyring and try again.") : QString(),
+        callback(failed ? QObject::tr("Could not read the credential from the system credential store. Unlock your keyring and try again.") : QString(),
                  job->error() ? QByteArray() : job->binaryData());
     });
     job->start();
@@ -40,7 +40,7 @@ void KeychainSecretStore::write(const QString &key, const QByteArray &data, Call
     configure(job, key);
     job->setBinaryData(data);
     connect(job, &QKeychain::Job::finished, this, [job, callback](QKeychain::Job *) {
-        callback(job->error() ? tr("Could not save the credential securely. Unlock your system keyring, or enable a supported credential store, and try again.") : QString(), {});
+        callback(job->error() ? QObject::tr("Could not save the credential securely. Unlock your system keyring, or enable a supported credential store, and try again.") : QString(), {});
     });
     job->start();
 }
@@ -51,7 +51,7 @@ void KeychainSecretStore::remove(const QString &key, Callback callback)
     configure(job, key);
     connect(job, &QKeychain::Job::finished, this, [job, callback](QKeychain::Job *) {
         callback(job->error() && job->error() != QKeychain::EntryNotFound
-                     ? tr("Could not delete the credential from the system credential store. Try again after unlocking your keyring.") : QString(), {});
+                     ? QObject::tr("Could not delete the credential from the system credential store. Try again after unlocking your keyring.") : QString(), {});
     });
     job->start();
 }

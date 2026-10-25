@@ -88,6 +88,12 @@ failed verification; no persistent biometric bypass key or passphrase is stored.
 Unsupported/unconfigured devices keep the passphrase flow. Windows builds need
 MSVC and a Windows 11 SDK; Linux builds need Qt DBus, with fprintd configured by
 the desktop. See [biometric details](docs/passkey-integration.md#biometric-session-unlocking).
+The interface follows your OS language from the first onboarding screen, with
+English as the fallback. Choose an override in Settings → Configuration → Interface
+language, then restart Arbiter. The initial language set includes German, French,
+Italian, Spanish, Brazilian Portuguese, Japanese, and Simplified Chinese. All
+translations are bundled for offline use. See [translation contributions](docs/translations.md).
+
 History is available from History → Show All History, the navigation pill's
 History item, or Cmd+Y on macOS / Ctrl+Y elsewhere. The shortcut can be changed
 in Settings → Keyboard. The timeline groups visits by day with visit times and
@@ -200,7 +206,8 @@ respect the OS Reduce Motion preference; private locking remains immediate.
 ## Requirements
 
 - Qt **6.12.0 or newer**, including Qt Quick, Quick Controls, **Qt WebEngine**,
-  **Qt WebChannel**, **Qt Positioning**, **Qt SVG**, **Qt PrintSupport**, and **Qt Pdf**.
+  **Qt WebChannel**, **Qt Positioning**, **Qt SVG**, **Qt PrintSupport**, **Qt Pdf**,
+  and **Qt Linguist Tools** for compiling the bundled translations.
 - CMake 3.24+, Ninja, a C++20 compiler, and Rust 1.93+ with Cargo.
 - The current [patched WebEngine SDK](docs/passkey-integration.md#build) for per-view ad blocking and passkeys.
 - QtKeychain 0.14.2+ built with Qt 6. CMake prefers an installed package; otherwise
