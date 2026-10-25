@@ -22,6 +22,7 @@ void DevToolsTest::frontendAndLifecycle()
             property var consoleResult: null
             property var pageResult: null
             property bool inspectedFromMenu: false
+            property int muteRequests: 0
             WebEngineView {
                 id: first
                 width: root.width; height: root.height - dock.height
@@ -32,6 +33,8 @@ void DevToolsTest::frontendAndLifecycle()
             WebContextMenu {
                 id: contextMenu
                 view: first
+                canMuteSite: true
+                onMuteSiteRequested: { root.muteRequests++; siteMuted = !siteMuted }
                 onInspectRequested: { root.inspectedFromMenu = true; dock.openFor(first, true) }
             }
             WebEngineView { id: second; visible: false; profile: first.profile }
@@ -60,6 +63,10 @@ void DevToolsTest::frontendAndLifecycle()
         QTRY_VERIFY(evaluate("contextMenu.visible").toBool());
         QVERIFY(evaluate("contextMenu.width >= 200").toBool());
         QVERIFY(evaluate("(() => { for (let i = 0; i < contextMenu.count; ++i) if (contextMenu.itemAt(i).objectName === 'printPageAction') return true; return false; })()").toBool());
+        auto *muteAction=evaluate("(() => { for(let i=0;i<contextMenu.count;i++) { const item=contextMenu.itemAt(i);if(item.objectName==='muteSiteAction')return item };return null })()").value<QObject *>();
+        QVERIFY(muteAction);
+        QCOMPARE(muteAction->property("text").toString(),point.y()==35?QString("Mute site"):QString("Unmute site"));
+        QVERIFY(QMetaObject::invokeMethod(muteAction,"triggered"));
         auto *action = evaluate(inspectAction).value<QObject *>();
         QVERIFY(action);
         QCOMPARE(action->property("text").toString(), QString("Inspect element"));
@@ -68,6 +75,7 @@ void DevToolsTest::frontendAndLifecycle()
         evaluate("contextMenu.close()");
         QTRY_VERIFY(!evaluate("contextMenu.visible").toBool());
     }
+    QCOMPARE(root->property("muteRequests").toInt(),2);
     QVERIFY(root->property("inspectedFromMenu").toBool());
     QTRY_VERIFY_WITH_TIMEOUT(evaluate("dock.frontend && !dock.frontend.loading && dock.frontend.url.toString().startsWith('devtools://')").toBool(), 15000);
     QVERIFY(evaluate("first.devToolsView === dock.frontend && dock.target === first").toBool());

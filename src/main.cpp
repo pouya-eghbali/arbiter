@@ -22,6 +22,7 @@
 #include "historyswipe.h"
 #include "workspaces.h"
 #include "webprofiles.h"
+#include "siteaudio.h"
 #include "sitepermissions.h"
 #include "passwordmanager.h"
 #include "webauthncontroller.h"
@@ -58,6 +59,7 @@ struct PrivateWindowState final : QObject {
     Workspaces workspaces;
     Downloads downloads;
     WebProfiles profiles;
+    SiteAudio siteAudio{false};
     History history;
     WebAuthnController webauthn;
     PasskeyController passkeys;
@@ -91,6 +93,7 @@ int main(int argc, char *argv[])
     KeyBindings keyBindings;
     Appearance appearance;
     BrowserPreferences browserPreferences;
+    SiteAudio siteAudio;
     AdBlocker adblocker;
     Onboarding onboarding(&appearance);
     SystemIntegration systemIntegration;
@@ -166,6 +169,7 @@ int main(int argc, char *argv[])
                                  {QStringLiteral("settingsError"), settingsError},
                                  {QStringLiteral("appearance"), QVariant::fromValue(&appearance)},
                                  {QStringLiteral("browserPreferences"), QVariant::fromValue(&browserPreferences)},
+                                 {QStringLiteral("siteAudio"), QVariant::fromValue(&siteAudio)},
                                  {QStringLiteral("adblocker"), QVariant::fromValue(&adblocker)},
                                  {QStringLiteral("onboarding"), QVariant::fromValue(&onboarding)},
                                  {QStringLiteral("windowDecorations"), appearance.windowDecorations()},
@@ -207,6 +211,7 @@ int main(int argc, char *argv[])
             properties["tabs"]=QVariant::fromValue(&state->tabs);
             properties["workspaces"]=QVariant::fromValue(&state->workspaces);
             properties["webProfiles"]=QVariant::fromValue(&state->profiles);
+            properties["siteAudio"]=QVariant::fromValue(&state->siteAudio);
             properties["history"]=QVariant::fromValue(&state->history);
             properties["downloads"]=QVariant::fromValue(&state->downloads);
             properties["webauthn"]=QVariant::fromValue(&state->webauthn);

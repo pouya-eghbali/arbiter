@@ -62,6 +62,11 @@ bool assign(toml::table &table,const QString &key,const QVariant &value,bool rem
         parent->insert_or_assign(leaf,int64_t(value.toLongLong())); break;
     case QMetaType::Double: case QMetaType::Float: parent->insert_or_assign(leaf,value.toDouble()); break;
     case QMetaType::QString: parent->insert_or_assign(leaf,value.toString().toStdString()); break;
+    case QMetaType::QStringList: {
+        toml::array array;
+        for (const auto &item : value.toStringList()) array.push_back(item.toStdString());
+        parent->insert_or_assign(leaf,std::move(array)); break;
+    }
     default: return false;
     }
     return true;

@@ -26,7 +26,7 @@ Basic.ApplicationWindow {
     QtObject {id:fakeView;property bool canGoBack:false;property bool canGoForward:false;property bool loading:false;property string url:"https://example.com"}
     QtObject {id:fakeAppearance;property string navigationRevealMode:"pill";function displayAddress(url){return url}}
     NavigationPill {
-        id:pill;anchors.centerIn:parent;revealed:true
+        id:pill;objectName:"navigationPillFixture";anchors.centerIn:parent;revealed:true
         view:fakeView;appearance:fakeAppearance;workspaceName:"Personal";workspaceColor:"blue";tabCount:1
         installedExtensions:owner.items
         onExtensionRequested:function(id,options){owner.chosenId=id;owner.chosenOptions=options}
@@ -80,6 +80,23 @@ Basic.ApplicationWindow {
     QCoreApplication::sendEvent(window,&wheel);
     QTRY_VERIFY(strip->property("contentX").toReal()>0);
     QCOMPARE(stripItem->rotation(),0.);
+    QVERIFY(QMetaObject::invokeMethod(back,"clicked"));
+    auto *audioButton=root->findChild<QObject *>("siteAudioPillButton");QVERIFY(audioButton);
+    auto *more=root->findChild<QObject *>("navigationMoreMenu");QVERIFY(more);
+    auto *muteItem=root->findChild<QObject *>("muteSiteMenuItem");QVERIFY(muteItem);
+    auto *navigation=root->findChild<QObject *>("navigationPillFixture");QVERIFY(navigation);
+    navigation->setProperty("siteMuteAvailable",true);
+    QVERIFY(!audioButton->property("visible").toBool());
+    QVERIFY(QMetaObject::invokeMethod(more,"open"));
+    QTRY_VERIFY(muteItem->property("visible").toBool());
+    QVERIFY(QMetaObject::invokeMethod(more,"close"));
+    navigation->setProperty("siteMuted",true);
+    QTRY_VERIFY(audioButton->property("visible").toBool());
+    QVERIFY(QMetaObject::invokeMethod(more,"open"));
+    QVERIFY(!muteItem->property("visible").toBool());
+    QVERIFY(QMetaObject::invokeMethod(more,"close"));
+    QVERIFY(QMetaObject::invokeMethod(toggle,"clicked"));
+    QVERIFY(root->property("extensionsMode").toBool());
     root->setProperty("privateMode",true);
     QVERIFY(!root->property("extensionsMode").toBool());
     QVERIFY(!toggle->property("visible").toBool());

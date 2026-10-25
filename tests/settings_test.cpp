@@ -27,6 +27,15 @@ private slots:
         qputenv("XDG_CONFIG_DIRS",(system1+QDir::listSeparator()+"relative"+QDir::listSeparator()+system2).toUtf8());
         QSettings().clear();
     }
+    void stringLists() {
+        Settings settings;
+        const QStringList hosts{"example.com","quotes\".example","bücher.example"};
+        settings.setValue("Audio/mutedSites",hosts);
+        QCOMPARE(settings.status(),QSettings::NoError);
+        QCOMPARE(Settings().value("Audio/mutedSites").toStringList(),hosts);
+        settings.setValue("Audio/mutedSites",QStringList{});
+        QCOMPARE(Settings().value("Audio/mutedSites").toStringList(),QStringList{});
+    }
     void xdgPaths() {
         QCOMPARE(Settings::configFile(),user+"/arbiter/settings.toml");
         QCOMPARE(Settings::systemFiles(),QStringList({system1+"/arbiter/settings.toml",system2+"/arbiter/settings.toml"}));

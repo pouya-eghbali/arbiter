@@ -4,6 +4,19 @@ Arbiter exposes H.264/AAC formats without bundling their software decoders.
 Widevine is discovered from an existing installation; Arbiter neither distributes
 nor downloads the CDM. This guide describes the patched engine, not stock Qt.
 
+## Site muting
+
+Choose **Mute site** in the pill's More menu or the page's right-click menu.
+A speaker button appears in the pill while the focused page is audible or its
+site is muted; click it to mute/unmute. More omits the duplicate control while
+that button is visible. Only HTTP(S) pages have a site-muting control.
+
+The rule covers all open and future tabs with the exact same hostname, across
+normal workspaces and ports. Subdomains remain separate. Normal choices are saved
+in `Audio.mutedSites` in `settings.toml`. Private windows begin with those choices,
+but edits stay in that private window's memory and disappear when it closes.
+Private-window locking always mutes the page regardless of the site's rule.
+
 ## Decoder paths
 
 | Platform | H.264 | AAC | Bundled FFmpeg |

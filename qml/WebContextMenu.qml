@@ -11,6 +11,9 @@ UiMenu {
     property bool passwordsEnabled: true
     signal inspectRequested()
     signal printRequested()
+    property bool siteMuted: false
+    property bool canMuteSite: false
+    signal muteSiteRequested()
     signal passwordsRequested()
     signal passwordSuggestionRequested(var field)
     property int requestGeneration: 0
@@ -59,6 +62,15 @@ UiMenu {
             onTriggered: contextMenu.printRequested()
         }
     }
+    Component {
+        id: muteSiteItem
+        UiMenuItem {
+            objectName: "muteSiteAction"
+            text: contextMenu.siteMuted ? qsTr("Unmute site") : qsTr("Mute site")
+            onTriggered: contextMenu.muteSiteRequested()
+        }
+    }
+    Connections { target: contextMenu.view; function onUrlChanged() { contextMenu.close() } }
     Component {
         id: inspectItem
         UiMenuItem {
@@ -144,6 +156,7 @@ UiMenu {
             addWebAction(WebEngineView.Reload)
         }
         separator()
+        if (canMuteSite) addItem(muteSiteItem.createObject(contextMenu.contentItem))
         addItem(printItem.createObject(contextMenu.contentItem))
         addItem(passwordsItem.createObject(contextMenu.contentItem))
         const passwordIndex = count - 1

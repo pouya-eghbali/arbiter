@@ -23,6 +23,11 @@ darkBackgroundImage = ""
 [AdBlock]
 enabled = true
 
+[Audio]
+# Exact hostnames; applies to HTTP/HTTPS and every port. Subdomains are separate.
+# Private-window changes remain temporary and never update this list.
+mutedSites = []
+
 [Search]
 # duckduckgo, google, bing, brave, ecosia, or startpage
 engine = "duckduckgo"

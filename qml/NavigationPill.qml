@@ -4,6 +4,9 @@ import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 
 FocusScope {
+    property bool siteMuted: false
+    property bool siteMuteAvailable: false
+    signal muteSiteRequested()
     property bool privateMode: false
     property var installedExtensions: []
     property bool extensionsMode: false
@@ -196,6 +199,15 @@ FocusScope {
             onPressed: pill.shareRequested()
         }
         NavButton {
+            id: siteAudioButton
+            objectName: "siteAudioPillButton"
+            visible: pill.siteMuteAvailable && (pill.siteMuted || (pill.view && pill.view.recentlyAudible === true))
+            iconName: pill.siteMuted ? "volume-x" : "volume-2"
+            Accessible.name: pill.siteMuted ? qsTr("Unmute site") : qsTr("Mute site")
+            iconColor: pill.siteMuted ? Theme.accent : Theme.text
+            onClicked: pill.muteSiteRequested()
+        }
+        NavButton {
             id: extensionsButton
             objectName: "extensionsPillButton"
             visible: !pill.privateMode
@@ -282,6 +294,7 @@ FocusScope {
     UiMenu {
         preferredWidth: 320
         id: more
+        objectName: "navigationMoreMenu"
         y: -height - 8
         x: Math.max(0, pill.width - width)
         palette.text: Theme.text
@@ -296,6 +309,7 @@ FocusScope {
         UiMenuItem { text: qsTr("Split with…"); onTriggered: pill.splitWithRequested() }
         UiMenuItem { visible: !adBlockButton.visible; text: pill.adBlockActive ? qsTr("Pause ad blocking in this view") : qsTr("Resume ad blocking in this view"); enabled: pill.adBlockEnabled; onTriggered: pill.adBlockRequested() }
         UiMenuItem { visible: !shareButton.visible; text: qsTr("Share current page…"); enabled: pill.canShare; onTriggered: pill.shareRequested() }
+        UiMenuItem { objectName: "muteSiteMenuItem"; visible: pill.siteMuteAvailable && !siteAudioButton.visible; text: pill.siteMuted ? qsTr("Unmute site") : qsTr("Mute site"); onTriggered: pill.muteSiteRequested() }
         UiMenuItem { text: qsTr("Developer tools…"); onTriggered: pill.developerToolsRequested() }
         UiMenuItem { text: pill.activeDownloads > 0 ? qsTr("Downloads (%1 active)…").arg(pill.activeDownloads) : qsTr("Downloads…"); onTriggered: pill.downloadsRequested() }
         UiMenuItem { text: qsTr("History…"); onTriggered: pill.historyRequested() }

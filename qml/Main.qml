@@ -78,6 +78,7 @@ Basic.ApplicationWindow {
     required property var downloads
     required property var onboarding
     required property var adblocker
+    required property var siteAudio
     required property var browserPreferences
     required property var appearance
     readonly property string focusedWorkspaceId: webView ? webView.workspaceId : workspaces.currentId
@@ -979,7 +980,11 @@ Basic.ApplicationWindow {
                             // Transparent document canvases use the browser's
                             // normal white backing, independent of UI colors.
                             backgroundColor: "white"
-                            audioMuted: window.privateCovered
+                            readonly property bool siteMuted: {
+                                window.siteAudio.revision
+                                return window.siteAudio.isMuted(url)
+                            }
+                            audioMuted: window.privateCovered || siteMuted
                             profile: window.webProfiles.profile(profileId)
                             webChannel: passwordChannel
                             webChannelWorld: 1
@@ -1026,6 +1031,12 @@ Basic.ApplicationWindow {
                                 id: pageContextMenu
                                 view: page
                                 passwordsEnabled: window.passwords.enabled
+                                siteMuted: page.siteMuted
+                                canMuteSite: window.siteAudio.siteHost(page.url).length > 0
+                                onMuteSiteRequested: {
+                                    if (!window.privateCovered && !window.shuttingDown)
+                                        window.siteAudio.setMuted(page.url, !page.siteMuted)
+                                }
                                 onInspectRequested: {
                                     if (!window.privateCovered && !window.shuttingDown && !window.settingsOpen) {
                                         window.splits.activate(page.paneGeometry.paneId)
@@ -2037,6 +2048,12 @@ Basic.ApplicationWindow {
         adBlockActive: window.webView ? window.webView.adBlock.enabled : false
         adBlockBlocked: window.webView ? window.webView.adBlock.blocked : 0
         onAdBlockRequested: window.toggleAdBlock()
+        siteMuted: window.webView ? window.webView.siteMuted : false
+        siteMuteAvailable: window.webView && window.siteAudio.siteHost(window.webView.url).length > 0
+        onMuteSiteRequested: {
+            if (window.webView && !window.privateCovered && !window.shuttingDown)
+                window.siteAudio.setMuted(window.webView.url, !window.webView.siteMuted)
+        }
         tabCount: window.focusedWorkspace.tabs
         workspaceName: window.workspaces.currentName
         workspaceColor: window.workspaces.currentColor
