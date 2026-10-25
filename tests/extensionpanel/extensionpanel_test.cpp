@@ -46,6 +46,8 @@ Basic.ApplicationWindow {
     visible: true
     width: 1100; height: 760
     property string fieldValue: ""
+    property string optionsTabUrl: ""
+    property int invokedCount: 0
     property bool pageLoaded: false
     property alias panelOpen: panel.opened
     property alias panelX: panel.x
@@ -64,9 +66,13 @@ Basic.ApplicationWindow {
         property var items: []
         signal changed()
         function popupUrl(id) { return "about:blank" }
-        function optionsUrl(id) { return "about:blank" }
+        function optionsUrl(id) { return "https://extension-options.example/settings.html" }
     }
-    ExtensionPanel { id: panel; controller: catalog; browserProfile: page.profile }
+    ExtensionPanel {
+        id: panel; controller: catalog; browserProfile: page.profile
+        onOptionsRequested: function(url) { window.optionsTabUrl = url }
+        onInvoked: window.invokedCount++
+    }
     function inspectPage() { page.mainFrame.runJavaScript("document.getElementById('field').value", 0, value => window.fieldValue = value) }
     function showExtension() { panel.showExtension("fixture", false) }
     function showOptions() { panel.showExtension("fixture", true) }
@@ -118,6 +124,14 @@ Basic.ApplicationWindow {
         const QPoint closeButton(window->property("panelX").toInt() + window->property("panelWidth").toInt() - 22,
                                  window->property("panelY").toInt() + window->property("panelHeight").toInt() - 22);
         QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, closeButton);
+        QTRY_VERIFY(!window->property("panelOpen").toBool());
+        QTRY_VERIFY(!window->findChild<QObject *>("extensionPopupView"));
+        QVERIFY(QMetaObject::invokeMethod(window, "showExtension"));
+        QTRY_VERIFY(window->property("panelOpen").toBool());
+        const int invocations=window->property("invokedCount").toInt();
+        QVERIFY(QMetaObject::invokeMethod(window, "showOptions"));
+        QCOMPARE(window->property("optionsTabUrl").toString(),QString("https://extension-options.example/settings.html"));
+        QCOMPARE(window->property("invokedCount").toInt(),invocations);
         QTRY_VERIFY(!window->property("panelOpen").toBool());
         QTRY_VERIFY(!window->findChild<QObject *>("extensionPopupView"));
     }

@@ -2081,6 +2081,10 @@ Basic.ApplicationWindow {
         controller: window.extensionCatalog
         browserProfile: window.webView ? window.webView.profile : null
         onInvoked: function(id) { if (window.webView) window.webView.grantExtensionActiveTab(id) }
+        onOptionsRequested: function(url) {
+            if (window.privateMode || window.privateCovered || window.shuttingDown || !window.webView) return
+            window.selectTab(window.workspaces.addTab(window.focusedWorkspaceId, url, false))
+        }
         onManageRequested: { window.openSettings(); window.settingsCategory = 8 }
         onNewWindowRequested: function(request) { window.openWebRequest(request, window.focusedWorkspaceId) }
         onVisitRequested: function(url) { extensionPanel.close(); window.openExternalUrl(url) }

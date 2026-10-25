@@ -28,17 +28,17 @@ The pill's More menu → Extensions, or Cmd+Shift+X on macOS / Ctrl+Shift+X on
 Windows/Linux, lists installed extensions. Enabled extensions with action popups
 or options pages can be opened here; Settings also has Open/Options buttons.
 Keyboard settings can change this shortcut, including with the pill hidden.
-Extension documents open in a compact, non-modal floating panel with rounded
+Extension action popups open in a compact, non-modal floating panel with rounded
 content and a slim bottom drag handle/close button. Clicking the page leaves the
 panel open and usable; drag the handle to move it away from page controls. Escape
-while the panel has focus, or its close button, dismisses it. Options pages use a
-wider panel. Action popups fit their document's body dimensions and remeasure
+while the panel has focus, or its close button, dismisses it. Action popups fit
+their document's body dimensions and remeasure
 while open when content changes; dimensions are capped at 800 CSS pixels and the
-available browser window. Options pages retain a larger, stable viewport. The
-extension list is non-modal too.
+available browser window. Extension settings/options open in a regular active tab
+in the focused view's workspace and profile. The extension list is non-modal too.
 
 Extension pages use their original Chromium profile, so storage and runtime
-messaging work. Their views are destroyed when the panel closes; navigation,
+messaging work. Popup views are destroyed when the panel closes; navigation,
 profile changes, private locks, and shutdown dismiss the panel. External HTTP(S)
 navigation opens in Arbiter. Window-opening requests are routed to the focused
 workspace. Website-style permission requests inside the extension panel are

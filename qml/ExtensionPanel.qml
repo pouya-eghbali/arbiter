@@ -13,11 +13,10 @@ UiPopup {
     required property var browserProfile
     property string extensionId: ""
     property url extensionUrl: ""
-    property bool optionsPage: false
     property size popupContentSize: Qt.size(360, 420)
     readonly property int popupFrameHeight: padding * 2 + 28 + 6
     function fitContent(view) {
-        if (!opened || optionsPage || !extensionId.length || view.loading) return
+        if (!opened || !extensionId.length || view.loading) return
         const expectedUrl = extensionUrl.toString()
         view.mainFrame.runJavaScript(`(() => {
             const body = document.body;
@@ -28,7 +27,7 @@ UiPopup {
             return [Math.ceil(Math.max(bounds.width, body.scrollWidth) + number(style.marginLeft) + number(style.marginRight)),
                     Math.ceil(Math.max(bounds.height, body.scrollHeight) + number(style.marginTop) + number(style.marginBottom))];
         })()`, 0, function(size) {
-            if (!panel.opened || panel.optionsPage || panel.extensionUrl.toString() !== expectedUrl || !size || size.length !== 2) return
+            if (!panel.opened || panel.extensionUrl.toString() !== expectedUrl || !size || size.length !== 2) return
             if (Number.isFinite(size[0]) && Number.isFinite(size[1]) && size[0] > 0 && size[1] > 0)
                 panel.popupContentSize = Qt.size(Math.max(160, Math.min(800, size[0])), Math.max(80, Math.min(800, size[1])))
         })
@@ -45,21 +44,26 @@ UiPopup {
     signal manageRequested()
     signal newWindowRequested(var request)
     signal visitRequested(string url)
+    signal optionsRequested(string url)
     function showExtension(id: string, options: bool) {
         const url = options ? controller.optionsUrl(id) : controller.popupUrl(id)
         if (!url.toString().length) return
-        if (!options) invoked(id)
+        if (options) {
+            close()
+            optionsRequested(url.toString())
+            return
+        }
+        invoked(id)
         popupContentSize = Qt.size(360, 420)
         extensionId = id
         extensionUrl = url
-        optionsPage = options
         place()
         open()
     }
-    function showList() { extensionId = ""; extensionUrl = ""; optionsPage = false; place(); open() }
+    function showList() { extensionId = ""; extensionUrl = ""; place(); open() }
     parent: Basic.Overlay.overlay
-    width: Math.max(1, Math.min(extensionId.length ? (optionsPage ? 680 : popupContentSize.width + padding * 2) : 460, parent.width - 32))
-    height: Math.max(1, Math.min(extensionId.length ? (optionsPage ? 600 : popupContentSize.height + popupFrameHeight) : 440, parent.height - 48))
+    width: Math.max(1, Math.min(extensionId.length ? (popupContentSize.width + padding * 2) : 460, parent.width - 32))
+    height: Math.max(1, Math.min(extensionId.length ? (popupContentSize.height + popupFrameHeight) : 440, parent.height - 48))
     padding: extensionId.length ? 8 : 16
     modal: false
     dim: false
@@ -139,7 +143,7 @@ UiPopup {
                     Timer {
                         interval: 500
                         repeat: true
-                        running: panel.opened && !panel.optionsPage && !extensionView.loading
+                        running: panel.opened && !extensionView.loading
                         onTriggered: panel.fitContent(extensionView)
                     }
                     layer.enabled: true
