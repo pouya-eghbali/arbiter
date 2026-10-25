@@ -62,6 +62,76 @@ necessarily be undone automatically.
   extension installation is unavailable. Qt's built-in PDF and Hangouts
   components are left untouched and excluded from user extension lists.
 
+## Investigated compatibility: Awesome Screenshot
+
+Awesome Screen Recorder & Screenshot **4.4.44** (store ID
+`nlipoenfbbikpbjkfpfillcgkoblgpmj`) installs and opens its popup, but page screenshot
+capture is **not supported by the current engine integration**. Installation and
+permission approval do not establish runtime API compatibility.
+
+The installed package's `popup.bundle.js` calls `chrome.windows.getCurrent` and
+`chrome.tabs.query` to identify the active page. Its `serviceWorker.bundle.js`
+uses `chrome.tabs.captureVisibleTab` for image capture, and tab/window operations
+to activate the page and open the result. These calls cannot complete with our
+current Qt API subset.
+
+A local synthetic MV3 extension with `tabs`, `activeTab`, `scripting`,
+`desktopCapture`, `tabCapture`, and `<all_urls>` permissions was loaded into a
+**disposable profile against Arbiter's patched SDK** on macOS. The runtime probe
+on 2026-10-25 returned:
+
+| API | Runtime availability |
+| --- | --- |
+| `chrome.windows.getCurrent`, `chrome.windows.update` | Undefined |
+| `chrome.tabs.query`, `chrome.tabs.create` | Undefined |
+| `chrome.tabs.captureVisibleTab`, `chrome.tabs.sendMessage` | Undefined |
+| `chrome.scripting.executeScript` | Undefined |
+| `chrome.desktopCapture.chooseDesktopMedia` | Undefined |
+| `chrome.tabCapture.getMediaStreamId` | Undefined |
+| `chrome.tabs.update`, `chrome.offscreen.createDocument` | Functions exposed; behavior not validated by this probe |
+
+Calling the same `chrome.windows.getCurrent` expression used by the popup produced
+`Cannot read properties of undefined (reading 'getCurrent')` in the synthetic
+probe. This reproduces the missing-API failure without running the third-party
+extension against real browsing data. The installed extension code and the
+engine schemas/registrations corroborate it: Qt's
+`qtwebengine/common/extensions/api/tabs.json` declares only `tabs.update`, and its
+browser function registry does not register `tabs.query` or
+`tabs.captureVisibleTab`.
+
+This is not a missing macOS screen-recording approval. That approval cannot add
+undefined extension APIs. Arbiter also currently rejects media/website permission
+requests made inside extension popups (`qml/ExtensionPanel.qml`); that is an
+additional integration boundary for recording, distinct from the screenshot API
+failure above. Other platforms were not runtime-tested in this investigation.
+
+Supporting this extension requires extending the pinned engine and application
+integration together:
+
+1. Map Arbiter windows and tabs to stable extension IDs. Resolve the **focused
+   split view** as the active tab, without treating the extension popup itself as
+   the target, and respect profile/private-window boundaries.
+2. Implement the tab/window lookup, activation, messaging, script-injection, and
+   result-tab creation operations used by the extension, with Chromium's permission
+   checks and properly scoped user-invoked `activeTab` grants.
+3. Implement `tabs.captureVisibleTab` against the authorized page surface,
+   returning the expected image data URL with Chromium-compatible error handling,
+   restricted-page checks, format options, and capture limits.
+4. Validate visible, selected-area, and full-page capture with the real extension.
+   Full-page capture also needs its scrolling/content-script/stitching workflow to
+   succeed; exposing a single screenshot method is insufficient.
+5. Treat desktop/tab **recording** as separate work, including source selection,
+   media permissions, and capture lifecycle. Do not claim recording compatibility
+   from a successful page screenshot.
+
+Use native extension bindings and browser-side authorization rather than injecting
+privileged JavaScript into arbitrary websites or modifying the installed extension.
+A built-in screenshot command would be an independent feature and would not repair
+this extension's missing APIs.
+
+References: [Chrome tabs API](https://developer.chrome.com/docs/extensions/reference/api/tabs),
+[Awesome Screenshot capture workflow](https://support.awesomescreenshot.com/hc/en-us/articles/53641390758169-How-to-take-capture-a-full-page-screenshot-using-Awesome-Screenshot-extensions).
+
 ## Store package verification
 
 `WebStoreInstall` downloads from the store update service without profile cookies
