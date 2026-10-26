@@ -26,6 +26,7 @@ def main():
     p.add_argument('--jobs', type=int, default=24)
     p.add_argument('--package', action='store_true')
     p.add_argument('--unsigned', action='store_true')
+    p.add_argument('--sdk-prefix', type=Path, help='Reuse an installed SDK with a matching verified build receipt')
     a = p.parse_args()
     if not 1 <= a.jobs <= 96: p.error('--jobs must be between 1 and 96')
     if a.package:
@@ -54,8 +55,8 @@ def main():
     cache = Path(os.environ.get('ARBITER_ENGINE_CACHE', str(ROOT / 'build-release-engine')))
     kit_path_key = hashlib.sha256(str(qt).encode()).hexdigest()[:12]
     work = (cache / (fingerprint() + '-' + sys.platform + '-' + platform.machine() + '-' + kit_path_key)).resolve()
-    sdk = work / 'sdk'
-    if (sdk / 'arbiter-engine-build.json').exists():
+    sdk = a.sdk_prefix.resolve() if a.sdk_prefix else work / 'sdk'
+    if a.sdk_prefix or (sdk / 'arbiter-engine-build.json').exists():
         verify_sdk(sdk)
     else:
         run(sys.executable, ROOT / 'engine/build.py', '--qt-prefix', qt, '--work', work, '--jobs', a.jobs)

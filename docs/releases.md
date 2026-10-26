@@ -55,6 +55,9 @@ would produce ARM binaries, which are outside the initial package matrix.
    VERSION --profile minimal`, using `dependencies.json`). The build script selects
    it for its own process without changing your global/default toolchain.
    Run from a Windows MSVC Developer PowerShell or Developer Command Prompt.
+   To reuse an already built SDK, add `--sdk-prefix /path/to/sdk`; it must have
+   the exact matching build receipt or the command refuses it. This avoids another
+   Chromium build when the current SDK is already verified.
    Packages and individual `.sha256` files appear in **`build-release-artifacts/`**.
    Retrying requires removing/moving the prior staged package directory of the
    same name; packaging refuses to overwrite it. Keep the archives/checksums.
