@@ -25,7 +25,23 @@ npm run preview
 Deploy the contents of **website/build/** to a static host. The page works at a
 domain root; for hosting under a subdirectory, configure SvelteKit's base path
 and update the root-relative static asset URLs. No hosting account or deployment
-configuration is checked in, and building does not publish anything.
+credentials are checked in, and building does not publish anything.
+
+### Vercel previews
+
+`vercel.json` deploys the prerendered static output with no server functions.
+The Vercel CLI's local project link and account credentials are not committed.
+From `website/`, link to the Outer Gods project and create a preview:
+
+```sh
+vercel link --scope outer-gods --project arbiter-website --yes
+vercel deploy --scope outer-gods --target preview --yes
+```
+
+The CLI prints the preview URL. Check that its reported target is Preview before
+sharing. Vercel may automatically promote the first deployment of a new project
+even when Preview was requested; the existing project is already initialized.
+No custom domain is configured for this draft.
 
 ## Design and behavior
 
