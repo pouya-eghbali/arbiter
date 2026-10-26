@@ -110,7 +110,8 @@ Set these variables in the shell used to build:
 - `ARBITER_ENGINE_CACHE`: optional persistent, machine-private SDK work directory.
   Otherwise the ignored `build-release-engine/` is used. The cache key includes
   engine inputs, host architecture and base-kit location. Do not share writable
-  SDK caches with untrusted processes/jobs.
+  SDK caches with untrusted processes/jobs. App/test build directories also follow
+  the selected dependencies to avoid retaining stale CMake package paths.
 
 macOS needs full Xcode 26+ with Icon Composer/`actool`, Command Line Tools and Metal.
 Export `TOOLCHAINS` when the installed Metal component requires it (see

@@ -37,14 +37,14 @@ jobs:
           const fs = require('fs');
           const deps = JSON.parse(fs.readFileSync('dependencies.json', 'utf8'));
           const engine = JSON.parse(fs.readFileSync('engine/manifest.json', 'utf8'));
-          const pins = {python: deps.python, rust: deps.rust, html5lib: deps.html5lib, qt: engine.qt};
+          const pins = {python: deps.python, rust: deps.rust, html5lib: deps.html5lib, qt: engine.qt, has_qt_prefix: Boolean(process.env.ARBITER_QT_PREFIX)};
           for (const [key, value] of Object.entries(pins)) fs.appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
           JS
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ steps.pins.outputs.python }}
       - name: Install the matching base Qt kit unless explicitly provisioned
-        if: env.ARBITER_QT_PREFIX == ''
+        if: steps.pins.outputs.has_qt_prefix != 'true'
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ steps.pins.outputs.qt }}

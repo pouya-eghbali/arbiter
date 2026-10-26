@@ -43,6 +43,26 @@ class DependencyTests(unittest.TestCase):
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_linux_never_copies_a_different_stock_engine_version(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); qt = root / 'qt'; sdk = root / 'sdk'; stage = root / 'stage'
+            (stage / 'bin').mkdir(parents=True)
+            for prefix in (qt, sdk):
+                (prefix / 'lib').mkdir(parents=True)
+                (prefix / 'qml/QtWebEngine').mkdir(parents=True)
+                (prefix / 'qml/QtWebEngine/qmldir').write_text(prefix.name)
+            (qt / 'lib/libQt6Core.so.6.12.0').write_text('base Qt')
+            (qt / 'lib/libQt6WebEngineCore.so.6.139.0').write_text('stock')
+            (qt / 'qml/QtWebEngine/obsolete.qml').touch()
+            (sdk / 'lib/libQt6WebEngineCore.so.6.140.0').write_text('patched')
+            (sdk / 'libexec').mkdir(); (sdk / 'libexec/QtWebEngineProcess').touch()
+            package.linux(stage, sdk, qt)
+            self.assertTrue((stage / 'lib/libQt6Core.so.6.12.0').exists())
+            self.assertTrue((stage / 'lib/libQt6WebEngineCore.so.6.140.0').exists())
+            self.assertFalse((stage / 'lib/libQt6WebEngineCore.so.6.139.0').exists())
+            self.assertFalse((stage / 'qml/QtWebEngine/obsolete.qml').exists())
+            self.assertEqual((stage / 'qml/QtWebEngine/qmldir').read_text(), 'sdk')
+
     def test_uploader_rejects_mixed_local_builds_before_updating_release(self):
         import hashlib
         import json

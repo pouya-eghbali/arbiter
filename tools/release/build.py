@@ -64,13 +64,15 @@ def main():
     output.mkdir(exist_ok=True)
     definitions = ['-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_PREFIX_PATH=' + str(qt),
                    '-DARBITER_PATCHED_WEBENGINE=ON', '-DARBITER_WEBENGINE_PREFIX=' + str(sdk),
-                   '-DARBITER_STRICT_ENGINE_IDENTITY=ON', '-DARBITER_BUNDLED_KEYCHAIN=ON']
+                   '-DARBITER_STRICT_ENGINE_IDENTITY=ON', '-DARBITER_BUNDLED_KEYCHAIN=ON',
+                   '-DARBITER_CARGO=' + str(cargo)]
     if os.environ.get('ARBITER_OPENSSL_ROOT'):
         definitions += ['-DOPENSSL_ROOT_DIR=' + os.environ['ARBITER_OPENSSL_ROOT']]
     if os.environ.get('ARBITER_CMAKE_TOOLCHAIN'):
         definitions += ['-DCMAKE_TOOLCHAIN_FILE=' + os.environ['ARBITER_CMAKE_TOOLCHAIN']]
     if sys.platform == 'darwin': definitions += ['-DCMAKE_OSX_ARCHITECTURES=' + platform.machine(), '-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0']
-    tests = ROOT / 'build-release-tests'
+    build_key = hashlib.sha256('\n'.join(definitions).encode()).hexdigest()[:12]
+    tests = ROOT / ('build-release-tests-' + build_key)
     run('cmake', '-S', ROOT / 'tests', '-B', tests, '-G', 'Ninja', *definitions, '-DARBITER_WEBENGINE_SDK_RUNTIME=ON')
     run('cmake', '--build', tests, '--parallel', a.jobs)
     environment = dict(os.environ, ARBITER_TEST_KEYCHAIN='1')
@@ -78,10 +80,10 @@ def main():
         run('xvfb-run', '-a', 'dbus-run-session', '--', 'bash', '-e', '-c',
             'export GNOME_KEYRING_CONTROL; GNOME_KEYRING_CONTROL=$(mktemp -d); '
             'printf "arbiter-ci-keyring" | gnome-keyring-daemon --unlock --components=secrets --control-directory="$GNOME_KEYRING_CONTROL"; '
-            'ctest --test-dir build-release-tests --output-on-failure --timeout 300', env=environment)
+            'ctest --test-dir "$1" --output-on-failure --timeout 300', 'arbiter-ci', tests, env=environment)
     else:
         run('ctest', '--test-dir', tests, '--output-on-failure', '--timeout', '300', env=environment)
-    app = ROOT / 'build-release-app'
+    app = ROOT / ('build-release-app-' + build_key)
     run('cmake', '-S', ROOT, '-B', app, '-G', 'Ninja', *definitions,
         '-DARBITER_WEBENGINE_SDK_RUNTIME=OFF', '-DARBITER_MACOS_SIGNING_IDENTITY=-')
     run('cmake', '--build', app, '--parallel', a.jobs)

@@ -190,10 +190,15 @@ def linux(stage, sdk, qt):
     # desktop/graphics drivers, Secret Service and fprintd stay external.
     for prefix in (qt, sdk):
         for directory in ('qml', 'plugins'):
-            if (prefix / directory).exists(): copy(prefix / directory, stage / directory)
+            if (prefix / directory).exists():
+                if prefix == sdk and directory == 'qml' and (stage / 'qml/QtWebEngine').exists():
+                    shutil.rmtree(stage / 'qml/QtWebEngine')
+                copy(prefix / directory, stage / directory)
         for libdir in (prefix / 'lib', prefix / 'lib64'):
             if libdir.exists():
                 for library in libdir.glob('libQt6*.so*'):
+                    if prefix == qt and library.name.startswith('libQt6WebEngine'):
+                        continue
                     copy(library, stage / 'lib' / library.name)
     for helper in sdk.rglob('QtWebEngineProcess'):
         if helper.is_file(): copy(helper, stage / 'libexec/QtWebEngineProcess'); break
@@ -220,7 +225,9 @@ def windows(stage, sdk, qt):
     # windeployqt queries the base kit; overwrite ALL engine pieces together.
     for library in ('Qt6WebEngineCore.dll', 'Qt6WebEngineQuick.dll', 'Qt6WebEngineWidgets.dll', 'QtWebEngineProcess.exe'):
         copy(sdk / 'bin' / library, stage / 'bin' / library)
-    copy(sdk / 'qml/QtWebEngine', stage / 'bin/qml/QtWebEngine')
+    module = stage / 'bin/qml/QtWebEngine'
+    if module.exists(): shutil.rmtree(module)
+    copy(sdk / 'qml/QtWebEngine', module)
     copy(sdk / 'resources', stage / 'bin/resources')
     copy(sdk / 'translations/qtwebengine_locales', stage / 'bin/translations/qtwebengine_locales')
     openssl = Path(os.environ['ARBITER_OPENSSL_BIN'])
