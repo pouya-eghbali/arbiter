@@ -215,10 +215,10 @@ respect the OS Reduce Motion preference; private locking remains immediate.
 
 ## Requirements
 
-- Qt **6.12.0 or newer**, including Qt Quick, Quick Controls, **Qt WebEngine**,
+- The exact base Qt version pinned in `engine/manifest.json` (currently **6.12.0**), including Qt Quick, Quick Controls, **Qt WebEngine**,
   **Qt WebChannel**, **Qt Positioning**, **Qt SVG**, **Qt PrintSupport**, **Qt Pdf**,
   and **Qt Linguist Tools** for compiling the bundled translations.
-- CMake 3.24+, Ninja, a C++20 compiler, and Rust 1.93+ with Cargo.
+- CMake 3.24+, Ninja, a C++20 compiler, and the Rust toolchain pinned in `dependencies.json` with Cargo.
 - The current [patched WebEngine SDK](docs/passkey-integration.md#build) for per-view ad blocking and passkeys.
 - QtKeychain 0.14.2+ built with Qt 6. CMake prefers an installed package; otherwise
   it downloads and statically builds the pinned 0.14.2 archive after SHA-256
@@ -653,3 +653,11 @@ Arbiter is licensed under the **GNU General Public License, version 3 only**
 Third-party libraries, icons, filter lists, and upstream Qt/Chromium files retain
 their respective license notices. See [third-party notices](licenses/) and the
 [engine license notice](engine/LICENSE).
+
+## Release engineering
+
+Build desktop packages locally on macOS (Apple Silicon), Windows x64 and a Linux
+x64 VM, then upload the verified packages/checksums to a GitHub draft release.
+GitHub also prepares source drafts and proposes coordinated Qt/WebEngine updates.
+See [release and dependency maintenance](docs/releases.md) for local commands,
+signing setup, release tags and optional self-hosted automation.

@@ -1,0 +1,90 @@
+name: Dependency maintenance
+on:
+  schedule:
+    - cron: '27 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      qt:
+        description: Base Qt version (empty checks latest stable)
+        type: string
+      webengine_ref:
+        description: Stable Qt WebEngine tag (empty checks latest stable)
+        type: string
+  pull_request:
+    paths: ['engine/**', 'dependencies.json', 'tools/dependencies.py', 'tools/release/**', 'cmake/**', 'VERSION.txt', '.github/**']
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m unittest discover -s engine -p 'test_*.py'
+      - run: python -m unittest discover -s tools/release -p 'test_*.py'
+      - run: python tools/dependencies.py metadata
+      - run: python tools/translations/validate.py
+  propose:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Resolve a coordinated upstream candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QT_VERSION: ${{ inputs.qt }}
+          WEBENGINE_REF: ${{ inputs.webengine_ref }}
+        shell: bash
+        run: |
+          args=()
+          if [[ -n "$QT_VERSION" ]]; then args+=(--qt "$QT_VERSION"); fi
+          if [[ -n "$WEBENGINE_REF" ]]; then args+=(--webengine-ref "$WEBENGINE_REF"); fi
+          python tools/dependencies.py update "${args[@]}"
+      - name: Save a reviewable candidate even when bot PRs are disabled
+        id: candidate
+        shell: bash
+        run: |
+          if ! git diff --quiet -- engine/manifest.json; then
+            git diff --binary -- engine/manifest.json > qt-dependency-candidate.patch
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: steps.candidate.outputs.changed == 'true'
+        with:
+          name: qt-dependency-candidate
+          path: qt-dependency-candidate.patch
+          if-no-files-found: error
+      - uses: peter-evans/create-pull-request@v7
+        id: pr
+        if: steps.candidate.outputs.changed == 'true'
+        continue-on-error: true
+        with:
+          branch: maintenance/qt-webengine
+          title: 'Update Qt and the patched WebEngine toolchain'
+          commit-message: 'Propose coordinated Qt and WebEngine pins'
+          draft: true
+          delete-branch: true
+          add-paths: engine/manifest.json
+          body: |
+            Coordinated candidate pins resolved from upstream Qt release metadata.
+            Qt WebEngine and base Qt use different version schemes.
+
+            Before merging:
+            - Review the upstream security and compatibility changes.
+            - Rebase engine patches and overlays if required; never drop them silently.
+            - Install the pinned base Qt kit on every release builder.
+            - Run tools/release/build.py --package locally on all three platforms (or the optional SDK workflow).
+            - Validate passkeys/phone QR, extensions, ad blocking, navigation and media policy.
+            - Run a draft release and test the downloaded packages on clean machines.
+
+            No automatic merge or release is performed. Workflow-token PRs may need
+            a maintainer action to trigger CI; run Dependency maintenance checks manually.
+      - name: Explain manual review fallback
+        if: steps.pr.outcome == 'failure'
+        run: echo '::warning::Could not open the dependency PR. Download qt-dependency-candidate and apply/review it manually; check Actions PR permissions and the preceding error.'

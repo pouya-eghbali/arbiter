@@ -1,6 +1,6 @@
 # Bundle app and Qt UI catalogs. No runtime network or external catalog path.
 function(arbiter_add_translations target)
-    find_package(Qt6 6.12 REQUIRED COMPONENTS LinguistTools)
+    find_package(Qt6 ${ARBITER_QT_SERIES} REQUIRED COMPONENTS LinguistTools)
     set(root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/..")
     file(READ "${root}/translations/languages.json" languages)
     string(JSON count LENGTH "${languages}")

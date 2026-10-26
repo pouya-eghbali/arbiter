@@ -4,11 +4,13 @@ import argparse
 import json
 import os
 import platform
+import re
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 from media_policy import verify as verify_media_policy
+from identity import fingerprint
 
 HERE = Path(__file__).resolve().parent
 MANIFEST = json.loads((HERE / "manifest.json").read_text())
@@ -56,29 +58,47 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--qt-prefix", type=Path, required=True)
     parser.add_argument("--work", type=Path, default=HERE.parent / "build-passkey-toolchain")
-    parser.add_argument("--jobs", type=int, default=6)
+    parser.add_argument("--jobs", type=int, default=24)
     parser.add_argument("--macos-arch", choices=("arm64", "x86_64"),
                         default=platform.machine(), help="macOS SDK architecture (defaults to the running Python architecture)")
     parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--configure-only", action="store_true")
     args = parser.parse_args()
+    build_identity = fingerprint()
     args.work = args.work.resolve(); args.qt_prefix = args.qt_prefix.resolve()
     if args.jobs < 1: parser.error("--jobs must be positive")
+    # Private Qt headers and exported CMake targets require the matching base kit.
+    qtpaths = args.qt_prefix / "bin" / ("qtpaths.exe" if sys.platform == "win32" else "qtpaths")
+    version = run(qtpaths, "--query", "QT_VERSION", capture=True).strip()
+    if version != MANIFEST["qt"]:
+        raise RuntimeError(f"Expected base Qt {MANIFEST['qt']}, found {version}")
     args.work.mkdir(parents=True, exist_ok=True)
     source, build, sdk = ((args.work / name).resolve() for name in ("source", "build", "sdk"))
     if not source.exists():
         run("git", "init", source)
+        run("git", "config", "core.autocrlf", "false", cwd=source)
+        run("git", "config", "core.eol", "lf", cwd=source)
         run("git", "remote", "add", "origin", MANIFEST["webengine_repository"], cwd=source)
         run("git", "fetch", "--depth=1", "origin", MANIFEST["webengine_commit"], cwd=source)
         run("git", "checkout", "--detach", "FETCH_HEAD", cwd=source)
     head = run("git", "rev-parse", "HEAD", cwd=source, capture=True).strip()
     if head != MANIFEST["webengine_commit"]:
         raise RuntimeError("Source revision differs from engine/manifest.json")
-    run("git", "-c", "url.https://github.com/.insteadOf=git@github.com:",
+    module_version = re.search(r'set\(QT_REPO_MODULE_VERSION "([\d.]+)"\)',
+                               (source / ".cmake.conf").read_text())
+    if not module_version or module_version[1] != MANIFEST["webengine_version"]:
+        raise RuntimeError("WebEngine version metadata differs from its pinned source")
+    run("git", "-c", "core.autocrlf=false", "-c", "core.eol=lf",
+        "-c", "url.https://github.com/.insteadOf=git@github.com:",
         "submodule", "update", "--init", "--depth=1", "src/3rdparty", cwd=source)
     chromium = source / "src/3rdparty"
     if run("git", "rev-parse", "HEAD", cwd=chromium, capture=True).strip() != MANIFEST["chromium_commit"]:
         raise RuntimeError("Chromium revision differs from engine/manifest.json")
+    components = dict(line.split("=", 1) for line in
+                      (chromium / "chromium/chrome/VERSION").read_text().splitlines() if "=" in line)
+    chromium_version = ".".join(components[key] for key in ("MAJOR", "MINOR", "BUILD", "PATCH"))
+    if chromium_version != MANIFEST["chromium_version"]:
+        raise RuntimeError("Chromium version metadata differs from its pinned source")
     patch(source, HERE / "patches/qtwebengine.patch")
     patch(chromium, HERE / "patches/chromium.patch")
     for file in (HERE / "overlay").rglob("*"):
@@ -120,11 +140,17 @@ def main():
     run("cmake", "-G", "Ninja", "-S", source, "-B", build, *flags)
     if args.configure_only: return
     run("cmake", "--build", build, "--parallel", args.jobs)
+    if fingerprint() != build_identity:
+        raise RuntimeError("Engine inputs changed during the build; rerun before installing this SDK")
     verify_media_policy(source, build)
     run("cmake", "--install", build)
     if sys.platform == "darwin": configure_macos_helper(sdk, args.qt_prefix)
     shutil.copyfile(HERE / "manifest.json", sdk / "arbiter-engine-manifest.json")
     shutil.copyfile(HERE / "LICENSE", sdk / "arbiter-engine-LICENSE.txt")
+    (sdk / "arbiter-engine-build.json").write_text(json.dumps({
+        "inputs_sha256": build_identity, "qt": version,
+        "platform": sys.platform, "architecture": args.macos_arch if sys.platform == "darwin" else platform.machine(),
+    }, indent=2) + "\n")
     print(f"Patched engine installed to {sdk}. Base Qt remains at {args.qt_prefix}.")
 
 if __name__ == "__main__":

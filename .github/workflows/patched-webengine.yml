@@ -3,84 +3,15 @@ on:
   workflow_dispatch:
     inputs:
       jobs:
-        description: Nested Chromium build jobs (size for available RAM)
+        description: Nested Chromium jobs (24 requires a suitably sized builder)
         type: number
-        default: 6
+        default: 24
         required: true
+permissions:
+  contents: read
 jobs:
   sdk:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macOS, Windows, Linux]
-    # Provisioned builders supply Qt 6.12, native compilers, Ninja, Python,
-    # Bluetooth runtime dependencies, OpenSSL 3 and ARBITER_QT_PREFIX. Chromium needs
-    # substantially more disk/RAM than an ordinary application CI job. Linux
-    # builders also supply compatible system FFmpeg development libraries;
-    # these libraries must not be copied into the uploaded SDK/application.
-    runs-on: [self-hosted, '${{ matrix.os }}', arbiter-webengine]
-    timeout-minutes: 720
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ilammy/msvc-dev-cmd@v1
-        if: runner.os == 'Windows'
-      - name: Prepare Python
-        shell: bash
-        run: |
-          python3 -m venv build-engine-python
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "$PWD/build-engine-python/Scripts" >> "$GITHUB_PATH"
-          else
-            echo "$PWD/build-engine-python/bin" >> "$GITHUB_PATH"
-          fi
-      - name: Install build dependency
-        run: python -m pip install html5lib==1.1
-      - name: Test codec packaging policy
-        run: python -m unittest discover -s engine -p test_media_policy.py
-      - name: Build pinned SDK
-        shell: bash
-        run: python engine/build.py --qt-prefix "$ARBITER_QT_PREFIX" --jobs '${{ inputs.jobs }}'
-      - name: Configure patched-engine tests
-        shell: bash
-        run: |
-          cmake -S tests -B build-patched-tests -G Ninja -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$ARBITER_QT_PREFIX" \
-            -DARBITER_PATCHED_WEBENGINE=ON \
-            -DARBITER_WEBENGINE_PREFIX="$PWD/build-passkey-toolchain/sdk" \
-            -DOPENSSL_ROOT_DIR="$ARBITER_OPENSSL_ROOT"
-      - name: Configure patched app
-        shell: bash
-        run: |
-          cmake -S . -B build-patched-app -G Ninja -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$ARBITER_QT_PREFIX" \
-            -DARBITER_PATCHED_WEBENGINE=ON \
-            -DARBITER_WEBENGINE_PREFIX="$PWD/build-passkey-toolchain/sdk" \
-            -DOPENSSL_ROOT_DIR="$ARBITER_OPENSSL_ROOT"
-      - name: Build and lint app
-        shell: bash
-        run: |
-          cmake --build build-patched-app --parallel 4
-          cmake --build build-patched-app --target arbiter_qmllint
-      - name: Build tests
-        run: cmake --build build-patched-tests --parallel 4
-      - name: Test macOS and Windows
-        if: runner.os != 'Linux'
-        env:
-          ARBITER_TEST_KEYCHAIN: '1'
-        run: ctest --test-dir build-patched-tests --output-on-failure
-      - name: Test Linux with disposable keyring
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          xvfb-run -a dbus-run-session -- bash -e -c '
-            export GNOME_KEYRING_CONTROL
-            GNOME_KEYRING_CONTROL=$(mktemp -d)
-            printf "arbiter-ci-keyring" | gnome-keyring-daemon --unlock --components=secrets --control-directory="$GNOME_KEYRING_CONTROL"
-            ARBITER_TEST_KEYCHAIN=1 ctest --test-dir build-patched-tests --output-on-failure
-          '
-      - uses: actions/upload-artifact@v4
-        with:
-          name: arbiter-webengine-${{ runner.os }}-${{ runner.arch }}
-          path: build-passkey-toolchain/sdk
-          if-no-files-found: error
-          retention-days: 14
+    uses: ./.github/workflows/native-build.yml
+    with:
+      ref: ${{ github.sha }}
+      jobs: ${{ inputs.jobs }}

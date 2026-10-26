@@ -1,6 +1,10 @@
 # Prefer a distribution-provided Qt 6 build. Otherwise build the pinned, BSD-licensed
 # dependency statically, so packaging does not need another shared library.
-find_package(Qt6Keychain 0.14.2 QUIET CONFIG)
+include(${CMAKE_CURRENT_LIST_DIR}/Dependencies.cmake)
+option(ARBITER_BUNDLED_KEYCHAIN "Build the pinned static QtKeychain (release builds)" OFF)
+if(NOT ARBITER_BUNDLED_KEYCHAIN)
+    find_package(Qt6Keychain ${ARBITER_KEYCHAIN_VERSION} QUIET CONFIG)
+endif()
 if(APPLE)
     enable_language(OBJCXX)
 endif()
@@ -11,8 +15,8 @@ if(NOT TARGET qt6keychain)
     set(BUILD_TEST_APPLICATION OFF CACHE BOOL "" FORCE)
     set(BUILD_SHARED_LIBS OFF)
     FetchContent_Declare(qtkeychain
-        URL https://codeload.github.com/frankosterfeld/qtkeychain/tar.gz/refs/tags/0.14.2
-        URL_HASH SHA256=cf2e972b783ba66334a79a30f6b3a1ea794a1dc574d6c3bebae5ffd2f0399571
+        URL https://codeload.github.com/frankosterfeld/qtkeychain/tar.gz/refs/tags/${ARBITER_KEYCHAIN_VERSION}
+        URL_HASH SHA256=${ARBITER_KEYCHAIN_SHA256}
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
     )
     FetchContent_MakeAvailable(qtkeychain)

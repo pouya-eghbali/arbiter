@@ -1,0 +1,9 @@
+{
+  "python": "3.12",
+  "rust": "1.93.0",
+  "html5lib": "1.1",
+  "qtkeychain": {
+    "version": "0.14.2",
+    "sha256": "cf2e972b783ba66334a79a30f6b3a1ea794a1dc574d6c3bebae5ffd2f0399571"
+  }
+}

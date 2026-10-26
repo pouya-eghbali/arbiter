@@ -1,17 +1,25 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(Arbiter VERSION 0.1.0 LANGUAGES CXX)
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt" ARBITER_VERSION LIMIT_COUNT 1)
+if(NOT ARBITER_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.]+)?$")
+    message(FATAL_ERROR "VERSION.txt must contain a semantic release version")
+endif()
+string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" ARBITER_NUMERIC_VERSION "${ARBITER_VERSION}")
+project(Arbiter VERSION ${ARBITER_NUMERIC_VERSION} LANGUAGES CXX)
+include(cmake/Dependencies.cmake)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(cmake/ArbiterWebEngine.cmake)
-find_package(Qt6 6.12 REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick Widgets WebChannel Sql Concurrent Network Positioning CorePrivate Svg PrintSupport Pdf LinguistTools)
+find_package(Qt6 ${ARBITER_QT_SERIES} REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick Widgets WebChannel Sql Concurrent Network Positioning CorePrivate Svg PrintSupport Pdf LinguistTools)
+arbiter_verify_qt_version()
 get_target_property(arbiter_webengine_features Qt6::WebEngineCore QT_ENABLED_PUBLIC_FEATURES)
 if(NOT "webengine_extensions" IN_LIST arbiter_webengine_features)
     message(FATAL_ERROR "Arbiter requires Qt WebEngine with FEATURE_webengine_extensions=ON. Rebuild the SDK using engine/build.py.")
 endif()
-qt_standard_project_setup(REQUIRES 6.12)
+qt_standard_project_setup(REQUIRES ${ARBITER_QT_SERIES})
 include(cmake/Settings.cmake)
 include(cmake/QtKeychain.cmake)
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
@@ -98,6 +106,7 @@ qt_add_qml_module(arbiter
 )
 include(cmake/Translations.cmake)
 arbiter_add_translations(arbiter)
+target_compile_definitions(arbiter PRIVATE ARBITER_VERSION="${ARBITER_VERSION}")
 target_link_libraries(arbiter PRIVATE
     arbiter_settings
     Qt6::Quick

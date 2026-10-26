@@ -1,2 +1,6 @@
 # Unified diff context lines contain a single space even for empty source lines.
 engine/patches/*.patch whitespace=-blank-at-eol
+# Engine inputs must have identical checkout bytes on all release machines.
+engine/** text eol=lf
+dependencies.json text eol=lf
+VERSION.txt text eol=lf

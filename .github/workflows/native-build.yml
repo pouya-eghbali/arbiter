@@ -1,0 +1,85 @@
+name: Native SDK and packages
+on:
+  workflow_call:
+    inputs:
+      ref: {type: string, required: true}
+      package: {type: boolean, default: false}
+      unsigned: {type: boolean, default: false}
+      jobs: {type: number, default: 24}
+permissions:
+  contents: read
+jobs:
+  native:
+    # Trusted refs only: never wire this job to pull_request or pull_request_target.
+    # Use isolated/ephemeral builders with these labels and the documented kit.
+    environment: native-build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: macos, arch: arm64, qt_arch: clang_64, runner: [self-hosted, macOS, ARM64, arbiter-webengine]}
+          - {os: windows, arch: x86_64, qt_arch: win64_msvc2022_64, runner: [self-hosted, Windows, X64, arbiter-webengine]}
+          - {os: linux, arch: x86_64, qt_arch: linux_gcc_64, runner: [self-hosted, Linux, X64, arbiter-webengine]}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 720
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - name: Read dependency pins
+        id: pins
+        shell: bash
+        run: |
+          node - <<'JS'
+          const fs = require('fs');
+          const deps = JSON.parse(fs.readFileSync('dependencies.json', 'utf8'));
+          const engine = JSON.parse(fs.readFileSync('engine/manifest.json', 'utf8'));
+          const pins = {python: deps.python, rust: deps.rust, html5lib: deps.html5lib, qt: engine.qt};
+          for (const [key, value] of Object.entries(pins)) fs.appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
+          JS
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ steps.pins.outputs.python }}
+      - name: Install the matching base Qt kit unless explicitly provisioned
+        if: env.ARBITER_QT_PREFIX == ''
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ steps.pins.outputs.qt }}
+          arch: ${{ matrix.qt_arch }}
+          modules: 'qtwebengine qtwebchannel qtpositioning'
+          setup-python: false
+          cache: true
+      - name: Select the installed base kit
+        shell: bash
+        run: |
+          if [[ -z "${ARBITER_QT_PREFIX:-}" ]]; then
+            echo "ARBITER_QT_PREFIX=$QT_ROOT_DIR" >> "$GITHUB_ENV"
+          fi
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.pins.outputs.rust }}
+      - run: python -m pip install html5lib==${{ steps.pins.outputs.html5lib }}
+      - name: Build SDK, run full native tests, and stage artifacts
+        env:
+          MAKE_PACKAGES: ${{ inputs.package }}
+          UNSIGNED: ${{ inputs.unsigned }}
+          BUILD_JOBS: ${{ inputs.jobs }}
+        shell: bash
+        run: |
+          args=(--jobs "${ARBITER_BUILD_JOBS:-$BUILD_JOBS}")
+          if [[ "$MAKE_PACKAGES" == true ]]; then args+=(--package); fi
+          if [[ "$UNSIGNED" == true ]]; then args+=(--unsigned); fi
+          python tools/release/build.py "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            build-release-artifacts/*.zip
+            build-release-artifacts/*.tar.xz
+            build-release-artifacts/*.tar.gz
+            build-release-artifacts/*.sha256
+          if-no-files-found: error
+          retention-days: 14

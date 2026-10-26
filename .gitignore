@@ -7,3 +7,6 @@
 .DS_Store
 
 /rust/adblock/target/
+
+__pycache__/
+*.pyc

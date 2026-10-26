@@ -41,6 +41,7 @@
 #include "sitenavigation.h"
 #include <QWindow>
 #include <QFileInfo>
+#include <QTimer>
 #ifdef Q_OS_MACOS
 void configureMacWindow(QWindow *window);
 #endif
@@ -74,7 +75,35 @@ int main(int argc, char *argv[])
     if (qWebEngineArbiterExtensionApiAbi() != 2) qFatal("Arbiter requires its current native extension API engine.");
     QCoreApplication::setOrganizationName(QStringLiteral("Arbiter"));
     QCoreApplication::setApplicationName(QStringLiteral("Arbiter"));
-    QCoreApplication::setApplicationVersion(QStringLiteral("0.1.0"));
+    QCoreApplication::setApplicationVersion(QStringLiteral(ARBITER_VERSION));
+    // CI verifies the deployed WebEngine helper and QML plugins without opening
+    // profiles, loading settings, touching credentials, or contacting a website.
+    if (app.arguments().contains(QStringLiteral("--release-smoke-test"))) {
+        QQmlApplicationEngine smoke;
+        QObject::connect(&smoke, &QQmlEngine::exit, &app, &QCoreApplication::exit);
+        QObject::connect(&smoke, &QQmlEngine::quit, &app, [] { QCoreApplication::exit(0); });
+        QTimer::singleShot(30000, &app, [] { QCoreApplication::exit(5); });
+        smoke.loadData(R"QML(
+            import QtQuick
+            import QtQuick.Window
+            import QtWebEngine
+            Window {
+                visible: true; width: 64; height: 64; opacity: 0
+                WebEngineView {
+                    anchors.fill: parent
+                    profile: WebEngineProfile { offTheRecord: true }
+                    Component.onCompleted: loadHtml("<title>Arbiter release smoke</title><p>Ready</p>")
+                    onLoadingChanged: function(request) {
+                        if (request.status === WebEngineView.LoadSucceededStatus)
+                            runJavaScript("document.title", function(title) { Qt.exit(title === "Arbiter release smoke" ? 0 : 3) })
+                        else if (request.status === WebEngineView.LoadFailedStatus) Qt.exit(4)
+                    }
+                }
+            }
+        )QML", QUrl(QStringLiteral("qrc:/release-smoke.qml")));
+        if (smoke.rootObjects().isEmpty()) return 2;
+        return app.exec();
+    }
 #ifdef Q_OS_LINUX
     app.setDesktopFileName(QStringLiteral("com.arbiter.browser"));
 #endif

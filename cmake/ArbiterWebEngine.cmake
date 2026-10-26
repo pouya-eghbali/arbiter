@@ -1,11 +1,21 @@
 option(ARBITER_PATCHED_WEBENGINE "Use Arbiter ABI 1 patched Qt WebEngine" OFF)
 option(ARBITER_WEBENGINE_SDK_RUNTIME "Run directly from the selected SDK (disable for a deployed bundle)" ON)
+option(ARBITER_STRICT_ENGINE_IDENTITY "Require an SDK built from the exact current engine inputs" OFF)
 set(ARBITER_WEBENGINE_PREFIX "" CACHE PATH "Installed Arbiter WebEngine SDK")
 if(ARBITER_PATCHED_WEBENGINE)
     if(NOT EXISTS "${ARBITER_WEBENGINE_PREFIX}/arbiter-engine-manifest.json")
         message(FATAL_ERROR "Set ARBITER_WEBENGINE_PREFIX to the installed SDK produced by engine/build.py.")
     endif()
     file(READ "${ARBITER_WEBENGINE_PREFIX}/arbiter-engine-manifest.json" arbiter_engine_manifest)
+    if(ARBITER_STRICT_ENGINE_IDENTITY)
+        find_package(Python3 REQUIRED COMPONENTS Interpreter)
+        execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/../engine/identity.py"
+            --verify "${ARBITER_WEBENGINE_PREFIX}"
+            RESULT_VARIABLE identity_result OUTPUT_VARIABLE identity_output ERROR_VARIABLE identity_error)
+        if(NOT identity_result EQUAL 0)
+            message(FATAL_ERROR "SDK identity check failed: ${identity_error}")
+        endif()
+    endif()
     string(JSON arbiter_engine_abi GET "${arbiter_engine_manifest}" abi)
     if(NOT arbiter_engine_abi EQUAL 1)
         message(FATAL_ERROR "The selected WebEngine SDK has an unsupported Arbiter ABI.")
@@ -36,6 +46,9 @@ if(ARBITER_PATCHED_WEBENGINE)
     endforeach()
     unset(arbiter_module_path CACHE)
     get_filename_component(ARBITER_ENGINE_LIBDIR "${Qt6WebEngineCore_DIR}/../.." ABSOLUTE)
+    # QML deployment must also find the patched import when SDK runtime paths
+    # are disabled for a relocatable release package.
+    set(ARBITER_ENGINE_QML "${ARBITER_WEBENGINE_PREFIX}/qml")
     if(ARBITER_WEBENGINE_SDK_RUNTIME)
         file(GLOB_RECURSE arbiter_process_candidates
             "${ARBITER_WEBENGINE_PREFIX}/QtWebEngineProcess"
@@ -61,6 +74,15 @@ if(ARBITER_PATCHED_WEBENGINE)
         get_filename_component(ARBITER_ENGINE_QML "${arbiter_qml_module}" DIRECTORY)
     endif()
 endif()
+
+function(arbiter_verify_qt_version)
+    if(ARBITER_PATCHED_WEBENGINE)
+        string(JSON expected_qt GET "${arbiter_engine_manifest}" qt)
+        if(NOT Qt6Core_VERSION VERSION_EQUAL expected_qt)
+            message(FATAL_ERROR "SDK requires base Qt ${expected_qt}, found ${Qt6Core_VERSION}. Upgrade the Qt kit and WebEngine SDK together.")
+        endif()
+    endif()
+endfunction()
 
 function(arbiter_configure_webengine_runtime target)
     if(ARBITER_PATCHED_WEBENGINE)
