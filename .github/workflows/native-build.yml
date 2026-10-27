@@ -47,11 +47,13 @@ jobs:
         if: steps.pins.outputs.has_qt_prefix != 'true'
         uses: jurplel/install-qt-action@v4
         with:
+          aqtsource: git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7
           version: ${{ steps.pins.outputs.qt }}
           arch: ${{ matrix.qt_arch }}
-          modules: 'qtwebengine qtwebchannel qtpositioning'
+          modules: 'qtwebengine qtpdf qtwebchannel qtpositioning'
           setup-python: false
           cache: true
+          cache-key-prefix: arbiter-qt-prebuilt-v2
       - name: Select the installed base kit
         shell: bash
         run: |

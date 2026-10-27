@@ -41,7 +41,7 @@ vercel deploy --scope outer-gods --target preview --yes
 The CLI prints the preview URL. Check that its reported target is Preview before
 sharing. Vercel may automatically promote the first deployment of a new project
 even when Preview was requested; the existing project is already initialized.
-No custom domain is configured for this draft.
+The production website is https://arbiterbrowser.com; `www` redirects to the apex domain. Cloudflare provides DNS only, with Vercel serving the site.
 
 ## Design and behavior
 
@@ -61,9 +61,10 @@ Aster Journal and its editorial content are sample material. The wallpaper,
 illustrations, and sample websites don't imply partnerships. Feature descriptions
 must stay consistent with the browser's README and platform validation status.
 
-There are currently no published installers. Calls to action intentionally lead
-to build instructions and the GitHub releases page. Once releases exist, replace
-these with verified platform download URLs and retain a source-build option.
+The download cards link directly to the macOS DMG and Linux archive for v0.1.0.
+Windows is listed as coming soon. Update these versioned asset links when a new
+release is published; keep platform requirements useful to people installing
+the browser. Build status and internal validation notes belong in developer docs.
 The page does not detect visitor OS or make background release API requests.
 
 ## Source map

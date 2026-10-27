@@ -5,6 +5,7 @@
   import WorkspaceDemo from '$lib/WorkspaceDemo.svelte';
   import Icon from '$lib/Icon.svelte';
   const repo = 'https://github.com/pouya-eghbali/arbiter';
+  const downloads = repo + '/releases/download/v0.1.0/';
   let tucked = $state(false);
   const extras = [
     {
@@ -84,7 +85,7 @@
           href={repo}>Explore the source <Icon name="arrow-right" size={17} /></a
         >
       </div>
-      <p class="platforms">Made for macOS, Windows & Linux.</p>
+      <p class="platforms">Available for macOS & Linux. Windows coming soon.</p>
     </div>
     <div class="hero-aside">
       <span class="hero-asterisk" aria-hidden="true">✳</span>
@@ -212,22 +213,21 @@
       <p>Arbiter is in active development.<br />Come explore, experiment, and build with us.</p>
     </div>
     <div class="get-options">
-      <a class="get-option primary" href={repo + '#build-and-run'}
+      <a class="get-option primary" href={downloads + 'arbiter-0.1.0-macos-arm64.dmg'}
         ><span
-          ><Icon name="code-xml" size={27} /><strong>Build from source</strong><small
-            >Start with the developer guide.</small
+          ><Icon name="download" size={27} /><strong>Download for macOS</strong><small
+            >Apple Silicon · macOS 14.4 or later.</small
           ></span
         ><Icon name="arrow-right" size={25} /></a
-      ><a class="get-option" href={repo + '/releases'}
+      ><a class="get-option" href={downloads + 'arbiter-0.1.0-linux-x86_64.tar.xz'}
         ><span
-          ><Icon name="download" size={27} /><strong>Follow releases</strong><small
-            >Published installers will appear here.</small
+          ><Icon name="download" size={27} /><strong>Download for Linux</strong><small
+            >x86_64 · Ubuntu 24.04 or compatible.</small
           ></span
-        ><Icon name="external-link" size={22} /></a
+        ><Icon name="arrow-right" size={22} /></a
       >
       <p class="build-note">
-        The patched runtime is validated on Apple Silicon macOS.<br />Windows and Linux runtime
-        validation is still in progress.
+        Windows coming soon. <a href={repo + '/releases'}>Release notes & other downloads</a>.
       </p>
     </div>
   </section>
