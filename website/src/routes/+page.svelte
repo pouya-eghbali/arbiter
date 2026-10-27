@@ -273,9 +273,8 @@
       <details>
         <summary>Is the preview the actual browser?<Icon name="plus" size={18} /></summary>
         <p>
-          The previews on this page are interactive illustrations of Arbiter’s features, with sample
-          pages and content. Arbiter itself is a native C++ and Qt WebEngine desktop browser. See
-          the repository for implementation details and current platform limitations.
+          The previews are interactive illustrations with sample pages and content. Download
+          Arbiter to browse your own pages and make it yours.
         </p>
       </details>
     </div>

@@ -87,6 +87,14 @@ helpers, followed by platform signing/notarization.
 
 ## Tests
 
+Routine GitHub CI installs **prebuilt stock Qt**, including Qt PDF. It never
+builds Chromium. Stock-compatible unit, credential-store and browser tests run
+there; tests of Arbiter's compositor, extension bridge and cross-frame permission
+patches require the patched SDK. Configure with `ARBITER_PATCHED_WEBENGINE=ON`
+and `ARBITER_WEBENGINE_PREFIX` to include those checks. The local/native release
+builder does this and runs the complete suite against its matching SDK.
+Routine CI jobs have a 30-minute limit and individual tests a five-minute limit.
+
 Run the keyboard binding, native URL handling, tab model, password controller,
 WebEngine password-form integration, passkey vault, and WebAuthn controller tests
 (OpenSSL 3 development files are required):

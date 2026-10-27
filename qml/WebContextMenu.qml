@@ -286,7 +286,8 @@ UiMenu {
                 : request.mediaType === ContextMenuRequest.MediaTypeVideo ? "video"
                 : request.mediaType === ContextMenuRequest.MediaTypeAudio ? "audio" : ""
         }
-        const extensionItems = view.extensionMenuItems(menuContext)
+        const extensionItems = typeof view.extensionMenuItems === "function"
+            ? view.extensionMenuItems(menuContext) : []
         if (extensionItems.length) separator()
         for (const entry of extensionItems) {
             if (entry.separator) separator()

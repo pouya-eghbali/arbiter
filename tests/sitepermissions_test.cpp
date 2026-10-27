@@ -195,6 +195,9 @@ private slots:
         QVERIFY(!queue.active());
     }
     void iframeLocationRevocation() {
+#ifndef ARBITER_PATCHED_WEBENGINE
+        QSKIP("Requires Arbiter's cross-frame permission revocation patch; exercised by the patched-engine suite.");
+#endif
         QTcpServer topServer,frameServer;
         QVERIFY(topServer.listen(QHostAddress::LocalHost));
         QVERIFY(frameServer.listen(QHostAddress::LocalHost));
