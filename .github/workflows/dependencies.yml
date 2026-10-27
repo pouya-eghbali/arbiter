@@ -18,8 +18,8 @@ jobs:
   checks:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: {python-version: '3.12'}
       - run: python -m unittest discover -s engine -p 'test_*.py'
       - run: python -m unittest discover -s tools/release -p 'test_*.py'
@@ -32,8 +32,8 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: {python-version: '3.12'}
       - name: Resolve a coordinated upstream candidate
         env:
@@ -54,13 +54,13 @@ jobs:
             git diff --binary -- engine/manifest.json > qt-dependency-candidate.patch
             echo 'changed=true' >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: steps.candidate.outputs.changed == 'true'
         with:
           name: qt-dependency-candidate
           path: qt-dependency-candidate.patch
           if-no-files-found: error
-      - uses: peter-evans/create-pull-request@v7
+      - uses: peter-evans/create-pull-request@v8
         id: pr
         if: steps.candidate.outputs.changed == 'true'
         continue-on-error: true

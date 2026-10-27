@@ -23,7 +23,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 720
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -40,7 +40,7 @@ jobs:
           const pins = {python: deps.python, rust: deps.rust, html5lib: deps.html5lib, qt: engine.qt, has_qt_prefix: Boolean(process.env.ARBITER_QT_PREFIX)};
           for (const [key, value] of Object.entries(pins)) fs.appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
           JS
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ steps.pins.outputs.python }}
       - name: Install the matching base Qt kit unless explicitly provisioned
@@ -78,7 +78,7 @@ jobs:
           if [[ "$MAKE_PACKAGES" == true ]]; then args+=(--package); fi
           if [[ "$UNSIGNED" == true ]]; then args+=(--unsigned); fi
           python tools/release/build.py "${args[@]}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: native-${{ matrix.os }}-${{ matrix.arch }}
           path: |
