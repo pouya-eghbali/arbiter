@@ -6,6 +6,8 @@ import json
 import os
 from pathlib import Path
 import platform
+import plistlib
+import re
 import shutil
 import subprocess
 import sys
@@ -117,8 +119,52 @@ def macos_engine(app, sdk):
             else: driver.unlink()
 
 
+def deployment_versions(lines):
+    versions = []
+    for i, line in enumerate(lines):
+        if line.strip() not in ('cmd LC_BUILD_VERSION', 'cmd LC_VERSION_MIN_MACOSX'):
+            continue
+        field = 'minos' if line.strip() == 'cmd LC_BUILD_VERSION' else 'version'
+        for item in lines[i + 1:i + 7]:
+            match = re.fullmatch(r'\s*' + field + r'\s+(\d+\.\d+(?:\.\d+)?)\s*', item)
+            if match:
+                parts = tuple(map(int, match[1].split('.')))
+                versions.append(parts + (0,) * (3 - len(parts))); break
+    return versions
+
+
+def macos_minimum(qt):
+    core = qt / 'lib/QtCore.framework/QtCore'
+    lines = run('otool', '-arch', platform.machine(), '-l', core, capture=True).splitlines()
+    versions = deployment_versions(lines)
+    if not versions: raise RuntimeError('Cannot determine the Qt kit macOS minimum')
+    minimum = max([(13, 0, 0), *versions])
+    return '.'.join(map(str, minimum[:2] if minimum[-1] == 0 else minimum))
+
+
+def macos_openssl(app, prefix):
+    frameworks = app / 'Contents/Frameworks'
+    for name in ('libcrypto.3.dylib', 'libssl.3.dylib'):
+        library = prefix / 'lib' / name
+        if not library.exists(): raise RuntimeError('Portable OpenSSL runtime is missing: ' + str(library))
+        destination = frameworks / name
+        # Follow any source symlink; the bundle owns the real runtime binary.
+        if destination.exists() or destination.is_symlink(): destination.unlink()
+        shutil.copy2(library.resolve(), destination)
+        run('install_name_tool', '-id', '@rpath/' + name, destination)
+        for dependency in ('libcrypto.3.dylib', 'libssl.3.dylib'):
+            run('install_name_tool', '-change', str(prefix / 'lib' / dependency),
+                '@rpath/' + dependency, destination)
+    copy(prefix / 'OpenSSL-LICENSE.txt', app / 'Contents/Resources/licenses/OpenSSL.txt')
+    copy(prefix / 'arbiter-openssl-build.json', app / 'Contents/Resources/arbiter-openssl-build.json')
+
+
 def sign_macos(app, identity, timestamp):
     binaries = machos(app)
+    metadata_path = app / 'Contents/Resources/release.json'
+    metadata = json.loads(metadata_path.read_text())
+    expected_minimum = tuple(map(int, metadata['minimum_os'].split('.')))
+    expected_minimum += (0,) * (3 - len(expected_minimum))
     # Drop absolute build-kit RPATHs; deployed relative paths are retained.
     for binary in binaries:
         architectures = run('lipo', '-archs', binary, capture=True).split()
@@ -131,6 +177,9 @@ def sign_macos(app, identity, timestamp):
             temporary.chmod(binary.stat().st_mode)
             temporary.replace(binary)
         lines = run('otool', '-l', binary, capture=True).splitlines()
+        for minimum in deployment_versions(lines):
+            if minimum > expected_minimum:
+                raise RuntimeError(f'{binary} requires macOS {minimum}, above package target {expected_minimum}; rebuild this dependency for the release target')
         rpaths, all_rpaths = set(), set()
         for index, line in enumerate(lines):
             if line.strip() == 'cmd LC_RPATH':
@@ -147,6 +196,10 @@ def sign_macos(app, identity, timestamp):
             dependency = line.strip().split(' (compatibility', 1)[0]
             if dependency.startswith('/') and not dependency.startswith(('/System/', '/usr/lib/')):
                 raise RuntimeError(f'External build dependency in deployed bundle: {binary}: {dependency}')
+    info_path = app / 'Contents/Info.plist'
+    info = plistlib.loads(info_path.read_bytes())
+    info['LSMinimumSystemVersion'] = metadata['minimum_os']
+    info_path.write_bytes(plistlib.dumps(info))
     common = ['--force', '--sign', identity]
     if timestamp: common += ['--timestamp', '--options', 'runtime']
     # Nested code first; never use --deep to sign a bundle.
@@ -279,6 +332,9 @@ def main():
                 'platform': os_name, 'architecture': arch, 'signed': not a.unsigned and os_name != 'linux',
                 'engine': json.loads((sdk / 'arbiter-engine-build.json').read_text()),
                 'dependencies': json.loads((ROOT / 'dependencies.json').read_text())}
+    if sys.platform == 'darwin':
+        metadata['minimum_os'] = macos_minimum(qt)
+        metadata['openssl'] = json.loads((Path(os.environ['ARBITER_OPENSSL_ROOT']) / 'arbiter-openssl-build.json').read_text())
     (resources / 'release.json').write_text(json.dumps(metadata, indent=2) + '\n')
     if sys.platform == 'darwin':
         app = stage / 'arbiter.app'
@@ -287,6 +343,7 @@ def main():
         options.append('-no-codesign')
         run(qt / 'bin/macdeployqt', app, *options)
         macos_engine(app, sdk)
+        macos_openssl(app, Path(os.environ['ARBITER_OPENSSL_ROOT']).resolve())
         audit(stage); engine_symbol(stage)
         sign_macos(app, '-' if a.unsigned else os.environ['ARBITER_MACOS_SIGNING_IDENTITY'], not a.unsigned)
         smoke(stage, sdk, qt)

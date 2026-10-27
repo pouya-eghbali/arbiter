@@ -80,6 +80,10 @@ def main():
         from identity import fingerprint
         if metadata['engine']['inputs_sha256'] != fingerprint():
             raise RuntimeError(f'Package engine inputs differ: {asset.name}')
+        if metadata['platform'] == 'macos':
+            pin = json.loads((ROOT / 'tools/release/openssl.json').read_text())
+            if not metadata.get('minimum_os') or any(metadata.get('openssl', {}).get(key) != value for key, value in pin.items()):
+                raise RuntimeError(f'Package OpenSSL pin or macOS minimum differs: {asset.name}')
         expected_signed = metadata['platform'] != 'linux' and not unsigned
         expected_name = f'arbiter-{version}-{metadata["platform"]}-{metadata["architecture"]}{suffix if metadata["platform"] != "linux" else ""}'
         if metadata['signed'] != expected_signed or not asset.name.startswith(expected_name + '.'):
@@ -102,7 +106,7 @@ def main():
 
 Commit: `{sha}`
 
-Packages: macOS 13+ (Apple Silicon), Windows x64, Linux x64
+Packages: macOS (Apple Silicon; minimum OS in package metadata), Windows x64, Linux x64
 (Ubuntu 24.04 build baseline). Extract the Windows ZIP and run `bin/arbiter.exe`;
 extract the Linux archive and run `./arbiter`. Linux requires the system FFmpeg,
 OpenSSL 3, desktop Qt platform dependencies and a Secret Service/KWallet provider.

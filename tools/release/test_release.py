@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import package
 import validate_tag
 import publish
+import portable_openssl
 build_spec = importlib.util.spec_from_file_location('release_build', ROOT / 'tools/release/build.py')
 release_build = importlib.util.module_from_spec(build_spec); build_spec.loader.exec_module(release_build)
 spec = importlib.util.spec_from_file_location('dependencies', ROOT / 'tools/dependencies.py')
@@ -45,6 +46,45 @@ class DependencyTests(unittest.TestCase):
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_macos_package_refuses_newer_dependency_before_signing(self):
+        import json
+        with tempfile.TemporaryDirectory() as temporary:
+            app = Path(temporary) / 'arbiter.app'
+            resources = app / 'Contents/Resources'; resources.mkdir(parents=True)
+            (resources / 'release.json').write_text(json.dumps({'minimum_os': '14.4'}))
+            binary = app / 'libcrypto.3.dylib'; binary.touch()
+            with patch.object(package, 'machos', return_value=[binary]), \
+                    patch.object(package, 'run', side_effect=['arm64', 'cmd LC_BUILD_VERSION\nminos 26.0']) as commands:
+                with self.assertRaisesRegex(RuntimeError, 'above package target'):
+                    package.sign_macos(app, 'test identity', True)
+                self.assertFalse(any(c.args[0] == 'codesign' for c in commands.call_args_list))
+
+    def test_portable_openssl_rejects_modified_source_before_compiling(self):
+        import json
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            pins = root / 'tools/release'; pins.mkdir(parents=True)
+            (pins / 'openssl.json').write_text(json.dumps({'version': '3.5.9', 'url': 'https://example.invalid/source', 'sha256': '0' * 64}))
+            archive = root / 'build-release-openssl/3.5.9-arm64-macos14.4/openssl-3.5.9.tar.gz'
+            archive.parent.mkdir(parents=True); archive.write_bytes(b'modified source')
+            with patch.object(portable_openssl, 'ROOT', root), \
+                    patch.object(portable_openssl.platform, 'machine', return_value='arm64'), \
+                    patch.object(portable_openssl, 'run') as commands:
+                with self.assertRaisesRegex(RuntimeError, 'checksum mismatch'):
+                    portable_openssl.ensure('14.4', 12)
+                commands.assert_not_called()
+            self.assertFalse(archive.exists())
+
+    def test_macos_deployment_versions_cover_old_and_new_load_commands(self):
+        lines = ['cmd LC_BUILD_VERSION', 'cmdsize 32', 'platform 1', 'minos 14.4',
+                 'sdk 26.0', 'cmd LC_VERSION_MIN_MACOSX', 'cmdsize 16',
+                 'version 13.0', 'sdk 14.0']
+        self.assertEqual(package.deployment_versions(lines), [(14, 4, 0), (13, 0, 0)])
+        with patch.object(package, 'run', return_value='\n'.join(lines)):
+            self.assertEqual(package.macos_minimum(Path('/qt')), '14.4')
+        with patch.object(package, 'run', return_value='cmd LC_BUILD_VERSION\nminos 26.0'):
+            self.assertEqual(package.macos_minimum(Path('/qt')), '26.0')
+
     def test_linux_keyring_tests_never_reuse_persistent_data(self):
         seen = []
         original = {'ARBITER_TEST_KEYCHAIN': '1', 'XDG_DATA_HOME': '/persistent/user/data'}

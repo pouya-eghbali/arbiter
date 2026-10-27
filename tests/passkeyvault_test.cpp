@@ -275,7 +275,7 @@ private slots:
                 connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
                 bool done = false; QString error;
                 store.remove(key, [&](const QString &e, const QByteArray &) { error = e; done = true; loop.quit(); });
-                timeout.start(15000); if (!done) loop.exec();
+                timeout.start(60000); if (!done) loop.exec();
                 if (!done || !error.isEmpty()) QTest::qFail("Could not clean a disposable passkey test item", __FILE__, __LINE__);
             }
         });
@@ -284,15 +284,15 @@ private slots:
         const auto index = QCborValue::fromCbor(file.readAll()).toMap(); file.close();
         auto prefix = QStringLiteral("com.arbiter.browser/passkeys/v1/%1/").arg(QString::fromLatin1(index.value(1).toByteArray().toHex()));
         keys.append(prefix);
-        QTRY_VERIFY_WITH_TIMEOUT(!vault.busy(), 15000); QVERIFY2(vault.configured(), qPrintable(vault.error()));
+        QTRY_VERIFY_WITH_TIMEOUT(!vault.busy(), 60000); QVERIFY2(vault.configured(), qPrintable(vault.error()));
         int status = -1; QByteArray response;
         vault.perform(true, encode(makeRequest()), {}, phrase, [&](int code, const QByteArray &bytes) { status = code; response = bytes; });
-        QTRY_VERIFY_WITH_TIMEOUT(status != -1, 15000); QCOMPARE(status, 0); QVERIFY(!response.isEmpty());
+        QTRY_VERIFY_WITH_TIMEOUT(status != -1, 60000); QCOMPARE(status, 0); QVERIFY(!response.isEmpty());
         const auto id = vault.credentials(QStringLiteral("example.com")).first().toMap().value(QStringLiteral("id")).toByteArray();
         keys.append(prefix + QString::fromLatin1(id.toHex()));
         status = -1;
         vault.perform(false, encode(getRequest()), id, phrase, [&](int code, const QByteArray &bytes) { status = code; response = bytes; });
-        QTRY_VERIFY_WITH_TIMEOUT(status != -1, 15000); QCOMPARE(status, 0);
+        QTRY_VERIFY_WITH_TIMEOUT(status != -1, 60000); QCOMPARE(status, 0);
         QVERIFY(!QCborValue::fromCbor(response).toMap().value(3).toByteArray().isEmpty());
     }
 };

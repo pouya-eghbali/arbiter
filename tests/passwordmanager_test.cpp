@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include "../src/settings.h"
 #include <QTemporaryDir>
+#include <QScopeGuard>
 #include <QUuid>
 #include <utility>
 #include <QtTest>
@@ -362,7 +363,20 @@ private slots:
         QTimer timer;
         timer.setSingleShot(true);
         connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
-        const auto wait = [&] { timer.start(15000); if (!done) loop.exec(); timer.stop(); };
+        const auto wait = [&] { timer.start(60000); if (!done) loop.exec(); timer.stop(); };
+        // Native credential services may be slow while Chromium builds are active.
+        // Keep cleanup independent of assertions in the round-trip below.
+        const auto cleanup = qScopeGuard([&] {
+            QEventLoop cleanupLoop; QTimer timeout; timeout.setSingleShot(true);
+            connect(&timeout, &QTimer::timeout, &cleanupLoop, &QEventLoop::quit);
+            bool removed = false; QString removeError;
+            store.remove(key, [&](const QString &e, const QByteArray &) {
+                removeError = e; removed = true; cleanupLoop.quit();
+            });
+            timeout.start(60000); if (!removed) cleanupLoop.exec();
+            if (!removed || !removeError.isEmpty())
+                QTest::qFail("Could not clean a disposable password test item", __FILE__, __LINE__);
+        });
         store.write(key, QByteArray("synthetic-test-secret"), [&](const QString &e, const QByteArray &) { error = e; done = true; loop.quit(); });
         wait();
         QVERIFY(done);
@@ -372,15 +386,8 @@ private slots:
         store.read(key, [&](const QString &e, const QByteArray &data) { error = e; result = data; done = true; loop.quit(); });
         wait();
         QVERIFY(done);
-        // Always attempt cleanup, including after a read failure.
-        done = false;
-        QString removeError;
-        store.remove(key, [&](const QString &e, const QByteArray &) { removeError = e; done = true; loop.quit(); });
-        wait();
-        QVERIFY(done);
         QVERIFY2(error.isEmpty(), qPrintable(error));
         QCOMPARE(result, QByteArray("synthetic-test-secret"));
-        QVERIFY2(removeError.isEmpty(), qPrintable(removeError));
     }
 };
 #ifdef Q_OS_MACOS

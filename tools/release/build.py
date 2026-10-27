@@ -52,6 +52,13 @@ def main():
     expected_qt = json.loads((ROOT / 'engine/manifest.json').read_text())['qt']
     actual_qt = subprocess.check_output([str(qtpaths), '--query', 'QT_VERSION'], text=True).strip()
     if actual_qt != expected_qt: raise RuntimeError(f'Builder needs Qt {expected_qt}, found {actual_qt}')
+    macos_target = None
+    if sys.platform == 'darwin':
+        from package import macos_minimum
+        macos_target = macos_minimum(qt)
+        if not os.environ.get('ARBITER_OPENSSL_ROOT'):
+            from portable_openssl import ensure
+            os.environ['ARBITER_OPENSSL_ROOT'] = str(ensure(macos_target, a.jobs))
     pins = json.loads((ROOT / 'dependencies.json').read_text())
     cargo = Path(subprocess.check_output(['rustup', 'which', '--toolchain', pins['rust'], 'cargo'], text=True).strip())
     os.environ['PATH'] = str(cargo.parent) + os.pathsep + os.environ.get('PATH', '')
@@ -83,7 +90,7 @@ def main():
         definitions += ['-DOPENSSL_ROOT_DIR=' + os.environ['ARBITER_OPENSSL_ROOT']]
     if os.environ.get('ARBITER_CMAKE_TOOLCHAIN'):
         definitions += ['-DCMAKE_TOOLCHAIN_FILE=' + os.environ['ARBITER_CMAKE_TOOLCHAIN']]
-    if sys.platform == 'darwin': definitions += ['-DCMAKE_OSX_ARCHITECTURES=' + platform.machine(), '-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0']
+    if sys.platform == 'darwin': definitions += ['-DCMAKE_OSX_ARCHITECTURES=' + platform.machine(), '-DCMAKE_OSX_DEPLOYMENT_TARGET=' + macos_target]
     build_key = hashlib.sha256('\n'.join(definitions).encode()).hexdigest()[:12]
     tests = ROOT / ('build-release-tests-' + build_key)
     run('cmake', '-S', ROOT / 'tests', '-B', tests, '-G', 'Ninja', *definitions, '-DARBITER_WEBENGINE_SDK_RUNTIME=ON')

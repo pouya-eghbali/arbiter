@@ -29,7 +29,12 @@ credentials in the login Keychain profile `arbiter-release`, without logging
 credential values. Alternatively set `ARBITER_MACOS_SIGNING_IDENTITY` and an
 existing `ARBITER_NOTARY_PROFILE`; no Apple password variables are then needed.
 The Developer ID certificate/private key must already be installed in Keychain.
-The build is followed by nested signing, notarization, stapling, and ZIP creation.
+By default the builder compiles checksum-pinned OpenSSL 3.5.9 for the Qt macOS
+minimum, avoiding a Homebrew runtime built only for the newest macOS. The pin and
+checksum live in `tools/release/openssl.json`; update them during dependency review.
+`ARBITER_OPENSSL_ROOT` can select an already provisioned portable shared build,
+including its license/build receipt. The build is followed by nested signing,
+notarization, stapling, and ZIP creation.
 This entry point requires signing; use the Python driver directly for unsigned tests.
 
 ### Windows: native build
@@ -193,7 +198,9 @@ would produce ARM binaries, which are outside the initial package matrix.
 Windows users extract the entire ZIP and run `bin/arbiter.exe`. Linux users extract
 and run `./arbiter`. The Linux archive targets the Ubuntu 24.04/glibc baseline and
 retains system FFmpeg/OpenSSL/desktop dependencies; it does not claim to run on
-every distribution. macOS packages require macOS 13+ and Apple Silicon.
+every distribution. macOS packages require Apple Silicon; the current Qt kit requires macOS 14.4+.
+The builder derives the deployment target from Qt and the package rejects bundled
+binaries with a higher minimum. The app Info.plist records the supported minimum.
 
 ## Machine prerequisites
 

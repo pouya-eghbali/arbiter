@@ -23,7 +23,7 @@ from installed apps (for example AirDrop, Messages, and Mail). Arbiter adds a
 **Copy link** service through the picker delegate. The page title is supplied as
 the sharing subject. The picker is anchored to the pill's share button or near
 the bottom of the window when invoked from the keyboard with no visible pill.
-The implementation requires macOS 13+, matching the engine's deployment target.
+The sharing API requires macOS 13+. The release's Qt kit can require a newer OS; see [release requirements](releases.md).
 
 Windows uses **DataTransferManager** through **IDataTransferManagerInterop** for
 the originating HWND. It supplies a WebLink and text, and adds Copy Link with
