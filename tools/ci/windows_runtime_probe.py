@@ -35,6 +35,26 @@ def main():
             print(f"::error::{message}", flush=True)
         return 1
     print(f"Windows DLL imports resolved for {len(visited)} application/Qt binaries.", flush=True)
+    loader = (
+        "import ctypes,os,sys; "
+        "scope=os.add_dll_directory(sys.argv[1]); "
+        "ctypes.windll.kernel32.SetErrorMode(0x8003); "
+        "ctypes.WinDLL(os.path.join(sys.argv[1],sys.argv[2])); "
+        "print('Loaded '+sys.argv[2],flush=True)"
+    )
+    for name in ("Qt6Core.dll", "Qt6Quick.dll", "Qt6WebEngineCore.dll", "Qt6WebEngineQuick.dll"):
+        print(f"Checking Windows loader initialization: {name}", flush=True)
+        try:
+            result = subprocess.run([sys.executable, "-c", loader, str(qt_bin), name],
+                                    capture_output=True, text=True, timeout=20)
+        except subprocess.TimeoutExpired:
+            print(f"::error::Windows loader stalled initializing {name}", flush=True)
+            return 1
+        print(result.stdout, end="", flush=True)
+        if result.returncode:
+            print(result.stderr, end="", flush=True)
+            print(f"::error::Windows could not initialize {name}: exit {result.returncode}", flush=True)
+            return 1
     return 0
 
 
