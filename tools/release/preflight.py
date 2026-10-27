@@ -40,7 +40,12 @@ def main():
     else:
         check(False, 'Set ARBITER_QT_PREFIX to the manifest-pinned base Qt kit')
     if sys.platform == 'darwin':
-        for name in ('xcrun', 'codesign', 'ditto', 'otool', 'install_name_tool', 'lipo'): tool(name)
+        for name in ('xcrun', 'codesign', 'ditto', 'otool', 'install_name_tool', 'lipo', 'hdiutil'): tool(name)
+        import importlib.metadata
+        for name, version in (('ds-store', '1.3.1'), ('mac-alias', '2.2.3')):
+            try: installed = importlib.metadata.version(name)
+            except importlib.metadata.PackageNotFoundError: installed = None
+            check(installed == version, name + ' matches tools/release/requirements-macos.txt')
         if shutil.which('xcrun'):
             for component in ('metal', 'actool'):
                 result = subprocess.run(['xcrun', '--find', component], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
