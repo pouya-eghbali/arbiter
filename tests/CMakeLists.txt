@@ -263,3 +263,16 @@ if(ARBITER_WEBENGINE_TESTS)
     target_link_libraries(privatebrowsing_test PRIVATE Qt6::Quick Qt6::WebEngineQuick Qt6::CorePrivate)
     arbiter_configure_webengine_runtime(privatebrowsing_test)
 endif()
+
+if(UNIX AND NOT APPLE AND ARBITER_WEBENGINE_TESTS)
+    # Chromium integration needs a display/compositor context. The offscreen
+    # Qt platform can stall navigation and input; CI provides X11 via Xvfb.
+    foreach(engine_test siteaudio historyswipe_engine devtools downloads extensions
+            adblock tabsleep sitepermissions passwordforms passkeyengine
+            webauthncontroller sitenavigation passkeycontroller privatebrowsing)
+        if(TEST ${engine_test})
+            set_property(TEST ${engine_test} APPEND PROPERTY ENVIRONMENT_MODIFICATION
+                "QT_QPA_PLATFORM=set:xcb")
+        endif()
+    endforeach()
+endif()

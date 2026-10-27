@@ -35,7 +35,7 @@ index 496b271..2c37553 100644
  )
  if(PRINT_BFD_LINKER_WARNING)
 diff --git a/src/core/CMakeLists.txt b/src/core/CMakeLists.txt
-index e24c961..e702fe0 100644
+index e24c961..e0b182d 100644
 --- a/src/core/CMakeLists.txt
 +++ b/src/core/CMakeLists.txt
 @@ -200,6 +200,8 @@ foreach(arch ${archs})
@@ -70,6 +70,15 @@ index e24c961..e702fe0 100644
          endif()
          extend_gn_list(gnArgArg
              ARGS use_browser_spellchecker
+@@ -458,7 +469,7 @@ foreach(arch ${archs})
+                 use_gio=false
+                 use_bundled_fontconfig=false
+                 use_glib=false
+-                use_bluez=false
++                use_bluez=true # WebAuthn hybrid discovery needs the Linux Bluetooth backend
+                 is_cfi=false
+                 use_ozone=true
+                 ozone_auto_platforms=false
 diff --git a/src/core/api/qtwebenginecoreglobal.h b/src/core/api/qtwebenginecoreglobal.h
 index 334d53d..6479080 100644
 --- a/src/core/api/qtwebenginecoreglobal.h

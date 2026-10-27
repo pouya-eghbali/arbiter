@@ -157,6 +157,9 @@ Chromium handles Bluetooth proximity, the encrypted tunnel, and CTAP responses.
 The phone keeps its private key. The UI shows the option only when hybrid
 transport is available and supports Bluetooth permission/power actions. Both
 devices need Bluetooth and internet; OS policies can prevent availability.
+The Linux SDK enables Chromium's BlueZ backend. Phone authentication also needs
+a functioning system D-Bus, BlueZ service, and Bluetooth adapter. Compiling that
+backend out can leave Chromium waiting for discovery even for local passkeys.
 Capability probes use the same macOS Bluetooth metadata guard as discovery.
 macOS needs `NSBluetoothAlwaysUsageDescription` in the responsible application's
 Info.plist; launch the app from Finder when testing. A terminal without that

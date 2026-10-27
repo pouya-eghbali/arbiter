@@ -79,6 +79,10 @@ permits namespace creation inside the non-root build container so Chromium can
 install its own sandbox; other Docker default restrictions remain. Apple Silicon Docker engines require explicit opt-in;
 the Windows x64 machine is preferred. To explicitly allow slower emulation on
 an ARM Docker engine, run `./tools/release/build-linux.sh --allow-emulation --jobs 12`.
+WebEngine integration tests run on X11 through Xvfb; Qt's offscreen platform
+does not provide equivalent compositor/input behavior on Linux. Emulation does
+not validate the native x64 seccomp-BPF sandbox; verify the package on native
+Linux x64 before publication.
 `ARBITER_DOCKER_UID`/`ARBITER_DOCKER_GID` optionally select the non-root container user.
 The image creates a matching Linux account entry, which D-Bus and Secret Service
 require even when Docker can already run processes under the numeric UID.

@@ -786,6 +786,11 @@ Window {
     }
 };
 int main(int argc, char **argv) {
+    // Exercise capture denial even on builders with no physical microphone.
+    // This supplies a device only; it does not grant capture permission.
+    auto flags = qgetenv("QTWEBENGINE_CHROMIUM_FLAGS");
+    flags += " --use-fake-device-for-media-stream";
+    qputenv("QTWEBENGINE_CHROMIUM_FLAGS", flags);
     QtWebEngineQuick::initialize(); QGuiApplication app(argc, argv);
     QCoreApplication::setOrganizationName("ArbiterExtensionTests");
     QCoreApplication::setApplicationName("ArbiterExtensionTests");
