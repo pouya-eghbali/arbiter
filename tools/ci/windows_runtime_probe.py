@@ -6,6 +6,27 @@ import subprocess
 import sys
 
 
+def missing_exports(binary, directories):
+    imports = subprocess.check_output(["dumpbin", "/NOLOGO", "/IMPORTS", str(binary)], text=True)
+    exports = {}
+    dependency = None
+    for line in imports.splitlines():
+        module = re.fullmatch(r"\s+([\w.-]+\.dll)\s*", line, re.IGNORECASE)
+        if module:
+            name = module[1]
+            dependency = next((d / name for d in directories if (d / name).is_file()), None)
+            continue
+        symbol = re.fullmatch(r"\s+(?:[0-9A-Fa-f]+\s+){1,3}([?A-Za-z_][^\s]*)\s*", line)
+        if not dependency or not symbol or symbol[1].startswith("Ordinal"):
+            continue
+        if dependency not in exports:
+            table = subprocess.check_output(["dumpbin", "/NOLOGO", "/EXPORTS", str(dependency)], text=True)
+            exports[dependency] = set(re.findall(
+                r"^\s+\d+\s+[0-9A-Fa-f]+\s+(?:[0-9A-Fa-f]{8,16}\s+)?([^\s]+)", table, re.MULTILINE))
+        if symbol[1] not in exports[dependency]:
+            print(f"::error::{binary.name} imports {symbol[1]} missing from {dependency}", flush=True)
+
+
 def main():
     qt_bin = Path(os.environ["QT_ROOT_DIR"]) / "bin"
     directories = [Path("build-tests").resolve(), qt_bin,
@@ -54,6 +75,7 @@ def main():
         if result.returncode:
             print(result.stderr, end="", flush=True)
             print(f"::error::Windows could not initialize {name}: exit {result.returncode}", flush=True)
+            missing_exports(qt_bin / name, directories)
             return 1
     return 0
 
