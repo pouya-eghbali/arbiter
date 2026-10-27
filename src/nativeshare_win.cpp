@@ -10,6 +10,7 @@
 #include <shlwapi.h>
 #include <shcore.h>
 #include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
 #include <winrt/Windows.Storage.Streams.h>
 #include <winrt/Windows.UI.h>

@@ -14,10 +14,30 @@ import package
 import validate_tag
 import publish
 import portable_openssl
+import macos_dmg
 build_spec = importlib.util.spec_from_file_location('release_build', ROOT / 'tools/release/build.py')
 release_build = importlib.util.module_from_spec(build_spec); build_spec.loader.exec_module(release_build)
 spec = importlib.util.spec_from_file_location('dependencies', ROOT / 'tools/dependencies.py')
 dependencies = importlib.util.module_from_spec(spec); spec.loader.exec_module(dependencies)
+
+
+class DmgTests(unittest.TestCase):
+    def test_rejects_unsigned_wrong_platform_or_mislabeled_apps_before_running_tools(self):
+        import json
+        for platform_name, signed, filename in (
+            ('linux', True, 'arbiter-0.1.0-macos-arm64.dmg'),
+            ('macos', False, 'arbiter-0.1.0-macos-arm64.dmg'),
+            ('macos', True, 'arbiter-9.9.9-macos-arm64.dmg'),
+        ):
+            with self.subTest(platform=platform_name, signed=signed, filename=filename), tempfile.TemporaryDirectory() as tmp:
+                app = Path(tmp) / 'Arbiter.app'
+                resources = app / 'Contents/Resources'; resources.mkdir(parents=True)
+                (resources / 'release.json').write_text(json.dumps(dict(
+                    platform=platform_name, signed=signed, version='0.1.0', architecture='arm64')))
+                with patch.object(macos_dmg.sys, 'platform', 'darwin'), patch.object(macos_dmg, 'run') as run:
+                    with self.assertRaises(RuntimeError):
+                        macos_dmg.create_dmg(app, Path(tmp) / filename, 'identity', 'profile')
+                    run.assert_not_called()
 
 
 class DependencyTests(unittest.TestCase):

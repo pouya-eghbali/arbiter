@@ -368,6 +368,9 @@ def main():
             run('codesign', '--verify', '--deep', '--strict', app)
             archive.unlink()
             run('ditto', '-c', '-k', '--sequesterRsrc', '--keepParent', app, archive)
+            from macos_dmg import create_dmg
+            create_dmg(app, output / (name + '.dmg'), os.environ['ARBITER_MACOS_SIGNING_IDENTITY'],
+                       os.environ['ARBITER_NOTARY_PROFILE'])
     elif sys.platform == 'win32':
         windows(stage, sdk, qt); audit(stage); engine_symbol(stage)
         smoke(stage, sdk, qt)

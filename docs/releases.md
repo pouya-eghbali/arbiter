@@ -18,6 +18,7 @@ Commit source changes before building, then use the same release tag on each mac
 ```sh
 # Base Qt and Python/Rust prerequisites below still apply.
 export ARBITER_QT_PREFIX=/absolute/path/to/Qt/6.12.0/macos
+build-release-python/bin/python -m pip install -r tools/release/requirements-macos.txt
 ./tools/release/build-macos.sh --jobs 24
 # Optional: --sdk-prefix /absolute/path/to/a/verified/sdk
 ```
@@ -35,6 +36,19 @@ checksum live in `tools/release/openssl.json`; update them during dependency rev
 `ARBITER_OPENSSL_ROOT` can select an already provisioned portable shared build,
 including its license/build receipt. The build is followed by nested signing,
 notarization, stapling, and ZIP creation.
+Signed builds also create a signed, notarized DMG with an Applications shortcut
+and a compact Finder icon layout. Prefer the DMG for downloads; the ZIP remains
+available as an alternative. The macOS uploader validates and includes a DMG
+when present. To package an already finalized, notarized app without rebuilding:
+
+```sh
+# Configure ARBITER_MACOS_SIGNING_IDENTITY and ARBITER_NOTARY_PROFILE as above.
+build-release-python/bin/python tools/release/macos_dmg.py \
+  --app /path/to/arbiter.app \
+  --output build-release-artifacts/arbiter-0.1.0-macos-arm64.dmg
+```
+
+DMG creation preserves the signed app and notarizes the disk image separately.
 This entry point requires signing; use the Python driver directly for unsigned tests.
 
 ### Windows: native build
