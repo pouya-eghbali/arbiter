@@ -32,5 +32,10 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup.sh 
     && chmod -R a+rX /opt/rust /opt/rustup && rm /tmp/rustup.sh
 # Run Chromium tests unprivileged with its sandbox enabled.
 RUN mkdir -p /work /artifacts && chmod 1777 /work /artifacts
+# D-Bus/Secret Service need a passwd entry for the non-root numeric build user.
+ARG ARBITER_BUILD_UID=1000
+ARG ARBITER_BUILD_GID=1000
+RUN (getent group "$ARBITER_BUILD_GID" >/dev/null || groupadd --gid "$ARBITER_BUILD_GID" arbiter-builder) \
+    && (getent passwd "$ARBITER_BUILD_UID" >/dev/null || useradd --uid "$ARBITER_BUILD_UID" --gid "$ARBITER_BUILD_GID" --home-dir /work/home --no-create-home arbiter-builder)
 COPY entrypoint.sh /usr/local/bin/arbiter-linux-build
 ENTRYPOINT ["bash", "/usr/local/bin/arbiter-linux-build"]

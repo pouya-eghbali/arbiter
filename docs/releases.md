@@ -75,6 +75,8 @@ install its own sandbox; other Docker default restrictions remain. Apple Silicon
 the Windows x64 machine is preferred. To explicitly allow slower emulation on
 an ARM Docker engine, run `./tools/release/build-linux.sh --allow-emulation --jobs 12`.
 `ARBITER_DOCKER_UID`/`ARBITER_DOCKER_GID` optionally select the non-root container user.
+The image creates a matching Linux account entry, which D-Bus and Secret Service
+require even when Docker can already run processes under the numeric UID.
 If the exact Qt pin is not yet available from the public Qt archive, set
 `ARBITER_LINUX_QT_PREFIX` to a pre-provisioned Linux x64 kit (including QtPdf) on
 the host. It is mounted read-only and skips image Qt provisioning. This must be

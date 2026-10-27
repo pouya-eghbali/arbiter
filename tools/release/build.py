@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'engine'))
@@ -19,6 +20,17 @@ from identity import fingerprint, verify_sdk
 def run(*args, env=None):
     print('+', subprocess.list2cmdline([str(a) for a in args]), flush=True)
     subprocess.run([str(a) for a in args], check=True, cwd=ROOT, env=env)
+
+
+def run_linux_tests(tests, environment):
+    environment = dict(environment)
+    with tempfile.TemporaryDirectory(prefix='arbiter-test-keyring-') as temporary:
+        data = Path(temporary) / 'data'; data.mkdir(mode=0o700)
+        control = Path(temporary) / 'control'; control.mkdir(mode=0o700)
+        environment.update(XDG_DATA_HOME=str(data), GNOME_KEYRING_CONTROL=str(control))
+        run('xvfb-run', '-a', 'dbus-run-session', '--', 'bash', '-e', '-c',
+            'printf "arbiter-ci-keyring" | gnome-keyring-daemon --unlock --components=secrets --control-directory="$GNOME_KEYRING_CONTROL"; '
+            'ctest --test-dir "$1" --output-on-failure --timeout 300', 'arbiter-ci', tests, env=environment)
 
 
 def main():
@@ -78,10 +90,7 @@ def main():
     run('cmake', '--build', tests, '--parallel', a.jobs)
     environment = dict(os.environ, ARBITER_TEST_KEYCHAIN='1')
     if sys.platform.startswith('linux'):
-        run('xvfb-run', '-a', 'dbus-run-session', '--', 'bash', '-e', '-c',
-            'export GNOME_KEYRING_CONTROL; GNOME_KEYRING_CONTROL=$(mktemp -d); '
-            'printf "arbiter-ci-keyring" | gnome-keyring-daemon --unlock --components=secrets --control-directory="$GNOME_KEYRING_CONTROL"; '
-            'ctest --test-dir "$1" --output-on-failure --timeout 300', 'arbiter-ci', tests, env=environment)
+        run_linux_tests(tests, environment)
     else:
         run('ctest', '--test-dir', tests, '--output-on-failure', '--timeout', '300', env=environment)
     app = ROOT / ('build-release-app-' + build_key)

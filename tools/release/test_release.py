@@ -13,6 +13,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import package
 import validate_tag
 import publish
+build_spec = importlib.util.spec_from_file_location('release_build', ROOT / 'tools/release/build.py')
+release_build = importlib.util.module_from_spec(build_spec); build_spec.loader.exec_module(release_build)
 spec = importlib.util.spec_from_file_location('dependencies', ROOT / 'tools/dependencies.py')
 dependencies = importlib.util.module_from_spec(spec); spec.loader.exec_module(dependencies)
 
@@ -43,6 +45,23 @@ class DependencyTests(unittest.TestCase):
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_linux_keyring_tests_never_reuse_persistent_data(self):
+        seen = []
+        original = {'ARBITER_TEST_KEYCHAIN': '1', 'XDG_DATA_HOME': '/persistent/user/data'}
+        def check(*args, env):
+            data = Path(env['XDG_DATA_HOME']); control = Path(env['GNOME_KEYRING_CONTROL'])
+            self.assertNotEqual(str(data), original['XDG_DATA_HOME'])
+            self.assertTrue(data.is_dir() and control.is_dir())
+            self.assertEqual(data.stat().st_mode & 0o777, 0o700)
+            self.assertIn('dbus-run-session', args)
+            seen.append(data)
+        with patch.object(release_build, 'run', side_effect=check):
+            release_build.run_linux_tests(Path('/tmp/tests'), original)
+            release_build.run_linux_tests(Path('/tmp/tests'), original)
+        self.assertNotEqual(seen[0], seen[1])
+        self.assertTrue(all(not path.exists() for path in seen))
+        self.assertEqual(original['XDG_DATA_HOME'], '/persistent/user/data')
+
     def test_docker_sandbox_profile_keeps_default_deny(self):
         import json
         profile = json.loads((ROOT / 'tools/release/docker/seccomp-userns.json').read_text())

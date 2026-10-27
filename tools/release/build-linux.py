@@ -29,6 +29,8 @@ def main():
         raise SystemExit('Use an x64 Docker engine, or explicitly pass --allow-emulation on ARM.')
     uid = os.environ.get('ARBITER_DOCKER_UID', str(os.getuid()) if hasattr(os, 'getuid') else '1000')
     gid = os.environ.get('ARBITER_DOCKER_GID', str(os.getgid()) if hasattr(os, 'getgid') else '1000')
+    if not uid.isdigit() or not gid.isdigit():
+        raise SystemExit('ARBITER_DOCKER_UID/GID must be numeric')
     if uid == '0': raise SystemExit('Run as a regular user; Chromium release tests require a non-root container user.')
     context = ROOT / 'build-release-docker/context'
     context.mkdir(parents=True, exist_ok=True)
@@ -41,6 +43,7 @@ def main():
     image = 'arbiter-linux-builder:' + hashlib.sha256(b''.join(
         (context / name).read_bytes() for name in ('Dockerfile', 'entrypoint.sh', 'provision-qt.py', 'dependencies.json', 'manifest.json')
     )).hexdigest()[:16]
+    image += '-u' + uid + '-g' + gid
     external_qt = os.environ.get('ARBITER_LINUX_QT_PREFIX')
     if external_qt:
         external_qt = Path(external_qt).resolve()
@@ -52,7 +55,8 @@ def main():
     output = ROOT / 'build-release-artifacts'; output.mkdir(exist_ok=True)
     jobs = str(args.jobs)
     run('docker', 'build', '--platform', 'linux/amd64', '--build-arg', 'ARBITER_BUILD_JOBS=' + jobs,
-        '--build-arg', 'ARBITER_EXTERNAL_QT=' + str(bool(external_qt)).lower(), '-t', image, context)
+        '--build-arg', 'ARBITER_EXTERNAL_QT=' + str(bool(external_qt)).lower(),
+        '--build-arg', 'ARBITER_BUILD_UID=' + uid, '--build-arg', 'ARBITER_BUILD_GID=' + gid, '-t', image, context)
     qt_args = []
     if external_qt:
         qt_args = ['--mount', f'type=bind,src={external_qt},dst=/opt/qt-kit,readonly',
