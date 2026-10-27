@@ -9,9 +9,10 @@ external font requests, or API keys are needed.
 Use Node.js 22.17+ (or a newer supported LTS version).
 
 Use the latest stable dependency releases and validate them together with a
-clean `npm ci`, `npm run check`, and `npm run build`. TypeScript currently uses
-the latest 6.x release because the latest SvelteKit and svelte-check declare
-TypeScript 6 support; reassess this constraint when those tools support 7.x.
+clean `npm ci`, `npm run check`, and `npm run build`. TypeScript temporarily uses
+the latest 6.x release: current peer ranges exclude 7.x, and testing 7.0.2 caused
+SvelteKit's config loader to fail while accessing the TypeScript `readFile` API.
+Reassess this constraint when the Svelte tooling supports TypeScript 7.
 
 ```sh
 cd website
