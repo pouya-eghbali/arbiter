@@ -1,12 +1,17 @@
 # Arbiter website
 
-The feature-led Arbiter landing page, built with Svelte 5, SvelteKit 2, TypeScript,
+The feature-led Arbiter landing page, built with Svelte 5, SvelteKit 3, TypeScript,
 and Vite. It prerenders to static HTML: no server, database, analytics, cookies,
 external font requests, or API keys are needed.
 
 ## Develop
 
-Use Node.js 22.12+ (or a newer supported LTS version).
+Use Node.js 22.17+ (or a newer supported LTS version).
+
+Use the latest stable dependency releases and validate them together with a
+clean `npm ci`, `npm run check`, and `npm run build`. TypeScript currently uses
+the latest 6.x release because the latest SvelteKit and svelte-check declare
+TypeScript 6 support; reassess this constraint when those tools support 7.x.
 
 ```sh
 cd website
