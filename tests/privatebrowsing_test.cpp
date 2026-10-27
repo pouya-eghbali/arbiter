@@ -171,6 +171,14 @@ private slots:
         first.privateMode=true; second.privateMode=true;
         auto *a=first.profile("Default"); auto *b=second.profile("Default");
         QVERIFY(a!=b); QCOMPARE(first.profile("Default"),a);
+        auto *scripts=a->property("userScripts").value<QObject *>();
+        QVERIFY(scripts);
+        QList<QWebEngineScript> compatibilityScripts;
+        QVERIFY(QMetaObject::invokeMethod(scripts,"find",
+            Q_RETURN_ARG(QList<QWebEngineScript>,compatibilityScripts),
+            Q_ARG(QString,QStringLiteral("Arbiter Google browser identity"))));
+        QCOMPARE(compatibilityScripts.size(),1);
+        QCOMPARE(compatibilityScripts.first(),SiteUserAgent::documentScript());
         QVERIFY(a->isOffTheRecord()); QVERIFY(b->isOffTheRecord());
         QVERIFY(a->storageName().isEmpty());
         QCOMPARE(a->httpCacheType(),QQuickWebEngineProfile::MemoryHttpCache);

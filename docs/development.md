@@ -135,10 +135,15 @@ The cross-platform workflow is [Desktop checks](../.github/workflows/password-ma
 a Firefox User-Agent header for HTTP(S) requests whose destination is
 `google.com` or one of its subdomains. This follows the
 [qutebrowser Google sign-in workaround](https://github.com/qutebrowser/qutebrowser/issues/5182).
-It does not change the shared profile's default user agent or JavaScript APIs,
-and it remains active when ad blocking is paused. The Firefox version is pinned
+It clears Chromium UA client hints present on those requests. A document-creation
+script also matches the JavaScript-visible browser identity on Google pages,
+including subframes, before page scripts run. Other sites and the shared profile's
+default user agent remain unchanged. This compatibility workaround does not turn
+Chromium into Firefox or guarantee Google sign-in acceptance; workers retain the
+engine's native identity. It remains active when ad blocking is paused. The Firefox version is pinned
 in `src/siteuseragent.h`, with its verification date and Mozilla release source.
-The request-level regression test blocks requests before network access.
+Regression tests check request headers, early page scripts, and profile script
+installation. Request tests block requests before network access.
 
 ## Further reading
 

@@ -4,6 +4,7 @@
 #include <functional>
 #include "extensioncatalog.h"
 #include "siteuseragentinterceptor.h"
+#include "siteuseragentscript.h"
 #include <QtWebEngineQuick/QQuickWebEngineProfile>
 
 // One live Chromium profile per storage name, owned beyond the QML views.
@@ -19,6 +20,10 @@ public:
         auto *profile = privateMode ? new QQuickWebEngineProfile(this) : new QQuickWebEngineProfile(name, this);
         profile->setHttpUserAgent(userAgent);
         profile->setUrlRequestInterceptor(new SiteUserAgentInterceptor(profile));
+        const auto script = SiteUserAgent::documentScript();
+        auto *scripts = profile->property("userScripts").value<QObject *>();
+        if (!scripts || !QMetaObject::invokeMethod(scripts, "insert", Q_ARG(QWebEngineScript, script)))
+            qWarning("Could not install the Google browser identity compatibility script.");
         profile->setPersistentPermissionsPolicy(privateMode ? QQuickWebEngineProfile::PersistentPermissionsPolicy::StoreInMemory
                                                           : QQuickWebEngineProfile::PersistentPermissionsPolicy::StoreOnDisk);
         m_profiles.insert(name, profile);
