@@ -62,6 +62,9 @@ jobs:
         with:
           toolchain: ${{ steps.pins.outputs.rust }}
       - run: python -m pip install html5lib==${{ steps.pins.outputs.html5lib }}
+      - name: Install macOS disk image layout dependencies
+        if: runner.os == 'macOS'
+        run: python -m pip install -r tools/release/requirements-macos.txt
       - name: Build SDK, run full native tests, and stage artifacts
         env:
           MAKE_PACKAGES: ${{ inputs.package }}
@@ -78,6 +81,7 @@ jobs:
           name: native-${{ matrix.os }}-${{ matrix.arch }}
           path: |
             build-release-artifacts/*.zip
+            build-release-artifacts/*.dmg
             build-release-artifacts/*.tar.xz
             build-release-artifacts/*.tar.gz
             build-release-artifacts/*.sha256
