@@ -182,7 +182,7 @@ endif()
 
 find_package(Qt6 ${ARBITER_QT_SERIES} REQUIRED COMPONENTS Sql Concurrent)
 add_executable(browserimporter_test browserimporter_test.cpp ../src/browserimportselection.cpp ../src/browserimportselection.h ../src/browserimporter.cpp ../src/browserimporter.h ../src/importdata.cpp ../src/importdata.h ../src/history.cpp ../src/history.h)
-target_link_libraries(browserimporter_test PRIVATE password_core Qt6::Sql Qt6::Concurrent Qt6::Test)
+target_link_libraries(browserimporter_test PRIVATE password_core Qt6::Gui Qt6::Sql Qt6::Concurrent Qt6::Test)
 include(../cmake/BrowserImport.cmake)
 arbiter_add_browser_import(browserimporter_test)
 add_test(NAME browserimporter COMMAND browserimporter_test)
