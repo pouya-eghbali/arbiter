@@ -286,6 +286,45 @@ index 668a248..d9baf91 100644
          adapterClient->showWebAuthDialog(m_request);
          m_isDialogCreated = true;
      } else {
+diff --git a/src/core/browser_main_parts_qt.cpp b/src/core/browser_main_parts_qt.cpp
+index bff9e27..bb521e2 100644
+--- a/src/core/browser_main_parts_qt.cpp
++++ b/src/core/browser_main_parts_qt.cpp
+@@ -29,6 +29,11 @@
+ #include "content/public/common/buildflags.h"
+ #include "content/public/common/content_features.h"
+ #include "content/public/common/result_codes.h"
++#if BUILDFLAG(IS_LINUX)
++#include "device/bluetooth/bluetooth_adapter_factory.h"
++#include "device/bluetooth/dbus/bluez_dbus_manager.h"
++#include "device/bluetooth/dbus/bluez_dbus_thread_manager.h"
++#endif
+ #include "select_file_dialog_factory_qt.h"
+ #include "services/service_manager/public/cpp/connector.h"
+ #include "services/service_manager/public/cpp/service.h"
+@@ -239,6 +244,10 @@ void BrowserMainPartsQt::PostCreateMainMessageLoop()
+ 
+ int BrowserMainPartsQt::PreMainMessageLoopRun()
+ {
++#if BUILDFLAG(IS_LINUX)
++    bluez::BluezDBusManager::Initialize(nullptr);
++#endif
++
+     ui::SelectFileDialog::SetFactory(std::make_unique<SelectFileDialogFactoryQt>());
+ 
+ #if BUILDFLAG(ENABLE_EXTENSIONS)
+@@ -281,6 +290,11 @@ void BrowserMainPartsQt::PostMainMessageLoopRun()
+     // The ProfileQt's destructor uses the MessageLoop so it should be deleted
+     // right before the RenderProcessHostImpl's destructor destroys it.
+     WebEngineContext::current()->destroyProfileAdapter();
++#if BUILDFLAG(IS_LINUX)
++    device::BluetoothAdapterFactory::Shutdown();
++    bluez::BluezDBusManager::Shutdown();
++    bluez::BluezDBusThreadManager::Shutdown();
++#endif
+ }
+ 
+ #if defined(Q_OS_WIN)
 diff --git a/src/core/configure/BUILD.root.gn.in b/src/core/configure/BUILD.root.gn.in
 index 84101d4..ca49604 100644
 --- a/src/core/configure/BUILD.root.gn.in
