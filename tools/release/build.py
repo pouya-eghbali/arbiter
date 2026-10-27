@@ -54,7 +54,7 @@ def main():
         '--release', '--jobs', a.jobs, '--target-dir', ROOT / 'build-release-rust-tests')
     cache = Path(os.environ.get('ARBITER_ENGINE_CACHE', str(ROOT / 'build-release-engine')))
     kit_path_key = hashlib.sha256(str(qt).encode()).hexdigest()[:12]
-    work = (cache / (fingerprint() + '-' + sys.platform + '-' + platform.machine() + '-' + kit_path_key)).resolve()
+    work = (cache / (fingerprint()[:20] + '-' + sys.platform + '-' + platform.machine() + '-' + kit_path_key)).resolve()
     sdk = a.sdk_prefix.resolve() if a.sdk_prefix else work / 'sdk'
     if a.sdk_prefix or (sdk / 'arbiter-engine-build.json').exists():
         verify_sdk(sdk)

@@ -210,7 +210,9 @@ Set these variables in the shell used to build:
 - `ARBITER_OPENSSL_BIN`: Windows directory containing `libcrypto-3*.dll`.
 - `ARBITER_ENGINE_CACHE`: optional persistent, machine-private SDK work directory.
   Otherwise the ignored `build-release-engine/` is used. The cache key includes
-  engine inputs, host architecture and base-kit location. Do not share writable
+  engine inputs, host architecture and base-kit location. Directory names use a
+  shortened fingerprint to stay within Ninja response-file filename limits; the
+  SDK receipt still verifies the full fingerprint. Do not share writable
   SDK caches with untrusted processes/jobs. App/test build directories also follow
   the selected dependencies to avoid retaining stale CMake package paths.
 
