@@ -41,8 +41,25 @@ QByteArray archive(const QString &extra = {}, bool symlink = false, int manifest
     zip.addDirectory("_metadata");
     zip.addFile("_metadata/test.json", "{}");
     zip.addFile("content.js", "document.body.dataset.storeTest='works'");
-    if (!extra.isEmpty()) { if (symlink) zip.addSymLink(extra, "../outside"); else zip.addFile(extra, "test"); }
-    zip.close(); return buffer.data();
+    // QZipWriter converts native separators on Windows. Write a same-length
+    // placeholder, then put the requested original name into both ZIP headers
+    // so malicious fixtures are identical on every platform.
+    const auto originalName = extra.toUtf8();
+    const QString placeholder(originalName.size(), QChar('x'));
+    if (!extra.isEmpty()) { if (symlink) zip.addSymLink(placeholder, "../outside"); else zip.addFile(placeholder, "test"); }
+    zip.close();
+    auto bytes = buffer.data();
+    if (!extra.isEmpty()) {
+        const auto central = bytes.lastIndexOf(QByteArray("PK\x01\x02", 4));
+        if (central < 0 || bytes.mid(central + 46, originalName.size()) != placeholder.toUtf8())
+            qFatal("Could not locate the extra ZIP fixture entry.");
+        const auto local = qFromLittleEndian<quint32>(bytes.constData() + central + 42);
+        if (bytes.mid(local + 30, originalName.size()) != placeholder.toUtf8())
+            qFatal("ZIP fixture local and central names differ.");
+        bytes.replace(local + 30, originalName.size(), originalName);
+        bytes.replace(central + 46, originalName.size(), originalName);
+    }
+    return bytes;
 }
 QString encodedId(const QByteArray &bytes) {
     QString value; for (quint8 byte : bytes) { value += QChar('a' + (byte >> 4)); value += QChar('a' + (byte & 15)); } return value;
@@ -112,11 +129,12 @@ private slots:
     }
     void unpacksWithStableIdentity() {
         QTemporaryDir temporary;
-        const auto verified = CrxPackage::verify(package(archive()), id, pin);
+        const auto verified = CrxPackage::verify(package(archive("folder/extra.js")), id, pin);
         QVERIFY2(CrxPackage::unpack(verified, temporary.path()).isEmpty(), qPrintable(verified.error));
         QFile manifest(temporary.filePath("manifest.json")); QVERIFY(manifest.open(QIODevice::ReadOnly));
         QCOMPARE(QJsonDocument::fromJson(manifest.readAll()).object().value("key").toString(), QString::fromLatin1(developerBytes.toBase64()));
         QVERIFY(QFileInfo::exists(temporary.filePath("content.js")));
+        QVERIFY(QFileInfo::exists(temporary.filePath("folder/extra.js")));
     }
     void rejectsUnsafeArchives() {
         for (const auto &path : {"../escape", "/absolute", "folder/../../escape", "folder\\escape", "C:/escape", "MANIFEST.JSON", "folder/../escape"}) {

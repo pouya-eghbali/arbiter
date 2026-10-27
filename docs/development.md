@@ -106,7 +106,9 @@ import-name repair allowed loading, but browser transfer tests still crashed on
 the hosted runner. CI does not alter or execute those incompatible stock modules.
 Windows browser integration must pass against the matching patched SDK before
 publishing a Windows package. The local release builder runs all tests without
-the CI label exclusion. CI and native release Qt kits have separate caches.
+the CI label exclusion. The hosted exclusion applies only to that exact Qt and
+WebEngine version pair; dependency upgrades re-enable the full Windows suite.
+CI and native release Qt kits have separate caches.
 
 Run the keyboard binding, native URL handling, tab model, password controller,
 WebEngine password-form integration, passkey vault, and WebAuthn controller tests
