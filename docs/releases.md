@@ -3,13 +3,108 @@
 The main release path is **build locally, then upload to a GitHub draft**. No
 self-hosted runner or startup service is required. GitHub handles the small
 source-draft and dependency-check jobs; Chromium compilation happens on our Mac,
-Windows machine, and Linux VM. Nothing publishes a public release automatically.
+Windows machine, and Linux Docker container. Nothing publishes a public release automatically.
 This is release engineering, not an in-app auto-updater.
+
+## Platform entry points
+
+`/env.sh` is ignored by Git. The macOS script loads it automatically with export
+and command tracing disabled. Never add signing secrets to tracked files.
+These scripts build/test/package only; uploading is a separate explicit command.
+Commit source changes before building, then use the same release tag on each machine.
+
+### macOS: build, sign, notarize
+
+```sh
+# Base Qt and Python/Rust prerequisites below still apply.
+export ARBITER_QT_PREFIX=/absolute/path/to/Qt/6.12.0/macos
+./tools/release/build-macos.sh --jobs 24
+# Optional: --sdk-prefix /absolute/path/to/a/verified/sdk
+```
+
+The script accepts the names in the local `env.sh`: `APPLE_DEVELOPER_ID`
+(Developer ID Application signing identity), `APPLE_ID`, `APPLE_APP_PASSWORD`
+(app-specific password), and `APPLE_TEAM_ID`. It validates/stores notarization
+credentials in the login Keychain profile `arbiter-release`, without logging
+credential values. Alternatively set `ARBITER_MACOS_SIGNING_IDENTITY` and an
+existing `ARBITER_NOTARY_PROFILE`; no Apple password variables are then needed.
+The Developer ID certificate/private key must already be installed in Keychain.
+The build is followed by nested signing, notarization, stapling, and ZIP creation.
+This entry point requires signing; use the Python driver directly for unsigned tests.
+
+### Windows: native build
+
+From an x64 MSVC Developer PowerShell, with the pinned Qt, Python/Rust and OpenSSL
+installed and the variables documented below configured:
+
+```powershell
+./tools/release/build-windows.ps1 -Jobs 24
+# For testing without a signing certificate:
+./tools/release/build-windows.ps1 -Jobs 24 -Unsigned
+```
+
+`-SdkPrefix` reuses a verified SDK. `ARBITER_PYTHON` can select the Python executable;
+otherwise the scripts prefer `build-release-python` and then system Python.
+
+### Linux: Docker build
+
+Run on the Windows x64 machine with Docker Desktop using Linux containers:
+
+```powershell
+./tools/release/build-linux.ps1 -Jobs 24
+```
+
+Or on a Linux x64 Docker host:
+
+```sh
+./tools/release/build-linux.sh --jobs 24
+```
+
+The image provisions Ubuntu 24.04, Node 22, Qt from the engine manifest, pinned
+Python/Rust and build dependencies. QtPdf is built from the pinned WebEngine
+source against the base kit because it follows the separate WebEngine version
+series. Image creation includes this one-time compilation. No host Qt installation is required. The container builds
+a committed-source Git bundle, runs tests as a non-root user with the Chromium
+sandbox enabled, then copies the Linux archive/checksum to
+`build-release-artifacts/`. It never mounts `env.sh`, the host checkout, or Apple
+credentials. A named Docker volume caches source/SDK builds. Allocate substantial
+RAM/disk to Docker and reduce jobs if needed. Docker's host kernel must permit
+Chromium sandbox user namespaces. Apple Silicon Docker engines are rejected;
+use the Windows x64 machine rather than emulating a full Chromium build.
+`ARBITER_DOCKER_UID`/`ARBITER_DOCKER_GID` optionally select the non-root container user.
+If the exact Qt pin is not yet available from the public Qt archive, set
+`ARBITER_LINUX_QT_PREFIX` to a pre-provisioned Linux x64 kit (including QtPdf) on
+the host. It is mounted read-only and skips image Qt provisioning. This must be
+a Linux kit, even when the Docker host is Windows.
+
+### Upload from either machine
+
+Install GitHub CLI and run `gh auth login`. Check out the matching local release
+tag, which must already exist on GitHub. Each machine can upload independently:
+
+```sh
+./tools/release/upload.sh --tag v0.1.0 --platform macos
+./tools/release/upload.sh --tag v0.1.0 --platform linux
+```
+
+```powershell
+./tools/release/upload.ps1 -Tag v0.1.0 -Platform windows
+# Add -Unsigned for unsigned testing builds.
+```
+
+Use `--unsigned` in Bash for unsigned testing packages. `--assets` / `-Assets`
+selects another package directory. Omit platform selection to require/upload all
+three packages together. Version, exact commit, engine identity, dependency pins,
+signing status and checksums are verified for each selected package. Partial uploads
+preserve existing draft notes and other platforms, and add per-platform checksum
+manifests/sidecars. Existing packages of the same filename are replaced. Nothing
+publishes automatically; published releases are refused. Review all three platform
+packages before publishing the draft manually.
 
 ## Release from local machines
 
 Use the Apple Silicon Mac for macOS ARM64, the Windows x64 machine for Windows,
-and an **Ubuntu 24.04 x64 VM on Windows** for Linux. An ARM Linux VM on the Mac
+and an **Ubuntu 24.04 x64 Docker container on Windows/Linux** for Linux. An ARM Linux VM on the Mac
 would produce ARM binaries, which are outside the initial package matrix.
 
 1. Set `VERSION.txt` to `X.Y.Z` or `X.Y.Z-rc.N`. Commit/merge the release changes,
@@ -128,8 +223,8 @@ and `nm`. Do not run release browsers as root or disable Chromium's sandbox.
 `python tools/release/preflight.py` checks basic architecture/tooling and the
 provisioned Qt version; `--signing` also checks signing configuration names without
 printing their values. Native configure/build remains the definitive prerequisite
-and API compatibility check. Local builds require ARBITER_QT_PREFIX; only the
-optional GitHub native workflow can install the matching base kit automatically.
+and API compatibility check. Native local builds require ARBITER_QT_PREFIX. The Linux Docker image and optional
+GitHub native workflow provision their own matching base kit.
 
 For signing:
 

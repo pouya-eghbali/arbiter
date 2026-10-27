@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only checks before registering a native release builder."""
+"""Read-only checks before a native release build."""
 import argparse
 import json
 import os
@@ -60,7 +60,7 @@ def main():
         if shutil.which('pkg-config'):
             result = subprocess.run(['pkg-config', '--exists', 'libavcodec', 'libavformat', 'libavutil', 'libsecret-1', 'openssl'])
             check(result.returncode == 0, 'System FFmpeg, OpenSSL and Secret Service development packages')
-        print('INFO Use an Ubuntu 24.04 x64 VM on the Windows machine for the Linux release baseline.')
+        print('INFO Linux release baseline: Ubuntu 24.04 x64 (Docker or native).')
     print('Preflight: ' + ('ready for native build' if not failures else f'{len(failures)} requirement(s) missing'))
     return bool(failures)
 

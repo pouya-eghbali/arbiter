@@ -85,6 +85,39 @@ class ReleaseTests(unittest.TestCase):
                     publish.main()
                 self.assertFalse(any(call.args[:2] == ('gh', 'release') for call in commands.call_args_list))
 
+    def test_partial_upload_preserves_draft_and_uploads_only_selected_platform(self):
+        import hashlib
+        import json
+        from identity import fingerprint
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            archive = root / 'arbiter-0.1.0-windows-x86_64.zip'
+            metadata = {'version': '0.1.0', 'commit': 'a' * 40, 'platform': 'windows',
+                        'architecture': 'x86_64', 'signed': True,
+                        'dependencies': json.loads((ROOT / 'dependencies.json').read_text()),
+                        'engine': {'inputs_sha256': fingerprint()}}
+            with zipfile.ZipFile(archive, 'w') as bundle:
+                bundle.writestr('arbiter/release.json', json.dumps(metadata))
+            sidecar = root / (archive.name + '.sha256')
+            sidecar.write_text(hashlib.sha256(archive.read_bytes()).hexdigest() + '  ' + archive.name)
+            def command(*args, **kwargs):
+                if args[:2] == ('git', 'archive'):
+                    (root / 'arbiter-0.1.0-source.tar.gz').write_bytes(b'source')
+                if args[:2] == ('git', 'show'): return '0.1.0'
+                if args[:3] == ('gh', 'repo', 'view'): return 'owner/repo'
+                return 'a' * 40
+            with patch.object(publish, 'run', side_effect=command) as commands, \
+                    patch.object(publish.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, '{"isDraft":true}')), \
+                    patch.object(sys, 'argv', ['publish.py', '--tag', 'v0.1.0', '--assets', str(root), '--platform', 'windows']), \
+                    patch.dict(os.environ, {}, clear=True):
+                publish.main()
+            uploads = [c.args for c in commands.call_args_list if c.args[:3] == ('gh', 'release', 'upload')]
+            self.assertEqual(len(uploads), 1)
+            self.assertIn(archive, uploads[0])
+            self.assertIn(sidecar, uploads[0])
+            self.assertIn(root / 'SHA256SUMS-windows', uploads[0])
+            self.assertFalse(any(c.args[:3] == ('gh', 'release', 'edit') for c in commands.call_args_list))
+
     def test_macos_deployment_replaces_stock_engine_as_a_unit(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary); sdk = root / 'sdk'; app = root / 'Arbiter.app'

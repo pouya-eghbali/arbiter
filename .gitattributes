@@ -4,3 +4,5 @@ engine/patches/*.patch whitespace=-blank-at-eol
 engine/** text eol=lf
 dependencies.json text eol=lf
 VERSION.txt text eol=lf
+# Docker entry points must stay executable shell text on Windows checkouts.
+tools/release/** text eol=lf

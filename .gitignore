@@ -1,4 +1,5 @@
 /build*/
+/env.sh
 /out/
 /CMakeUserPresets.json
 /.qt/
