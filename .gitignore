@@ -1,6 +1,7 @@
 /build*/
 /env.sh
 /out/
+/output/
 /CMakeUserPresets.json
 /.qt/
 /.cache/
