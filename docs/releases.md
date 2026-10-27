@@ -225,7 +225,8 @@ Windows needs MSVC 2022, a Windows 11 SDK, `dumpbin`, `signtool` for signing,
 OpenSSL development/runtime files, and Qt WebEngine's Windows prerequisites.
 Linux needs system FFmpeg/OpenSSL development packages, Qt's build prerequisites,
 `xvfb`, `dbus-x11`, `gnome-keyring`, `libsecret-1-dev`, `libopus-dev`, `patchelf`, `pkg-config`,
-and `nm`. Do not run release browsers as root or disable Chromium's sandbox.
+and `nm`. The Linux package bundles its Qt runtime and the matching ICU libraries
+from the Qt kit; it does not rely on an incompatible distro Qt/ICU ABI. Do not run release browsers as root or disable Chromium's sandbox.
 
 `python tools/release/preflight.py` checks basic architecture/tooling and the
 provisioned Qt version; `--signing` also checks signing configuration names without

@@ -200,6 +200,12 @@ def linux(stage, sdk, qt):
                     if prefix == qt and library.name.startswith('libQt6WebEngine'):
                         continue
                     copy(library, stage / 'lib' / library.name)
+                # Official Qt kits can require an ICU ABI absent from the target distro.
+                # Bundle only Qt's three runtime ICU components, preserving SONAME links.
+                if prefix == qt:
+                    for pattern in ('libicui18n.so*', 'libicuuc.so*', 'libicudata.so*'):
+                        for library in libdir.glob(pattern):
+                            copy(library, stage / 'lib' / library.name)
     for helper in sdk.rglob('QtWebEngineProcess'):
         if helper.is_file(): copy(helper, stage / 'libexec/QtWebEngineProcess'); break
     for resource in sdk.rglob('*'):
