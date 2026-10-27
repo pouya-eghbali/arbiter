@@ -40,6 +40,50 @@ index 5afe519671..f4689d2c79 100644
    // Conditional mediation is always supported if the virtual environment is
    // providing a platform authenticator.
    GetWebAuthenticationDelegate()
+diff --git a/chromium/device/bluetooth/bluez/bluetooth_adapter_bluez.cc b/chromium/device/bluetooth/bluez/bluetooth_adapter_bluez.cc
+index b319274359..5f1833ce0d 100644
+--- a/chromium/device/bluetooth/bluez/bluetooth_adapter_bluez.cc
++++ b/chromium/device/bluetooth/bluez/bluetooth_adapter_bluez.cc
+@@ -24,7 +24,6 @@
+ #include "base/task/single_thread_task_runner.h"
+ #include "base/time/time.h"
+ #include "build/build_config.h"
+-#include "chromeos/constants/chromeos_features.h"
+ #include "components/device_event_log/device_event_log.h"
+ #include "device/bluetooth/bluetooth_common.h"
+ #include "device/bluetooth/bluetooth_device.h"
+@@ -40,6 +39,7 @@
+ #include "device/bluetooth/bluez/bluetooth_socket_bluez.h"
+ #include "device/bluetooth/bluez/bluez_features.h"
+ #if BUILDFLAG(IS_CHROMEOS)
++#include "chromeos/constants/chromeos_features.h"
+ #include "device/bluetooth/chromeos_platform_features.h"
+ #endif // BUILDFLAG(IS_CHROMEOS)
+ #include "device/bluetooth/dbus/bluetooth_adapter_client.h"
+diff --git a/chromium/device/bluetooth/dbus/bluetooth_dbus_client_bundle.cc b/chromium/device/bluetooth/dbus/bluetooth_dbus_client_bundle.cc
+index 33887c818e..bd8d9b140f 100644
+--- a/chromium/device/bluetooth/dbus/bluetooth_dbus_client_bundle.cc
++++ b/chromium/device/bluetooth/dbus/bluetooth_dbus_client_bundle.cc
+@@ -11,7 +11,6 @@
+ #include "base/logging.h"
+ #include "base/strings/string_split.h"
+ #include "base/strings/string_util.h"
+-#include "chromeos/constants/chromeos_features.h"
+ #include "device/bluetooth/dbus/bluetooth_adapter_client.h"
+ #include "device/bluetooth/dbus/bluetooth_admin_policy_client.h"
+ #include "device/bluetooth/dbus/bluetooth_advertisement_monitor_manager_client.h"
+diff --git a/chromium/device/bluetooth/dbus/bluez_dbus_manager.cc b/chromium/device/bluetooth/dbus/bluez_dbus_manager.cc
+index ccde6bc271..542c1e91d4 100644
+--- a/chromium/device/bluetooth/dbus/bluez_dbus_manager.cc
++++ b/chromium/device/bluetooth/dbus/bluez_dbus_manager.cc
+@@ -15,7 +15,6 @@
+ #include "base/system/sys_info.h"
+ #include "base/threading/thread.h"
+ #include "build/build_config.h"
+-#include "chromeos/constants/chromeos_features.h"
+ #include "dbus/bus.h"
+ #include "dbus/dbus_statistics.h"
+ #include "dbus/message.h"
 diff --git a/chromium/device/fido/fido_discovery_factory.cc b/chromium/device/fido/fido_discovery_factory.cc
 index 479cafbfb8..7c4118f04c 100644
 --- a/chromium/device/fido/fido_discovery_factory.cc
