@@ -28,7 +28,10 @@ def run(*args, capture=False):
 def copy(source, destination):
     if source.is_dir():
         shutil.copytree(source, destination, symlinks=True, dirs_exist_ok=True,
-                        ignore=shutil.ignore_patterns('*.dSYM', '*.pdb', '*.debug'))
+                        ignore=shutil.ignore_patterns('*.dSYM', '*.pdb', '*.debug',
+                                                     '*.o', '*.obj', '*.a', 'objects-Release',
+                                                     'objects-Debug', 'objects-RelWithDebInfo',
+                                                     'objects-MinSizeRel'))
     else:
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.is_symlink():
@@ -238,6 +241,14 @@ def smoke(stage, sdk, qt):
         subprocess.run(args, env=env, check=True, timeout=60)
 
 
+def elf_type(path):
+    with path.open('rb') as stream:
+        header = stream.read(18)
+    if len(header) < 18 or header[:4] != b'\x7fELF' or header[5] not in (1, 2):
+        return None
+    return int.from_bytes(header[16:18], 'little' if header[5] == 1 else 'big')
+
+
 def linux(stage, sdk, qt):
     # Match the distro baseline used by the builder. System FFmpeg, glibc,
     # desktop/graphics drivers, Secret Service and fprintd stay external.
@@ -271,8 +282,10 @@ def linux(stage, sdk, qt):
     launcher.chmod(0o755)
     for path in stage.rglob('*'):
         if path.is_file() and not path.is_symlink():
-            with path.open('rb') as stream: elf = stream.read(4) == b'\x7fELF'
-            if elf:
+            kind = elf_type(path)
+            if kind == 1:  # ET_REL: Qt development resource objects, never runtime files.
+                path.unlink()
+            elif kind in (2, 3):  # ET_EXEC / ET_DYN, including PIE executables.
                 relative = os.path.relpath(stage / 'lib', path.parent)
                 run('patchelf', '--set-rpath', '$ORIGIN/' + relative, path)
 

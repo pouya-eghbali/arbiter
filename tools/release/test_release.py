@@ -139,6 +139,31 @@ class ReleaseTests(unittest.TestCase):
             self.assertFalse((stage / 'qml/QtWebEngine/obsolete.qml').exists())
             self.assertEqual((stage / 'qml/QtWebEngine/qmldir').read_text(), 'sdk')
 
+    def test_linux_packages_runtime_elfs_without_development_objects(self):
+        def header(kind):
+            return b'\x7fELF\x02\x01' + bytes(10) + kind.to_bytes(2, 'little')
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); qt = root / 'qt'; sdk = root / 'sdk'; stage = root / 'stage'
+            module = qt / 'qml/Example'; module.mkdir(parents=True)
+            (module / 'view.qml').write_text('import QtQuick\nItem {}')
+            (module / 'plugin.so').write_bytes(header(3))
+            (module / 'resource.o').write_bytes(header(1))
+            (module / 'resource.elf').write_bytes(header(1))
+            (module / 'static.a').write_bytes(b'!<arch>\n')
+            (module / 'objects-RelWithDebInfo').mkdir()
+            (module / 'objects-RelWithDebInfo/resource.o').write_bytes(header(1))
+            (stage / 'bin').mkdir(parents=True)
+            executable = stage / 'bin/arbiter'; executable.write_bytes(header(2))
+            with patch.object(package, 'run') as commands:
+                package.linux(stage, sdk, qt)
+            copied = stage / 'qml/Example'
+            self.assertTrue((copied / 'view.qml').exists())
+            self.assertEqual({call.args[-1] for call in commands.call_args_list},
+                             {executable, copied / 'plugin.so'})
+            self.assertFalse(any(p.suffix in ('.o', '.a') for p in stage.rglob('*')))
+            self.assertFalse((copied / 'resource.elf').exists())
+            self.assertFalse((copied / 'objects-RelWithDebInfo').exists())
+
     def test_uploader_rejects_mixed_local_builds_before_updating_release(self):
         import hashlib
         import json
