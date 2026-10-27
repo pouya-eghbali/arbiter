@@ -24,6 +24,8 @@ ARG ARBITER_BUILD_JOBS=24
 ARG ARBITER_EXTERNAL_QT=false
 COPY provision-qt.py /opt/arbiter-pins/
 RUN if [ "$ARBITER_EXTERNAL_QT" != true ]; then python /opt/arbiter-pins/provision-qt.py; fi
+# System FFmpeg requires system Opus as well. Keep this layer after the costly Qt provisioning.
+RUN apt-get update && apt-get install -y --no-install-recommends libopus-dev && rm -rf /var/lib/apt/lists/*
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup.sh \
     && sh /tmp/rustup.sh -y --profile minimal --default-toolchain none \
     && python -c 'import json,subprocess; subprocess.run(["rustup","toolchain","install",json.load(open("/opt/arbiter-pins/dependencies.json"))["rust"],"--profile","minimal"],check=True)' \

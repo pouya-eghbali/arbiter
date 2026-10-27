@@ -43,6 +43,17 @@ class DependencyTests(unittest.TestCase):
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_docker_sandbox_profile_keeps_default_deny(self):
+        import json
+        profile = json.loads((ROOT / 'tools/release/docker/seccomp-userns.json').read_text())
+        self.assertEqual(profile['defaultAction'], 'SCMP_ACT_ERRNO')
+        unconditional = {name for rule in profile['syscalls']
+                         if rule['action'] == 'SCMP_ACT_ALLOW' and not rule.get('args')
+                         and not rule.get('includes') and not rule.get('excludes')
+                         for name in rule['names']}
+        self.assertTrue({'clone', 'clone3', 'unshare', 'setns'} <= unconditional)
+        self.assertFalse({'mount', 'reboot', 'kexec_load', 'bpf'} & unconditional)
+
     def test_linux_never_copies_a_different_stock_engine_version(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary); qt = root / 'qt'; sdk = root / 'sdk'; stage = root / 'stage'

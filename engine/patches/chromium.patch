@@ -131,6 +131,89 @@ index 442f6c8333..6187d4bf6c 100644
      "agtm.cc",
      "agtm.h",
      "amplitude_peak_detector.cc",
+diff --git a/chromium/media/filters/ffmpeg_demuxer.cc b/chromium/media/filters/ffmpeg_demuxer.cc
+index 207f236195..9e175353f4 100644
+--- a/chromium/media/filters/ffmpeg_demuxer.cc
++++ b/chromium/media/filters/ffmpeg_demuxer.cc
+@@ -116,7 +116,7 @@ static base::TimeDelta FramesToTimeDelta(int frames, double sample_rate) {
+                             sample_rate);
+ }
+ 
+-static base::TimeDelta ExtractStartTime(AVStream* stream) {
++static base::TimeDelta ExtractStartTime(AVStream* stream, int64_t first_dts) {
+   // The default start time is zero.
+   base::TimeDelta start_time;
+ 
+@@ -126,12 +126,12 @@ static base::TimeDelta ExtractStartTime(AVStream* stream) {
+ 
+   // Next try to use the first DTS value, for codecs where we know PTS == DTS
+   // (excludes all H26x codecs). The start time must be returned in PTS.
+-  if (av_stream_get_first_dts(stream) != kNoFFmpegTimestamp &&
++  if (first_dts != kNoFFmpegTimestamp &&
+       stream->codecpar->codec_id != AV_CODEC_ID_HEVC &&
+       stream->codecpar->codec_id != AV_CODEC_ID_H264 &&
+       stream->codecpar->codec_id != AV_CODEC_ID_MPEG4) {
+     const base::TimeDelta first_pts =
+-        ConvertFromTimeBase(stream->time_base, av_stream_get_first_dts(stream));
++        ConvertFromTimeBase(stream->time_base, first_dts);
+     if (first_pts < start_time)
+       start_time = first_pts;
+   }
+@@ -284,6 +284,7 @@ FFmpegDemuxerStream::FFmpegDemuxerStream(
+       video_config_(video_config.release()),
+       media_log_(media_log),
+       duration_(ConvertStreamTimestamp(stream->time_base, stream->duration)),
++      first_packet_dts_(AV_NOPTS_VALUE),
+       last_packet_pos_(AV_NOPTS_VALUE),
+       last_packet_dts_(AV_NOPTS_VALUE) {
+   DCHECK(demuxer_);
+@@ -350,6 +351,11 @@ void FFmpegDemuxerStream::EnqueuePacket(ScopedAVPacket packet) {
+   int64_t packet_dts =
+       packet->dts == AV_NOPTS_VALUE ? packet->pts : packet->dts;
+ 
++  // Distro FFmpeg does not expose Chromium's private first_dts accessor.
++  // Track the first available packet timestamp using the public packet API.
++  if (first_packet_dts_ == AV_NOPTS_VALUE)
++    first_packet_dts_ = packet_dts;
++
+   // Chained ogg files have non-monotonically increasing position and time stamp
+   // values, which prevents us from using them to determine if a packet should
+   // be dropped. Since chained ogg is only allowed on single track audio only
+@@ -1562,7 +1568,12 @@ void FFmpegDemuxer::OnFindStreamInfoDone(int result) {
+ 
+     max_duration = std::max(max_duration, streams_[i]->duration());
+ 
+-    base::TimeDelta start_time = ExtractStartTime(stream);
++#if BUILDFLAG(USE_SYSTEM_FFMPEG)
++    const int64_t first_dts = streams_[i]->first_packet_dts();
++#else
++    const int64_t first_dts = av_stream_get_first_dts(stream);
++#endif
++    base::TimeDelta start_time = ExtractStartTime(stream, first_dts);
+ 
+     // Note: This value is used for seeking, so we must take the true value and
+     // not the one possibly clamped to zero below.
+diff --git a/chromium/media/filters/ffmpeg_demuxer.h b/chromium/media/filters/ffmpeg_demuxer.h
+index 2683b61147..804a951fed 100644
+--- a/chromium/media/filters/ffmpeg_demuxer.h
++++ b/chromium/media/filters/ffmpeg_demuxer.h
+@@ -140,6 +140,8 @@ class MEDIA_EXPORT FFmpegDemuxerStream : public DemuxerStream {
+ 
+   AVStream* av_stream() const { return stream_; }
+ 
++  int64_t first_packet_dts() const { return first_packet_dts_; }
++
+   base::TimeDelta stream_start_time() const { return stream_start_time_; }
+ 
+  private:
+@@ -199,6 +201,7 @@ class MEDIA_EXPORT FFmpegDemuxerStream : public DemuxerStream {
+   bool fixup_chained_ogg_ = false;
+ 
+   int num_discarded_packet_warnings_ = 0;
++  int64_t first_packet_dts_;
+   int64_t last_packet_pos_;
+   int64_t last_packet_dts_;
+   // Requested buffer count. The actual returned buffer count could be less
 diff --git a/chromium/media/filters/mac/audio_toolbox_audio_decoder.cc b/chromium/media/filters/mac/audio_toolbox_audio_decoder.cc
 index 9a697b993a..5127e675b8 100644
 --- a/chromium/media/filters/mac/audio_toolbox_audio_decoder.cc

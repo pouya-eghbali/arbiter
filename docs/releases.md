@@ -69,8 +69,11 @@ sandbox enabled, then copies the Linux archive/checksum to
 `build-release-artifacts/`. It never mounts `env.sh`, the host checkout, or Apple
 credentials. A named Docker volume caches source/SDK builds. Allocate substantial
 RAM/disk to Docker and reduce jobs if needed. Docker's host kernel must permit
-Chromium sandbox user namespaces. Apple Silicon Docker engines are rejected;
-use the Windows x64 machine rather than emulating a full Chromium build.
+Chromium sandbox user namespaces. The bundled Moby-derived seccomp profile
+permits namespace creation inside the non-root build container so Chromium can
+install its own sandbox; other Docker default restrictions remain. Apple Silicon Docker engines require explicit opt-in;
+the Windows x64 machine is preferred. To explicitly allow slower emulation on
+an ARM Docker engine, run `./tools/release/build-linux.sh --allow-emulation --jobs 12`.
 `ARBITER_DOCKER_UID`/`ARBITER_DOCKER_GID` optionally select the non-root container user.
 If the exact Qt pin is not yet available from the public Qt archive, set
 `ARBITER_LINUX_QT_PREFIX` to a pre-provisioned Linux x64 kit (including QtPdf) on
@@ -217,7 +220,7 @@ passkey-integration.md). Use an ARM64 Python/compiler session on the Mac.
 Windows needs MSVC 2022, a Windows 11 SDK, `dumpbin`, `signtool` for signing,
 OpenSSL development/runtime files, and Qt WebEngine's Windows prerequisites.
 Linux needs system FFmpeg/OpenSSL development packages, Qt's build prerequisites,
-`xvfb`, `dbus-x11`, `gnome-keyring`, `libsecret-1-dev`, `patchelf`, `pkg-config`,
+`xvfb`, `dbus-x11`, `gnome-keyring`, `libsecret-1-dev`, `libopus-dev`, `patchelf`, `pkg-config`,
 and `nm`. Do not run release browsers as root or disable Chromium's sandbox.
 
 `python tools/release/preflight.py` checks basic architecture/tooling and the

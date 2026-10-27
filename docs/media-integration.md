@@ -44,6 +44,13 @@ formats. Our patch changes what that flag builds:
 - macOS/Windows: `ffmpeg_branding="Chromium"`, omitting the H.264/AAC decoders.
 - Linux: `FEATURE_webengine_system_ffmpeg=ON` is required. Configuration must
   fail rather than silently fall back to bundled codec implementations.
+  The demuxer tracks its first observed packet DTS through public FFmpeg APIs,
+  following the distro compatibility approach, instead of requiring Chromium's
+  private `av_stream_get_first_dts` symbol. Initial timestamp discovery uses the
+  stream start time until a packet timestamp is available. Native macOS/Windows
+  paths retain their original DTS accessor. Linux needs system Opus development
+  headers as well as FFmpeg when building.
+  Reference: https://lists.pld-linux.org/mailman/pipermail/pld-cvs-commit/Week-of-Mon-20231016/533259.html
 - All platforms: `media_use_openh264=false` and `rtc_use_h264=false`. H.264
   WebRTC is disabled; other supported WebRTC codecs remain available.
 

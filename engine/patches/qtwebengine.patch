@@ -1,3 +1,39 @@
+diff --git a/configure.cmake b/configure.cmake
+index 496b271..2c37553 100644
+--- a/configure.cmake
++++ b/configure.cmake
+@@ -258,7 +258,8 @@ int main(void) {
+ }"
+ )
+ 
+-# "Unmodified ffmpeg >= 5.0 is not supported."
++# Arbiter uses public FFmpeg APIs and tracks packet DTS in the demuxer.
++# Check the public libavformat interface instead of Chromium's private DTS hook.
+ qt_config_compile_test(libavformat
+     LABEL "libavformat"
+     LIBRARIES
+@@ -270,10 +271,8 @@ extern \"C\" {
+ #include \"libavformat/avformat.h\"
+ }
+ int main(void) {
+-#if LIBAVFORMAT_VERSION_MAJOR >= 59
+-    AVStream stream;
+-    auto first_dts = av_stream_get_first_dts(&stream);
+-#endif
++    AVFormatContext *context = avformat_alloc_context();
++    avformat_free_context(context);
+     return 0;
+ }"
+ )
+@@ -889,7 +888,7 @@ qt_configure_add_report_entry(
+ )
+ qt_configure_add_report_entry(
+     TYPE ERROR
+-    MESSAGE "QtWebEngine/Chromium is only compatible with specially patched versions of FFMPEG's libavformat"
++    MESSAGE "System FFmpeg public libavformat interface is unavailable"
+     CONDITION QT_FEATURE_webengine_system_ffmpeg AND NOT TEST_libavformat
+ )
+ if(PRINT_BFD_LINKER_WARNING)
 diff --git a/src/core/CMakeLists.txt b/src/core/CMakeLists.txt
 index e24c961..e702fe0 100644
 --- a/src/core/CMakeLists.txt

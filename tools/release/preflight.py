@@ -58,7 +58,7 @@ def main():
     else:
         for name in ('xvfb-run', 'dbus-run-session', 'gnome-keyring-daemon', 'pkg-config', 'patchelf', 'nm'): tool(name)
         if shutil.which('pkg-config'):
-            result = subprocess.run(['pkg-config', '--exists', 'libavcodec', 'libavformat', 'libavutil', 'libsecret-1', 'openssl'])
+            result = subprocess.run(['pkg-config', '--exists', 'libavcodec', 'libavformat', 'libavutil', 'libsecret-1', 'openssl', 'opus'])
             check(result.returncode == 0, 'System FFmpeg, OpenSSL and Secret Service development packages')
         print('INFO Linux release baseline: Ubuntu 24.04 x64 (Docker or native).')
     print('Preflight: ' + ('ready for native build' if not failures else f'{len(failures)} requirement(s) missing'))
