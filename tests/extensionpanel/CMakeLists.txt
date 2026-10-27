@@ -15,6 +15,9 @@ qt_add_qml_module(extensionpanel_test URI Arbiter VERSION 1.0 NO_IMPORT_SCAN
 arbiter_configure_webengine_runtime(extensionpanel_test)
 add_test(NAME extensionpanel COMMAND extensionpanel_test)
 set_tests_properties(extensionpanel PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+if(WIN32)
+    set_property(TEST extensionpanel APPEND PROPERTY ENVIRONMENT_MODIFICATION "QT_QPA_PLATFORM=set:windows")
+endif()
 # UiIcon uses the same absolute script resource as the application.
 qt_add_resources(extensionpanel_test icon_script PREFIX / BASE ../..
     FILES ../../qml/ui/LucideIcons.js)

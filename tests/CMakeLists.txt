@@ -272,15 +272,21 @@ if(ARBITER_WEBENGINE_TESTS)
     arbiter_configure_webengine_runtime(privatebrowsing_test)
 endif()
 
-if(UNIX AND NOT APPLE AND ARBITER_WEBENGINE_TESTS)
+if(NOT APPLE AND ARBITER_WEBENGINE_TESTS)
     # Chromium integration needs a display/compositor context. The offscreen
-    # Qt platform can stall navigation and input; CI provides X11 via Xvfb.
+    # Qt platform can stall initialization/navigation. CI provides X11 via Xvfb
+    # on Linux and a native desktop on Windows.
+    if(WIN32)
+        set(engine_test_platform windows)
+    else()
+        set(engine_test_platform xcb)
+    endif()
     foreach(engine_test siteaudio historyswipe_engine devtools downloads extensions
             adblock tabsleep sitepermissions passwordforms passkeyengine
             webauthncontroller sitenavigation passkeycontroller privatebrowsing)
         if(TEST ${engine_test})
             set_property(TEST ${engine_test} APPEND PROPERTY ENVIRONMENT_MODIFICATION
-                "QT_QPA_PLATFORM=set:xcb")
+                "QT_QPA_PLATFORM=set:${engine_test_platform}")
         endif()
     endforeach()
 endif()
