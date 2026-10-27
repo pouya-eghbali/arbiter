@@ -147,6 +147,7 @@ Basic.ApplicationWindow {
     property string optionsTabUrl: ""
     property int invokedCount: 0
     property bool pageLoaded: false
+    property bool popupLoaded: false
     property alias panelOpen: panel.opened
     property alias panelX: panel.x
     property alias panelY: panel.y
@@ -182,6 +183,21 @@ Basic.ApplicationWindow {
     }
     function resizePopup(width:int,height:int) {
         const view=findPopup(panel.contentItem)
+        if(view) view.mainFrame.runJavaScript("document.body.style.width='"+width+"px';document.body.style.height='"+height+"px'",0,function(){})
+    }
+    Connections {
+        id: popupLoading
+        target: null
+        function onLoadingChanged(request) {
+            if (request.status === WebEngineView.LoadSucceededStatus) window.popupLoaded = true
+        }
+    }
+    function preparePopup() {
+        const view=findPopup(panel.contentItem)
+        if(view) { popupLoading.target=view; view.reload() }
+    }
+    function loadPopup(width:int,height:int) {
+        const view=findPopup(panel.contentItem)
         if(view) view.mainFrame.runJavaScript("document.open();document.write('<!doctype html><body style=\"margin:0;width:"+width+"px;height:"+height+"px\">Popup content</body>');document.close()",0,function(){})
     }
 })QML", QUrl("qrc:/extension-panel-test.qml"));
@@ -194,7 +210,11 @@ Basic.ApplicationWindow {
         QTRY_VERIFY(window->property("panelOpen").toBool());
         auto *popup = window->findChild<QObject *>("extensionPopupView");
         QTRY_VERIFY((popup = window->findChild<QObject *>("extensionPopupView")));
-        QVERIFY(QMetaObject::invokeMethod(window, "resizePopup", Q_ARG(int,325), Q_ARG(int,240)));
+        // Observe a completed navigation before writing the fixture document;
+        // the initial about:blank load can otherwise replace it afterward.
+        QVERIFY(QMetaObject::invokeMethod(window, "preparePopup"));
+        QTRY_VERIFY(window->property("popupLoaded").toBool());
+        QVERIFY(QMetaObject::invokeMethod(window, "loadPopup", Q_ARG(int,325), Q_ARG(int,240)));
         QTRY_COMPARE(window->property("panelWidth").toInt(), 341);
         QTRY_COMPARE(window->property("panelHeight").toInt(), 290);
         QVERIFY(QMetaObject::invokeMethod(window, "resizePopup", Q_ARG(int,325), Q_ARG(int,320)));
