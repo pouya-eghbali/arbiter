@@ -94,6 +94,14 @@ patches require the patched SDK. Configure with `ARBITER_PATCHED_WEBENGINE=ON`
 and `ARBITER_WEBENGINE_PREFIX` to include those checks. The local/native release
 builder does this and runs the complete suite against its matching SDK.
 Routine CI jobs have a 30-minute limit and individual tests a five-minute limit.
+Unchanged C++ compilation is cached with sccache. Windows CI fails at the first
+test failure, with a stricter two-minute timeout. Its disposable stock-Qt kit
+also needs a guarded accessibility constructor import repair: Qt 6.12 changed
+the MSVC constructor name while the prebuilt WebEngine still imports the old
+name. The [runtime probe](../tools/ci/windows_runtime_probe.py) checks the expected
+exports before changing that single import and verifies DLL loading afterward.
+This CI kit has a separate cache; release SDKs compile WebEngine against their
+matching Qt headers and do not use this repair.
 
 Run the keyboard binding, native URL handling, tab model, password controller,
 WebEngine password-form integration, passkey vault, and WebAuthn controller tests

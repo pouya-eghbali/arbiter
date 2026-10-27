@@ -4,7 +4,6 @@
 #include <QGuiApplication>
 #include <QStandardPaths>
 #include <QTemporaryDir>
-#include <cstdio>
 #ifdef ARBITER_TEST_AUDIO_VIEWS
 #include <QtWebEngineQuick>
 #include <QQmlApplicationEngine>
@@ -85,13 +84,10 @@ Window {
     }
 #endif
 int main(int argc,char **argv) {
-    std::fputs("Starting site audio fixture.\n",stderr);std::fflush(stderr);
 #ifdef ARBITER_TEST_AUDIO_VIEWS
     QtWebEngineQuick::initialize();
 #endif
-    std::fputs("WebEngine initialized; creating GUI application.\n",stderr);std::fflush(stderr);
     QGuiApplication app(argc,argv);
-    std::fputs("GUI application ready.\n",stderr);std::fflush(stderr);
     QStandardPaths::setTestModeEnabled(true);
     QTemporaryDir config;qputenv("XDG_CONFIG_HOME",config.path().toUtf8());Settings::initialize();
     SiteAudioTest test;return QTest::qExec(&test,argc,argv);

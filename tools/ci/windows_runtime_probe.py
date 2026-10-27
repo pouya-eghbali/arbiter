@@ -1,4 +1,6 @@
 """Fail CI early on missing test DLLs instead of waiting for loader dialogs."""
+import argparse
+import json
 import os
 from pathlib import Path
 import re
@@ -6,29 +8,42 @@ import subprocess
 import sys
 
 
-def missing_exports(binary, directories):
-    imports = subprocess.check_output(["dumpbin", "/NOLOGO", "/IMPORTS", str(binary)], text=True)
-    exports = {}
-    dependency = None
-    for line in imports.splitlines():
-        module = re.fullmatch(r"\s+([\w.-]+\.dll)\s*", line, re.IGNORECASE)
-        if module:
-            name = module[1]
-            dependency = next((d / name for d in directories if (d / name).is_file()), None)
-            continue
-        symbol = re.fullmatch(r"\s+(?:[0-9A-Fa-f]+\s+){1,3}([?A-Za-z_][^\s]*)\s*", line)
-        if not dependency or not symbol or symbol[1].startswith("Ordinal"):
-            continue
-        if dependency not in exports:
-            table = subprocess.check_output(["dumpbin", "/NOLOGO", "/EXPORTS", str(dependency)], text=True)
-            exports[dependency] = set(re.findall(
-                r"^\s+\d+\s+[0-9A-Fa-f]+\s+(?:[0-9A-Fa-f]{8,16}\s+)?([^\s]+)", table, re.MULTILINE))
-        if symbol[1] not in exports[dependency]:
-            print(f"::error::{binary.name} imports {symbol[1]} missing from {dependency}", flush=True)
+def repair_qt612_accessibility(qt_bin):
+    # CI's stock Windows WebEngine 6.140 still imports the public constructor.
+    # Qt 6.12 made it protected without changing its signature, layout or body:
+    # https://github.com/qt/qtbase/commit/34523a5d7a90ca2c4a117766381b88986d01fd28
+    # MSVC encodes this access change in the imported name. Adjust that one
+    # name in the disposable CI kit; release SDKs are built from matching headers.
+    manifest = json.loads(Path("engine/manifest.json").read_text())
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        raise RuntimeError("The stock-Qt compatibility repair is restricted to GitHub CI.")
+    if (manifest["qt"], manifest["webengine_version"]) != ("6.12.0", "6.140.0"):
+        raise RuntimeError("Re-review the stock-Qt compatibility repair for the new dependency versions.")
+    old = b"??0QAccessibleInterface@@QEAA@XZ\0"
+    new = b"??0QAccessibleInterface@@IEAA@XZ\0"
+    core = qt_bin / "Qt6WebEngineCore.dll"
+    data = core.read_bytes()
+    if old not in data:
+        print("Stock WebEngine does not require the Qt 6.12 accessibility repair.", flush=True)
+        return
+    table = subprocess.check_output(["dumpbin", "/NOLOGO", "/EXPORTS", str(qt_bin / "Qt6Gui.dll")], text=True)
+    exports = set(re.findall(
+        r"^\s+\d+\s+[0-9A-Fa-f]+\s+(?:[0-9A-Fa-f]{8,16}\s+)?([^\s]+)", table, re.MULTILINE))
+    if old[:-1].decode() in exports:
+        return
+    if new[:-1].decode() not in exports or data.count(old) != 1:
+        raise RuntimeError("Unexpected accessibility constructor exports/imports; refusing to alter Qt.")
+    core.write_bytes(data.replace(old, new, 1))
+    print("Applied the CI-only Qt 6.12 accessibility constructor import repair.", flush=True)
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repair-qt612-accessibility", action="store_true")
+    args = parser.parse_args()
     qt_bin = Path(os.environ["QT_ROOT_DIR"]) / "bin"
+    if args.repair_qt612_accessibility:
+        repair_qt612_accessibility(qt_bin)
     directories = [Path("build-tests").resolve(), qt_bin,
                    Path(os.environ["SystemRoot"]) / "System32"]
     directories.extend(Path(p) for p in os.environ["PATH"].split(os.pathsep) if p)
@@ -75,7 +90,6 @@ def main():
         if result.returncode:
             print(result.stderr, end="", flush=True)
             print(f"::error::Windows could not initialize {name}: exit {result.returncode}", flush=True)
-            missing_exports(qt_bin / name, directories)
             return 1
     return 0
 
