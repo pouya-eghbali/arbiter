@@ -3,6 +3,7 @@
 #include <QHash>
 #include <functional>
 #include "extensioncatalog.h"
+#include "siteuseragentinterceptor.h"
 #include <QtWebEngineQuick/QQuickWebEngineProfile>
 
 // One live Chromium profile per storage name, owned beyond the QML views.
@@ -17,6 +18,7 @@ public:
         if (m_profiles.contains(name)) return m_profiles.value(name);
         auto *profile = privateMode ? new QQuickWebEngineProfile(this) : new QQuickWebEngineProfile(name, this);
         profile->setHttpUserAgent(userAgent);
+        profile->setUrlRequestInterceptor(new SiteUserAgentInterceptor(profile));
         profile->setPersistentPermissionsPolicy(privateMode ? QQuickWebEngineProfile::PersistentPermissionsPolicy::StoreInMemory
                                                           : QQuickWebEngineProfile::PersistentPermissionsPolicy::StoreOnDisk);
         m_profiles.insert(name, profile);

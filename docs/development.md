@@ -129,6 +129,17 @@ because QtKeychain completes operations on Apple's main dispatch queue.
 The cross-platform workflow is [Desktop checks](../.github/workflows/password-manager.yml).
 
 
+## Site compatibility
+
+`SiteUserAgentInterceptor`, installed on every workspace/private profile, sends
+a Firefox User-Agent header for HTTP(S) requests whose destination is
+`google.com` or one of its subdomains. This follows the
+[qutebrowser Google sign-in workaround](https://github.com/qutebrowser/qutebrowser/issues/5182).
+It does not change the shared profile's default user agent or JavaScript APIs,
+and it remains active when ad blocking is paused. The Firefox version is pinned
+in `src/siteuseragent.h`, with its verification date and Mozilla release source.
+The request-level regression test blocks requests before network access.
+
 ## Further reading
 
 - [Releases and dependency maintenance](releases.md)
