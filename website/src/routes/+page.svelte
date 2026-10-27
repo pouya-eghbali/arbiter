@@ -1,9 +1,9 @@
 <script lang="ts">
-  import BrowserDemo from '$lib/BrowserDemo.svelte';
-  import NavigationPill from '$lib/NavigationPill.svelte';
-  import SplitDemo from '$lib/SplitDemo.svelte';
-  import WorkspaceDemo from '$lib/WorkspaceDemo.svelte';
-  import Icon from '$lib/Icon.svelte';
+  import BrowserDemo from '#lib/BrowserDemo.svelte';
+  import NavigationPill from '#lib/NavigationPill.svelte';
+  import SplitDemo from '#lib/SplitDemo.svelte';
+  import WorkspaceDemo from '#lib/WorkspaceDemo.svelte';
+  import Icon from '#lib/Icon.svelte';
   const repo = 'https://github.com/pouya-eghbali/arbiter';
   const downloads = repo + '/releases/download/v0.1.0/';
   let tucked = $state(false);
