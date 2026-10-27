@@ -78,6 +78,14 @@ if(ARBITER_WEBENGINE_TESTS)
     find_package(Qt6 ${ARBITER_QT_SERIES} REQUIRED COMPONENTS QuickControls2 Svg)
     target_compile_definitions(siteaudio_test PRIVATE ARBITER_TEST_AUDIO_VIEWS)
     target_link_libraries(siteaudio_test PRIVATE Qt6::Quick Qt6::WebEngineQuick)
+    if(WIN32 AND NOT ARBITER_PATCHED_WEBENGINE)
+        # Keep audio policy coverage even when the stock Windows browser runtime
+        # cannot load. The original target still compiles all view integration.
+        add_executable(siteaudio_rules_test siteaudio_test.cpp siteaudio_test.h ../src/siteaudio.cpp ../src/siteaudio.h)
+        target_link_libraries(siteaudio_rules_test PRIVATE arbiter_settings Qt6::Gui Qt6::Test)
+        add_test(NAME siteaudio_rules COMMAND siteaudio_rules_test)
+        set_tests_properties(siteaudio_rules PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    endif()
     arbiter_configure_webengine_runtime(siteaudio_test)
     if(ARBITER_PATCHED_WEBENGINE)
         # These assertions require Arbiter's compositor callbacks, absent from stock Qt.
@@ -272,21 +280,24 @@ if(ARBITER_WEBENGINE_TESTS)
     arbiter_configure_webengine_runtime(privatebrowsing_test)
 endif()
 
-if(NOT APPLE AND ARBITER_WEBENGINE_TESTS)
+if(ARBITER_WEBENGINE_TESTS)
     # Chromium integration needs a display/compositor context. The offscreen
     # Qt platform can stall initialization/navigation. CI provides X11 via Xvfb
     # on Linux and a native desktop on Windows.
     if(WIN32)
         set(engine_test_platform windows)
-    else()
+    elseif(UNIX AND NOT APPLE)
         set(engine_test_platform xcb)
     endif()
     foreach(engine_test siteaudio historyswipe_engine devtools downloads extensions
             adblock tabsleep sitepermissions passwordforms passkeyengine
             webauthncontroller sitenavigation passkeycontroller privatebrowsing)
         if(TEST ${engine_test})
-            set_property(TEST ${engine_test} APPEND PROPERTY ENVIRONMENT_MODIFICATION
-                "QT_QPA_PLATFORM=set:${engine_test_platform}")
+            set_property(TEST ${engine_test} APPEND PROPERTY LABELS webengine-runtime)
+            if(engine_test_platform)
+                set_property(TEST ${engine_test} APPEND PROPERTY ENVIRONMENT_MODIFICATION
+                    "QT_QPA_PLATFORM=set:${engine_test_platform}")
+            endif()
         endif()
     endforeach()
 endif()

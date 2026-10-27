@@ -14,7 +14,7 @@ qt_add_qml_module(extensionpanel_test URI Arbiter VERSION 1.0 NO_IMPORT_SCAN
     RESOURCE_PREFIX /extension-panel-test QML_FILES ${panel_qml})
 arbiter_configure_webengine_runtime(extensionpanel_test)
 add_test(NAME extensionpanel COMMAND extensionpanel_test)
-set_tests_properties(extensionpanel PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+set_tests_properties(extensionpanel PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" LABELS webengine-runtime)
 if(WIN32)
     set_property(TEST extensionpanel APPEND PROPERTY ENVIRONMENT_MODIFICATION "QT_QPA_PLATFORM=set:windows")
 endif()

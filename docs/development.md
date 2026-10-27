@@ -94,14 +94,19 @@ patches require the patched SDK. Configure with `ARBITER_PATCHED_WEBENGINE=ON`
 and `ARBITER_WEBENGINE_PREFIX` to include those checks. The local/native release
 builder does this and runs the complete suite against its matching SDK.
 Routine CI jobs have a 30-minute limit and individual tests a five-minute limit.
-Unchanged C++ compilation is cached with sccache. Windows CI fails at the first
-test failure, with a stricter two-minute timeout. Its disposable stock-Qt kit
-also needs a guarded accessibility constructor import repair: Qt 6.12 changed
-the MSVC constructor name while the prebuilt WebEngine still imports the old
-name. The [runtime probe](../tools/ci/windows_runtime_probe.py) checks the expected
-exports before changing that single import and verifies DLL loading afterward.
-This CI kit has a separate cache; release SDKs compile WebEngine against their
-matching Qt headers and do not use this repair.
+Unchanged C++ compilation is cached with sccache. Windows CI has a stricter
+two-minute test timeout. It compiles every stock-compatible test target, then
+runs unit/UI-model tests and the native credential-store checks. Tests labeled
+`webengine-runtime` run on macOS/Linux CI and in the complete local/native SDK
+suite, including Windows. Audio policy also has a standalone Windows unit fixture.
+
+The stock Windows WebEngine 6.140 binary imports an accessibility constructor
+that Qt 6.12's GUI library no longer exports under its old MSVC name. A diagnostic
+import-name repair allowed loading, but browser transfer tests still crashed on
+the hosted runner. CI does not alter or execute those incompatible stock modules.
+Windows browser integration must pass against the matching patched SDK before
+publishing a Windows package. The local release builder runs all tests without
+the CI label exclusion. CI and native release Qt kits have separate caches.
 
 Run the keyboard binding, native URL handling, tab model, password controller,
 WebEngine password-form integration, passkey vault, and WebAuthn controller tests
