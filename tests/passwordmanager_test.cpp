@@ -359,6 +359,7 @@ private slots:
         const auto key = "Arbiter/Passwords/test/" + QUuid::createUuid().toString();
         bool done = false;
         QString error;
+        QByteArray result;
         QEventLoop loop;
         QTimer timer;
         timer.setSingleShot(true);
@@ -382,7 +383,6 @@ private slots:
         QVERIFY(done);
         QVERIFY2(error.isEmpty(), qPrintable(error));
         done = false;
-        QByteArray result;
         store.read(key, [&](const QString &e, const QByteArray &data) { error = e; result = data; done = true; loop.quit(); });
         wait();
         QVERIFY(done);

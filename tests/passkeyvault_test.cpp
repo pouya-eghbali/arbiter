@@ -269,6 +269,7 @@ private slots:
             QSKIP("Opt in to disposable OS credential-store tests with ARBITER_TEST_KEYCHAIN=1.");
         QTemporaryDir dir; KeychainSecretStore store(nullptr, QStringLiteral("Arbiter Passkeys")); PasskeyVault vault(&store, dir.path());
         QStringList keys;
+        int status = -1; QByteArray response;
         const auto cleanup = qScopeGuard([&] {
             for (const auto &key : keys) {
                 QEventLoop loop; QTimer timeout; timeout.setSingleShot(true);
@@ -285,7 +286,7 @@ private slots:
         auto prefix = QStringLiteral("com.arbiter.browser/passkeys/v1/%1/").arg(QString::fromLatin1(index.value(1).toByteArray().toHex()));
         keys.append(prefix);
         QTRY_VERIFY_WITH_TIMEOUT(!vault.busy(), 60000); QVERIFY2(vault.configured(), qPrintable(vault.error()));
-        int status = -1; QByteArray response;
+        status = -1; response.clear();
         vault.perform(true, encode(makeRequest()), {}, phrase, [&](int code, const QByteArray &bytes) { status = code; response = bytes; });
         QTRY_VERIFY_WITH_TIMEOUT(status != -1, 60000); QCOMPARE(status, 0); QVERIFY(!response.isEmpty());
         const auto id = vault.credentials(QStringLiteral("example.com")).first().toMap().value(QStringLiteral("id")).toByteArray();
