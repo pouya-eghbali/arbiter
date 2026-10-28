@@ -12,6 +12,26 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def windows_desktop_available():
+    """GUI tests cannot expose windows on a service/background window station."""
+    import ctypes
+    from ctypes import wintypes
+
+    class UserObjectFlags(ctypes.Structure):
+        _fields_ = [('inherit', wintypes.BOOL), ('reserved', wintypes.BOOL),
+                    ('flags', wintypes.DWORD)]
+
+    user32 = ctypes.WinDLL('user32', use_last_error=True)
+    user32.GetProcessWindowStation.restype = wintypes.HANDLE
+    user32.GetUserObjectInformationW.argtypes = [wintypes.HANDLE, ctypes.c_int,
+        wintypes.LPVOID, wintypes.DWORD, ctypes.POINTER(wintypes.DWORD)]
+    flags = UserObjectFlags()
+    needed = wintypes.DWORD()
+    return bool(user32.GetUserObjectInformationW(user32.GetProcessWindowStation(),
+        1, ctypes.byref(flags), ctypes.sizeof(flags), ctypes.byref(needed))
+        and flags.flags & 1)  # UOI_FLAGS, WSF_VISIBLE
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--signing', action='store_true', help='Also require the platform signing configuration')
@@ -54,6 +74,9 @@ def main():
             for name in ('ARBITER_MACOS_SIGNING_IDENTITY', 'ARBITER_NOTARY_PROFILE'):
                 check(bool(os.environ.get(name)), name + ' is configured (value hidden)')
     elif sys.platform == 'win32':
+        check(windows_desktop_available(),
+              'Windows GUI tests require an interactive desktop; run from a signed-in '
+              'MSVC Developer PowerShell, not a service or SSH/background session')
         for name in ('cl', 'dumpbin'): tool(name)
         directory = Path(os.environ.get('ARBITER_OPENSSL_BIN', '__not_configured__'))
         check(any(directory.glob('libcrypto-3*.dll')), 'OpenSSL runtime DLL is available via ARBITER_OPENSSL_BIN')

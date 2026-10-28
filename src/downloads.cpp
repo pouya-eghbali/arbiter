@@ -11,6 +11,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMetaEnum>
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QStandardPaths>
@@ -190,10 +191,19 @@ void Downloads::update(DownloadEntry *entry) {
     if (!entry->request) return;
     const auto previous = entry->state;
     entry->state = entry->request->state(); entry->received = entry->request->receivedBytes(); entry->total = entry->request->totalBytes();
-    entry->paused = entry->request->isPaused(); entry->error = entry->request->interruptReasonString();
+    entry->paused = entry->request->isPaused();
+    entry->error.clear();
+    if (entry->state == QWebEngineDownloadRequest::DownloadInterrupted) {
+        const auto reason = entry->request->interruptReason();
+        // Chromium can return interruption codes absent from Qt's public enum.
+        // Qt's formatter has no fallback for those codes (and crashes under
+        // Windows control-flow protection), so only pass it declared values.
+        const auto reasons = QMetaEnum::fromType<QWebEngineDownloadRequest::DownloadInterruptReason>();
+        entry->error = reasons.valueToKey(int(reason)) ? entry->request->interruptReasonString()
+            : QStringLiteral("%1 (%2)").arg(entry->status()).arg(int(reason));
+    }
     entry->sampleTransfer(m_clock.elapsed());
     if (entry->active() && !m_rateTimer.isActive()) m_rateTimer.start();
-    if (entry->state != QWebEngineDownloadRequest::DownloadInterrupted) entry->error.clear();
     if (entry->completed() && previous != entry->state) entry->warning = markDownloadedFile(entry->path, storedUrl(entry->url));
     if (!entry->active() && !entry->completed() && !entry->canRetry() && entry->reserved) {
         const QFileInfo file(entry->path); if (file.isFile() && file.size() == 0) QFile::remove(entry->path);

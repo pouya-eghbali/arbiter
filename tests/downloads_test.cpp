@@ -152,8 +152,10 @@ Window {
         QTRY_COMPARE_WITH_TIMEOUT(downloads.items().size(),4,10000);
         auto *interrupted=downloads.items().first().value<DownloadEntry *>();
         QTRY_VERIFY_WITH_TIMEOUT(interrupted->state==QWebEngineDownloadRequest::DownloadInterrupted,20000);
+        QVERIFY(!interrupted->error.isEmpty());
         QVERIFY2(interrupted->canRetry(),qPrintable(interrupted->error)); allowRetry=true;
         downloads.retry(interrupted->id); QTRY_VERIFY_WITH_TIMEOUT(interrupted->completed(),15000);
+        QVERIFY(interrupted->error.isEmpty());
         QFile retried(interrupted->path); QVERIFY(retried.open(QIODevice::ReadOnly)); QCOMPARE(retried.readAll(),content); retried.close();
         const QString savePath=directory.filePath("saved-page.mhtml");
         QVERIFY(QMetaObject::invokeMethod(root,"savePage",Q_ARG(QVariant,savePath)));

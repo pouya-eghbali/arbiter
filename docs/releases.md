@@ -67,6 +67,13 @@ $env:PATH = "$env:ARBITER_QT_PREFIX\bin;$env:PATH"
 `-SdkPrefix` reuses a verified SDK. `ARBITER_PYTHON` can select the Python executable;
 otherwise the scripts prefer `build-release-python` and then system Python.
 
+Run the release build on the signed-in Windows desktop and leave it unlocked while
+GUI tests run. SSH sessions, services, and background scheduled tasks cannot expose
+the test windows; preflight rejects those sessions. For scheduled local builds, use
+an interactive user task. The packaging tests also create symbolic links: enable
+Windows Developer Mode or use an elevated Developer PowerShell (an interactive
+task running with highest privileges is equivalent).
+
 ### Linux: Docker build
 
 Run on the Windows x64 machine with Docker Desktop using Linux containers:
