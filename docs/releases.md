@@ -57,6 +57,8 @@ From an x64 MSVC Developer PowerShell, with the pinned Qt, Python/Rust and OpenS
 installed and the variables documented below configured:
 
 ```powershell
+# Qt's host tools (including the matching gn.exe) must be discoverable.
+$env:PATH = "$env:ARBITER_QT_PREFIX\bin;$env:PATH"
 ./tools/release/build-windows.ps1 -Jobs 24
 # For testing without a signing certificate:
 ./tools/release/build-windows.ps1 -Jobs 24 -Unsigned
@@ -78,6 +80,12 @@ Or on a Linux x64 Docker host:
 ```sh
 ./tools/release/build-linux.sh --jobs 24
 ```
+
+Docker Engine inside an Ubuntu 24.04 WSL 2 distribution also works. In that case,
+clone the repository into the distribution's Linux filesystem and run the Linux
+command above as a regular user with Docker access. Docker Desktop is not required
+for this setup. Windows must have Virtual Machine Platform enabled and be restarted
+after enabling it before WSL 2 can run.
 
 The image provisions Ubuntu 24.04, Node 22, Qt from the engine manifest, pinned
 Python/Rust and build dependencies. QtPdf is built from the pinned WebEngine
@@ -246,8 +254,12 @@ Set these variables in the shell used to build:
 macOS needs full Xcode 26+ with Icon Composer/`actool`, Command Line Tools and Metal.
 Export `TOOLCHAINS` when the installed Metal component requires it (see
 passkey-integration.md). Use an ARM64 Python/compiler session on the Mac.
-Windows needs MSVC 2022, a Windows 11 SDK, `dumpbin`, `signtool` for signing,
+Windows needs MSVC 2022 with the ATL component, Windows 11 SDK 10.0.26100 or newer,
+`dumpbin`, `signtool` for signing,
 OpenSSL development/runtime files, and Qt WebEngine's Windows prerequisites.
+Use native Windows `bison`, `flex` and `gperf` binaries, such as Qt's
+[GNU tools bundle](https://download.qt.io/development_releases/gnuwin32/gnuwin32.zip),
+and keep MSYS2/Cygwin tool directories out of the build's `PATH`.
 Linux needs system FFmpeg/OpenSSL development packages, Qt's build prerequisites,
 `xvfb`, `dbus-x11`, `gnome-keyring`, `libsecret-1-dev`, `libopus-dev`, `patchelf`, `pkg-config`,
 and `nm`. The Linux package bundles its Qt runtime and the matching ICU libraries
