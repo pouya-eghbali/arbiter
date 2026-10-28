@@ -29,6 +29,7 @@
 #include "passkeycontroller.h"
 #include "appearance.h"
 #include "browserpreferences.h"
+#include "updatetracker.h"
 #include "adblocker.h"
 #include "onboarding.h"
 #include "systemintegration.h"
@@ -122,6 +123,7 @@ int main(int argc, char *argv[])
     KeyBindings keyBindings;
     Appearance appearance;
     BrowserPreferences browserPreferences;
+    UpdateTracker updateTracker;
     SiteAudio siteAudio;
     AdBlocker adblocker;
     Onboarding onboarding(&appearance);
@@ -198,6 +200,7 @@ int main(int argc, char *argv[])
                                  {QStringLiteral("settingsError"), settingsError},
                                  {QStringLiteral("appearance"), QVariant::fromValue(&appearance)},
                                  {QStringLiteral("browserPreferences"), QVariant::fromValue(&browserPreferences)},
+                                 {QStringLiteral("updateTracker"), QVariant::fromValue(&updateTracker)},
                                  {QStringLiteral("siteAudio"), QVariant::fromValue(&siteAudio)},
                                  {QStringLiteral("adblocker"), QVariant::fromValue(&adblocker)},
                                  {QStringLiteral("onboarding"), QVariant::fromValue(&onboarding)},
@@ -225,6 +228,7 @@ int main(int argc, char *argv[])
                      &app, [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
     engine.loadFromModule(QStringLiteral("Arbiter"), QStringLiteral("Main"));
     if (!engine.rootObjects().isEmpty()) {
+        updateTracker.start();
         QObject *root = engine.rootObjects().first();
         QObject::connect(root,SIGNAL(preferencesRequested()),root,SLOT(openSettings()));
         QObject::connect(&privacy,&PrivateBrowsing::openRequested,&app,[&,root,initialProperties] {

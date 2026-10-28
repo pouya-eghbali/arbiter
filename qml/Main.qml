@@ -80,6 +80,7 @@ Basic.ApplicationWindow {
     required property var adblocker
     required property var siteAudio
     required property var browserPreferences
+    required property var updateTracker
     required property var appearance
     readonly property string focusedWorkspaceId: webView ? webView.workspaceId : workspaces.currentId
     readonly property var focusedWorkspace: workspaceInfo(focusedWorkspaceId)
@@ -1821,6 +1822,7 @@ Basic.ApplicationWindow {
                     AboutPage {
                         visible: window.settingsCategory === 10
                         Layout.fillWidth: true
+                        updateTracker: window.updateTracker
                     }
                     DownloadsSettings {
                         visible: window.settingsCategory === 9

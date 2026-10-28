@@ -8,6 +8,7 @@ ColumnLayout {
     id: page
     objectName: "aboutPage"
     readonly property string projectUrl: "https://github.com/pouya-eghbali/arbiter"
+    required property var updateTracker
     spacing: 24
 
     RowLayout {
@@ -86,6 +87,75 @@ ColumnLayout {
             text: qsTr("GPL v3 license")
             iconName: "external-link"
             onClicked: Qt.openUrlExternally(page.projectUrl + "/blob/master/LICENSE")
+        }
+    }
+    Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.border }
+    ColumnLayout {
+        Layout.fillWidth: true
+        spacing: 10
+        Basic.Label { text: qsTr("Updates"); font.pixelSize: 20; font.weight: Font.DemiBold; color: Theme.text }
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+            Basic.BusyIndicator {
+                visible: page.updateTracker.state === "checking"
+                running: visible
+                implicitWidth: 24; implicitHeight: 24
+            }
+            Basic.Label {
+                Layout.fillWidth: true
+                text: {
+                    switch (page.updateTracker.state) {
+                    case "checking": return qsTr("Checking for updates…")
+                    case "available": return qsTr("Version %1 is available.").arg(page.updateTracker.latestVersion)
+                    case "current": return qsTr("You're up to date.")
+                    case "ahead": return qsTr("You're using a newer build.")
+                    case "error": return page.updateTracker.error
+                    default: return qsTr("Check for new releases.")
+                    }
+                }
+                textFormat: Text.PlainText
+                color: page.updateTracker.state === "available" ? Theme.accent : Theme.text
+                wrapMode: Text.Wrap
+            }
+        }
+        Basic.Label {
+            visible: !isNaN(page.updateTracker.lastChecked.getTime())
+            text: visible ? qsTr("Last checked: %1").arg(Qt.formatDateTime(page.updateTracker.lastChecked, Qt.locale().dateTimeFormat(Locale.ShortFormat))) : ""
+            color: Theme.muted
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+        }
+        Flow {
+            Layout.fillWidth: true
+            spacing: 8
+            UiButton {
+                objectName: "checkForUpdatesButton"
+                text: qsTr("Check for updates")
+                iconName: "rotate-cw"
+                enabled: page.updateTracker.state !== "checking"
+                onClicked: page.updateTracker.check()
+            }
+            UiButton {
+                objectName: "updateReleaseButton"
+                visible: page.updateTracker.latestVersion.length > 0
+                text: qsTr("View release")
+                iconName: "external-link"
+                onClicked: Qt.openUrlExternally(page.updateTracker.releaseUrl)
+            }
+        }
+        UiCheckBox {
+            objectName: "automaticUpdatesCheckBox"
+            Layout.fillWidth: true
+            text: qsTr("Automatically check for updates")
+            checked: page.updateTracker.automatic
+            onToggled: page.updateTracker.automatic = checked
+        }
+        Basic.Label {
+            Layout.fillWidth: true
+            text: qsTr("Checks GitHub once a day. No browsing data is sent.")
+            color: Theme.muted
+            wrapMode: Text.Wrap
         }
     }
     Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.border }

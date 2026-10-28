@@ -4,7 +4,7 @@
 <context>
     <name>AboutPage</name>
     <message>
-        <location filename="../qml/AboutPage.qml" line="+34"/>
+        <location filename="../qml/AboutPage.qml" line="+35"/>
         <source>Arbiter</source>
         <translation>Arbiter</translation>
     </message>
@@ -52,6 +52,61 @@
         <location line="+5"/>
         <source>GPL v3 license</source>
         <translation>GPL v3 许可证</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Updates</source>
+        <translation>更新</translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>Checking for updates…</source>
+        <translation>正在检查更新…</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Version %1 is available.</source>
+        <translation>版本 %1 已发布。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>You&apos;re up to date.</source>
+        <translation>已是最新版本。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>You&apos;re using a newer build.</source>
+        <translation>你正在使用较新的构建版本。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Check for new releases.</source>
+        <translation>检查新版本。</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Last checked: %1</source>
+        <translation>上次检查：%1</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Check for updates</source>
+        <translation>检查更新</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>View release</source>
+        <translation>查看发布版本</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Automatically check for updates</source>
+        <translation>自动检查更新</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Checks GitHub once a day. No browsing data is sent.</source>
+        <translation>每天检查一次 GitHub，不会发送浏览数据。</translation>
     </message>
     <message>
         <location line="+9"/>
@@ -1893,7 +1948,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+134"/>
+        <location filename="../qml/Main.qml" line="+135"/>
         <source>Private browsing — Arbiter</source>
         <translation>无痕浏览 — Arbiter</translation>
     </message>
@@ -1904,21 +1959,21 @@
     </message>
     <message>
         <location line="+586"/>
-        <location line="+1623"/>
+        <location line="+1624"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>新建标签页</translation>
     </message>
     <message>
-        <location line="-1620"/>
-        <location line="+1707"/>
+        <location line="-1621"/>
+        <location line="+1708"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
         <source>Start page</source>
         <translation>起始页</translation>
     </message>
     <message>
-        <location line="-1204"/>
+        <location line="-1205"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
@@ -2128,12 +2183,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+345"/>
+        <location line="+346"/>
         <source>Off</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location line="-338"/>
+        <location line="-339"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>在选项卡标题下显示网站导航，或在 macOS 菜单栏中显示为单独的菜单。</translation>
     </message>
@@ -2365,7 +2420,7 @@
         <translation>该文件包含首选项和键盘快捷键。密码、密钥、浏览历史记录、选项卡和站点数据单独存储。</translation>
     </message>
     <message>
-        <location line="+39"/>
+        <location line="+40"/>
         <source>Put inactive tabs to sleep after</source>
         <translation>将非活动选项卡置于睡眠状态</translation>
     </message>
@@ -3883,7 +3938,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+287"/>
+        <location filename="../src/main.cpp" line="+291"/>
         <source>Settings…</source>
         <translation>设置…</translation>
     </message>
@@ -4558,6 +4613,45 @@
         <location line="+0"/>
         <source>All files (*)</source>
         <translation>所有文件 (*)</translation>
+    </message>
+</context>
+<context>
+    <name>UpdateTracker</name>
+    <message>
+        <location filename="../src/updatetracker.cpp" line="+72"/>
+        <source>The update check timed out. Try again later.</source>
+        <translation>更新检查超时，请稍后重试。</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Could not save the update preference.</source>
+        <translation>无法保存更新偏好设置。</translation>
+    </message>
+    <message>
+        <location line="+25"/>
+        <source>Could not compare the installed and released versions.</source>
+        <translation>无法比较已安装版本和已发布版本。</translation>
+    </message>
+    <message>
+        <location line="+20"/>
+        <location line="+17"/>
+        <source>The update service returned an invalid response.</source>
+        <translation>更新服务返回了无效响应。</translation>
+    </message>
+    <message>
+        <location line="-10"/>
+        <source>No stable release is available yet.</source>
+        <translation>暂无稳定版本。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>GitHub is limiting update checks. Try again later.</source>
+        <translation>GitHub 正在限制更新检查，请稍后重试。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Could not check for updates. Check your connection and try again.</source>
+        <translation>无法检查更新，请检查网络连接后重试。</translation>
     </message>
 </context>
 <context>

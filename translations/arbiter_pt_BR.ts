@@ -4,7 +4,7 @@
 <context>
     <name>AboutPage</name>
     <message>
-        <location filename="../qml/AboutPage.qml" line="+34"/>
+        <location filename="../qml/AboutPage.qml" line="+35"/>
         <source>Arbiter</source>
         <translation>Arbiter</translation>
     </message>
@@ -52,6 +52,61 @@
         <location line="+5"/>
         <source>GPL v3 license</source>
         <translation>Licença GPL v3</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Updates</source>
+        <translation>Atualizações</translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>Checking for updates…</source>
+        <translation>Verificando atualizações…</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Version %1 is available.</source>
+        <translation>A versão %1 está disponível.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>You&apos;re up to date.</source>
+        <translation>Você está em dia.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>You&apos;re using a newer build.</source>
+        <translation>Você está usando uma compilação mais recente.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Check for new releases.</source>
+        <translation>Buscar novas versões.</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Last checked: %1</source>
+        <translation>Última verificação: %1</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Check for updates</source>
+        <translation>Verificar atualizações</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>View release</source>
+        <translation>Ver versão</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Automatically check for updates</source>
+        <translation>Verificar atualizações automaticamente</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Checks GitHub once a day. No browsing data is sent.</source>
+        <translation>Consulta o GitHub uma vez por dia. Nenhum dado de navegação é enviado.</translation>
     </message>
     <message>
         <location line="+9"/>
@@ -1893,7 +1948,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+134"/>
+        <location filename="../qml/Main.qml" line="+135"/>
         <source>Private browsing — Arbiter</source>
         <translation>Navegação privada — Arbiter</translation>
     </message>
@@ -1904,21 +1959,21 @@
     </message>
     <message>
         <location line="+586"/>
-        <location line="+1623"/>
+        <location line="+1624"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>Nova aba</translation>
     </message>
     <message>
-        <location line="-1620"/>
-        <location line="+1707"/>
+        <location line="-1621"/>
+        <location line="+1708"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
         <source>Start page</source>
         <translation>Página inicial</translation>
     </message>
     <message>
-        <location line="-1204"/>
+        <location line="-1205"/>
         <source>Settings</source>
         <translation>Configurações</translation>
     </message>
@@ -2128,12 +2183,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+345"/>
+        <location line="+346"/>
         <source>Off</source>
         <translation>Desativado</translation>
     </message>
     <message>
-        <location line="-338"/>
+        <location line="-339"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>Mostre a navegação do site sob o título da guia ou como menus separados na barra de menus do macOS.</translation>
     </message>
@@ -2365,7 +2420,7 @@
         <translation>Este arquivo contém preferências e atalhos de teclado. Senhas, chaves de acesso, histórico de navegação, guias e dados do site são armazenados separadamente.</translation>
     </message>
     <message>
-        <location line="+39"/>
+        <location line="+40"/>
         <source>Put inactive tabs to sleep after</source>
         <translation>Colocar guias inativas em suspensão depois</translation>
     </message>
@@ -3883,7 +3938,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+287"/>
+        <location filename="../src/main.cpp" line="+291"/>
         <source>Settings…</source>
         <translation>Configurações…</translation>
     </message>
@@ -4558,6 +4613,45 @@
         <location line="+0"/>
         <source>All files (*)</source>
         <translation>Todos os arquivos (*)</translation>
+    </message>
+</context>
+<context>
+    <name>UpdateTracker</name>
+    <message>
+        <location filename="../src/updatetracker.cpp" line="+72"/>
+        <source>The update check timed out. Try again later.</source>
+        <translation>A verificação de atualizações excedeu o tempo limite. Tente novamente mais tarde.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Could not save the update preference.</source>
+        <translation>Não foi possível salvar a preferência de atualização.</translation>
+    </message>
+    <message>
+        <location line="+25"/>
+        <source>Could not compare the installed and released versions.</source>
+        <translation>Não foi possível comparar as versões instalada e publicada.</translation>
+    </message>
+    <message>
+        <location line="+20"/>
+        <location line="+17"/>
+        <source>The update service returned an invalid response.</source>
+        <translation>O serviço de atualização retornou uma resposta inválida.</translation>
+    </message>
+    <message>
+        <location line="-10"/>
+        <source>No stable release is available yet.</source>
+        <translation>Ainda não há uma versão estável disponível.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>GitHub is limiting update checks. Try again later.</source>
+        <translation>O GitHub está limitando as verificações de atualizações. Tente novamente mais tarde.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Could not check for updates. Check your connection and try again.</source>
+        <translation>Não foi possível verificar atualizações. Verifique sua conexão e tente novamente.</translation>
     </message>
 </context>
 <context>

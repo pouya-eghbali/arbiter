@@ -32,6 +32,10 @@ mutedSites = []
 # duckduckgo, google, bing, brave, ecosia, or startpage
 engine = "duckduckgo"
 
+[Updates]
+# Check GitHub for stable Arbiter releases at most once a day. No automatic installation.
+automatic = true
+
 [History]
 enabled = true
 

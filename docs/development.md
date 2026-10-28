@@ -148,6 +148,7 @@ installation. Request tests block requests before network access.
 ## Further reading
 
 - [Releases and dependency maintenance](releases.md)
+- [Release update checks](updates.md)
 - [Patched engine and passkeys](passkey-integration.md)
 - [Password manager](password-manager.md)
 - [Media integration](media-integration.md)
