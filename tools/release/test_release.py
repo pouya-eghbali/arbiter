@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 import os
 from pathlib import Path
 import subprocess
@@ -66,6 +67,26 @@ class DependencyTests(unittest.TestCase):
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_package_engine_fingerprint_uses_build_platform_path_order(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'engine').mkdir()
+            (root / 'dependencies.json').write_bytes(b'{}\n')
+            (root / 'engine/Z.txt').write_bytes(b'Z\r\n')
+            (root / 'engine/a.txt').write_bytes(b'a\n')
+            (root / 'engine/test_ignored.py').write_bytes(b'not an engine input')
+            prefix = b'dependencies.json\0{}\n\0'
+            upper = b'engine/Z.txt\0Z\n\0'
+            lower = b'engine/a.txt\0a\n\0'
+            posix = hashlib.sha256(prefix + upper + lower).hexdigest()
+            windows = hashlib.sha256(prefix + lower + upper).hexdigest()
+            self.assertEqual(publish.package_engine_fingerprint('macos', root), posix)
+            self.assertEqual(publish.package_engine_fingerprint('linux', root), posix)
+            self.assertEqual(publish.package_engine_fingerprint('windows', root), windows)
+            (root / 'engine/a.txt').write_bytes(b'changed\n')
+            self.assertNotEqual(publish.package_engine_fingerprint('windows', root), windows)
+            self.assertNotEqual(publish.package_engine_fingerprint('linux', root), posix)
+
     def test_macos_package_refuses_newer_dependency_before_signing(self):
         import json
         with tempfile.TemporaryDirectory() as temporary:
@@ -210,14 +231,13 @@ class ReleaseTests(unittest.TestCase):
     def test_partial_upload_preserves_draft_and_uploads_only_selected_platform(self):
         import hashlib
         import json
-        from identity import fingerprint
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
             archive = root / 'arbiter-0.1.0-windows-x86_64.zip'
             metadata = {'version': '0.1.0', 'commit': 'a' * 40, 'platform': 'windows',
                         'architecture': 'x86_64', 'signed': True,
                         'dependencies': json.loads((ROOT / 'dependencies.json').read_text()),
-                        'engine': {'inputs_sha256': fingerprint()}}
+                        'engine': {'inputs_sha256': publish.package_engine_fingerprint('windows')}}
             with zipfile.ZipFile(archive, 'w') as bundle:
                 bundle.writestr('arbiter/release.json', json.dumps(metadata))
             sidecar = root / (archive.name + '.sha256')
