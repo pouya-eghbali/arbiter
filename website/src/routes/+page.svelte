@@ -4,6 +4,7 @@
   import SplitDemo from '#lib/SplitDemo.svelte';
   import WorkspaceDemo from '#lib/WorkspaceDemo.svelte';
   import Icon from '#lib/Icon.svelte';
+  import { reveal, accordion } from '#lib/motion.ts';
   const repo = 'https://github.com/pouya-eghbali/arbiter';
   const downloads = repo + '/releases/download/v0.1.0/';
   let tucked = $state(false);
@@ -73,7 +74,7 @@
 
 <main id="main">
   <section class="hero wrap" id="top" aria-labelledby="hero-title">
-    <div>
+    <div use:reveal>
       <p class="eyebrow"><span class="status-dot"></span>A LITTLE LESS BROWSER. A LOT MORE WEB.</p>
       <h1 id="hero-title">The web.<br />On your terms<span class="period">.</span></h1>
       <p class="hero-description">
@@ -87,7 +88,7 @@
       </div>
       <p class="platforms">Available for macOS & Linux. Windows coming soon.</p>
     </div>
-    <div class="hero-aside">
+    <div class="hero-aside" use:reveal>
       <span class="hero-asterisk" aria-hidden="true">✳</span>
       <p>Your pages take the stage.<br />Your browser knows when<br />to step aside.</p>
       <a href="#preview">See for yourself <span>↓</span></a>
@@ -95,11 +96,11 @@
   </section>
 
   <section class="preview-section" id="preview" aria-label="Interactive Arbiter product preview">
-    <div class="wrap"><BrowserDemo /></div>
+    <div class="wrap" use:reveal={120}><BrowserDemo /></div>
   </section>
 
   <section class="feature-row wrap pill-section" id="features" aria-labelledby="pill-title">
-    <div class="feature-copy">
+    <div class="feature-copy" use:reveal>
       <p class="eyebrow">01 / LESS IN THE WAY</p>
       <h2 id="pill-title">There when <br />you need it.</h2>
       <p>A floating pill. A shortcut away.<br />The rest is your page.</p>
@@ -110,7 +111,7 @@
         /></button
       >
     </div>
-    <div class="pill-art-stage">
+    <div class="pill-art-stage" use:reveal>
       <span class="stage-note">JUST ENOUGH BROWSER.</span><NavigationPill
         collapsed={tucked}
         large
@@ -122,7 +123,7 @@
 
   <section class="split-section" aria-labelledby="split-title">
     <div class="feature-row wrap">
-      <div class="feature-copy">
+      <div class="feature-copy" use:reveal>
         <p class="eyebrow">02 / MORE SIDE BY SIDE</p>
         <h2 id="split-title">Split your view. <br />Keep your flow.</h2>
         <p>Two, three, or more. Keep what you need in view, and work at your own pace.</p>
@@ -133,7 +134,7 @@
           ><Icon name="columns-2" size={17} />Try dragging the divider <span>↗</span></span
         >
       </div>
-      <div class="split-visual">
+      <div class="split-visual" use:reveal>
         <SplitDemo />
         <div class="visual-label"><span class="tiny-dot"></span>ONE WINDOW. YOUR ARRANGEMENT.</div>
       </div>
@@ -141,7 +142,7 @@
   </section>
 
   <section class="feature-row wrap workspace-section" aria-labelledby="workspace-title">
-    <div class="feature-copy">
+    <div class="feature-copy" use:reveal>
       <p class="eyebrow">03 / ROOM FOR EVERY CONTEXT</p>
       <h2 id="workspace-title">Work. Play. <br />A little of both.</h2>
       <p>A space for each part of your day. Separate sessions when you need them.</p>
@@ -152,7 +153,7 @@
         ><Icon name="layers" size={17} />Try switching spaces <span>↗</span></span
       >
     </div>
-    <div class="workspace-art-stage">
+    <div class="workspace-art-stage" use:reveal>
       <div class="workspace-art-block"></div>
       <WorkspaceDemo /><span class="stage-note workspace-stage-note"
         >SAME BROWSER. DIFFERENT HEADSPACE.</span
@@ -161,13 +162,13 @@
   </section>
 
   <section class="more-section wrap" aria-labelledby="more-title">
-    <div class="section-heading">
+    <div class="section-heading" use:reveal>
       <p class="eyebrow">THE DETAILS MAKE THE DIFFERENCE</p>
       <h2 id="more-title">Quietly capable.</h2>
       <p>The everyday things, thought through.</p>
     </div>
     <div class="extras">
-      {#each extras as extra}<article>
+      {#each extras as extra, index}<article use:reveal={(index % 3) * 65}>
           <span class="extra-icon"><Icon name={extra.icon} size={24} /></span>
           <div>
             <h3>{extra.title}</h3>
@@ -179,7 +180,7 @@
 
   <section class="open-source-section" aria-labelledby="open-title">
     <div class="wrap open-source-content">
-      <div>
+      <div use:reveal>
         <p class="eyebrow">BUILT IN THE OPEN</p>
         <h2 id="open-title">Your browser.<br />Nobody’s business.</h2>
         <p>
@@ -190,7 +191,7 @@
           >Make it better with us <Icon name="arrow-right" size={18} /></a
         >
       </div>
-      <div class="source-note">
+      <div class="source-note" use:reveal>
         <span class="source-note-top"
           >A NOTE FROM THE PROJECT <Icon name="code-xml" size={18} /></span
         >
@@ -207,12 +208,12 @@
   </section>
 
   <section class="get-section wrap" id="get-arbiter" aria-labelledby="get-title">
-    <div class="section-heading">
+    <div class="section-heading" use:reveal>
       <p class="eyebrow"><span class="status-dot"></span>EARLY DAYS. OPEN DOORS.</p>
       <h2 id="get-title">Make yourself<br />at home.</h2>
       <p>Arbiter is in active development.<br />Come explore, experiment, and build with us.</p>
     </div>
-    <div class="get-options">
+    <div class="get-options" use:reveal>
       <a class="get-option primary" href={downloads + 'arbiter-0.1.0-macos-arm64.dmg'}
         ><span
           ><Icon name="download" size={27} /><strong>Download for macOS</strong><small
@@ -233,9 +234,9 @@
   </section>
 
   <section class="faq-section wrap" aria-labelledby="faq-title">
-    <h2 id="faq-title">A few good questions.</h2>
-    <div class="faq-items">
-      <details>
+    <h2 id="faq-title" use:reveal>A few good questions.</h2>
+    <div class="faq-items" use:reveal>
+      <details use:accordion>
         <summary>Can I bring my passwords and history?<Icon name="plus" size={18} /></summary>
         <p>
           Yes. Setup and Settings include browser import for available passwords and history. What
@@ -243,7 +244,7 @@
           files can also be imported in Settings.
         </p>
       </details>
-      <details>
+      <details use:accordion>
         <summary>Can I make it look like me?<Icon name="plus" size={18} /></summary>
         <p>
           Choose system, light, or dark appearance. Set separate accent colors, background colors,
@@ -252,7 +253,7 @@
           too. Try the “Make it yours” preview above.
         </p>
       </details>
-      <details>
+      <details use:accordion>
         <summary>Does Arbiter collect my data?<Icon name="plus" size={18} /></summary>
         <p>
           No telemetry or data collection is built into Arbiter. This website also uses no
@@ -261,7 +262,7 @@
           network requests.
         </p>
       </details>
-      <details>
+      <details use:accordion>
         <summary>What about streaming and DRM?<Icon name="plus" size={18} /></summary>
         <p>
           Arbiter does not bundle or download Widevine. When available, it can use a compatible
@@ -270,11 +271,11 @@
           playback quality are not guaranteed.
         </p>
       </details>
-      <details>
+      <details use:accordion>
         <summary>Is the preview the actual browser?<Icon name="plus" size={18} /></summary>
         <p>
-          The previews are interactive illustrations with sample pages and content. Download
-          Arbiter to browse your own pages and make it yours.
+          The previews are interactive illustrations with sample pages and content. Download Arbiter
+          to browse your own pages and make it yours.
         </p>
       </details>
     </div>
