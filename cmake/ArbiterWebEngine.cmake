@@ -94,6 +94,12 @@ function(arbiter_configure_webengine_runtime target)
             target_include_directories(${target} BEFORE PRIVATE
                 "${ARBITER_ENGINE_LIBDIR}/QtWebEngineCore.framework")
             target_link_options(${target} BEFORE PRIVATE "-F${ARBITER_ENGINE_LIBDIR}")
+        else()
+            # A full base kit also exposes stock WebEngine headers through its
+            # shared include root. Keep the SDK root ahead of QtCore/QtGui's
+            # transitive includes, regardless of target link order.
+            get_target_property(arbiter_engine_includes Qt6::WebEngineCore INTERFACE_INCLUDE_DIRECTORIES)
+            target_include_directories(${target} BEFORE PRIVATE ${arbiter_engine_includes})
         endif()
         if(ARBITER_WEBENGINE_SDK_RUNTIME)
             if(WIN32)
