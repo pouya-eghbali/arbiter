@@ -112,7 +112,8 @@ class ReleaseTests(unittest.TestCase):
             data = Path(env['XDG_DATA_HOME']); control = Path(env['GNOME_KEYRING_CONTROL'])
             self.assertNotEqual(str(data), original['XDG_DATA_HOME'])
             self.assertTrue(data.is_dir() and control.is_dir())
-            self.assertEqual(data.stat().st_mode & 0o777, 0o700)
+            if os.name == 'posix':
+                self.assertEqual(data.stat().st_mode & 0o777, 0o700)
             self.assertIn('dbus-run-session', args)
             seen.append(data)
         with patch.object(release_build, 'run', side_effect=check):
