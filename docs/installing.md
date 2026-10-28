@@ -31,7 +31,12 @@ help identify missing packages. Run Arbiter as your normal desktop user.
 
 ## Windows
 
-The Windows build will be added to the release when ready.
+1. Download the Windows x64 `.zip` file.
+2. Extract the entire archive, keeping its folders together.
+3. Open `bin/arbiter.exe` in the extracted folder.
+
+The Windows package is currently unsigned. Windows may display an unknown
+publisher warning. Windows Hello vault verification requires Windows 11.
 
 ## Verify a download
 
@@ -42,4 +47,4 @@ use `sha256sum <file>`.
 ## Update
 
 Download the newer version and replace the app (macOS) or extracted program
-folder (Linux). Your normal browser data is stored separately from the app.
+folder (Windows/Linux). Your normal browser data is stored separately from the app.

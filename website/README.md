@@ -67,8 +67,8 @@ Aster Journal and its editorial content are sample material. The wallpaper,
 illustrations, and sample websites don't imply partnerships. Feature descriptions
 must stay consistent with the browser's README and platform validation status.
 
-The download cards link directly to the macOS DMG and Linux archive for v0.1.0.
-Windows is listed as coming soon. Update these versioned asset links when a new
+The download cards link directly to the macOS DMG, unsigned Windows ZIP, and
+Linux archive for v0.2.0. Update these versioned asset links when a new
 release is published; keep platform requirements useful to people installing
 the browser. Build status and internal validation notes belong in developer docs.
 The page does not detect visitor OS or make background release API requests.

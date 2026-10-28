@@ -20,16 +20,17 @@ Use the mouse, make it keyboard-first, or hide the controls entirely.
 
 | Platform | Download | Requirements |
 | --- | --- | --- |
-| macOS | [DMG](https://github.com/pouya-eghbali/arbiter/releases/download/v0.1.0/arbiter-0.1.0-macos-arm64.dmg) | Apple Silicon · macOS 14.4 or later |
-| Linux | [Archive](https://github.com/pouya-eghbali/arbiter/releases/download/v0.1.0/arbiter-0.1.0-linux-x86_64.tar.xz) | x86_64 · Ubuntu 24.04 or compatible |
-| Windows | Coming soon | The download will be added to the same release. |
+| macOS | [DMG](https://github.com/pouya-eghbali/arbiter/releases/download/v0.2.0/arbiter-0.2.0-macos-arm64.dmg) | Apple Silicon · macOS 14.4 or later |
+| Windows | [ZIP](https://github.com/pouya-eghbali/arbiter/releases/download/v0.2.0/arbiter-0.2.0-windows-x86_64-unsigned.zip) | x64 · Unsigned build |
+| Linux | [Archive](https://github.com/pouya-eghbali/arbiter/releases/download/v0.2.0/arbiter-0.2.0-linux-x86_64.tar.xz) | x86_64 · Ubuntu 24.04 or compatible |
 
 On **macOS**, open the DMG and drag Arbiter to Applications. The app is signed
-and notarized. On **Linux**, extract the archive and run `./arbiter` from the
-extracted folder. See the [installation guide](docs/installing.md) for Linux
-system packages and troubleshooting.
+and notarized. On **Windows**, extract the ZIP and open `bin/arbiter.exe`; the
+Windows download is currently unsigned. On **Linux**, extract the archive and
+run `./arbiter` from the extracted folder. See the
+[installation guide](docs/installing.md) for setup and troubleshooting.
 
-[Release notes](docs/release-notes/v0.1.0.md) ·
+[Release notes](docs/release-notes/v0.2.0.md) ·
 [All releases and checksums](https://github.com/pouya-eghbali/arbiter/releases)
 
 ## A browser that fits your workflow

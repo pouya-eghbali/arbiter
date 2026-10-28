@@ -6,7 +6,8 @@
   import Icon from '#lib/Icon.svelte';
   import { reveal, accordion } from '#lib/motion.ts';
   const repo = 'https://github.com/pouya-eghbali/arbiter';
-  const downloads = repo + '/releases/download/v0.1.0/';
+  const version = '0.2.0';
+  const downloads = repo + `/releases/download/v${version}/`;
   let tucked = $state(false);
   const extras = [
     {
@@ -86,7 +87,7 @@
           href={repo}>Explore the source <Icon name="arrow-right" size={17} /></a
         >
       </div>
-      <p class="platforms">Available for macOS & Linux. Windows coming soon.</p>
+      <p class="platforms">Available for macOS, Windows & Linux.</p>
     </div>
     <div class="hero-aside" use:reveal>
       <span class="hero-asterisk" aria-hidden="true">✳</span>
@@ -214,13 +215,19 @@
       <p>Arbiter is in active development.<br />Come explore, experiment, and build with us.</p>
     </div>
     <div class="get-options" use:reveal>
-      <a class="get-option primary" href={downloads + 'arbiter-0.1.0-macos-arm64.dmg'}
+      <a class="get-option primary" href={downloads + `arbiter-${version}-macos-arm64.dmg`}
         ><span
           ><Icon name="download" size={27} /><strong>Download for macOS</strong><small
             >Apple Silicon · macOS 14.4 or later.</small
           ></span
         ><Icon name="arrow-right" size={25} /></a
-      ><a class="get-option" href={downloads + 'arbiter-0.1.0-linux-x86_64.tar.xz'}
+      ><a class="get-option" href={downloads + `arbiter-${version}-windows-x86_64-unsigned.zip`}
+        ><span
+          ><Icon name="download" size={27} /><strong>Download for Windows</strong><small
+            >x64 · Unsigned ZIP.</small
+          ></span
+        ><Icon name="arrow-right" size={22} /></a
+      ><a class="get-option" href={downloads + `arbiter-${version}-linux-x86_64.tar.xz`}
         ><span
           ><Icon name="download" size={27} /><strong>Download for Linux</strong><small
             >x86_64 · Ubuntu 24.04 or compatible.</small
@@ -228,7 +235,7 @@
         ><Icon name="arrow-right" size={22} /></a
       >
       <p class="build-note">
-        Windows coming soon. <a href={repo + '/releases'}>Release notes & other downloads</a>.
+        <a href={repo + `/releases/tag/v${version}`}>Release notes & other downloads</a>.
       </p>
     </div>
   </section>
