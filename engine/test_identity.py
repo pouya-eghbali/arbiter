@@ -14,7 +14,7 @@ class IdentityTests(unittest.TestCase):
             (root / 'dependencies.json').write_text('{}')
             (root / 'engine/manifest.json').write_text('{"qt":"6.12.0"}')
             patch = root / 'engine/patches/qtwebengine.patch'
-            patch.write_text('initial patch\n')
+            patch.write_bytes(b'initial patch\n')
             sdk = root / 'sdk'; sdk.mkdir()
             (sdk / 'arbiter-engine-manifest.json').write_text('{"qt":"6.12.0"}')
             receipt = sdk / 'arbiter-engine-build.json'
