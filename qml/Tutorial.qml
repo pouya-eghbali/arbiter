@@ -54,6 +54,14 @@ Basic.Popup {
             }
             UiButton { text: qsTr("Workspaces"); visible: tour.step === 1; onClicked: tour.workspacesRequested() }
         }
+        Basic.Label {
+            visible: tour.step === 2
+            text: qsTr("Need a reminder? Press %1 for common keyboard shortcuts.").arg(tour.shortcut("shortcutHelp"))
+            textFormat: Text.PlainText
+            color: Theme.text
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+        }
         RowLayout {
             Layout.fillWidth: true
             UiButton { text: qsTr("Back"); visible: tour.step > 0; onClicked: --tour.step }

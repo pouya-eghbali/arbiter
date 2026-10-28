@@ -55,6 +55,7 @@ verificationCooldown = 300
 # [KeyboardBindings]
 # address = "Ctrl+L"
 # settings = "Ctrl+,"
+# shortcutHelp = "Ctrl+/"
 # nextHiddenTab = "Ctrl+Alt+N"
 # splitWith = "Ctrl+Alt+Shift+S"
 # privateWindow = "Ctrl+Shift+N"

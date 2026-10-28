@@ -6,6 +6,14 @@ once too. The browser's WebEngine views are constructed after setup, so choosing
 Classic applies native window decorations immediately, without restarting.
 
 The flow is Welcome → Import → Preset → Colors → Default browser → Ready.
+The Ready screen and final tutorial step show the current shortcut-help binding
+(Command+/ on macOS, Control+/ elsewhere by default). This opens a compact,
+scrollable sheet of common actions using the user's actual bindings. Its
+See all shortcuts button opens Settings → Keyboard, including when invoked from
+a private window (preferences open in the regular window). The help shortcut is
+customizable too. If an existing installation already assigned Command/Control+/
+to another action, help uses an available function key to preserve that binding.
+
 Back is available throughout. Closing setup preserves the current step and any
 appearance changes or completed imports. The browser/profile scan starts on the
 Import screen. Browser cards show installed-app icons (or an initial badge), the

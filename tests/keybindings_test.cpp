@@ -55,6 +55,36 @@ private slots:
         QVERIFY(!keys.assign(0, settingsKey.key(), settingsKey.keyboardModifiers()).isEmpty());
         QCOMPARE(keys.bindings(), before);
     }
+    void quickHelpUsesCustomizedBindings() {
+        KeyBindings keys;
+        QCOMPARE(keys.bindings().value("shortcutHelp").toString(),QString("Ctrl+/"));
+        int address=-1,help=-1;
+        for(int i=0;i<keys.rowCount();++i) {
+            const auto id=keys.data(keys.index(i),Qt::UserRole).toString();
+            if(id=="address") address=i;
+            if(id=="shortcutHelp") help=i;
+        }
+        QVERIFY(address>=0); QVERIFY(help>=0);
+        QSignalSpy changed(&keys,&KeyBindings::bindingsChanged);
+        QVERIFY(keys.assign(address,Qt::Key_K,Qt::ControlModifier|Qt::ShiftModifier).isEmpty());
+        QVERIFY(keys.assign(help,Qt::Key_F12,Qt::AltModifier).isEmpty());
+        QCOMPARE(changed.count(),2);
+        QSet<QString> actions;
+        for(const auto &row:keys.commonShortcuts()) {
+            const auto item=row.toMap(); const auto id=item["actionId"].toString();
+            QVERIFY(!item["actionLabel"].toString().isEmpty()); QVERIFY(!actions.contains(id)); actions.insert(id);
+            QCOMPARE(item["keyLabel"].toString(),keys.nativeSequence(keys.bindings().value(id).toString()));
+        }
+        QVERIFY(actions.contains("address")); QVERIFY(actions.contains("shortcutHelp")); QVERIFY(actions.contains("splitHorizontal"));
+        KeyBindings restored; QCOMPARE(restored.commonShortcuts(),keys.commonShortcuts());
+    }
+    void newHelpShortcutPreservesExistingAssignment() {
+        Settings().setValue("KeyboardBindings/address","Ctrl+/");
+        KeyBindings keys;
+        QCOMPARE(keys.bindings().value("address").toString(),QString("Ctrl+/"));
+        QVERIFY(keys.bindings().value("shortcutHelp").toString()!="Ctrl+/");
+        QVERIFY(!keys.bindings().value("shortcutHelp").toString().isEmpty());
+    }
     void protectsTyping() {
         KeyBindings keys;
         const auto before = keys.bindings();

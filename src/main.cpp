@@ -174,6 +174,7 @@ int main(int argc, char *argv[])
         setupEngine.addImageProvider(QStringLiteral("browsers"), createBrowserIconProvider());
         setupEngine.setInitialProperties({{QStringLiteral("controller"), QVariant::fromValue(&onboarding)},
                                           {QStringLiteral("appearance"), QVariant::fromValue(&appearance)},
+                                          {QStringLiteral("keyBindings"), QVariant::fromValue(&keyBindings)},
                                           {QStringLiteral("importer"), QVariant::fromValue(&importer)},
                                           {QStringLiteral("importSelection"), QVariant::fromValue(&importSelection)},
                                           {QStringLiteral("systemIntegration"), QVariant::fromValue(&systemIntegration)}});
@@ -261,6 +262,10 @@ int main(int argc, char *argv[])
             QObject::connect(window,SIGNAL(preferencesRequested()),root,SLOT(show()));
             QObject::connect(window,SIGNAL(preferencesRequested()),root,SLOT(raise()));
             QObject::connect(window,SIGNAL(preferencesRequested()),root,SLOT(requestActivate()));
+            QObject::connect(window,SIGNAL(keyboardPreferencesRequested()),root,SLOT(openShortcutSettings()));
+            QObject::connect(window,SIGNAL(keyboardPreferencesRequested()),root,SLOT(show()));
+            QObject::connect(window,SIGNAL(keyboardPreferencesRequested()),root,SLOT(raise()));
+            QObject::connect(window,SIGNAL(keyboardPreferencesRequested()),root,SLOT(requestActivate()));
             QObject::connect(window,&QWindow::visibleChanged,state,[state,window](bool visible) {
                 if(!visible) { QMetaObject::invokeMethod(window,"prepareForShutdown"); state->deleteLater(); }
             });

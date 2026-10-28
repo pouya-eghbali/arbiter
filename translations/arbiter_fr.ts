@@ -1773,6 +1773,11 @@
     </message>
     <message>
         <location line="+1"/>
+        <source>Show shortcut help</source>
+        <translation>Afficher l’aide des raccourcis</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Fill or save login</source>
         <translation>Remplissez ou enregistrez la connexion</translation>
     </message>
@@ -1917,7 +1922,7 @@
         <translation>Afficher l&apos;historique</translation>
     </message>
     <message>
-        <location line="+46"/>
+        <location line="+75"/>
         <source>Unknown action.</source>
         <translation>Action inconnue.</translation>
     </message>
@@ -1948,7 +1953,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+135"/>
+        <location filename="../qml/Main.qml" line="+137"/>
         <source>Private browsing — Arbiter</source>
         <translation>Navigation privée — Arbiter</translation>
     </message>
@@ -1958,22 +1963,22 @@
         <translation>Paramètres — Arbiter</translation>
     </message>
     <message>
-        <location line="+586"/>
-        <location line="+1624"/>
+        <location line="+613"/>
+        <location line="+1630"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>Nouvel onglet</translation>
     </message>
     <message>
-        <location line="-1621"/>
-        <location line="+1708"/>
+        <location line="-1627"/>
+        <location line="+1714"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
         <source>Start page</source>
         <translation>Page d’accueil</translation>
     </message>
     <message>
-        <location line="-1205"/>
+        <location line="-1211"/>
         <source>Settings</source>
         <translation>Paramètres</translation>
     </message>
@@ -2601,7 +2606,7 @@
         <translation>Ajouter à Arbiter</translation>
     </message>
     <message>
-        <location line="+332"/>
+        <location line="+338"/>
         <source>%1 open · Pick up where you left off</source>
         <translation>%1 ouvert · Reprenez là où vous vous étiez arrêté</translation>
     </message>
@@ -2852,7 +2857,7 @@
 <context>
     <name>Onboarding</name>
     <message>
-        <location filename="../qml/Onboarding.qml" line="+23"/>
+        <location filename="../qml/Onboarding.qml" line="+24"/>
         <source>Welcome to Arbiter</source>
         <translation>Bienvenue dans Arbiter</translation>
     </message>
@@ -3055,6 +3060,11 @@
         <location line="+1"/>
         <source>Take a quick, optional tour of addresses, tabs and workspaces, and split views. You can replay it from Settings.</source>
         <translation>Faites une visite rapide et facultative des adresses, des onglets et des espaces de travail, ainsi que des vues fractionnées. Vous pouvez le rejouer depuis les paramètres.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Need a reminder? Press %1 for common keyboard shortcuts.</source>
+        <translation>Besoin d’un rappel ? Appuyez sur %1 pour les raccourcis courants.</translation>
     </message>
     <message>
         <location line="+7"/>
@@ -3938,7 +3948,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+291"/>
+        <location filename="../src/main.cpp" line="+296"/>
         <source>Settings…</source>
         <translation>Paramètres…</translation>
     </message>
@@ -4163,6 +4173,29 @@
         <location filename="../src/systemintegration_mac.mm" line="+15"/>
         <source>Launch the Arbiter app bundle to set it as your default browser.</source>
         <translation>Lancez l&apos;ensemble d&apos;applications Arbiter pour le définir comme navigateur par défaut.</translation>
+    </message>
+</context>
+<context>
+    <name>ShortcutHelp</name>
+    <message>
+        <location filename="../qml/ShortcutHelp.qml" line="+35"/>
+        <source>Keyboard shortcuts</source>
+        <translation>Raccourcis clavier</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Your current bindings. Customize them in Settings.</source>
+        <translation>Vos raccourcis actuels. Personnalisez-les dans les paramètres.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Close</source>
+        <translation>Fermer</translation>
+    </message>
+    <message>
+        <location line="+56"/>
+        <source>See all shortcuts</source>
+        <translation>Voir tous les raccourcis</translation>
     </message>
 </context>
 <context>
@@ -4500,6 +4533,11 @@
     </message>
     <message>
         <location line="+4"/>
+        <source>Need a reminder? Press %1 for common keyboard shortcuts.</source>
+        <translation>Besoin d’un rappel ? Appuyez sur %1 pour les raccourcis courants.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
         <source>Back</source>
         <translation>Retour</translation>
     </message>

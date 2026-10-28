@@ -1773,6 +1773,11 @@
     </message>
     <message>
         <location line="+1"/>
+        <source>Show shortcut help</source>
+        <translation>显示快捷键帮助</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Fill or save login</source>
         <translation>填写或保存登录信息</translation>
     </message>
@@ -1917,7 +1922,7 @@
         <translation>显示历史记录</translation>
     </message>
     <message>
-        <location line="+46"/>
+        <location line="+75"/>
         <source>Unknown action.</source>
         <translation>未知操作。</translation>
     </message>
@@ -1948,7 +1953,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+135"/>
+        <location filename="../qml/Main.qml" line="+137"/>
         <source>Private browsing — Arbiter</source>
         <translation>无痕浏览 — Arbiter</translation>
     </message>
@@ -1958,22 +1963,22 @@
         <translation>设置 — Arbiter</translation>
     </message>
     <message>
-        <location line="+586"/>
-        <location line="+1624"/>
+        <location line="+613"/>
+        <location line="+1630"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>新建标签页</translation>
     </message>
     <message>
-        <location line="-1621"/>
-        <location line="+1708"/>
+        <location line="-1627"/>
+        <location line="+1714"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
         <source>Start page</source>
         <translation>起始页</translation>
     </message>
     <message>
-        <location line="-1205"/>
+        <location line="-1211"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
@@ -2601,7 +2606,7 @@
         <translation>添加至 Arbiter</translation>
     </message>
     <message>
-        <location line="+332"/>
+        <location line="+338"/>
         <source>%1 open · Pick up where you left off</source>
         <translation>%1 打开 · 从上次停下的地方继续</translation>
     </message>
@@ -2852,7 +2857,7 @@
 <context>
     <name>Onboarding</name>
     <message>
-        <location filename="../qml/Onboarding.qml" line="+23"/>
+        <location filename="../qml/Onboarding.qml" line="+24"/>
         <source>Welcome to Arbiter</source>
         <translation>欢迎使用 Arbiter</translation>
     </message>
@@ -3055,6 +3060,11 @@
         <location line="+1"/>
         <source>Take a quick, optional tour of addresses, tabs and workspaces, and split views. You can replay it from Settings.</source>
         <translation>快速、可选地浏览地址、选项卡和工作区以及分割视图。您可以从“设置”中重播它。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Need a reminder? Press %1 for common keyboard shortcuts.</source>
+        <translation>需要提示？按 %1 查看常用键盘快捷键。</translation>
     </message>
     <message>
         <location line="+7"/>
@@ -3938,7 +3948,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+291"/>
+        <location filename="../src/main.cpp" line="+296"/>
         <source>Settings…</source>
         <translation>设置…</translation>
     </message>
@@ -4163,6 +4173,29 @@
         <location filename="../src/systemintegration_mac.mm" line="+15"/>
         <source>Launch the Arbiter app bundle to set it as your default browser.</source>
         <translation>启动 Arbiter 应用程序包，将其设置为您的默认浏览器。</translation>
+    </message>
+</context>
+<context>
+    <name>ShortcutHelp</name>
+    <message>
+        <location filename="../qml/ShortcutHelp.qml" line="+35"/>
+        <source>Keyboard shortcuts</source>
+        <translation>键盘快捷键</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Your current bindings. Customize them in Settings.</source>
+        <translation>当前的快捷键绑定，可在设置中自定义。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Close</source>
+        <translation>关闭</translation>
+    </message>
+    <message>
+        <location line="+56"/>
+        <source>See all shortcuts</source>
+        <translation>查看所有快捷键</translation>
     </message>
 </context>
 <context>
@@ -4500,6 +4533,11 @@
     </message>
     <message>
         <location line="+4"/>
+        <source>Need a reminder? Press %1 for common keyboard shortcuts.</source>
+        <translation>需要提示？按 %1 查看常用键盘快捷键。</translation>
+    </message>
+    <message>
+        <location line="+8"/>
         <source>Back</source>
         <translation>后退</translation>
     </message>

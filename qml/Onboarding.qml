@@ -12,6 +12,7 @@ Basic.ApplicationWindow {
     required property var importSelection
     required property var importer
     required property var systemIntegration
+    required property var keyBindings
     property bool reduceMotion: systemIntegration.reducedMotion
     property bool revealed: false
     function resetScroll() { const flick = scroll.contentItem as Flickable; if (flick) flick.contentY = 0 }
@@ -250,6 +251,7 @@ Basic.ApplicationWindow {
                     Basic.Label { text: qsTr("Your browser, with a little more breathing room."); color: Theme.muted; font.pixelSize: 18; Layout.fillWidth: true; wrapMode: Text.Wrap }
                     BrowserPreview { Layout.fillWidth: true; Layout.preferredHeight: 220; pill: setup.appearance.navigationPill; decorations: setup.appearance.windowDecorations; caption: qsTr("Ready when you are.") }
                     Basic.Label { text: qsTr("Take a quick, optional tour of addresses, tabs and workspaces, and split views. You can replay it from Settings."); color: Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                    Basic.Label { text: qsTr("Need a reminder? Press %1 for common keyboard shortcuts.").arg(setup.keyBindings.nativeSequence(setup.keyBindings.bindings.shortcutHelp)); textFormat: Text.PlainText; color: Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
                 }
             }
         }

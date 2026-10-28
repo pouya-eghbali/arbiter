@@ -1773,6 +1773,11 @@
     </message>
     <message>
         <location line="+1"/>
+        <source>Show shortcut help</source>
+        <translation>ショートカットのヘルプを表示</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Fill or save login</source>
         <translation>ログイン情報を入力または保存します</translation>
     </message>
@@ -1917,7 +1922,7 @@
         <translation>履歴の表示</translation>
     </message>
     <message>
-        <location line="+46"/>
+        <location line="+75"/>
         <source>Unknown action.</source>
         <translation>不明なアクション。</translation>
     </message>
@@ -1948,7 +1953,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+135"/>
+        <location filename="../qml/Main.qml" line="+137"/>
         <source>Private browsing — Arbiter</source>
         <translation>プライベート ブラウジング — Arbiter</translation>
     </message>
@@ -1958,22 +1963,22 @@
         <translation>設定 — Arbiter</translation>
     </message>
     <message>
-        <location line="+586"/>
-        <location line="+1624"/>
+        <location line="+613"/>
+        <location line="+1630"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>新しいタブ</translation>
     </message>
     <message>
-        <location line="-1621"/>
-        <location line="+1708"/>
+        <location line="-1627"/>
+        <location line="+1714"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
         <source>Start page</source>
         <translation>スタートページ</translation>
     </message>
     <message>
-        <location line="-1205"/>
+        <location line="-1211"/>
         <source>Settings</source>
         <translation>設定</translation>
     </message>
@@ -2601,7 +2606,7 @@
         <translation>Arbiter に追加</translation>
     </message>
     <message>
-        <location line="+332"/>
+        <location line="+338"/>
         <source>%1 open · Pick up where you left off</source>
         <translation>%1 が開いています · 中断したところから再開します</translation>
     </message>
@@ -2852,7 +2857,7 @@
 <context>
     <name>Onboarding</name>
     <message>
-        <location filename="../qml/Onboarding.qml" line="+23"/>
+        <location filename="../qml/Onboarding.qml" line="+24"/>
         <source>Welcome to Arbiter</source>
         <translation>Arbiter へようこそ</translation>
     </message>
@@ -3055,6 +3060,11 @@
         <location line="+1"/>
         <source>Take a quick, optional tour of addresses, tabs and workspaces, and split views. You can replay it from Settings.</source>
         <translation>アドレス、タブ、ワークスペース、分割ビューの簡単なオプションのツアーに参加してください。設定から再生できます。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Need a reminder? Press %1 for common keyboard shortcuts.</source>
+        <translation>操作を忘れたら、%1 を押すとよく使うキーボードショートカットを確認できます。</translation>
     </message>
     <message>
         <location line="+7"/>
@@ -3938,7 +3948,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+291"/>
+        <location filename="../src/main.cpp" line="+296"/>
         <source>Settings…</source>
         <translation>設定…</translation>
     </message>
@@ -4163,6 +4173,29 @@
         <location filename="../src/systemintegration_mac.mm" line="+15"/>
         <source>Launch the Arbiter app bundle to set it as your default browser.</source>
         <translation>Arbiter アプリ バンドルを起動して、デフォルトのブラウザーとして設定します。</translation>
+    </message>
+</context>
+<context>
+    <name>ShortcutHelp</name>
+    <message>
+        <location filename="../qml/ShortcutHelp.qml" line="+35"/>
+        <source>Keyboard shortcuts</source>
+        <translation>キーボードショートカット</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Your current bindings. Customize them in Settings.</source>
+        <translation>現在のキー割り当てです。設定でカスタマイズできます。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Close</source>
+        <translation>閉じる</translation>
+    </message>
+    <message>
+        <location line="+56"/>
+        <source>See all shortcuts</source>
+        <translation>すべてのショートカットを表示</translation>
     </message>
 </context>
 <context>
@@ -4500,6 +4533,11 @@
     </message>
     <message>
         <location line="+4"/>
+        <source>Need a reminder? Press %1 for common keyboard shortcuts.</source>
+        <translation>操作を忘れたら、%1 を押すとよく使うキーボードショートカットを確認できます。</translation>
+    </message>
+    <message>
+        <location line="+8"/>
         <source>Back</source>
         <translation>戻る</translation>
     </message>

@@ -30,6 +30,7 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
     add("print", QT_TRANSLATE_NOOP("KeyBindings", "Print current page"), QKeySequence(QKeySequence::Print));
     add("extensions", QT_TRANSLATE_NOOP("KeyBindings", "Show extensions"), QKeySequence(QStringLiteral("Ctrl+Shift+X")));
     add("settings", QT_TRANSLATE_NOOP("KeyBindings", "Settings"), QKeySequence(QStringLiteral("Ctrl+,")));
+    add("shortcutHelp", QT_TRANSLATE_NOOP("KeyBindings", "Show shortcut help"), QKeySequence(QStringLiteral("Ctrl+/")));
     add("passwords", QT_TRANSLATE_NOOP("KeyBindings", "Fill or save login"), QKeySequence(QStringLiteral("Ctrl+Shift+P")));
     add("reload", QT_TRANSLATE_NOOP("KeyBindings", "Reload page"), QKeySequence(QKeySequence::Refresh));
     add("back", QT_TRANSLATE_NOOP("KeyBindings", "Go back"), back);
@@ -60,13 +61,28 @@ KeyBindings::KeyBindings(QObject *parent) : QAbstractListModel(parent)
     add("toggleAdBlock", QT_TRANSLATE_NOOP("KeyBindings", "Toggle ad blocking in focused view"), QKeySequence(QStringLiteral("Ctrl+Alt+B")));
     add("history", QT_TRANSLATE_NOOP("KeyBindings", "Show history"), QKeySequence(QStringLiteral("Ctrl+Y")));
     Settings settings;
+    QSet<QKeySequence> reserved;
+    for(const auto &binding:m_bindings) if(binding.id!="shortcutHelp") {
+        reserved.insert(binding.fallback);
+        reserved.insert(QKeySequence::fromString(settings.value("KeyboardBindings/"+binding.id,
+            binding.fallback.toString(QKeySequence::PortableText)).toString(),QKeySequence::PortableText));
+    }
     QSet<QKeySequence> used;
     // Load as one set: invalid or duplicate saved shortcuts revert the whole set.
     bool valid = true;
     for (auto &binding : m_bindings) {
+        auto initial=binding.fallback;
+        // An existing user's Ctrl+/ assignment must survive this new action.
+        if(binding.id=="shortcutHelp" && !settings.contains("KeyboardBindings/shortcutHelp") && reserved.contains(initial))
+            for(int alternative=0;alternative<70;++alternative) {
+                const auto key=static_cast<Qt::Key>(Qt::Key_F1+alternative%35);
+                const QKeySequence candidate(QKeyCombination(alternative<35 ? Qt::NoModifier
+                    : Qt::ControlModifier|Qt::AltModifier|Qt::ShiftModifier,key));
+                if(!reserved.contains(candidate)) { initial=candidate; break; }
+            }
         binding.value = QKeySequence::fromString(settings.value(
             QStringLiteral("KeyboardBindings/") + binding.id,
-            binding.fallback.toString(QKeySequence::PortableText)).toString(), QKeySequence::PortableText);
+            initial.toString(QKeySequence::PortableText)).toString(), QKeySequence::PortableText);
         if (binding.value.isEmpty() || binding.value.count() != 1 || used.contains(binding.value))
             valid = false;
         used.insert(binding.value);
@@ -101,6 +117,20 @@ QVariantMap KeyBindings::bindings() const
 QString KeyBindings::nativeSequence(const QString &sequence) const
 {
     return QKeySequence::fromString(sequence, QKeySequence::PortableText).toString(QKeySequence::NativeText);
+}
+QVariantList KeyBindings::commonShortcuts() const
+{
+    const QStringList actions{"address","newTab","tabs","nextTab","previousTab","close","reopenTab","workspaces",
+        "splitHorizontal","splitVertical","nextPane","nextHiddenTab","showNavigation","history","settings","shortcutHelp"};
+    QVariantList result;
+    for(const auto &action:actions)
+        for(const auto &binding:m_bindings)
+            if(binding.id==action) {
+                result.append(QVariantMap{{"actionId",binding.id},{"actionLabel",binding.label},
+                    {"keyLabel",binding.value.toString(QKeySequence::NativeText)}});
+                break;
+            }
+    return result;
 }
 QString KeyBindings::assign(int row, int key, int modifiers)
 {

@@ -14,12 +14,13 @@ Basic.ApplicationWindow {
     property bool privateMode: false
     readonly property bool privateCovered: privateMode && (!privateSession || privateSession.locked)
     signal preferencesRequested()
+    signal keyboardPreferencesRequested()
     function newPrivateWindow() { if (privacy) privacy.open() }
     function lockPrivateWindow() { if (privateSession) privateSession.lock() }
     property bool temporaryPill: false
     readonly property bool edgeActionsAllowed: window.active && !privateCovered && !shuttingDown && !settingsOpen
         && !window.webauthn.active && !sitePermissionQueue.active && !desktopSharePanel.request
-        && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible
+        && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible && !shortcutHelp.visible
         && !downloadsPanel.visible && !extensionPanel.visible && !extensionReview.visible
         && !splitWithPicker.visible && !tutorial.visible && !passkeySetup.visible && !biometricSetup.visible
         && !pagePrinter.busy && !nativeShare.active && !passwordPanel.overlayVisible
@@ -35,6 +36,7 @@ Basic.ApplicationWindow {
             desktopSharePanel.cancel()
             nativeShare.cancel()
             downloadsPanel.close()
+            shortcutHelp.close()
             developerTools.close()
             temporaryPill = false
             splitWithPicker.close(); workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.close()
@@ -200,6 +202,7 @@ Basic.ApplicationWindow {
     }
 
     function prepareForShutdown() {
+        shortcutHelp.close()
         pagePrinter.cancel()
         developerTools.close()
         downloadsPanel.close()
@@ -320,6 +323,11 @@ Basic.ApplicationWindow {
         nativeShare.show(webView, webView.url, webView.loading ? "" : webView.title, navigationPill.visible && navigationPill.expanded ? navigationPill.shareAnchor() : Qt.point(window.width / 2, window.height - 40))
     }
     Shortcut { sequence: window.bindings.showNavigation; enabled: !window.privateCovered && !window.settingsOpen && window.recordingIndex < 0; onActivated: window.showNavigation() }
+    Shortcut {
+        sequence: window.bindings.shortcutHelp
+        enabled: !window.privateCovered && !window.settingsOpen && window.recordingIndex < 0
+        onActivated: window.showShortcutHelp()
+    }
     Shortcut { sequence: window.bindings.sharePage; enabled: !window.privateCovered && !window.settingsOpen && window.canSharePage && window.recordingIndex < 0; onActivated: window.sharePage() }
     function printPage(view: var) {
         if (!view || view !== webView || emptyPage || privateCovered || settingsOpen || shuttingDown || pagePrinter.busy) return
@@ -597,6 +605,7 @@ Basic.ApplicationWindow {
     function toggleSettings() {
         if (privateCovered) return;
         if (privateMode) { preferencesRequested(); return }
+        shortcutHelp.close()
         splitWithPicker.close()
         workspacePanel.close()
         historyPanel.close()
@@ -615,6 +624,26 @@ Basic.ApplicationWindow {
     function openSettings() {
         if (!settingsOpen)
             toggleSettings()
+    }
+
+    function showShortcutHelp() {
+        if (shortcutHelp.opened) { shortcutHelp.close(); return }
+        if (privateCovered || settingsOpen || shuttingDown || window.webauthn.active || sitePermissionQueue.active
+            || desktopSharePanel.request || passwordPanel.overlayVisible || passkeySetup.visible || biometricSetup.visible || pagePrinter.busy) return
+        nativeShare.cancel()
+        splitWithPicker.close(); workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.close()
+        extensionPanel.close(); downloadsPanel.close(); navigationPill.dismissMenu()
+        shortcutHelp.open()
+    }
+
+    function openShortcutSettings() {
+        if (privateCovered) return
+        shortcutHelp.close()
+        if (privateMode) { keyboardPreferencesRequested(); return }
+        openSettings()
+        settingsCategory = 3
+        shortcutSearch.clear()
+        Qt.callLater(function() { shortcutSearch.forceActiveFocus() })
     }
 
     function toggleDeveloperTools() {
@@ -2274,6 +2303,12 @@ Basic.ApplicationWindow {
         onTabsRequested: window.showTabs()
         onWorkspacesRequested: window.openWorkspaces()
         onSplitRequested: window.splitHorizontal()
+    }
+    ShortcutHelp {
+        id: shortcutHelp
+        keyBindings: window.keyBindings
+        onAllShortcutsRequested: window.openShortcutSettings()
+        onClosed: if (window.active && !window.privateCovered && !window.settingsOpen && !window.shuttingDown) window.focusPage()
     }
     SplitWithPicker {
         id: splitWithPicker

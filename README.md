@@ -67,6 +67,7 @@ and colors, and optionally make Arbiter your default browser.
 | Tab overview | `⌘ Shift A` | `Ctrl Shift A` |
 | Workspaces | `⌘ Shift E` | `Ctrl Shift E` |
 | Settings | `⌘ ,` | `Ctrl ,` |
+| Shortcut help | `⌘ /` | `Ctrl /` |
 
 You can change shortcuts in **Settings → Keyboard**. Appearance, privacy,
 passwords and the default search engine are configurable in Settings too.
