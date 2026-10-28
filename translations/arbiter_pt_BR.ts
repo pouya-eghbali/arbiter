@@ -35,8 +35,18 @@
     </message>
     <message>
         <location line="+6"/>
-        <source>Report an issue</source>
-        <translation>Informar um problema</translation>
+        <source>Report a bug</source>
+        <translation>Relatar um erro</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Request a feature</source>
+        <translation>Solicitar um recurso</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Report a compatibility issue</source>
+        <translation>Relatar um problema de compatibilidade</translation>
     </message>
     <message>
         <location line="+5"/>
@@ -3873,7 +3883,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+258"/>
+        <location filename="../src/main.cpp" line="+287"/>
         <source>Settings…</source>
         <translation>Configurações…</translation>
     </message>
@@ -4004,7 +4014,7 @@
     </message>
     <message>
         <location line="+7"/>
-        <location filename="../src/nativeshare_win.cpp" line="+66"/>
+        <location filename="../src/nativeshare_win.cpp" line="+67"/>
         <source>Copy link</source>
         <translation>Copiar link</translation>
     </message>

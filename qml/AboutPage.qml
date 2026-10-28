@@ -66,9 +66,21 @@ ColumnLayout {
         }
         UiButton {
             objectName: "aboutIssuesLink"
-            text: qsTr("Report an issue")
+            text: qsTr("Report a bug")
             iconName: "external-link"
-            onClicked: Qt.openUrlExternally(page.projectUrl + "/issues")
+            onClicked: Qt.openUrlExternally(page.projectUrl + "/issues/new?template=bug_report.yml")
+        }
+        UiButton {
+            objectName: "aboutFeatureRequestLink"
+            text: qsTr("Request a feature")
+            iconName: "external-link"
+            onClicked: Qt.openUrlExternally(page.projectUrl + "/issues/new?template=feature_request.yml")
+        }
+        UiButton {
+            objectName: "aboutCompatibilityLink"
+            text: qsTr("Report a compatibility issue")
+            iconName: "external-link"
+            onClicked: Qt.openUrlExternally(page.projectUrl + "/issues/new?template=compatibility_report.yml")
         }
         UiButton {
             text: qsTr("GPL v3 license")

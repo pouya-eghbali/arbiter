@@ -35,8 +35,18 @@
     </message>
     <message>
         <location line="+6"/>
-        <source>Report an issue</source>
-        <translation>問題を報告する</translation>
+        <source>Report a bug</source>
+        <translation>不具合を報告</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Request a feature</source>
+        <translation>機能をリクエスト</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Report a compatibility issue</source>
+        <translation>互換性の問題を報告</translation>
     </message>
     <message>
         <location line="+5"/>
@@ -3873,7 +3883,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+258"/>
+        <location filename="../src/main.cpp" line="+287"/>
         <source>Settings…</source>
         <translation>設定…</translation>
     </message>
@@ -4004,7 +4014,7 @@
     </message>
     <message>
         <location line="+7"/>
-        <location filename="../src/nativeshare_win.cpp" line="+66"/>
+        <location filename="../src/nativeshare_win.cpp" line="+67"/>
         <source>Copy link</source>
         <translation>リンクをコピー</translation>
     </message>

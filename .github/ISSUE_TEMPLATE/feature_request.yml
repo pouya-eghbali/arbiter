@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest an improvement or a new capability.
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tell us what would make Arbiter better for your workflow. Please search existing requests first.
+        Issues are public; leave out personal or confidential information.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do?
+      description: Describe your workflow and the problem you are trying to solve.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed improvement
+      description: How should it work? Examples or sketches are welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and context
+      description: Optional workarounds, examples from other browsers, or related requests.

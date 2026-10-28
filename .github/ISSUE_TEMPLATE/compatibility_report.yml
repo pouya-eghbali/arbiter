@@ -1,0 +1,63 @@
+name: Compatibility report
+description: Report a website or extension that does not work correctly in Arbiter.
+title: "[Compatibility]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search existing issues first. Include a public link where possible so we can reproduce the problem.
+        Issues are public. Never include passwords, cookies, tokens, private account links, or unsanitized screenshots and logs.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is affected?
+      options:
+        - Website
+        - Extension
+    validations:
+      required: true
+  - type: input
+    id: resource
+    attributes:
+      label: Website or extension
+      description: Website domain/public URL, or extension name and Chrome Web Store link. Omit private URL paths and query strings.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Arbiter version
+      description: Find this in Settings → About. For a source build, include the commit if known.
+    validations:
+      required: true
+  - type: dropdown
+    id: operating-system
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: system-version
+    attributes:
+      label: OS version and architecture
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happens and how can we reproduce it?
+      description: Include steps, expected behavior, and the extension version if relevant.
+    validations:
+      required: true
+  - type: input
+    id: comparison
+    attributes:
+      label: Does it work in another browser?
+      description: Optional browser name/version and result. Mention whether disabling ad blocking or other extensions makes a difference in Arbiter.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Optional screenshots, sanitized error messages, or workarounds.
