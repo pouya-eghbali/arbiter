@@ -105,6 +105,16 @@ function(arbiter_configure_webengine_runtime target)
             if(WIN32)
                 # Windows resolves imported DLLs before main(), so environment
                 # overrides in the runtime initializer would be too late.
+                # The sandboxed renderer also needs base Qt next to the SDK's
+                # helper executable; the browser's DLL search path is insufficient.
+                if(NOT TARGET arbiter_webengine_sdk_runtime)
+                    get_filename_component(arbiter_process_dir "${ARBITER_ENGINE_PROCESS}" DIRECTORY)
+                    add_custom_target(arbiter_webengine_sdk_runtime
+                        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                            $<TARGET_RUNTIME_DLLS:${target}> "${arbiter_process_dir}"
+                        COMMAND_EXPAND_LISTS VERBATIM)
+                endif()
+                add_dependencies(${target} arbiter_webengine_sdk_runtime)
                 foreach(module WebEngineCore WebEngineQuick WebEngineWidgets)
                     if(TARGET Qt6::${module})
                         add_custom_command(TARGET ${target} POST_BUILD
