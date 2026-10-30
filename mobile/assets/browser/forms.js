@@ -1,7 +1,7 @@
 // Runs only in Arbiter's isolated content world. Never exposes secrets to a page bridge.
 (() => {
   if (window.top!==window || !/^https?:$/.test(location.protocol)) return;
-  let target, dirty=false, submitted=false, port,editVersion=0,lastForm=null,lastVersion=-1,lastCapture=0;
+  let target, dirty=false, submitted=false,editVersion=0,lastForm=null,lastVersion=-1,lastCapture=0;
   const visible=e=>e && e.getClientRects().length && !e.disabled && !e.readOnly;
   const prefs=()=>globalThis.__arbiterPreferences || {savePasswords:false,suggestPasswords:false};
   function userField(form,field) {
@@ -10,9 +10,9 @@
   }
   const passwords=form=>[...form.querySelectorAll('input[type=password]')].filter(visible);
   function send(message) {
-    if(window.webkit?.messageHandlers?.arbiterForms) window.webkit.messageHandlers.arbiterForms.postMessage(message);
-    else if(message.type==='loginSubmitted') {browser.runtime.sendNativeMessage('arbiterCredentials',message).catch(()=>{});}
-    else {try {port?.postMessage(message)} catch {}}
+    if(globalThis.__arbiterSend) globalThis.__arbiterSend(message);
+    else if(window.webkit?.messageHandlers?.arbiterForms) window.webkit.messageHandlers.arbiterForms.postMessage(message);
+    else window.arbiterForms?.postMessage(JSON.stringify(message));
   }
   function state() {send({type:'activityState',audio:[...document.querySelectorAll('audio,video')].some(e=>!e.paused&&!e.ended&&!e.muted),dirty});}
   function filled(message) {
@@ -34,17 +34,6 @@
   // This function exists only in the isolated native-client world on WebKit.
   globalThis.__arbiterFill=filled;
   globalThis.__arbiterHasPassword=()=>passwords(document).length>0;
-  function connect() {
-    if(!globalThis.browser?.runtime) return;
-    port=browser.runtime.connectNative('arbiterCredentials');
-    port.onMessage.addListener(message=>{
-      if(message.action==='preferences'){globalThis.__arbiterUpdatePreferences(message);return;}
-      if(message.action==='inspect'){port.postMessage({type:'filled',requestId:message.requestId,filled:passwords(document).length>0});return;}
-      if(message.action!=='fill' || typeof message.requestId!=='string')return;
-      port.postMessage({type:'filled',requestId:message.requestId,filled:filled(message)});
-    });
-    port.postMessage({type:'preferences'});
-  }
   function focus(e) {if(!prefs().suggestPasswords || !(e instanceof HTMLInputElement))return;
     const fields=passwords(e.form||document);
     if(!['password','email','text'].includes(e.type) || (!fields.length && e.type!=='email' && !['username','email'].includes(e.autocomplete)))return;
@@ -69,7 +58,5 @@
   document.addEventListener('click',event=>{const button=event.target.closest?.('button,input[type=submit]');if(event.isTrusted && button && button.type==='submit')capture(button.form||document)},true);
   new MutationObserver(()=>{if(submitted&&!passwords(document).length){submitted=false;dirty=false;state();send({type:'loginSucceeded'})}}).observe(document,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class','hidden']});
   for(const name of ['play','pause','ended','volumechange']) document.addEventListener(name,state,true);
-  addEventListener('pagehide',()=>{try{port?.disconnect()}catch{};port=null});
-  addEventListener('pageshow',event=>{if(event.persisted)connect();state()});
-  connect();state();
+  addEventListener('pageshow',state);state();
 })();

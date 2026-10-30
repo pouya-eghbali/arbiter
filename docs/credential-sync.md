@@ -21,7 +21,7 @@ tag and `ArbiterSync/v1/<vaultId>` additional authenticated data. Maximum payloa
 size is 16 MiB. At-rest keys are distinct from the wire key. The desktop's separate
 master key and TLS private key are stored through QtKeychain. Mobile stores its
 local AES key in the OS credential facility (iOS device-only unlocked Keychain;
-Android FlutterSecureStorage). Credential files and pairing tokens are encrypted.
+Android Keystore wrapping). Credential files and pairing tokens are encrypted.
 A revoked peer's knowledge of the wire key does not expose the desktop state file.
 Previously received credentials cannot be remotely erased.
 
@@ -41,10 +41,10 @@ Records use a multi-value register with per-device vector clocks. Dominated valu
 are removed; concurrent edits and edit/delete conflicts remain available for explicit
 resolution on the phone. Deletions use tombstones. All clients merge the most recent
 on-disk state under a process-shared file lock before atomically replacing encrypted
-state. On iOS, a native transaction gate additionally serializes the foreground and
-headless Flutter engines, since POSIX record locks alone do not isolate engines in
-the same process. Background cancellation waits for an active transaction to release
-before destroying its engine. Android runs scheduled sync in a separate process. This
+state. The Qt mobile client additionally serializes transactions with an in-process
+mutex, since POSIX record locks alone do not isolate threads in the same process.
+Cancellation invalidates pending network replies before discarding a worker.
+Android runs scheduled sync in a separate process. This
 prevents UI, background sync and provider processes from losing updates.
 
 Password identity is SHA-256 of canonical origin, NUL, username. Native password
@@ -58,7 +58,7 @@ up after an actual peer copy is observed. Authenticators use a zero signature co
 
 No JavaScript WebAuthn replacement is installed. Desktop uses its patched Chromium
 provider, iOS uses AuthenticationServices, and Android uses Credential Manager via
-GeckoView. The OS/browser verifies the RP/origin and challenge; native providers
+Android System WebView. The OS/browser verifies the RP/origin and challenge; native providers
 verify the selected credential and perform device authentication before signing.
 
 ## Test and release boundaries

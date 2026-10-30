@@ -24,7 +24,7 @@ int main(int argc,char **argv) {
     CredentialSync sync(&passwords,&passkeys,directory.path()+"/sync",&s,"127.0.0.1");
     bool printed=false;
     QObject::connect(&sync,&CredentialSync::changed,&app,[&] {
-        if(printed || sync.busy() || !sync.unlocked()) return;
+        if(printed || sync.busy() || !sync.unlocked() || sync.address().isEmpty()) return;
         printed=true; sync.pair(); QTextStream(stdout)<<sync.pairingCode()<<Qt::endl;
     });
     sync.unlock(phrase); QTimer::singleShot(10*60*1000,&app,&QCoreApplication::quit); return app.exec();

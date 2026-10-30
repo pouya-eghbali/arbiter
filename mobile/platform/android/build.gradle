@@ -1,0 +1,45 @@
+buildscript {
+    repositories { google(); mavenCentral() }
+    dependencies { classpath 'com.android.tools.build:gradle:9.5.0' }
+}
+repositories { google(); mavenCentral() }
+apply plugin: qtGradlePluginType
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
+    implementation 'androidx.core:core:1.17.0'
+    implementation 'androidx.webkit:webkit:1.16.0'
+    implementation 'androidx.credentials:credentials:1.6.0'
+    androidTestImplementation 'androidx.test:runner:1.7.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+}
+android {
+    namespace = 'com.arbiter.mobile'
+    compileSdkVersion androidCompileSdkVersion
+    buildToolsVersion androidBuildToolsVersion
+    ndkVersion = androidNdkVersion
+    sourceSets.main {
+        manifest.srcFile 'AndroidManifest.xml'
+        java.srcDirs = [qtAndroidDir + '/src', 'src']
+        kotlin.srcDirs = ['src']
+        res.srcDirs = [qtAndroidDir + '/res', 'res']
+        assets.srcDirs = ['assets']
+        jniLibs.srcDirs = ['libs']
+    }
+    sourceSets.androidTest.java.srcDirs = ['tests']
+    sourceSets.androidTest.kotlin.srcDirs = ['tests']
+    compileOptions {sourceCompatibility JavaVersion.VERSION_17;targetCompatibility JavaVersion.VERSION_17}
+    kotlin {jvmToolchain(17)}
+    defaultConfig {
+        applicationId 'com.arbiter.mobile'
+        minSdkVersion qtMinSdkVersion
+        targetSdkVersion qtTargetSdkVersion
+        ndk.abiFilters = qtTargetAbiList.split(',')
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        // Finishing QtActivity ends native main and its process. The UI test
+        // stops the Activity explicitly; keep it alive until results are sent.
+        testInstrumentationRunnerArguments waitForActivitiesToComplete: 'false'
+    }
+    androidResources {noCompress += 'rcc'}
+    packagingOptions.jniLibs.useLegacyPackaging = true
+}

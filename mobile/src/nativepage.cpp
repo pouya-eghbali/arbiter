@@ -1,0 +1,51 @@
+#include "nativepage.h"
+#include "mobileplatform.h"
+QHash<QString, QPointer<NativePage>> NativePage::pages;
+NativePage::~NativePage() {
+    pages.remove(tabId);
+    delete m_window;
+    MobilePlatform::destroyWebView(this);
+}
+void NativePage::start() {
+    if (m_window)
+        return;
+    pages[tabId] = this;
+    m_window = MobilePlatform::createWebView(this, profile, privateMode);
+    emit nativeWindowChanged();
+    if (!m_url.isEmpty())
+        MobilePlatform::navigate(this, m_url);
+}
+void NativePage::setUrl(const QUrl &value) {
+    if (m_url == value)
+        return;
+    m_url = value;
+    emit changed();
+    if (m_window)
+        MobilePlatform::navigate(this, value);
+}
+void NativePage::action(const QString &name) {
+    MobilePlatform::action(this, name);
+}
+void NativePage::configure() {
+    MobilePlatform::configurePage(this);
+}
+void NativePage::evaluate(const QString &script, std::function<void(QVariant)> callback) {
+    MobilePlatform::evaluate(this, script, std::move(callback));
+}
+void NativePage::event(const QString &type, const QVariantMap &data) {
+    if (type == "location") {
+        m_url = data.value("url").toUrl();
+        canBack = data.value("back").toBool();
+        canForward = data.value("forward").toBool();
+    }
+    if (type == "title")
+        m_title = data.value("title").toString();
+    if (type == "progress")
+        progress = data.value("progress").toInt();
+    if (type == "start")
+        loading = true;
+    if (type == "finish" || type == "error")
+        loading = false;
+    emit changed();
+    emit browserEvent(tabId, type, data);
+}
