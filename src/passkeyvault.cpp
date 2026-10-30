@@ -25,6 +25,10 @@ bool contains(const QCborArray &list, const QByteArray &id)
 PasskeyVault::PasskeyVault(SecretStore *store, const QString &directory, QObject *parent, BiometricAuth *biometrics)
     : QObject(parent), m_store(store), m_directory(directory), m_biometrics(biometrics) {
     load();
+    m_syncExpiry.setSingleShot(true); m_syncExpiry.setInterval(10*60*1000);
+    connect(&m_syncExpiry,&QTimer::timeout,this,&PasskeyVault::lockSync);
+    if(m_biometrics) connect(m_biometrics,&BiometricAuth::sessionLocked,this,&PasskeyVault::lockSync);
+    connect(QCoreApplication::instance(),&QCoreApplication::aboutToQuit,this,&PasskeyVault::lockSync);
     m_cacheExpiry.setSingleShot(true); m_cacheExpiry.setInterval(15*60*1000);
     connect(&m_cacheExpiry,&QTimer::timeout,this,&PasskeyVault::lockBiometrics);
     if(m_biometrics) connect(m_biometrics,&BiometricAuth::changed,this,[this] {
@@ -42,7 +46,7 @@ PasskeyVault::PasskeyVault(SecretStore *store, const QString &directory, QObject
         connect(app,&QCoreApplication::aboutToQuit,this,&PasskeyVault::lockBiometrics);
     }
 }
-PasskeyVault::~PasskeyVault() { lockBiometrics(); }
+PasskeyVault::~PasskeyVault() { lockSync(); lockBiometrics(); }
 bool PasskeyVault::biometricReady() const {
     return biometricEnabled() && biometricAvailable() && m_cacheExpiry.isActive()
         && m_cachedKey.present() && m_cachedVaultId==m_index.value(1).toByteArray();
@@ -284,6 +288,7 @@ void PasskeyVault::perform(bool registration, const QByteArray &bytes, const QBy
             QCborMap meta;
             meta.insert(0, id); meta.insert(1, rp); meta.insert(2, userId);
             meta.insert(3, user.value(QStringLiteral("name")).toString().left(256));
+            meta.insert(4,true); // New credentials can be replicated through encrypted sync.
             QCborMap record; record.insert(0, meta); record.insert(1, pair.der);
             auto plain = encoded(record);
             auto sealed = PasskeyCrypto::seal(plain, key, self->m_index.value(1).toByteArray() + id);
@@ -291,7 +296,7 @@ void PasskeyVault::perform(bool registration, const QByteArray &bytes, const QBy
             if (sealed.isEmpty() || sealed.size() > 2560) { done(1, {}, tr("The passkey exceeds the secure storage limit.")); return; }
             auto next = metadata; next.append(meta); self->m_index.insert(3, next);
             if (!self->save()) { self->m_index.insert(3, metadata); done(1, {}, tr("Could not reserve the passkey catalog entry.")); return; }
-            auto auth = PasskeyCrypto::authenticatorData(rp, true);
+            auto auth = PasskeyCrypto::authenticatorData(rp, true,meta.value(4).toBool(),meta.value(5).toBool());
             auth.append(QByteArray(16, char(0))); // zero AAGUID; no identifying attestation
             auth.append(char(0)); auth.append(char(id.size())); auth.append(id); auth.append(pair.cose);
             QCborMap response; response.insert(1, QStringLiteral("none")); response.insert(2, auth); response.insert(3, QCborMap());
@@ -324,7 +329,7 @@ void PasskeyVault::perform(bool registration, const QByteArray &bytes, const QBy
                 auto record = QCborValue::fromCbor(plain).toMap(); PasskeyCrypto::wipe(plain);
                 if (!error.isEmpty() || record.value(0).toMap() != selected) { done(1, {}, tr("Could not unlock the passkey, or its catalog entry was changed.")); return; }
                 auto der = record.value(1).toByteArray();
-                auto auth = PasskeyCrypto::authenticatorData(rp, false);
+                auto auth = PasskeyCrypto::authenticatorData(rp, false,selected.value(4).toBool(),selected.value(5).toBool());
                 auto signature = PasskeyCrypto::sign(der, auth + hash); PasskeyCrypto::wipe(der);
                 if (signature.isEmpty()) { done(1, {}, tr("Could not sign the authentication request.")); return; }
                 QCborMap descriptor; descriptor.insert(QStringLiteral("id"), credentialId); descriptor.insert(QStringLiteral("type"), QStringLiteral("public-key"));
@@ -337,4 +342,112 @@ void PasskeyVault::perform(bool registration, const QByteArray &bytes, const QBy
     };
     if(biometric) unlockBiometric(unlocked);
     else unlock(passphrase,unlocked);
+}
+
+
+void PasskeyVault::lockSync() { ++m_syncEpoch; m_syncKey.clear(); m_syncExpiry.stop(); emit changed(); }
+void PasskeyVault::unlockForSync(const QString &phrase,bool biometric,SyncResult callback)
+{
+    if(!configured() || !begin()) { callback(tr("Set up your passkey vault before enabling encrypted sync."),{}); return; }
+    const QPointer<PasskeyVault> self(this);
+    const auto epoch=++m_syncEpoch;
+    auto unlocked=[self,callback,epoch](QByteArray key) {
+        if(!self) { PasskeyCrypto::wipe(key); return; }
+        if(epoch!=self->m_syncEpoch) { PasskeyCrypto::wipe(key); self->finish(); callback(tr("Sync unlocking was cancelled."),{}); return; }
+        if(key.isEmpty() || !self->m_syncKey.set(key)) {
+            PasskeyCrypto::wipe(key); self->finish(self->m_error.isEmpty() ? tr("Could not unlock the vault for sync.") : self->m_error); callback(self->m_error,{}); return;
+        }
+        PasskeyCrypto::wipe(key); self->m_syncExpiry.start(); self->finish(); self->exportForSync(callback);
+    };
+    if(biometric) unlockBiometric(unlocked); else unlock(phrase,unlocked);
+}
+void PasskeyVault::exportForSync(SyncResult callback)
+{
+    if(!syncReady() || !begin()) { callback(tr("Unlock the desktop sync vault and try again."),{}); return; }
+    const auto metadata=m_index.value(3).toArray();
+    auto result=std::make_shared<QJsonArray>();
+    auto step=std::make_shared<std::function<void(int)>>(); const std::weak_ptr<std::function<void(int)>> weak=step;
+    const QPointer<PasskeyVault> self(this);
+    *step=[self,metadata,result,weak,callback](int index) {
+        if(!self) return;
+        if(!self->syncReady()) { self->finish(); callback(tr("The sync session expired."),{}); return; }
+        if(index==metadata.size()) { self->finish(); callback({},*result); return; }
+        const auto meta=metadata[index].toMap();
+        const auto id=meta.value(0).toByteArray();
+        const auto next=weak.lock();
+        // Credentials registered as device-bound must not become replicated later.
+        if(!meta.value(4).toBool()) { QTimer::singleShot(0,self,[next,index] { (*next)(index+1); }); return; }
+        self->m_store->read(self->itemKey(id),[self,meta,id,next,result,index,callback](const QString &error,const QByteArray &sealed) {
+            if(!self) return;
+            if(!error.isEmpty() || !self->syncReady()) { self->finish(error); callback(error.isEmpty() ? tr("The sync session expired.") : error,{}); return; }
+            auto key=self->m_syncKey.copy();
+            auto plain=PasskeyCrypto::open(sealed,key,self->m_index.value(1).toByteArray()+id); PasskeyCrypto::wipe(key);
+            const auto record=QCborValue::fromCbor(plain).toMap(); PasskeyCrypto::wipe(plain);
+            auto portable=PasskeyCrypto::portableKey(record.value(1).toByteArray());
+            if(record.value(0).toMap()!=meta || portable.der.isEmpty() || (record.value(2).isByteArray() && portable.cose!=record.value(2).toByteArray())) {
+                PasskeyCrypto::wipe(portable.der); self->finish(tr("A passkey could not be verified for transfer.")); callback(self->m_error,{}); return;
+            }
+            auto encode=[](const QByteArray &bytes) { return QString::fromLatin1(bytes.toBase64(QByteArray::Base64UrlEncoding|QByteArray::OmitTrailingEquals)); };
+            result->append(QJsonObject{{"kind","passkey"},{"rpId",meta.value(1).toString()},{"credentialId",encode(id)},
+                {"privateKey",encode(portable.der)},{"publicKey",encode(portable.cose)},{"userId",encode(meta.value(2).toByteArray())},
+                {"username",meta.value(3).toString()},{"backupEligible",meta.value(4).toBool()},{"backedUp",meta.value(5).toBool()}});
+            PasskeyCrypto::wipe(portable.der);
+            QTimer::singleShot(0,self,[next,index] { (*next)(index+1); });
+        });
+    };
+    (*step)(0);
+}
+void PasskeyVault::upsertFromSync(const QJsonObject &data,SyncWrite callback)
+{
+    if(!syncReady() || !begin()) { callback(tr("Unlock the desktop sync vault and try again.")); return; }
+    auto decode=[](const QJsonValue &value) { return QByteArray::fromBase64(value.toString().toLatin1(),QByteArray::Base64UrlEncoding); };
+    const auto id=decode(data.value("credentialId")),user=decode(data.value("userId"));
+    auto portable=PasskeyCrypto::portableKey(decode(data.value("privateKey")));
+    const auto rp=data.value("rpId").toString(),name=data.value("username").toString();
+    if(!data.value("backupEligible").toBool() || id.size()!=32 || user.isEmpty() || user.size()>64 || rp.isEmpty() || rp.size()>253 || name.size()>256 || portable.der.isEmpty() || (data.value("backedUp").toBool() && !data.value("backupEligible").toBool())
+        || (!data.value("publicKey").toString().isEmpty() && portable.cose!=decode(data.value("publicKey")))) {
+        PasskeyCrypto::wipe(portable.der); finish(tr("The synced passkey is invalid or unsupported.")); callback(m_error); return;
+    }
+    QCborMap meta; meta.insert(0,id); meta.insert(1,rp); meta.insert(2,user); meta.insert(3,name);
+    if(data.value("backupEligible").toBool()) meta.insert(4,true);
+    if(data.value("backedUp").toBool()) meta.insert(5,true);
+    auto next=m_index.value(3).toArray(); bool exists=false;
+    for(int i=0;i<next.size();++i) if(next[i].toMap().value(0).toByteArray()==id) {
+        if(next[i].toMap().value(1).toString()!=rp || next[i].toMap().value(2).toByteArray()!=user
+            || next[i].toMap().value(4).toBool()!=meta.value(4).toBool()) {
+            PasskeyCrypto::wipe(portable.der); finish(tr("A synced passkey conflicts with an existing credential identity.")); callback(m_error); return;
+        }
+        next[i]=meta; exists=true; break;
+    }
+    if(!exists) next.append(meta);
+    QCborMap record; record.insert(0,meta); record.insert(1,portable.der); record.insert(2,portable.cose);
+    auto key=m_syncKey.copy(),plain=QCborValue(record).toCbor();
+    const auto sealed=PasskeyCrypto::seal(plain,key,m_index.value(1).toByteArray()+id);
+    PasskeyCrypto::wipe(key); PasskeyCrypto::wipe(plain); PasskeyCrypto::wipe(portable.der);
+    if(sealed.isEmpty() || sealed.size()>2560) { finish(tr("The synced passkey is too large for secure storage.")); callback(m_error); return; }
+    // Reserve an index entry first, as in regular passkey creation. If writing
+    // fails, restore the previous index; retries retain the same credential ID.
+    const auto previous=m_index; m_index.insert(3,next);
+    if(!save()) { m_index=previous; finish(tr("Could not save the synced passkey index.")); callback(m_error); return; }
+    const QPointer<PasskeyVault> self(this);
+    m_store->write(itemKey(id),sealed,[self,previous,callback](const QString &error,const QByteArray &) {
+        if(!self) return;
+        if(!error.isEmpty()) { self->m_index=previous; self->save(); }
+        self->finish(error); callback(error);
+    });
+}
+void PasskeyVault::removeFromSync(const QByteArray &id,SyncWrite callback)
+{
+    if(!syncReady() || !begin()) { callback(tr("Unlock the desktop sync vault and try again.")); return; }
+    auto next=m_index.value(3).toArray(); bool found=false;
+    for(int i=0;i<next.size();++i) if(next[i].toMap().value(0).toByteArray()==id) { next.removeAt(i); found=true; break; }
+    if(!found) { finish(); callback({}); return; }
+    const QPointer<PasskeyVault> self(this);
+    m_store->remove(itemKey(id),[self,next,callback](const QString &error,const QByteArray &) {
+        if(!self) return;
+        if(!error.isEmpty()) { self->finish(error); callback(error); return; }
+        const auto old=self->m_index; self->m_index.insert(3,next);
+        if(!self->save()) { self->m_index=old; self->finish(tr("The passkey was removed, but its index needs a retry.")); callback(self->m_error); return; }
+        self->finish(); callback({});
+    });
 }

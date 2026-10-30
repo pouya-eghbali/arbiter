@@ -5,6 +5,8 @@
 #include <QUrl>
 #include <QRectF>
 #include <QVariantList>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <memory>
 
 class PasswordManager : public QObject
@@ -55,6 +57,12 @@ public:
     static bool canStore(const QUrl &url,const QString &username,const QString &password);
     using ImportCallback=std::function<void(bool imported,const QString &error)>;
     void importAccount(const QUrl &url,const QString &username,const QString &password,ImportCallback callback);
+    // Native-only transfer APIs. The sync coordinator must first authenticate
+    // the user by unlocking the passkey vault; these are never web/QML methods.
+    using SyncResult=std::function<void(const QString &,const QJsonArray &)>;
+    void exportAfterVerification(SyncResult callback);
+    void upsertFromSync(const QJsonObject &data,ImportCallback callback);
+    void removeFromSync(const QString &origin,const QString &username,ImportCallback callback);
     static QString fillScript(const QString &origin, const QString &document,
                               const QString &form, const QString &username, const QString &password);
     static QString suggestionScript(const QString &origin, const QString &document,
@@ -77,6 +85,7 @@ signals:
     void pendingChanged();
     void credentialSaved();
 private:
+    void removeWithCallback(const QString &id,ImportCallback callback);
     void initialize();
     void saveLogin(const QUrl &url,const QString &username,const QString &password,ImportCallback callback);
     bool persist(const QVariantList &entries);

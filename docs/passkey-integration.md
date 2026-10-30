@@ -73,15 +73,17 @@ click alone never sets the UV flag.
   redirect a private key to another RP/account. A lock prevents concurrent
   writers. Identities are reserved before OS-store writes; interrupted setup
   cannot silently replace an existing vault.
-- Credentials are discoverable, device-bound, with backup flags clear, zero
-  AAGUID, `none` attestation and a constant zero signature counter. There is no
-  claim of hardware protection, synchronization, enterprise attestation, PRF,
+- Credentials are discoverable, with zero AAGUID, `none` attestation and a constant
+  zero signature counter. New credentials are backup-eligible for optional local
+  encrypted sync; legacy non-eligible credentials retain their original flag.
+  There is no claim of hardware protection, enterprise attestation, PRF,
   large-blob support or credential management protocol support.
 - Allow/exclusion lists, user-handle bounds and ES256 negotiation are enforced.
   Accounts are selected by credential ID, including accounts with equal names.
 
-There is currently no passphrase change/recovery, sync, export/import or passkey
-removal UI. Losing the profile catalog, system-store entries or vault passphrase
+Optional encrypted local mobile sync and credential removal are described in
+[credential-sync.md](credential-sync.md). There is no passphrase recovery or
+general-purpose passkey export/import file UI. Losing the profile catalog, system-store entries or vault passphrase
 can make local passkeys unavailable. The setup UI explains this. Sites that
 require other algorithms or hardware/enterprise attestation need another
 authenticator. Interrupted registration can leave an unused local credential.

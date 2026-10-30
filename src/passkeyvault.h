@@ -6,6 +6,8 @@
 #include <QLockFile>
 #include <QPointer>
 #include <QVariantList>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <memory>
 
 class PasskeyVault : public QObject
@@ -33,6 +35,15 @@ public:
     QVariantList credentials(const QString &rp) const;
     void perform(bool registration, const QByteArray &request, const QByteArray &credentialId,
                  const QString &passphrase, Result callback, std::function<bool()> current = {}, bool biometric = false);
+    // Native-only transfer session, separately bounded from website verification.
+    using SyncResult=std::function<void(const QString &,const QJsonArray &)>;
+    using SyncWrite=std::function<void(const QString &)>;
+    void unlockForSync(const QString &passphrase,bool biometric,SyncResult callback);
+    void exportForSync(SyncResult callback);
+    void upsertFromSync(const QJsonObject &data,SyncWrite callback);
+    void removeFromSync(const QByteArray &credentialId,SyncWrite callback);
+    bool syncReady() const { return m_syncKey.present() && m_syncExpiry.isActive(); }
+    void lockSync();
 signals:
     void changed();
 private:
@@ -53,6 +64,9 @@ private:
     int m_failures = 0;
     qint64 m_retryAfter = 0;
     QPointer<BiometricAuth> m_biometrics;
+    quint64 m_syncEpoch=0;
+    LockedKey m_syncKey;
+    QTimer m_syncExpiry;
     LockedKey m_cachedKey;
     QByteArray m_cachedVaultId;
     QTimer m_cacheExpiry;

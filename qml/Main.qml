@@ -9,6 +9,7 @@ import Arbiter.Credentials 1.0
 
 Basic.ApplicationWindow {
     id: window
+    property var credentialSync: null
     property var privacy: null
     property var privateSession: null
     property bool privateMode: false
@@ -1292,7 +1293,7 @@ Basic.ApplicationWindow {
                         spacing: 8
                         Repeater {
                             id: settingsNavigation
-                            model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads"), qsTr("About")]
+                            model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads"), qsTr("About"), qsTr("Sync")]
                             delegate: UiButton {
                                 id: categoryButton
                                 required property int index
@@ -1340,7 +1341,7 @@ Basic.ApplicationWindow {
                     width: Math.min(720, settingsScroll.availableWidth)
                     spacing: 24
                     Basic.Label {
-                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads"), qsTr("About")][window.settingsCategory]
+                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads"), qsTr("About"), qsTr("Sync")][window.settingsCategory]
                         font.pixelSize: 28
                         font.weight: Font.DemiBold
                         color: Theme.text
@@ -1847,6 +1848,13 @@ Basic.ApplicationWindow {
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
+                    }
+                    SyncSettings {
+                        visible: window.settingsCategory === 11
+                        Layout.fillWidth: true
+                        manager: window.credentialSync
+                        passkeys: window.passkeys
+                        onPasskeySettingsRequested: window.settingsCategory = 2
                     }
                     AboutPage {
                         visible: window.settingsCategory === 10

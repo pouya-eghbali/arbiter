@@ -81,7 +81,7 @@ private slots:
         QCOMPARE(auth.prompts,2);
         const auto id=vault.credentials("example.com").first().toMap()["id"].toByteArray();
         auto assertion=QCborValue::fromCbor(perform(vault,false,getRequest(),id,0,{},true)).toMap();
-        QCOMPARE(auth.prompts,3); QCOMPARE(assertion.value(2).toByteArray().at(32),char(5));
+        QCOMPARE(auth.prompts,3); QCOMPARE(assertion.value(2).toByteArray().at(32),char(0x0d));
         auth.success=false;
         QVERIFY(perform(vault,false,getRequest(),id,1,{},true).isEmpty()); QVERIFY(!vault.busy());
         QVERIFY(!perform(vault,false,getRequest(),id,0).isEmpty()); // Passphrase fallback still works.
@@ -191,12 +191,12 @@ private slots:
         vault.setup(phrase, phrase); QVERIFY2(vault.configured(), qPrintable(vault.error()));
         auto created = QCborValue::fromCbor(perform(vault, true, makeRequest(), {}, 0)).toMap();
         QCOMPARE(created.value(1).toString(), QStringLiteral("none"));
-        auto auth = created.value(2).toByteArray(); QCOMPARE(static_cast<unsigned char>(auth.at(32)), 0x45);
+        auto auth = created.value(2).toByteArray(); QCOMPARE(static_cast<unsigned char>(auth.at(32)), 0x4d);
         QCOMPARE(auth.mid(33, 4), QByteArray(4, char(0))); QCOMPARE(auth.mid(37, 16), QByteArray(16, char(0)));
         auto entries = vault.credentials(QStringLiteral("example.com")); QCOMPARE(entries.size(), 1);
         auto id = entries.first().toMap().value(QStringLiteral("id")).toByteArray(); QCOMPARE(id.size(), 32); QCOMPARE(auth.mid(55, 32), id);
         auto assertion = QCborValue::fromCbor(perform(vault, false, getRequest(), id, 0)).toMap();
-        QCOMPARE(assertion.value(2).toByteArray().size(), 37); QCOMPARE(assertion.value(2).toByteArray().at(32), char(5));
+        QCOMPARE(assertion.value(2).toByteArray().size(), 37); QCOMPARE(assertion.value(2).toByteArray().at(32), char(0x0d));
         QVERIFY(!assertion.value(3).toByteArray().isEmpty());
         QCOMPARE(assertion.value(4).toMap().value(QStringLiteral("id")).toByteArray(), QByteArray("user-id"));
         QVERIFY(vault.credentials(QStringLiteral("evil.example")).isEmpty());

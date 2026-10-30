@@ -313,3 +313,5 @@ if(ARBITER_WEBENGINE_TESTS)
         endif()
     endforeach()
 endif()
+
+add_subdirectory(credentialsync)

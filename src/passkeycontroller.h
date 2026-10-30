@@ -56,6 +56,7 @@ public:
     Q_INVOKABLE void cancelBiometric() { m_vault.cancelBiometric(); }
     Q_INVOKABLE void lockBiometrics() { m_vault.lockBiometrics(); }
     Q_INVOKABLE void verifyBiometric(int accountIndex);
+    PasskeyVault *vaultForSync() { return &m_vault; }
     int abi() const { return 1; }
     bool enabled() const;
     bool configured() const { return m_vault.configured(); }

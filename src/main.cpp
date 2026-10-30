@@ -27,6 +27,7 @@
 #include "passwordmanager.h"
 #include "webauthncontroller.h"
 #include "passkeycontroller.h"
+#include "credentialsync.h"
 #include "appearance.h"
 #include "browserpreferences.h"
 #include "updatetracker.h"
@@ -143,6 +144,7 @@ int main(int argc, char *argv[])
     BrowserImportSelection importSelection(&importer);
     WebAuthnController webauthn;
     PasskeyController passkeys;
+    CredentialSync credentialSync(&passwords,passkeys.vaultForSync());
     auto *passwordBiometrics=createBiometricAuth(&passwords);
     const auto updatePasswordBiometrics=[&passwords,passwordBiometrics] {
         passwords.setUserVerification(passwordBiometrics->name(),passwordBiometrics->available(),
@@ -216,6 +218,7 @@ int main(int argc, char *argv[])
                                  {QStringLiteral("history"), QVariant::fromValue(&history)},
                                  {QStringLiteral("downloads"), QVariant::fromValue(&downloads)},
                                  {QStringLiteral("passwords"), QVariant::fromValue(&passwords)},
+                                 {QStringLiteral("credentialSync"), QVariant::fromValue(&credentialSync)},
                                  {QStringLiteral("importer"), QVariant::fromValue(&importer)},
                                  {QStringLiteral("webauthn"), QVariant::fromValue(&webauthn)},
                                  {QStringLiteral("passkeys"), QVariant::fromValue(&passkeys)},

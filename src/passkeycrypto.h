@@ -12,6 +12,8 @@ QByteArray seal(const QByteArray &plain, const QByteArray &key, const QByteArray
 QByteArray open(const QByteArray &sealed, const QByteArray &key, const QByteArray &context);
 struct Key { QByteArray der; QByteArray cose; };
 Key generate();
+// Normalize transferable P-256 keys to PKCS#8 and verify their public point.
+Key portableKey(const QByteArray &der);
 QByteArray sign(const QByteArray &der, const QByteArray &message);
-QByteArray authenticatorData(const QString &rp, bool registration);
+QByteArray authenticatorData(const QString &rp, bool registration, bool backupEligible = false, bool backedUp = false);
 }

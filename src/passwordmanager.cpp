@@ -263,30 +263,33 @@ void PasswordManager::saveLogin(const QUrl &url,const QString &username,const QS
     });
 }
 
-void PasswordManager::remove(const QString &id)
+void PasswordManager::remove(const QString &id) { removeWithCallback(id,{}); }
+void PasswordManager::removeWithCallback(const QString &id,ImportCallback callback)
 {
-    if (m_busy || !m_writable) return;
+    if (m_busy || !m_writable) { if(callback) callback(false,tr("Password storage is unavailable or busy.")); return; }
     int index = -1;
     for (int i = 0; i < m_entries.size(); ++i)
         if (m_entries.at(i).toMap().value("id") == id) index = i;
-    if (index < 0) return;
+    if (index < 0) { if(callback) callback(true,{}); return; }
     m_busy = true;
     m_error.clear();
     m_message.clear();
     emit stateChanged();
     const QPointer<PasswordManager> guard(this);
-    m_store->remove(secretKey(id), [guard, index](const QString &error, const QByteArray &) {
+    m_store->remove(secretKey(id), [guard, index, callback](const QString &error, const QByteArray &) {
         if (!guard) return;
-        if (!error.isEmpty()) { guard->finish(error); return; }
+        if (!error.isEmpty()) { guard->finish(error); if(callback) callback(false,error); return; }
         auto next = guard->m_entries;
         next.removeAt(index);
         if (!guard->persist(next)) {
             guard->finish(tr("The secret was deleted, but its index entry could not be removed. Retry deletion."));
+            if(callback) callback(false,guard->m_error);
             return;
         }
         guard->m_entries = next;
         emit guard->entriesChanged();
         guard->finish({}, tr("Password deleted."));
+        if(callback) callback(true,{});
     });
 }
 
@@ -539,4 +542,49 @@ void PasswordSession::suggestPassword(const QUrl &committedUrl, const QVariantMa
     if(m_origin.isEmpty()) return;
     emit runPasswordSuggestionScript(PasswordManager::suggestionScript(m_origin,m_document,m_form,
         field.value("field").toString(),m_manager->generatePassword()));
+}
+
+
+void PasswordManager::exportAfterVerification(SyncResult callback)
+{
+    if(m_busy || !m_writable) { callback(tr("Password storage is unavailable or busy."),{}); return; }
+    m_busy=true; emit stateChanged();
+    const auto entries=m_entries;
+    auto result=std::make_shared<QJsonArray>();
+    auto step=std::make_shared<std::function<void(int)>>();
+    const std::weak_ptr<std::function<void(int)>> weak=step;
+    const QPointer<PasswordManager> guard(this);
+    *step=[guard,entries,result,weak,callback](int index) {
+        if(!guard) return;
+        if(index==entries.size()) { guard->finish({}); callback({},*result); return; }
+        const auto entry=entries[index].toMap();
+        const auto continuation=weak.lock();
+        guard->m_store->read(guard->secretKey(entry.value("id").toString()),
+            [guard,entry,result,continuation,callback,index](const QString &error,const QByteArray &bytes) {
+                if(!guard) return;
+                if(!error.isEmpty()) { guard->finish(error); callback(error,{}); return; }
+                const auto record=QCborValue::fromCbor(bytes).toMap();
+                if(record.value(QStringLiteral("version")).toInteger()!=1 || record.value(QStringLiteral("origin")).toString()!=entry.value("origin").toString()
+                    || record.value(QStringLiteral("username")).toString()!=entry.value("username").toString() || !record.value(QStringLiteral("password")).isString()) {
+                    guard->finish(tr("A password does not match its secure index entry.")); callback(guard->m_error,{}); return;
+                }
+                result->append(QJsonObject{{"kind","password"},{"origin",record.value(QStringLiteral("origin")).toString()},
+                    {"username",record.value(QStringLiteral("username")).toString()},{"password",record.value(QStringLiteral("password")).toString()}});
+                QTimer::singleShot(0,guard,[continuation,index] { (*continuation)(index+1); });
+            });
+    };
+    (*step)(0);
+}
+void PasswordManager::upsertFromSync(const QJsonObject &data,ImportCallback callback)
+{
+    if(m_busy || !m_writable) { callback(false,tr("Password storage is unavailable or busy.")); return; }
+    const QUrl site(data.value("origin").toString(),QUrl::StrictMode);
+    if(originFor(site)!=data.value("origin").toString()) { callback(false,tr("The synced password origin is invalid.")); return; }
+    saveLogin(site,data.value("username").toString(),data.value("password").toString(),std::move(callback));
+}
+void PasswordManager::removeFromSync(const QString &origin,const QString &username,ImportCallback callback)
+{
+    const auto index=find(origin,username);
+    if(index<0) { callback(true,{}); return; }
+    removeWithCallback(m_entries[index].toMap().value("id").toString(),std::move(callback));
 }

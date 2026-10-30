@@ -90,6 +90,28 @@ Key generate()
     cose.insert(-3, QByteArray(reinterpret_cast<char *>(pub + 33), 32));
     return {der, QCborValue(cose).toCbor()};
 }
+Key portableKey(const QByteArray &der)
+{
+    if(der.isEmpty() || der.size()>8192) return {};
+    const auto *cursor=reinterpret_cast<const unsigned char *>(der.constData());
+    Handle<EVP_PKEY,EVP_PKEY_free> key(d2i_AutoPrivateKey(nullptr,&cursor,long(der.size())),EVP_PKEY_free);
+    if(!key || cursor!=reinterpret_cast<const unsigned char *>(der.constData()+der.size()) || !EVP_PKEY_is_a(key.get(),"EC")) return {};
+    char group[80]; size_t length=0;
+    if(EVP_PKEY_get_utf8_string_param(key.get(),OSSL_PKEY_PARAM_GROUP_NAME,group,sizeof(group),&length)!=1 || QByteArray(group)!="prime256v1") return {};
+    Handle<EVP_PKEY_CTX,EVP_PKEY_CTX_free> ctx(EVP_PKEY_CTX_new_from_pkey(nullptr,key.get(),nullptr),EVP_PKEY_CTX_free);
+    if(!ctx || EVP_PKEY_pairwise_check(ctx.get())!=1) return {};
+    unsigned char pub[65]; length=sizeof(pub);
+    if(EVP_PKEY_get_octet_string_param(key.get(),OSSL_PKEY_PARAM_PUB_KEY,pub,sizeof(pub),&length)!=1 || length!=65 || pub[0]!=4) return {};
+    Handle<PKCS8_PRIV_KEY_INFO,PKCS8_PRIV_KEY_INFO_free> info(EVP_PKEY2PKCS8(key.get()),PKCS8_PRIV_KEY_INFO_free);
+    if(!info) return {};
+    const int size=i2d_PKCS8_PRIV_KEY_INFO(info.get(),nullptr);
+    if(size<=0) return {};
+    QByteArray portable(size,Qt::Uninitialized); auto *out=reinterpret_cast<unsigned char *>(portable.data());
+    if(i2d_PKCS8_PRIV_KEY_INFO(info.get(),&out)!=size) { wipe(portable); return {}; }
+    QCborMap cose; cose.insert(1,2); cose.insert(3,-7); cose.insert(-1,1);
+    cose.insert(-2,QByteArray(reinterpret_cast<char *>(pub+1),32)); cose.insert(-3,QByteArray(reinterpret_cast<char *>(pub+33),32));
+    return {portable,QCborValue(cose).toCbor()};
+}
 QByteArray sign(const QByteArray &der, const QByteArray &message)
 {
     const auto *cursor = reinterpret_cast<const unsigned char *>(der.constData());
@@ -105,13 +127,13 @@ QByteArray sign(const QByteArray &der, const QByteArray &message)
     signature.resize(qsizetype(length));
     return signature;
 }
-QByteArray authenticatorData(const QString &rp, bool registration)
+QByteArray authenticatorData(const QString &rp, bool registration, bool backupEligible, bool backedUp)
 {
     auto result = QCryptographicHash::hash(rp.toUtf8(), QCryptographicHash::Sha256);
-    // Software, device-bound authenticator: UP + verified passphrase/biometric UV. Never
-    // claim backup eligibility/state. A constant zero counter is permitted by
-    // WebAuthn for authenticators without a signature counter.
-    result.append(char(registration ? 0x45 : 0x05));
+    // Preserve each credential's original eligibility flag. Older credentials
+    // remain ineligible; only an acknowledged replica sets backup state.
+    result.append(char(0x05 | (registration ? 0x40 : 0) | (backupEligible ? 0x08 : 0)
+                       | (backupEligible && backedUp ? 0x10 : 0)));
     result.append(QByteArray(4, char(0)));
     return result;
 }

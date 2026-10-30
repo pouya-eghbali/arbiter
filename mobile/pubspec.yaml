@@ -1,0 +1,44 @@
+name: arbiter_mobile
+description: Arbiter's shared Android and iOS browser.
+publish_to: none
+version: 0.1.0+1
+environment:
+  sdk: ^3.13.0
+  flutter: '>=3.47.8'
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  shared_preferences: ^2.5.6
+  share_plus: ^13.3.1
+  url_launcher: ^6.3.3
+  local_auth: ^3.0.2
+  flutter_svg: ^2.3.2
+  cryptography: ^2.9.0
+  crypto: ^3.0.8
+  flutter_secure_storage: ^11.2.0
+  mobile_scanner: ^7.4.2
+  qr_flutter: ^4.1.0
+  path_provider: ^2.1.6
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/brand.png
+    - assets/icons/
+    - assets/licenses/
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/brand.png
+  adaptive_icon_background: '#101720'
+  adaptive_icon_foreground: assets/brand.png
+  remove_alpha_ios: true
+  background_color_ios: '#101720'
