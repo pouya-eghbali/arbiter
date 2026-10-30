@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "Scannez le code d’association d’Arbiter sur votre ordinateur ou autorisez un site à utiliser la caméra lorsque vous le souhaitez.";
+"NSFaceIDUsageDescription" = "Déverrouiller vos onglets privés et vos identifiants enregistrés.";
+"NSLocalNetworkUsageDescription" = "Connectez-vous directement à Arbiter sur votre ordinateur pour synchroniser vos identifiants chiffrés sur le même Wi-Fi.";
+"NSLocationWhenInUseUsageDescription" = "Partagez votre position avec un site uniquement avec votre autorisation.";
+"NSMicrophoneUsageDescription" = "Autorisez les sites à utiliser votre microphone lorsque vous le souhaitez.";

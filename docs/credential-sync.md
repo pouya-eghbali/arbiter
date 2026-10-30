@@ -1,8 +1,8 @@
 # Local credential sync
 
 Desktop uses Qt Network TLS and QtKeychain; mobile uses the same encrypted record
-format with native credential providers. This is foreground LAN sync, not cloud
-backup. Passphrases, OS unlock credentials and device biometric data never sync.
+format with native credential providers. Sync stays LAN-only: foreground polling
+and optional OS-scheduled phone background jobs, with no relay or cloud backup. Passphrases, OS unlock credentials and device biometric data never sync.
 
 ## Trust and encryption
 
@@ -26,7 +26,10 @@ A revoked peer's knowledge of the wire key does not expose the desktop state fil
 Previously received credentials cannot be remotely erased.
 
 The desktop requires passphrase/biometric vault verification before serving and
-locks on OS session lock or after ten minutes. Mobile's foreground sync may access
+locks on OS session lock or after ten minutes by default. An explicit desktop
+setting can keep a sync session alive until computer/manual lock or application
+exit so that phone background jobs can reach it. That opt-in never bypasses the
+initial passphrase/biometric verification or an OS session lock. Mobile's foreground sync may access
 the local encryption key while the credential list is locked, following explicit
 pairing consent. Listing/filling credentials and signing passkey challenges require
 fresh native device authentication. This is an application verification boundary,
@@ -38,7 +41,11 @@ Records use a multi-value register with per-device vector clocks. Dominated valu
 are removed; concurrent edits and edit/delete conflicts remain available for explicit
 resolution on the phone. Deletions use tombstones. All clients merge the most recent
 on-disk state under a process-shared file lock before atomically replacing encrypted
-state, preventing UI, background sync and provider processes from losing updates.
+state. On iOS, a native transaction gate additionally serializes the foreground and
+headless Flutter engines, since POSIX record locks alone do not isolate engines in
+the same process. Background cancellation waits for an active transaction to release
+before destroying its engine. Android runs scheduled sync in a separate process. This
+prevents UI, background sync and provider processes from losing updates.
 
 Password identity is SHA-256 of canonical origin, NUL, username. Native password
 stores enforce HTTPS origin and account binding. Passkeys retain RP ID, credential

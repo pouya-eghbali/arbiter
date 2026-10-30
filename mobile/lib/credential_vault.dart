@@ -363,7 +363,11 @@ class CredentialVault {
     final file = File('${directory.path}/credentials-v1.enc');
     final lock = await File('${file.path}.lock').open(mode: FileMode.append);
     var locked = false;
+    String? processToken;
     try {
+      if (Platform.isIOS) {
+        processToken = await _native.invokeMethod<String>('acquireVaultLock');
+      }
       await lock.lock(FileLock.exclusive);
       locked = true;
       var savedKey = await keys.read(key: 'arbiter-vault-key-v1');
@@ -416,6 +420,11 @@ class CredentialVault {
         if (locked) await lock.unlock();
       } finally {
         await lock.close();
+        if (processToken != null) {
+          await _native.invokeMethod<void>('releaseVaultLock', {
+            'token': processToken,
+          });
+        }
       }
     }
   }
@@ -459,7 +468,11 @@ class CredentialVault {
       final lock = await File('${file.path}.lock').open(mode: FileMode.append);
       Uint8List? plain;
       var locked = false;
+      String? processToken;
       try {
+        if (Platform.isIOS && nativeIdentities) {
+          processToken = await _native.invokeMethod<String>('acquireVaultLock');
+        }
         await lock.lock(FileLock.exclusive);
         locked = true;
         _ensureOpen();
@@ -509,6 +522,11 @@ class CredentialVault {
           if (locked) await lock.unlock();
         } finally {
           await lock.close();
+          if (processToken != null) {
+            await _native.invokeMethod<void>('releaseVaultLock', {
+              'token': processToken,
+            });
+          }
         }
         if (await temporary.exists()) await temporary.delete();
       }

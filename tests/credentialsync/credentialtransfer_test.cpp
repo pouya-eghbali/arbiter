@@ -54,6 +54,25 @@ class CredentialTransferTest : public QObject {
         return {status,QJsonDocument::fromJson(clear).object()};
     }
 private slots:
+    void computerLockCancelsAnInFlightSyncUnlock() {
+        class DeferredSecrets final : public MemorySecrets {
+        public:
+            QList<std::function<void()>> waiting;
+            void readOptional(const QString &key,Callback callback) override {
+                waiting.append([this,key,callback] { callback({},items.value(key)); });
+            }
+        };
+        QTemporaryDir directory; MemorySecrets passwordStore,passkeyStore;DeferredSecrets syncStore;
+        PasswordManager passwords(directory.path()+"/passwords","Fixture",&passwordStore);
+        PasskeyVault passkeys(&passkeyStore,directory.path()+"/passkeys");passkeys.setup(phrase,phrase);
+        CredentialSync sync(&passwords,&passkeys,directory.path()+"/sync",&syncStore,"127.0.0.1");
+        sync.setKeepUnlocked(true);QVERIFY(sync.keepUnlocked());
+        sync.unlock(phrase);QTRY_VERIFY(!syncStore.waiting.isEmpty());QVERIFY(sync.busy());
+        passkeys.lockSync();QVERIFY(!sync.busy());QVERIFY(!sync.unlocked());
+        const auto waiting=syncStore.waiting;syncStore.waiting.clear();for(const auto &callback:waiting)callback();
+        QVERIFY(!sync.unlocked());QVERIFY(sync.address().isEmpty());
+        QVERIFY(!QFile::exists(directory.path()+"/sync/state-v1.enc"));
+    }
     void passkeyTransfersWithoutChangingItsCredentialOrSigningKey() {
         QTemporaryDir a,b; MemorySecrets storeA,storeB;
         PasskeyVault source(&storeA,a.path()),destination(&storeB,b.path()); source.setup(phrase,phrase); destination.setup(phrase,phrase);

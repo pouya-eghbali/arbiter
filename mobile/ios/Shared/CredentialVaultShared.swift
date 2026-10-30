@@ -122,3 +122,18 @@ enum PasskeyEncoding {
     Data([0xa3])+text("fmt")+text("none")+text("attStmt")+Data([0xa0])+text("authData")+bytes(data)
   }
 }
+
+private var arbiterCatalogs:[String:[String:String]]=[:]
+func ArbiterText(_ source:String,_ values:String...)->String {
+  let selected=UserDefaults(suiteName:AppleCredentialVault.group)?.string(forKey:"interface-language") ?? "system"
+  let code=selected=="system" ? (Locale.preferredLanguages.first.flatMap{Locale(identifier:$0).language.languageCode?.identifier} ?? "en") : selected
+  let language=["en","de","fr","it","es","pt","ja","zh"].contains(code) ? code : "en"
+  if arbiterCatalogs[language]==nil {
+    let url=Bundle.main.url(forResource:language,withExtension:"json",subdirectory:"Translations") ?? Bundle.main.privateFrameworksURL?.appendingPathComponent("App.framework/flutter_assets/assets/i18n/\(language).json")
+    if let url,let data=try? Data(contentsOf:url),let parsed=try? JSONSerialization.jsonObject(with:data) as? [String:String] {arbiterCatalogs[language]=parsed}
+    else {arbiterCatalogs[language]=[:]}
+  }
+  var result=arbiterCatalogs[language]?[source] ?? source
+  for (i,value) in values.enumerated(){result=result.replacingOccurrences(of:"{\(i)}",with:value)}
+  return result
+}

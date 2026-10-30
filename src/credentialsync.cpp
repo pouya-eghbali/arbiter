@@ -3,6 +3,7 @@
 #include "passkeyvault.h"
 #include "passkeycrypto.h"
 #include "qrcodegen.hpp"
+#include "settings.h"
 #include <QBuffer>
 #include <QCryptographicHash>
 #include <QDir>
@@ -30,15 +31,18 @@ bool equalToken(const QByteArray &a,const QByteArray &b) { return a.size()==32 &
 QString uuid() { return QUuid::createUuid().toString(QUuid::WithoutBraces); }
 }
 CredentialSync::CredentialSync(PasswordManager *passwords,PasskeyVault *passkeys,QObject *parent)
-    :CredentialSync(passwords,passkeys,QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+QStringLiteral("/sync"),nullptr,{},parent) {}
+    :CredentialSync(passwords,passkeys,QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+QStringLiteral("/sync"),nullptr,{},parent) {
+    m_persistSettings=true;setKeepUnlocked(Settings().value("Sync/keepUnlocked",false).toBool());
+}
 CredentialSync::CredentialSync(PasswordManager *passwords,PasskeyVault *passkeys,const QString &directory,
                                SecretStore *store,const QString &loopbackAddress,QObject *parent)
     :QObject(parent),m_passwords(passwords),m_passkeys(passkeys),m_defaultStore(this,QStringLiteral("Arbiter Sync")),
      m_store(store ? store : &m_defaultStore),m_loopbackAddress(loopbackAddress),m_server(this),m_directory(directory) {
     m_pairExpiry.setSingleShot(true); m_pairExpiry.setInterval(120000);
     connect(&m_pairExpiry,&QTimer::timeout,this,&CredentialSync::cancelPairing);
+    connect(passkeys,&PasskeyVault::syncLocked,this,&CredentialSync::lock);
     connect(passkeys,&PasskeyVault::changed,this,[this] {
-        if(m_key.present() && !m_passkeysReady() && !m_busy) lock();
+        if(m_key.present() && !m_passkeysReady()) lock();
         emit changed();
     });
 }
@@ -47,6 +51,12 @@ QVariantList CredentialSync::devices() const {
     QVariantList out; const auto peers=m_document.value("peers").toObject();
     for(auto i=peers.begin();i!=peers.end();++i) out.append(QVariantMap{{"id",i.key()},{"name",i.value().toObject().value("name").toString()}});
     return out;
+}
+void CredentialSync::setKeepUnlocked(bool enabled) {
+    if(m_keepUnlocked==enabled) {m_passkeys->setSyncStayUnlocked(enabled);return;}
+    m_keepUnlocked=enabled;
+    if(m_persistSettings) Settings().setValue("Sync/keepUnlocked",enabled);
+    m_passkeys->setSyncStayUnlocked(enabled);emit changed();
 }
 void CredentialSync::finish(const QString &error) { m_busy=false; m_error=error; emit changed(); }
 void CredentialSync::unlock(const QString &phrase,bool biometric) {
@@ -67,8 +77,10 @@ void CredentialSync::unlock(const QString &phrase,bool biometric) {
     }));
 }
 void CredentialSync::lock() {
+    if(m_locking) return;
+    m_locking=true;
     ++m_epoch; m_busy=false; cancelPairing(); m_key.clear(); m_server.stop();
-    m_state={}; m_document={}; m_current={}; m_address.clear(); m_passkeys->lockSync(); emit changed();
+    m_state={}; m_document={}; m_current={}; m_address.clear(); m_passkeys->lockSync(); m_locking=false; emit changed();
 }
 void CredentialSync::loadIdentity(Done callback) {
     if(!QDir().mkpath(m_directory)) { callback(tr("Could not create the encrypted sync directory.")); return; }

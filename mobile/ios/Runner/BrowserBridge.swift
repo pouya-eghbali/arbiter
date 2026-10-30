@@ -4,6 +4,10 @@ import WebKit
 import AuthenticationServices
 
 final class MobileBrowserBridge: NSObject, FlutterPlatformViewFactory {
+  let transactionOwner=UUID().uuidString
+  var savePasswords=true
+  var suggestPasswords=true
+  let adblock=AdBlockLists()
   let channel: FlutterMethodChannel
   private var pages: [String: BrowserPage] = [:]
   private var privateStores: [String: WKWebsiteDataStore] = [:]
@@ -42,7 +46,7 @@ final class MobileBrowserBridge: NSObject, FlutterPlatformViewFactory {
       configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
       page = BrowserPage(id: id, configuration: configuration, owner: self, isPrivate: isPrivate)
       pages[id] = page
-      if let url = data["url"] as? String { page.load(url) }
+      if let url=data["url"] as? String {page.load(url)}
     }
     return HostedBrowserPage(frame: frame, page: page)
   }
@@ -62,6 +66,34 @@ final class MobileBrowserBridge: NSObject, FlutterPlatformViewFactory {
     let data = call.arguments as? [String: Any] ?? [:]
     let page = pages[data["id"] as? String ?? ""]
     switch call.method {
+    #if DEBUG
+    case "backgroundSyncSmoke":BackgroundSync.shared.smoke(result)
+    #endif
+    case "acquireVaultLock":VaultTransactions.shared.acquire(transactionOwner,result:result)
+    case "releaseVaultLock":VaultTransactions.shared.release(transactionOwner,token:data["token"] as? String ?? "");result(nil)
+    case "configureCredentialPreferences":
+      savePasswords=data["savePasswords"] as? Bool ?? true;suggestPasswords=data["suggestPasswords"] as? Bool ?? true
+      for page in pages.values {
+        page.installForms()
+        page.web.callAsyncJavaScript("globalThis.__arbiterUpdatePreferences?.(prefs)",arguments:["prefs":["savePasswords":savePasswords && !page.isPrivate,"suggestPasswords":suggestPasswords]],in:nil,in:.defaultClient,completionHandler:nil)
+      }
+      result(nil)
+    case "configureLanguage":
+      UserDefaults(suiteName:AppleCredentialVault.group)?.set(data["language"] as? String ?? "system",forKey:"interface-language");result(nil)
+    case "configureBackgroundSync":BackgroundSync.shared.configure(data["enabled"] as? Bool ?? false);result(nil)
+    case "adblockStatus":result(adblock.working)
+    case "configureAdblock":
+      adblock.enabled=data["enabled"] as? Bool ?? true
+      adblock.disabledHosts=Set(data["disabledHosts"] as? [String] ?? [])
+      for page in pages.values {adblock.apply(page.web.configuration.userContentController,url:page.web.url)}
+      result(nil)
+    case "canSleep":
+      guard let page,page.web.window==nil else {result(false);return}
+      page.web.requestMediaPlaybackState { state in result(state != .playing) }
+    case "sleep":
+      guard let page,page.web.window==nil else {result(false);return}
+      page.web.stopLoading();page.web.removeFromSuperview();pages.removeValue(forKey:page.id)
+      result(true)
     case "vaultConfiguration":
       do { result(["directory": try AppleCredentialVault.directory().path, "group": AppleCredentialVault.accessGroup ?? ""]) }
       catch { result(FlutterError(code: "vault_unavailable", message: "Shared credential storage is unavailable.", details: nil)) }
@@ -74,7 +106,7 @@ final class MobileBrowserBridge: NSObject, FlutterPlatformViewFactory {
     case "requestDefaultBrowser":
       if let url=URL(string:UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
       result(nil)
-    case "ready": result(nil)
+    case "ready": let url=PendingNavigation.url;PendingNavigation.url=nil;result(url)
     case "privateVisible": privateVisible = data["value"] as? Bool ?? false; result(nil)
     case "secureScreen": secureScreen = data["value"] as? Bool ?? false; result(nil)
     case "close":
@@ -102,17 +134,16 @@ final class MobileBrowserBridge: NSObject, FlutterPlatformViewFactory {
       guard let page, let origin = data["origin"] as? String,
         let current = page.web.url, MobileBrowserBridge.webURL(current.absoluteString) != nil else { result(false); return }
       page.web.callAsyncJavaScript("""
-        if (location.origin !== expectedOrigin) return false;
-        const field = [...document.querySelectorAll('input[type=password]')].find(e => e.getClientRects().length && !e.disabled);
-        if (!field) return false;
-        const form = field.form || document;
-        const user = [...form.querySelectorAll('input')].find(e => ['text','email'].includes(e.type) && e.getClientRects().length && !e.disabled);
-        function set(e,v) { if (!e) return; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,v); e.dispatchEvent(new Event('input',{bubbles:true})); e.dispatchEvent(new Event('change',{bubbles:true})); }
-        set(user,username); set(field,password); return true;
-        """, arguments: ["expectedOrigin": origin, "username": data["username"] as? String ?? "", "password": data["password"] as? String ?? ""],
+        return globalThis.__arbiterFill ? globalThis.__arbiterFill({origin:expectedOrigin,username,password,generate}) : false;
+        """, arguments: ["expectedOrigin": origin, "username": data["username"] as? String ?? "", "password": data["password"] as? String ?? "", "generate": data["generate"] as? Bool ?? false],
         in: nil, in: .defaultClient) { outcome in
           switch outcome { case .success(let value): result(value); case .failure(_): result(false) }
         }
+    case "hasPasswordField":
+      guard let page else {result(false);return}
+      page.web.callAsyncJavaScript("return globalThis.__arbiterHasPassword?.() ?? false",arguments:[:],in:nil,in:.defaultClient) { outcome in
+        if case .success(let value)=outcome {result(value)} else {result(false)}
+      }
     case "find":
       let config = WKFindConfiguration(); config.backwards = data["backwards"] as? Bool ?? false; config.wraps = true
       page?.web.find(data["query"] as? String ?? "", configuration: config) { _ in result(nil) }
@@ -152,16 +183,33 @@ private final class HostedBrowserPage: NSObject, FlutterPlatformView {
   func view() -> UIView { container }
 }
 
+private final class FormHandler:NSObject,WKScriptMessageHandler {
+  weak var page:BrowserPage?
+  func userContentController(_ controller:WKUserContentController,didReceive message:WKScriptMessage) {
+    guard let page,message.frameInfo.isMainFrame,let data=message.body as? [String:Any],let type=data["type"] as? String,
+      ["credentialFocus","loginSubmitted","loginSucceeded","activityState"].contains(type),let url=page.web.url,
+      message.frameInfo.securityOrigin.host==url.host,message.frameInfo.securityOrigin.protocol==url.scheme else {return}
+    let frame=message.frameInfo.securityOrigin
+    let defaultPort=url.scheme=="https" ? 443 : 80
+    guard (frame.port==0 ? defaultPort:frame.port)==(url.port ?? defaultPort) else {return}
+    if type=="loginSubmitted" && (!page.owner.savePasswords || page.isPrivate) {return}
+    page.emit(type,data.filter{$0.key != "type" && $0.key != "id"})
+  }
+}
 final class BrowserPage: NSObject, WKNavigationDelegate, WKUIDelegate {
   let id: String
   let web: WKWebView
   let isPrivate: Bool
   unowned let owner: MobileBrowserBridge
   private var observations: [NSKeyValueObservation] = []
+  private var loadGeneration=0
   init(id: String, configuration: WKWebViewConfiguration, owner: MobileBrowserBridge, isPrivate: Bool) {
     self.id = id; self.owner = owner; self.isPrivate = isPrivate
     web = WKWebView(frame: .zero, configuration: configuration)
     super.init()
+    let handler=FormHandler();handler.page=self
+    configuration.userContentController.add(handler,contentWorld:.defaultClient,name:"arbiterForms")
+    installForms()
     web.navigationDelegate = self; web.uiDelegate = self
     web.allowsBackForwardNavigationGestures = true
     web.isInspectable = false
@@ -179,12 +227,26 @@ final class BrowserPage: NSObject, WKNavigationDelegate, WKUIDelegate {
       web.observe(\.canGoForward, options: [.new]) { [weak self] _, _ in self?.location() },
     ]
   }
+  func installForms() {
+    let controller=web.configuration.userContentController
+    controller.removeAllUserScripts()
+    if let path=Bundle.main.path(forResource:"BrowserForms",ofType:"js"),let script=try? String(contentsOfFile:path,encoding:.utf8) {
+      let prefs="globalThis.__arbiterPreferences={savePasswords:\(owner.savePasswords && !isPrivate),suggestPasswords:\(owner.suggestPasswords)};\n"
+      controller.addUserScript(WKUserScript(source:prefs+script,injectionTime:.atDocumentStart,forMainFrameOnly:true,in:.defaultClient))
+    }
+  }
   @objc func activity() { emit("activity") }
   func emit(_ type: String, _ data: [String: Any] = [:]) { owner.event(id, type, data) }
   func location() { emit("location", ["url": web.url?.absoluteString ?? "", "back": web.canGoBack, "forward": web.canGoForward]) }
   func load(_ text: String) {
     guard let url = MobileBrowserBridge.webURL(text) else { return }
-    web.load(URLRequest(url: url))
+    loadGeneration+=1;let generation=loadGeneration
+    owner.adblock.prepare { [weak self] rule in
+      guard let self,self.loadGeneration==generation else {return}
+      self.owner.event("","adblockReady",["working":rule != nil])
+      self.owner.adblock.apply(self.web.configuration.userContentController,url:url)
+      self.web.load(URLRequest(url:url))
+    }
   }
   func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { location(); emit("finish", ["success": true]) }
   func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { failed(error) }
@@ -198,6 +260,7 @@ final class BrowserPage: NSObject, WKNavigationDelegate, WKUIDelegate {
   }
   func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
     guard let url = action.request.url else { decisionHandler(.cancel); return }
+    if action.targetFrame?.isMainFrame == true {owner.adblock.apply(web.configuration.userContentController,url:url)}
     if action.shouldPerformDownload { decisionHandler(.download); return }
     if MobileBrowserBridge.webURL(url.absoluteString) != nil || url.absoluteString == "about:blank" {
       if action.targetFrame == nil {

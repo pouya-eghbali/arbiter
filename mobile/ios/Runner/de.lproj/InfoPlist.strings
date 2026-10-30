@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "Scanne den Kopplungscode von Arbiter auf deinem Computer oder erlaube einer Website den Kamerazugriff, wenn du möchtest.";
+"NSFaceIDUsageDescription" = "Deine privaten Tabs und gespeicherten Zugangsdaten entsperren.";
+"NSLocalNetworkUsageDescription" = "Verbinde dich direkt mit Arbiter auf deinem Computer, um verschlüsselte Zugangsdaten im selben WLAN zu synchronisieren.";
+"NSLocationWhenInUseUsageDescription" = "Teile deinen Standort nur mit einer Website, wenn du es erlaubst.";
+"NSMicrophoneUsageDescription" = "Erlaube Websites den Mikrofonzugriff, wenn du es möchtest.";

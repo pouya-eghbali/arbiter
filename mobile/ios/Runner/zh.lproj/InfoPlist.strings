@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "扫描 Arbiter 桌面版配对码，或在你选择允许时让网站使用摄像头。";
+"NSFaceIDUsageDescription" = "解锁无痕标签页和已保存凭据。";
+"NSLocalNetworkUsageDescription" = "直接连接同一 Wi-Fi 下的 Arbiter 桌面版，同步加密凭据。";
+"NSLocationWhenInUseUsageDescription" = "仅在你允许时向网站分享位置。";
+"NSMicrophoneUsageDescription" = "仅在你选择允许时让网站使用麦克风。";

@@ -5,6 +5,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'browser_model.dart';
 import 'browser_shell.dart';
+import 'onboarding.dart';
+import 'background_sync.dart';
+import 'l10n.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +17,7 @@ Future<void> main() async {
       'Arbiter': 'Arbiter.txt',
       'Lucide': 'Lucide.txt',
       'GeckoView': 'GeckoView.txt',
+      'Ad blocking': 'AdBlock.txt',
     }.entries) {
       yield LicenseEntryWithLineBreaks([
         entry.key,
@@ -80,26 +84,44 @@ class ArbiterApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: model,
-    builder: (context, _) => MaterialApp(
-      title: 'Arbiter',
-      debugShowCheckedModeBanner: false,
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      supportedLocales: const [
-        Locale('en'),
-        Locale('de'),
-        Locale('fr'),
-        Locale('it'),
-        Locale('es'),
-        Locale('pt'),
-        Locale('ja'),
-        Locale('ko'),
-        Locale('zh'),
-        Locale('ar'),
-      ],
-      theme: theme(Brightness.light),
-      darkTheme: theme(Brightness.dark),
-      themeMode: model.themeMode,
-      home: BrowserShell(model: model),
-    ),
+    builder: (context, _) {
+      MobileStrings.language = model.language;
+      return MaterialApp(
+        title: 'Arbiter',
+        debugShowCheckedModeBanner: false,
+        localizationsDelegates: const [
+          MobileStringsDelegate(),
+          ...GlobalMaterialLocalizations.delegates,
+        ],
+        locale: model.language == "system" ? null : Locale(model.language),
+        supportedLocales: MobileStrings.codes.map(Locale.new).toList(),
+        theme: theme(Brightness.light),
+        darkTheme: theme(Brightness.dark),
+        themeMode: model.themeMode,
+        home: model.onboardingDone
+            ? BrowserShell(model: model)
+            : Onboarding(model: model),
+      );
+    },
+  );
+}
+
+@pragma('vm:entry-point')
+Future<void> backgroundSyncMain() async {
+  await runBackgroundSync();
+}
+
+@pragma('vm:entry-point')
+Future<void> backgroundSyncSmokeMain() async {
+  await runBackgroundSync(
+    openVault: () async {
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        const channel = MethodChannel('com.arbiter.mobile/browser');
+        await channel.invokeMethod<Object?>('vaultConfiguration');
+        final token = await channel.invokeMethod<String>('acquireVaultLock');
+        await channel.invokeMethod<void>('releaseVaultLock', {'token': token});
+      }
+      return null;
+    },
   );
 }

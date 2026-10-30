@@ -24,4 +24,26 @@ final class RunnerTests: XCTestCase {
       nonce:AES.GCM.Nonce(data:Data(repeating:0,count:12)))
     XCTAssertEqual(sealed.combined,bytes("000000000000000000000000cea7403d4d606b6e074ec5d3baf39d18d0d1c8a799996bf0265b98b5d48ab919"))
   }
+  func testForegroundAndBackgroundVaultTransactionsAreSerialized() {
+    let gate=VaultTransactions();var foreground:String?;var background:String?;var closed=false
+    gate.acquire("foreground"){foreground=$0 as? String}
+    gate.acquire("background"){background=$0 as? String}
+    XCTAssertNotNil(foreground);XCTAssertNil(background)
+    gate.release("foreground",token:foreground!)
+    XCTAssertNotNil(background)
+    gate.closeWhenIdle("background"){closed=true}
+    XCTAssertFalse(closed)
+    gate.release("background",token:background!)
+    XCTAssertTrue(closed)
+  }
+  func testCancellingAQueuedVaultTransactionDoesNotBlockOtherClients() {
+    let gate=VaultTransactions();var first:String?;var third:String?;var cancellation:Any?
+    gate.acquire("first"){first=$0 as? String}
+    gate.acquire("cancelled"){cancellation=$0}
+    gate.acquire("third"){third=$0 as? String}
+    gate.closeWhenIdle("cancelled"){}
+    XCTAssertNotNil(cancellation);XCTAssertNil(third)
+    gate.release("first",token:first!)
+    XCTAssertNotNil(third);gate.release("third",token:third!)
+  }
 }

@@ -42,10 +42,12 @@ public:
     void exportForSync(SyncResult callback);
     void upsertFromSync(const QJsonObject &data,SyncWrite callback);
     void removeFromSync(const QByteArray &credentialId,SyncWrite callback);
-    bool syncReady() const { return m_syncKey.present() && m_syncExpiry.isActive(); }
+    bool syncReady() const { return m_syncKey.present() && (m_syncStayUnlocked || m_syncExpiry.isActive()); }
+    void setSyncStayUnlocked(bool enabled);
     void lockSync();
 signals:
     void changed();
+    void syncLocked();
 private:
     bool load();
     bool save();
@@ -65,6 +67,7 @@ private:
     qint64 m_retryAfter = 0;
     QPointer<BiometricAuth> m_biometrics;
     quint64 m_syncEpoch=0;
+    bool m_syncStayUnlocked=false;
     LockedKey m_syncKey;
     QTimer m_syncExpiry;
     LockedKey m_cachedKey;

@@ -26,7 +26,7 @@ void main() {
   testWidgets('start page exposes address, tabs, and compact actions', (
     tester,
   ) async {
-    final model = BrowserModel(MemoryStorage());
+    final model = BrowserModel(MemoryStorage())..onboardingDone = true;
     await tester.pumpWidget(ArbiterApp(model: model));
     await tester.pumpAndSettle();
     expect(find.text('Arbiter'), findsOneWidget);

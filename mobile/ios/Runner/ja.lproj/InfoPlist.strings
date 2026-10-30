@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "デスクトップ版Arbiterのペアリングコードを読み取るか、許可したウェブサイトでカメラを使用します。";
+"NSFaceIDUsageDescription" = "プライベートタブと保存済みの認証情報を解除します。";
+"NSLocalNetworkUsageDescription" = "同じWi-Fiのデスクトップ版Arbiterに直接接続し、暗号化した認証情報を同期します。";
+"NSLocationWhenInUseUsageDescription" = "許可した場合にのみウェブサイトと位置情報を共有します。";
+"NSMicrophoneUsageDescription" = "許可したときにウェブサイトがマイクを使用します。";

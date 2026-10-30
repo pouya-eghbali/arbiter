@@ -34,6 +34,9 @@ flutter:
     - assets/brand.png
     - assets/icons/
     - assets/licenses/
+    - assets/adblock/
+    - assets/browser/
+    - assets/i18n/
 flutter_launcher_icons:
   android: true
   ios: true

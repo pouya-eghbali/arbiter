@@ -58,6 +58,17 @@ ColumnLayout {
             }
         }
     }
+    UiCheckBox {
+        visible: !!root.manager
+        text: qsTr("Keep sync unlocked until this computer locks")
+        checked: root.manager ? root.manager.keepUnlocked : false
+        onToggled: if(root.manager) root.manager.keepUnlocked=checked
+    }
+    Basic.Label {
+        visible: !!root.manager
+        Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.muted
+        text: qsTr("Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.")
+    }
     RowLayout {
         visible: !!root.manager && root.manager.busy
         spacing: 12
@@ -81,7 +92,9 @@ ColumnLayout {
         }
         Basic.Label {
             Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.muted
-            text: qsTr("This session locks after 10 minutes or when your computer locks. Keep Arbiter open on both devices while syncing.")
+            text: root.manager && root.manager.keepUnlocked
+                ? qsTr("This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.")
+                : qsTr("This session locks after 10 minutes or when your computer locks. Keep Arbiter open on both devices while syncing.")
         }
         UiButton {
             text: qsTr("Pair a phone")

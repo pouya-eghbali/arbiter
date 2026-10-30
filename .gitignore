@@ -13,3 +13,6 @@
 
 __pycache__/
 *.pyc
+
+/tools/mobile/adblock/node_modules/
+/tools/mobile/safari-rules/target/

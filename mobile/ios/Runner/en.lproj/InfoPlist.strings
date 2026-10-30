@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "Scan your Arbiter desktop pairing code, or allow a website to use your camera when you choose.";
+"NSFaceIDUsageDescription" = "Unlock your private tabs and saved credentials.";
+"NSLocalNetworkUsageDescription" = "Connect directly to your Arbiter desktop to sync encrypted credentials on the same Wi-Fi.";
+"NSLocationWhenInUseUsageDescription" = "Share your location with a website only when you allow it.";
+"NSMicrophoneUsageDescription" = "Allow websites to use your microphone when you choose.";

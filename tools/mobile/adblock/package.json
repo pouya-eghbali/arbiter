@@ -1,0 +1,1 @@
+{"name":"arbiter-mobile-adblock-build","private":true,"type":"module","scripts":{"build":"node build.mjs"},"dependencies":{"@ghostery/adblocker-webextension":"2.20.3","esbuild":"0.28.2"}}

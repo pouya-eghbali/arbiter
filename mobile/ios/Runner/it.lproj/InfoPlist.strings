@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "Scansiona il codice di associazione di Arbiter sul computer o consenti a un sito di usare la fotocamera quando lo scegli.";
+"NSFaceIDUsageDescription" = "Sblocca le schede private e le credenziali salvate.";
+"NSLocalNetworkUsageDescription" = "Collegati direttamente ad Arbiter sul computer per sincronizzare le credenziali cifrate sulla stessa rete Wi-Fi.";
+"NSLocationWhenInUseUsageDescription" = "Condividi la posizione con un sito solo quando lo consenti.";
+"NSMicrophoneUsageDescription" = "Consenti ai siti di usare il microfono quando lo scegli.";

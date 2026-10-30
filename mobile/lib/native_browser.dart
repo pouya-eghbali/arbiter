@@ -10,8 +10,10 @@ import 'browser_model.dart';
 
 class BrowserEngine {
   BrowserEngine() {
+    _receiver = this;
     _channel.setMethodCallHandler(_receive);
   }
+  static BrowserEngine? _receiver;
   static const _channel = MethodChannel('com.arbiter.mobile/browser');
   bool userVerificationActive = false;
   void Function(String id, Map<String, dynamic> event)? onEvent;
@@ -44,7 +46,10 @@ class BrowserEngine {
   }
 
   void dispose() {
-    _channel.setMethodCallHandler(null);
+    if (identical(_receiver, this)) {
+      _receiver = null;
+      _channel.setMethodCallHandler(null);
+    }
   }
 }
 

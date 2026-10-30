@@ -5437,4 +5437,19 @@
         <translation>ワークスペースを保存できませんでした。</translation>
     </message>
 </context>
+  <context>
+    <name>SyncSettings</name>
+    <message>
+      <source>Keep sync unlocked until this computer locks</source>
+      <translation>このコンピューターがロックされるまで同期を解除したままにする</translation>
+    </message>
+    <message>
+      <source>Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.</source>
+      <translation>電話のバックグラウンド同期用の任意設定です。このコンピューターがロック解除されている間、ペアリングした端末が同期できます。コンピューターをロックするかArbiterを終了すると、同期は必ずロックされます。</translation>
+    </message>
+    <message>
+      <source>This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.</source>
+      <translation>このコンピューターまたは同期をロックするか、Arbiterを終了するまで、このセッションのロック解除を維持します。</translation>
+    </message>
+  </context>
 </TS>

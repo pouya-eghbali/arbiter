@@ -43,15 +43,15 @@ class CredentialProviderActivity : Activity() {
             require(clientHash?.size==32);rp=PlatformCredentialVault.relyingParty(origin,options!!,create)
         } catch (_:Exception) { setResult(RESULT_CANCELED);finish();return }
         val layout=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;gravity=android.view.Gravity.CENTER_VERTICAL;setPadding(64,48,64,48);setBackgroundColor(Color.rgb(16,23,32)) }
-        layout.addView(TextView(this).apply {text=if(create) "Save an Arbiter passkey" else "Sign in with Arbiter";textSize=25f;setTextColor(Color.WHITE)})
-        layout.addView(TextView(this).apply {text="Continue to $rp";textSize=18f;setTextColor(Color.LTGRAY);setPadding(0,24,0,32)})
-        layout.addView(Button(this).apply {text="Unlock";setOnClickListener { authenticate() }})
-        layout.addView(Button(this).apply {text="Cancel";setOnClickListener { setResult(RESULT_CANCELED);finish() }})
+        layout.addView(TextView(this).apply {text=MobileStrings.text(this@CredentialProviderActivity,if(create) "Save an Arbiter passkey" else "Sign in with Arbiter");textSize=25f;setTextColor(Color.WHITE)})
+        layout.addView(TextView(this).apply {text=MobileStrings.text(this@CredentialProviderActivity,"Continue to {0}",rp);textSize=18f;setTextColor(Color.LTGRAY);setPadding(0,24,0,32)})
+        layout.addView(Button(this).apply {text=MobileStrings.text(this@CredentialProviderActivity,"Unlock");setOnClickListener { authenticate() }})
+        layout.addView(Button(this).apply {text=MobileStrings.text(this@CredentialProviderActivity,"Cancel");setOnClickListener { setResult(RESULT_CANCELED);finish() }})
         setContentView(layout); authenticate()
     }
     private fun authenticate() {
         if(verifying || isFinishing) return;verifying=true
-        val prompt=BiometricPrompt.Builder(this).setTitle("Unlock Arbiter").setSubtitle(rp)
+        val prompt=BiometricPrompt.Builder(this).setTitle(MobileStrings.text(this,"Unlock Arbiter")).setSubtitle(rp)
             .setAllowedAuthenticators(Authenticators.BIOMETRIC_STRONG or Authenticators.DEVICE_CREDENTIAL).build()
         prompt.authenticate(cancellation,mainExecutor,object:BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationError(code: Int,message: CharSequence) { verifying=false;setResult(RESULT_CANCELED);finish() }

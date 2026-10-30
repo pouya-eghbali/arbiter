@@ -16,6 +16,7 @@ class CredentialSync final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool unlocked READ unlocked NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
+    Q_PROPERTY(bool keepUnlocked READ keepUnlocked WRITE setKeepUnlocked NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(QString pairingImage READ pairingImage NOTIFY changed)
     Q_PROPERTY(QString pairingCode READ pairingCode NOTIFY changed)
@@ -29,6 +30,8 @@ public:
     ~CredentialSync() override { lock(); }
     bool unlocked() const { return m_key.present() && m_passkeysReady(); }
     bool busy() const { return m_busy; }
+    bool keepUnlocked() const { return m_keepUnlocked; }
+    void setKeepUnlocked(bool enabled);
     QString error() const { return m_error; }
     QString pairingImage() const { return m_qr; }
     QString pairingCode() const { return m_code; }
@@ -72,6 +75,6 @@ private:
     QTimer m_pairExpiry;
     QJsonObject m_document,m_current;
     ArbiterSync::State m_state;
-    bool m_busy=false;
+    bool m_busy=false,m_keepUnlocked=false,m_persistSettings=false,m_locking=false;
     quint64 m_epoch=0;
 };

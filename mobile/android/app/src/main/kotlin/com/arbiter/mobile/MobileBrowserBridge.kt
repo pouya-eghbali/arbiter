@@ -32,7 +32,10 @@ class MobileBrowserBridge(val activity: MainActivity, messenger: BinaryMessenger
     private val pages = mutableMapOf<String, BrowserPage>()
     private val worker = Executors.newCachedThreadPool()
     private val ui = Handler(Looper.getMainLooper())
+    var savePasswords=true
+    var suggestPasswords=true
     val credentials = CredentialBridge(this)
+    val adblock = AdBlockBridge(this)
     fun pagesSnapshot() = pages.values.toList()
     private var privateVisible = false
     private var secureScreen = false
@@ -77,6 +80,27 @@ class MobileBrowserBridge(val activity: MainActivity, messenger: BinaryMessenger
     private fun command(call: MethodCall, result: MethodChannel.Result) {
         val page = pages[call.argument<String>("id")]
         when (call.method) {
+            "configureCredentialPreferences" -> {
+                savePasswords=call.argument<Boolean>("savePasswords")!=false
+                suggestPasswords=call.argument<Boolean>("suggestPasswords")!=false
+                credentials.updatePreferences();result.success(null)
+            }
+            "configureLanguage" -> {MobileStrings.language(activity,call.argument<String>("language") ?: "system");result.success(null)}
+            "configureBackgroundSync" -> {
+                try {BackgroundSync.configure(activity,call.argument<Boolean>("enabled")==true);result.success(null)}
+                catch (_:Exception) {result.error("background_unavailable","Background sync could not be scheduled.",null)}
+            }
+            "adblockStatus" -> result.success(adblock.working)
+            "configureAdblock" -> {
+                adblock.enabled=call.argument<Boolean>("enabled")!=false
+                adblock.disabledHosts=call.argument<List<String>>("disabledHosts") ?: emptyList()
+                adblock.configure(result)
+            }
+            "canSleep" -> result.success(page!=null && page.view==null && !page.playingAudio)
+            "sleep" -> {
+                if(page==null || page.view!=null || page.playingAudio) {result.success(false);return}
+                credentials.close(page.id);page.session.close();pages.remove(page.id);result.success(true)
+            }
             "credentialIndex" -> {
                 val entries=call.argument<List<Map<String,Any?>>>("entries") ?: emptyList()
                 PlatformCredentialVault.writeIndex(activity,entries);result.success(null)
@@ -116,6 +140,7 @@ class MobileBrowserBridge(val activity: MainActivity, messenger: BinaryMessenger
                 if (query.isEmpty()) page?.session?.finder?.clear() else page?.session?.finder?.find(query, 0)
                 result.success(null)
             }
+            "hasPasswordField" -> credentials.fill(page,mapOf("origin" to origin(page?.committedUrl ?: ""),"inspect" to true),result)
             "fill" -> credentials.fill(page, call.arguments as? Map<*, *> ?: emptyMap<Any, Any>(), result)
             "snapshot" -> {
                 val view = page?.view
@@ -212,6 +237,7 @@ class BrowserPage(val owner: MobileBrowserBridge, val id: String, val isPrivate:
     val session = GeckoSession(GeckoSessionSettings.Builder().usePrivateMode(isPrivate).contextId(context).useTrackingProtection(true).build())
     var view: GeckoView? = null
     var media: MediaSession? = null
+    var playingAudio=false
     private var url = ""
     val committedUrl: String get() = url
     private var pendingUrl: String? = null
@@ -250,6 +276,9 @@ class BrowserPage(val owner: MobileBrowserBridge, val id: String, val isPrivate:
         }
         session.mediaSessionDelegate = object : MediaSession.Delegate {
             override fun onActivated(session: GeckoSession, mediaSession: MediaSession) { media = mediaSession }
+            override fun onPlay(session:GeckoSession, mediaSession:MediaSession) {playingAudio=true}
+            override fun onPause(session:GeckoSession, mediaSession:MediaSession) {playingAudio=false}
+            override fun onStop(session:GeckoSession, mediaSession:MediaSession) {playingAudio=false}
         }
         session.permissionDelegate = object : GeckoSession.PermissionDelegate {
             override fun onAndroidPermissionsRequest(session: GeckoSession, permissions: Array<out String>?, callback: GeckoSession.PermissionDelegate.Callback) {
@@ -294,6 +323,6 @@ class BrowserPage(val owner: MobileBrowserBridge, val id: String, val isPrivate:
     fun startPending() { pendingUrl?.let { pendingUrl = null; load(it) } }
     fun load(uri: String) {
         if (!MobileBrowserBridge.webURL(uri)) return
-        if (owner.credentials.ready) session.loadUri(uri) else pendingUrl = uri
+        if (owner.credentials.ready && owner.adblock.ready) session.loadUri(uri) else pendingUrl = uri
     }
 }

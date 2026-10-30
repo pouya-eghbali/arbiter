@@ -106,6 +106,8 @@ class BrowserTab {
   double progress = 0;
   bool loading = false, canBack = false, canForward = false;
   String? error;
+  DateTime lastUsed = DateTime.now();
+  bool sleeping = false, playingAudio = false, editedForm = false;
   Uint8List? thumbnail;
   Map<String, Object> toJson() => {
     'id': id,
@@ -180,6 +182,40 @@ class BrowserModel extends ChangeNotifier {
   int lightAccent = 0xff7947c7, darkAccent = 0xffad79ff;
   int lightBackground = 0xfff4f3f7, darkBackground = 0xff101720;
   int privateLockSeconds = 60;
+  int tabSleepSeconds = 600, passwordUnlockSeconds = 300;
+  bool adblockAvailable = true;
+  bool adblockEnabled = true,
+      savePasswords = true,
+      suggestPasswords = true,
+      backgroundSync = true;
+  bool onboardingDone = false;
+  String language = 'system';
+  final Set<String> adblockDisabledHosts = {};
+  bool blocksAds(String url) =>
+      adblockEnabled &&
+      adblockAvailable &&
+      !adblockDisabledHosts.contains(Uri.tryParse(url)?.host.toLowerCase());
+  void toggleSiteBlocking(String url) {
+    final host = Uri.tryParse(url)?.host.toLowerCase();
+    if (host == null || host.isEmpty) return;
+    if (!adblockDisabledHosts.add(host)) adblockDisabledHosts.remove(host);
+    changed();
+  }
+
+  List<BrowserTab> sleepCandidates(DateTime now) => tabSleepSeconds <= 0
+      ? []
+      : tabs
+            .where(
+              (tab) =>
+                  tab != activeTab &&
+                  !tab.sleeping &&
+                  !tab.loading &&
+                  !tab.playingAudio &&
+                  !tab.editedForm &&
+                  tab.url.isNotEmpty &&
+                  now.difference(tab.lastUsed).inSeconds >= tabSleepSeconds,
+            )
+            .toList();
   String? storageError;
   Timer? _saveTimer;
   Future<void> _writes = Future.value();
@@ -250,7 +286,44 @@ class BrowserModel extends ChangeNotifier {
           settings['lightBackground'] as int? ?? model.lightBackground;
       model.darkBackground =
           settings['darkBackground'] as int? ?? model.darkBackground;
-      model.privateLockSeconds = settings['privateLockSeconds'] as int? ?? 60;
+      model.privateLockSeconds =
+          const [0, 60, 300, 900].contains(settings['privateLockSeconds'])
+          ? settings['privateLockSeconds'] as int
+          : 60;
+      model.tabSleepSeconds = (settings['tabSleepSeconds'] as int? ?? 600)
+          .clamp(0, 86400);
+      model.passwordUnlockSeconds =
+          (settings['passwordUnlockSeconds'] as int? ?? 300).clamp(0, 3600);
+      model.adblockEnabled = settings['adblockEnabled'] != false;
+      model.savePasswords = settings['savePasswords'] != false;
+      model.suggestPasswords = settings['suggestPasswords'] != false;
+      model.backgroundSync = settings['backgroundSync'] != false;
+      model.onboardingDone = settings['onboardingDone'] == true;
+      model.language =
+          const [
+            'system',
+            'en',
+            'de',
+            'fr',
+            'it',
+            'es',
+            'pt',
+            'ja',
+            'zh',
+          ].contains(settings['language'])
+          ? settings['language'] as String
+          : 'system';
+      if (!const [0, 300, 600, 1800].contains(model.tabSleepSeconds)) {
+        model.tabSleepSeconds = 600;
+      }
+      if (!const [0, 60, 300, 900].contains(model.passwordUnlockSeconds)) {
+        model.passwordUnlockSeconds = 300;
+      }
+      model.adblockDisabledHosts.addAll(
+        (settings['adblockDisabledHosts'] as List? ?? [])
+            .whereType<String>()
+            .take(1000),
+      );
       for (final m
           in (data['history'] as List? ?? []).take(2000).whereType<Map>()) {
         if (isWebAddress(m['url'] as String? ?? '')) {
@@ -334,6 +407,9 @@ class BrowserModel extends ChangeNotifier {
   }
 
   void selectTab(BrowserTab tab) {
+    activeTab.lastUsed = DateTime.now();
+    tab.lastUsed = DateTime.now();
+    tab.sleeping = false;
     workspaceId = tab.workspaceId;
     privateMode = tab.isPrivate;
     if (privateMode) {
@@ -400,6 +476,9 @@ class BrowserModel extends ChangeNotifier {
   void navigate(String input) {
     final uri = addressUri(input, searchEngine);
     final tab = activeTab;
+    tab.lastUsed = DateTime.now();
+    tab.sleeping = false;
+    tab.editedForm = false;
     tab.url = uri.toString();
     tab.error = null;
     tab.loading = true;
@@ -411,6 +490,9 @@ class BrowserModel extends ChangeNotifier {
     final tab = tabs.where((t) => t.id == id).firstOrNull;
     if (tab == null) return;
     switch (data['type']) {
+      case 'activityState':
+        tab.playingAudio = data['audio'] == true;
+        tab.editedForm = data['dirty'] == true;
       case 'location':
         if (isWebAddress(data['url'] as String? ?? '')) {
           tab.url = data['url'] as String;
@@ -483,6 +565,15 @@ class BrowserModel extends ChangeNotifier {
       'lightBackground': lightBackground,
       'darkBackground': darkBackground,
       'privateLockSeconds': privateLockSeconds,
+      'tabSleepSeconds': tabSleepSeconds,
+      'passwordUnlockSeconds': passwordUnlockSeconds,
+      'adblockEnabled': adblockEnabled,
+      'adblockDisabledHosts': adblockDisabledHosts.toList(),
+      'savePasswords': savePasswords,
+      'suggestPasswords': suggestPasswords,
+      'backgroundSync': backgroundSync,
+      'onboardingDone': onboardingDone,
+      'language': language,
     },
   };
   void changed() {

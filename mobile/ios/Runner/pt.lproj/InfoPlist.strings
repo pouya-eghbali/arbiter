@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "Leia o código de emparelhamento do Arbiter no computador ou autorize um site a utilizar a câmara quando escolher.";
+"NSFaceIDUsageDescription" = "Desbloquear os separadores privados e as credenciais guardadas.";
+"NSLocalNetworkUsageDescription" = "Ligue-se diretamente ao Arbiter no computador para sincronizar credenciais cifradas na mesma rede Wi-Fi.";
+"NSLocationWhenInUseUsageDescription" = "Partilhe a sua localização com um site apenas quando autorizar.";
+"NSMicrophoneUsageDescription" = "Permita que os sites utilizem o microfone quando autorizar.";

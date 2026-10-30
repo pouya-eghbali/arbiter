@@ -17,18 +17,18 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
     NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo:view.safeAreaLayoutGuide.leadingAnchor,constant:28),
       stack.trailingAnchor.constraint(equalTo:view.safeAreaLayoutGuide.trailingAnchor,constant:-28),stack.centerYAnchor.constraint(equalTo:view.centerYAnchor)])
     let title=UILabel(); title.text="Arbiter"; title.font = .systemFont(ofSize:30,weight:.semibold); title.textColor = .white; stack.addArrangedSubview(title)
-    detail.text="Unlock your passwords and passkeys"; detail.numberOfLines=0; detail.textColor = .lightGray; stack.addArrangedSubview(detail)
-    let unlock=UIButton(type:.system); var style=UIButton.Configuration.filled(); style.title="Unlock"; style.cornerStyle = .capsule
+    detail.text=ArbiterText("Unlock your passwords and passkeys"); detail.numberOfLines=0; detail.textColor = .lightGray; stack.addArrangedSubview(detail)
+    let unlock=UIButton(type:.system); var style=UIButton.Configuration.filled(); style.title=ArbiterText("Unlock"); style.cornerStyle = .capsule
     unlock.configuration=style; unlock.addTarget(self,action:#selector(authenticate),for:.touchUpInside); stack.addArrangedSubview(unlock)
-    let cancel=UIButton(type:.system); cancel.setTitle("Cancel",for:.normal); cancel.addTarget(self,action:#selector(cancelRequest),for:.touchUpInside); stack.addArrangedSubview(cancel)
+    let cancel=UIButton(type:.system); cancel.setTitle(ArbiterText("Cancel"),for:.normal); cancel.addTarget(self,action:#selector(cancelRequest),for:.touchUpInside); stack.addArrangedSubview(cancel)
   }
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
     if let identity=pending?.credentialIdentity as? ASPasskeyCredentialIdentity {
-      detail.text="\(registering ? "Create a passkey for" : "Sign in to") \(identity.relyingPartyIdentifier)\n\(identity.userName)"
+      detail.text=ArbiterText(registering ? "Create a passkey for {0}" : "Sign in to {0}",identity.relyingPartyIdentifier)+"\n"+identity.userName
     } else if let identity=pending?.credentialIdentity as? ASPasswordCredentialIdentity {
-      detail.text="Fill a password for \(identity.serviceIdentifier.identifier)\n\(identity.user)"
-    } else if configuring { detail.text="Enable Arbiter passwords and passkeys on this device" }
+      detail.text=ArbiterText("Fill a password for {0}",identity.serviceIdentifier.identifier)+"\n"+identity.user
+    } else if configuring { detail.text=ArbiterText("Enable Arbiter passwords and passkeys on this device") }
   }
   override func provideCredentialWithoutUserInteraction(for credentialRequest: any ASCredentialRequest) {
     extensionContext.cancelRequest(withError:NSError(domain:ASExtensionErrorDomain,code:ASExtensionError.userInteractionRequired.rawValue))
@@ -40,7 +40,7 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
   @objc private func authenticate() {
     if verifying { return }; verifying=true
     let authentication=LAContext()
-    authentication.evaluatePolicy(.deviceOwnerAuthentication,localizedReason:"Unlock your Arbiter credential vault") { [weak self] approved,_ in
+    authentication.evaluatePolicy(.deviceOwnerAuthentication,localizedReason:ArbiterText("Unlock your Arbiter credential vault")) { [weak self] approved,_ in
       DispatchQueue.main.async {
         guard let self else { return }; self.verifying=false
         guard approved else { self.cancelRequest(); return }

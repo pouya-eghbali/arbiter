@@ -1,0 +1,8 @@
+[package]
+name = "arbiter-safari-rules"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-only"
+[dependencies]
+adblock = { version = "=0.13.3", default-features = false, features = ["embedded-domain-resolver", "full-regex-handling", "content-blocking"] }
+serde_json = "1"

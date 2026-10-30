@@ -5437,4 +5437,19 @@
         <translation>无法保存工作区。</translation>
     </message>
 </context>
+  <context>
+    <name>SyncSettings</name>
+    <message>
+      <source>Keep sync unlocked until this computer locks</source>
+      <translation>在此计算机锁定前保持同步解锁</translation>
+    </message>
+    <message>
+      <source>Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.</source>
+      <translation>供手机后台同步使用的可选设置。此计算机保持解锁时，已配对设备可以同步。锁定计算机或退出 Arbiter 始终会锁定同步。</translation>
+    </message>
+    <message>
+      <source>This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.</source>
+      <translation>此会话将保持解锁，直到你锁定此计算机、手动锁定同步或退出 Arbiter。</translation>
+    </message>
+  </context>
 </TS>

@@ -5437,4 +5437,19 @@
         <translation>No se pudieron guardar los espacios de trabajo.</translation>
     </message>
 </context>
+  <context>
+    <name>SyncSettings</name>
+    <message>
+      <source>Keep sync unlocked until this computer locks</source>
+      <translation>Mantener la sincronización desbloqueada hasta bloquear este ordenador</translation>
+    </message>
+    <message>
+      <source>Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.</source>
+      <translation>Opcional para sincronizar el teléfono en segundo plano. Los dispositivos vinculados pueden sincronizarse mientras este ordenador esté desbloqueado. Bloquear el ordenador o cerrar Arbiter siempre bloquea la sincronización.</translation>
+    </message>
+    <message>
+      <source>This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.</source>
+      <translation>Esta sesión permanece desbloqueada hasta que bloquees este ordenador o la sincronización, o cierres Arbiter.</translation>
+    </message>
+  </context>
 </TS>

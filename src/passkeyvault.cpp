@@ -345,7 +345,12 @@ void PasskeyVault::perform(bool registration, const QByteArray &bytes, const QBy
 }
 
 
-void PasskeyVault::lockSync() { ++m_syncEpoch; m_syncKey.clear(); m_syncExpiry.stop(); emit changed(); }
+void PasskeyVault::setSyncStayUnlocked(bool enabled) {
+    m_syncStayUnlocked=enabled;
+    if(enabled) m_syncExpiry.stop(); else if(m_syncKey.present()) m_syncExpiry.start();
+    emit changed();
+}
+void PasskeyVault::lockSync() { ++m_syncEpoch; m_syncKey.clear(); m_syncExpiry.stop(); emit syncLocked(); emit changed(); }
 void PasskeyVault::unlockForSync(const QString &phrase,bool biometric,SyncResult callback)
 {
     if(!configured() || !begin()) { callback(tr("Set up your passkey vault before enabling encrypted sync."),{}); return; }
@@ -357,7 +362,7 @@ void PasskeyVault::unlockForSync(const QString &phrase,bool biometric,SyncResult
         if(key.isEmpty() || !self->m_syncKey.set(key)) {
             PasskeyCrypto::wipe(key); self->finish(self->m_error.isEmpty() ? tr("Could not unlock the vault for sync.") : self->m_error); callback(self->m_error,{}); return;
         }
-        PasskeyCrypto::wipe(key); self->m_syncExpiry.start(); self->finish(); self->exportForSync(callback);
+        PasskeyCrypto::wipe(key); if(!self->m_syncStayUnlocked) self->m_syncExpiry.start(); self->finish(); self->exportForSync(callback);
     };
     if(biometric) unlockBiometric(unlocked); else unlock(phrase,unlocked);
 }

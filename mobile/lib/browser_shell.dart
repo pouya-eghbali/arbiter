@@ -1,4 +1,7 @@
+import 'l10n.dart';
+
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -12,6 +15,8 @@ import 'browser_model.dart';
 import 'native_browser.dart';
 import 'vault_screen.dart';
 import 'credential_vault.dart';
+import 'password_actions.dart';
+import 'onboarding.dart' show languageNames;
 
 const favorites = [
   ('Wikipedia', 'https://www.wikipedia.org', 'W'),
@@ -30,6 +35,12 @@ class Glyph extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SvgPicture.asset(
     'assets/icons/$name.svg',
+    matchTextDirection: const [
+      'arrow-left',
+      'arrow-right',
+      'chevron-left',
+      'chevron-right',
+    ].contains(name),
     width: size,
     height: size,
     colorFilter: ColorFilter.mode(
@@ -52,7 +63,7 @@ class IconControl extends StatelessWidget {
   final Color? color;
   @override
   Widget build(BuildContext context) => IconButton(
-    tooltip: label,
+    tooltip: tr(label),
     onPressed: onPressed,
     color: color,
     icon: Glyph(
@@ -111,6 +122,90 @@ class _BrowserShellState extends State<BrowserShell>
   Timer? _vaultSyncTimer;
   bool _syncingVault = false;
   CredentialVault? _syncVault;
+  late final PasswordActions passwords;
+  Timer? _sleepTimer;
+  String _adblockConfig = '';
+  void _applySettings() {
+    final config = jsonEncode({
+      'enabled': model.adblockEnabled,
+      'disabledHosts': model.adblockDisabledHosts.toList(),
+      'language': model.language,
+      'savePasswords': model.savePasswords,
+      'suggestPasswords': model.suggestPasswords,
+    });
+    if (config == _adblockConfig) return;
+    _adblockConfig = config;
+    unawaited(
+      engine
+          .command<void>(
+            'configureCredentialPreferences',
+            data: {
+              'savePasswords': model.savePasswords,
+              'suggestPasswords': model.suggestPasswords,
+            },
+          )
+          .catchError((Object _) {}),
+    );
+    unawaited(
+      engine
+          .command<void>(
+            'configureLanguage',
+            data: {'language': model.language},
+          )
+          .catchError((Object _) {}),
+    );
+    unawaited(
+      engine
+          .command<void>(
+            'configureAdblock',
+            data: jsonDecode(config) as Map<String, dynamic>,
+          )
+          .catchError((Object _) {}),
+    );
+  }
+
+  Future<void> _sleepIdleTabs() async {
+    if (!mounted) return;
+    for (final tab in model.sleepCandidates(DateTime.now())) {
+      if (await engine.command<bool>('canSleep', id: tab.id) != true ||
+          !mounted ||
+          !model.sleepCandidates(DateTime.now()).contains(tab)) {
+        continue;
+      }
+      await engine.capture(tab);
+      if (!mounted || model.activeTab == tab) continue;
+      if (await engine.command<bool>('sleep', id: tab.id) == true) {
+        tab.sleeping = true;
+        tab.canBack = false;
+        tab.canForward = false;
+        model.changed();
+      }
+    }
+  }
+
+  Future<void> _toggleBlocking() async {
+    if (!model.adblockEnabled) {
+      _message('Enable ad blocking in Settings first.');
+      return;
+    }
+    try {
+      model.toggleSiteBlocking(model.activeTab.url);
+      _applySettings();
+      await engine.command<void>(
+        'configureAdblock',
+        data: {
+          'enabled': model.adblockEnabled,
+          'disabledHosts': model.adblockDisabledHosts.toList(),
+        },
+      );
+      await engine.command<void>('reload', id: model.activeTab.id);
+    } catch (_) {
+      model.adblockAvailable = false;
+      model.changed();
+      _message('Ad blocking is unavailable. Restart Arbiter to try again.');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -122,6 +217,15 @@ class _BrowserShellState extends State<BrowserShell>
     engine = BrowserEngine()
       ..onEvent = _event
       ..onRequest = _request;
+    passwords = PasswordActions(model, engine, () => context, () {
+      if (mounted) setState(() {});
+    });
+    model.addListener(_applySettings);
+    _applySettings();
+    _sleepTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => unawaited(_sleepIdleTabs()),
+    );
     unawaited(_ready());
     _touch();
   }
@@ -139,13 +243,22 @@ class _BrowserShellState extends State<BrowserShell>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _vaultSyncTimer?.cancel();
+    model.removeListener(_applySettings);
+    _sleepTimer?.cancel();
+    passwords.dispose();
     _syncVault?.dispose();
     _idle?.cancel();
     engine.dispose();
     super.dispose();
   }
 
+  @override
+  void didChangeLocales(List<Locale>? locales) {
+    model.changed();
+  }
+
   void _touch() {
+    model.activeTab.lastUsed = DateTime.now();
     _idle?.cancel();
     if (model.privateLockSeconds > 0) {
       _idle = Timer(Duration(seconds: model.privateLockSeconds), _lock);
@@ -194,6 +307,9 @@ class _BrowserShellState extends State<BrowserShell>
         state == AppLifecycleState.paused) {
       _syncVault?.dispose();
       if (state == AppLifecycleState.paused || !engine.userVerificationActive) {
+        passwords.background();
+      }
+      if (state == AppLifecycleState.paused || !engine.userVerificationActive) {
         _lock();
       }
       unawaited(model.flush());
@@ -203,6 +319,21 @@ class _BrowserShellState extends State<BrowserShell>
 
   void _event(String id, Map<String, dynamic> data) {
     if (!mounted) return;
+    if (data['type'] == 'adblockReady') {
+      model.adblockAvailable = data['working'] == true;
+      model.changed();
+      return;
+    }
+    if (data['type'] == 'finish' && data['success'] == true) {
+      unawaited(
+        engine.command<bool>('adblockStatus').then((working) {
+          if (mounted && working != null) {
+            model.adblockAvailable = working;
+            model.changed();
+          }
+        }),
+      );
+    }
     if (data['type'] == 'activity') {
       _touch();
       return;
@@ -218,6 +349,12 @@ class _BrowserShellState extends State<BrowserShell>
         setState(() => overview = false);
       }
       return;
+    }
+    if (data['type'] == 'credentialFocus') passwords.focus(id, data);
+    if (data['type'] == 'loginSubmitted') passwords.submitted(id, data);
+    if (data['type'] == 'loginSucceeded' ||
+        data['type'] == 'finish' && data['success'] == true) {
+      unawaited(passwords.finished(id));
     }
     model.engineEvent(id, data);
   }
@@ -237,8 +374,11 @@ class _BrowserShellState extends State<BrowserShell>
     }
     if (data['request'] == 'permission') {
       return _confirm(
-        'Allow ${data['kind']}?',
-        '${data['origin']} wants access to ${data['kind']}.',
+        tf("Allow {0}?", [tr(data['kind'] as String)]),
+        tf("{0} wants access to {1}.", [
+          data['origin'],
+          tr(data['kind'] as String),
+        ]),
       );
     }
     if (data['request'] == 'download') {
@@ -263,12 +403,12 @@ class _BrowserShellState extends State<BrowserShell>
       await showDialog<void>(
         context: context,
         builder: (c) => AlertDialog(
-          title: const Text('Message from this page'),
+          title: const UiText('Message from this page'),
           content: Text(data['message'] as String? ?? ''),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(c),
-              child: const Text('OK'),
+              child: const UiText('OK'),
             ),
           ],
         ),
@@ -281,16 +421,16 @@ class _BrowserShellState extends State<BrowserShell>
       await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          title: Text(title),
-          content: Text(body),
+          title: UiText(title),
+          content: UiText(body),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(c, false),
-              child: const Text('Cancel'),
+              child: const UiText('Cancel'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(c, true),
-              child: const Text('Allow'),
+              child: const UiText('Allow'),
             ),
           ],
         ),
@@ -301,7 +441,7 @@ class _BrowserShellState extends State<BrowserShell>
     final value = await showDialog<String>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text(title),
+        title: UiText(title),
         content: TextField(
           controller: input,
           autofocus: true,
@@ -311,11 +451,11 @@ class _BrowserShellState extends State<BrowserShell>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c),
-            child: const Text('Cancel'),
+            child: const UiText('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, input.text.trim()),
-            child: const Text('Save'),
+            child: const UiText('Save'),
           ),
         ],
       ),
@@ -330,7 +470,7 @@ class _BrowserShellState extends State<BrowserShell>
     _authenticating = true;
     try {
       final allowed = await LocalAuthentication().authenticate(
-        localizedReason: 'Unlock private browsing',
+        localizedReason: tr('Unlock private browsing'),
         biometricOnly: false,
         persistAcrossBackgrounding: true,
       );
@@ -352,7 +492,7 @@ class _BrowserShellState extends State<BrowserShell>
 
   void _message(String message) =>
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+          .showSnackBar(SnackBar(content: UiText(message)));
   void _navigate(String value) {
     try {
       model.navigate(value);
@@ -419,7 +559,7 @@ class _BrowserShellState extends State<BrowserShell>
             context: context,
             builder: (d) => StatefulBuilder(
               builder: (d, update) => AlertDialog(
-                title: const Text('New workspace'),
+                title: const UiText('New workspace'),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -427,11 +567,11 @@ class _BrowserShellState extends State<BrowserShell>
                       controller: input,
                       autofocus: true,
                       maxLength: 60,
-                      decoration: const InputDecoration(hintText: 'Name'),
+                      decoration: InputDecoration(hintText: tr('Name')),
                     ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Separate sign-in session'),
+                      title: const UiText('Separate sign-in session'),
                       value: isolated,
                       onChanged: (v) => update(() => isolated = v),
                     ),
@@ -440,7 +580,7 @@ class _BrowserShellState extends State<BrowserShell>
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(d),
-                    child: const Text('Cancel'),
+                    child: const UiText('Cancel'),
                   ),
                   FilledButton(
                     onPressed: () {
@@ -448,7 +588,7 @@ class _BrowserShellState extends State<BrowserShell>
                         Navigator.pop(d, input.text.trim());
                       }
                     },
-                    child: const Text('Create'),
+                    child: const UiText('Create'),
                   ),
                 ],
               ),
@@ -607,13 +747,13 @@ class _BrowserShellState extends State<BrowserShell>
         onPressed: action == null ? null : () => Navigator.pop(c, action),
         icon: Glyph(icon),
       ),
-      Text(label, style: Theme.of(c).textTheme.labelMedium),
+      UiText(label, style: Theme.of(c).textTheme.labelMedium),
     ],
   );
   Widget _row(String icon, String label, VoidCallback onTap) => ListTile(
     contentPadding: const EdgeInsets.symmetric(horizontal: 10),
     leading: Glyph(icon),
-    title: Text(label),
+    title: UiText(label),
     trailing: const Glyph('chevron-right', size: 18),
     onTap: onTap,
   );
@@ -629,8 +769,8 @@ class _BrowserShellState extends State<BrowserShell>
         ),
         child: TextField(
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Find in page',
+          decoration: InputDecoration(
+            hintText: tr('Find in page'),
             prefixIcon: Icon(Icons.search),
           ),
           onChanged: (q) => engine.command<void>(
@@ -723,12 +863,23 @@ class _BrowserShellState extends State<BrowserShell>
                         : Stack(
                             children: [
                               Positioned.fill(
-                                child: BrowserSurface(
-                                  key: ValueKey(tab.id),
-                                  tab: tab,
-                                  workspace: model.workspace,
-                                  privateContext: model.privateContextFor(
-                                    model.workspace,
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom:
+                                        MediaQuery.viewInsetsOf(context)
+                                                    .bottom >
+                                                0 &&
+                                            passwords.visible
+                                        ? 64
+                                        : 0,
+                                  ),
+                                  child: BrowserSurface(
+                                    key: ValueKey(tab.id),
+                                    tab: tab,
+                                    workspace: model.workspace,
+                                    privateContext: model.privateContextFor(
+                                      model.workspace,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -744,7 +895,7 @@ class _BrowserShellState extends State<BrowserShell>
                                           children: [
                                             const Glyph('globe', size: 42),
                                             const SizedBox(height: 20),
-                                            const Text(
+                                            const UiText(
                                               'This page could not be loaded',
                                               style: TextStyle(fontSize: 22),
                                             ),
@@ -757,7 +908,7 @@ class _BrowserShellState extends State<BrowserShell>
                                             FilledButton(
                                               onPressed: () =>
                                                   _navigate(tab.url),
-                                              child: const Text('Try again'),
+                                              child: const UiText('Try again'),
                                             ),
                                           ],
                                         ),
@@ -768,6 +919,37 @@ class _BrowserShellState extends State<BrowserShell>
                             ],
                           ),
                   ),
+                  if (!locked && passwords.visible && !overview)
+                    Positioned(
+                      left: 12,
+                      right: 12,
+                      bottom: MediaQuery.viewInsetsOf(context).bottom > 0
+                          ? 8
+                          : MediaQuery.paddingOf(context).bottom + 84,
+                      child: Glass(
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextButton.icon(
+                                onPressed: passwords.fill,
+                                icon: const Glyph('key-round', size: 18),
+                                label: const UiText('Passwords'),
+                              ),
+                            ),
+                            Expanded(
+                              child: TextButton(
+                                onPressed:
+                                    passwords.field?["hasPassword"] == false
+                                    ? null
+                                    : passwords.generate,
+                                child: const UiText('Suggest password'),
+                              ),
+                            ),
+                            IconControl('x', 'Dismiss', passwords.dismiss),
+                          ],
+                        ),
+                      ),
+                    ),
                   if (!locked && MediaQuery.viewInsetsOf(context).bottom == 0)
                     Positioned(
                       left: 18,
@@ -829,7 +1011,7 @@ class _BrowserShellState extends State<BrowserShell>
                     color: Theme.of(c).colorScheme.onSurface,
                   ),
                   const SizedBox(width: 12),
-                  const Text(
+                  const UiText(
                     'Arbiter',
                     style: TextStyle(
                       fontSize: 31,
@@ -886,7 +1068,7 @@ class _BrowserShellState extends State<BrowserShell>
               if (model.privateMode)
                 Padding(
                   padding: const EdgeInsets.only(top: 24),
-                  child: Text(
+                  child: UiText(
                     'Private browsing · history stays off this device’s saved history',
                     textAlign: TextAlign.center,
                     style: Theme.of(c).textTheme.bodySmall,
@@ -936,11 +1118,20 @@ class _BrowserShellState extends State<BrowserShell>
           ),
         ),
       ),
+      if (tab.url.isNotEmpty)
+        IconControl(
+          model.blocksAds(tab.url) ? 'shield-check' : 'shield',
+          'Ad blocking',
+          _toggleBlocking,
+          color: model.blocksAds(tab.url)
+              ? Theme.of(c).colorScheme.primary
+              : null,
+        ),
       Stack(
         alignment: Alignment.bottomCenter,
         children: [
           IconButton(
-            tooltip: 'Show tabs',
+            tooltip: tr('Show tabs'),
             onPressed: _tabs,
             icon: Container(
               width: 23,
@@ -953,8 +1144,9 @@ class _BrowserShellState extends State<BrowserShell>
                 borderRadius: BorderRadius.circular(6),
               ),
               alignment: Alignment.center,
-              child: Text(
-                '${model.visibleTabs.length}',
+              child: UiText(
+                "{0}",
+                values: [(model.visibleTabs.length).toString()],
                 style: const TextStyle(fontSize: 11),
               ),
             ),
@@ -983,13 +1175,13 @@ class _BrowserShellState extends State<BrowserShell>
         color: model.privateMode ? Theme.of(c).colorScheme.primary : null,
       ),
       IconButton.filled(
-        tooltip: 'New tab',
+        tooltip: tr('New tab'),
         onPressed: _newTab,
         icon: const Icon(Icons.add),
       ),
       TextButton(
         onPressed: () => setState(() => overview = false),
-        child: const Text('Done'),
+        child: const UiText('Done'),
       ),
     ],
   );
@@ -1001,18 +1193,21 @@ class _BrowserShellState extends State<BrowserShell>
         children: [
           const Glyph('lock', size: 44),
           const SizedBox(height: 24),
-          const Text('Private tabs are locked', style: TextStyle(fontSize: 25)),
+          const UiText(
+            'Private tabs are locked',
+            style: TextStyle(fontSize: 25),
+          ),
           const SizedBox(height: 14),
-          const Text(
+          const UiText(
             'Unlock with your biometrics or device passcode.',
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 28),
-          FilledButton(onPressed: _unlock, child: const Text('Unlock')),
+          FilledButton(onPressed: _unlock, child: const UiText('Unlock')),
           const SizedBox(height: 12),
           TextButton(
             onPressed: () => model.setPrivate(false),
-            child: const Text('Go to regular tabs'),
+            child: const UiText('Go to regular tabs'),
           ),
         ],
       ),
@@ -1081,7 +1276,7 @@ class _AddressSheetState extends State<AddressSheet> {
             textInputAction: TextInputAction.go,
             enableSuggestions: false,
             decoration: InputDecoration(
-              hintText: 'Search or enter address',
+              hintText: tr('Search or enter address'),
               prefixIcon: const Icon(Icons.search),
               suffixIcon: input.text.isEmpty
                   ? null
@@ -1112,7 +1307,10 @@ class _AddressSheetState extends State<AddressSheet> {
                 if (input.text.trim().isNotEmpty)
                   ListTile(
                     leading: const Glyph('search'),
-                    title: Text('Search with ${model.searchEngine}'),
+                    title: UiText(
+                      "Search with {0}",
+                      values: [(model.searchEngine).toString()],
+                    ),
                     subtitle: Text(
                       input.text,
                       maxLines: 1,
@@ -1200,7 +1398,7 @@ class _TabsOverviewState extends State<TabsOverview> {
                           children: [
                             Text(
                               model.privateMode
-                                  ? 'Private · ${model.workspace.name}'
+                                  ? tf("Private · {0}", [model.workspace.name])
                                   : model.workspace.name,
                               style: TextStyle(
                                 fontSize: 25,
@@ -1216,8 +1414,8 @@ class _TabsOverviewState extends State<TabsOverview> {
                   ),
                   const SizedBox(height: 10),
                   TextField(
-                    decoration: const InputDecoration(
-                      hintText: 'Search tabs',
+                    decoration: InputDecoration(
+                      hintText: tr('Search tabs'),
                       prefixIcon: Icon(Icons.search),
                     ),
                     onChanged: (s) => setState(() => query = s),
@@ -1290,7 +1488,7 @@ class _TabsOverviewState extends State<TabsOverview> {
                                     width: 36,
                                     height: 36,
                                     child: IconButton.filledTonal(
-                                      tooltip: 'Close ${tab.title}',
+                                      tooltip: tr('Close ${tab.title}'),
                                       padding: EdgeInsets.zero,
                                       onPressed: () => widget.onClose(tab),
                                       icon: const Icon(Icons.close, size: 17),
@@ -1359,7 +1557,7 @@ class WorkspaceSheet extends StatelessWidget {
               child: Row(
                 children: [
                   const Expanded(
-                    child: Text('Workspaces', style: TextStyle(fontSize: 25)),
+                    child: UiText('Workspaces', style: TextStyle(fontSize: 25)),
                   ),
                   IconControl('plus', 'New workspace', onAdd),
                 ],
@@ -1462,8 +1660,9 @@ class WorkspaceSheet extends StatelessWidget {
                             if (tabs.length > 3)
                               Padding(
                                 padding: const EdgeInsets.only(top: 6),
-                                child: Text(
-                                  '+ ${tabs.length - 3} other tabs',
+                                child: UiText(
+                                  "+ {0} other tabs",
+                                  values: [(tabs.length - 3).toString()],
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: scheme.onSurfaceVariant,
@@ -1471,7 +1670,7 @@ class WorkspaceSheet extends StatelessWidget {
                                 ),
                               ),
                             if (tabs.isEmpty)
-                              Text(
+                              UiText(
                                 'No tabs yet',
                                 style: TextStyle(
                                   color: scheme.onSurfaceVariant,
@@ -1511,14 +1710,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
         .toList();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('History'),
+        title: const UiText('History'),
         actions: [
           IconControl('trash-2', 'Clear history', () async {
             final confirmed = await showDialog<bool>(
               context: c,
               builder: (d) => AlertDialog(
-                title: const Text('Clear saved history?'),
-                content: Text(
+                title: const UiText('Clear saved history?'),
+                content: UiText(
                   query.isEmpty
                       ? 'Remove all saved visits?'
                       : 'Remove only the visits matching this search?',
@@ -1526,11 +1725,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(d, false),
-                    child: const Text('Cancel'),
+                    child: const UiText('Cancel'),
                   ),
                   FilledButton(
                     onPressed: () => Navigator.pop(d, true),
-                    child: const Text('Clear'),
+                    child: const UiText('Clear'),
                   ),
                 ],
               ),
@@ -1548,8 +1747,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
             child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Search history',
+              decoration: InputDecoration(
+                hintText: tr('Search history'),
                 prefixIcon: Icon(Icons.search),
               ),
               onChanged: (s) => setState(() => query = s),
@@ -1557,7 +1756,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           Expanded(
             child: items.isEmpty
-                ? const Center(child: Text('No saved visits'))
+                ? const Center(child: UiText('No saved visits'))
                 : ListView.builder(
                     itemCount: items.length,
                     itemBuilder: (c, i) {
@@ -1610,11 +1809,11 @@ class DownloadsScreen extends StatelessWidget {
   final BrowserModel model;
   @override
   Widget build(BuildContext c) => Scaffold(
-    appBar: AppBar(title: const Text('Downloads')),
+    appBar: AppBar(title: const UiText('Downloads')),
     body: ListenableBuilder(
       listenable: model,
       builder: (c, _) => model.downloads.isEmpty
-          ? const Center(child: Text('No downloads yet'))
+          ? const Center(child: UiText('No downloads yet'))
           : ListView.builder(
               itemCount: model.downloads.length,
               itemBuilder: (c, i) {
@@ -1632,8 +1831,12 @@ class DownloadsScreen extends StatelessWidget {
                       Text(
                         d.error ??
                             (d.complete
-                                ? 'Completed · ${(d.received / 1048576).toStringAsFixed(1)} MB'
-                                : '${(d.received / 1048576).toStringAsFixed(1)} MB downloaded'),
+                                ? tf("Completed · {0} MB", [
+                                    (d.received / 1048576).toStringAsFixed(1),
+                                  ])
+                                : tf("{0} MB downloaded", [
+                                    (d.received / 1048576).toStringAsFixed(1),
+                                  ])),
                       ),
                       if (!d.complete && d.error == null)
                         Padding(
@@ -1664,7 +1867,7 @@ class SettingsScreen extends StatelessWidget {
   final BrowserEngine engine;
   @override
   Widget build(BuildContext c) => Scaffold(
-    appBar: AppBar(title: const Text('Settings')),
+    appBar: AppBar(title: const UiText('Settings')),
     body: ListenableBuilder(
       listenable: model,
       builder: (c, _) => ListView(
@@ -1673,9 +1876,9 @@ class SettingsScreen extends StatelessWidget {
           const _SectionLabel('Appearance'),
           SegmentedButton<ThemeMode>(
             segments: const [
-              ButtonSegment(value: ThemeMode.system, label: Text('System')),
-              ButtonSegment(value: ThemeMode.light, label: Text('Light')),
-              ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
+              ButtonSegment(value: ThemeMode.system, label: UiText('System')),
+              ButtonSegment(value: ThemeMode.light, label: UiText('Light')),
+              ButtonSegment(value: ThemeMode.dark, label: UiText('Dark')),
             ],
             selected: {model.themeMode},
             onSelectionChanged: (s) {
@@ -1708,17 +1911,36 @@ class SettingsScreen extends StatelessWidget {
             model.darkBackground,
             (v) => model.darkBackground = v,
           ),
+          const _SectionLabel('Language'),
+          DropdownButtonFormField<String>(
+            initialValue: model.language,
+            items: [
+              for (final entry in languageNames.entries)
+                DropdownMenuItem(
+                  value: entry.key,
+                  child: entry.key == 'system'
+                      ? const UiText('System language')
+                      : Text(entry.value),
+                ),
+            ],
+            onChanged: (v) {
+              if (v != null) {
+                model.language = v;
+                model.changed();
+              }
+            },
+          ),
           const _SectionLabel('Browsing'),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Default browser'),
-            subtitle: const Text('Choose Arbiter in your device settings'),
+            title: const UiText('Default browser'),
+            subtitle: const UiText('Choose Arbiter in your device settings'),
             trailing: const Glyph('external-link'),
             onTap: () => engine.command<void>('requestDefaultBrowser'),
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Search engine'),
+            title: const UiText('Search engine'),
             trailing: DropdownButton<String>(
               value: model.searchEngine,
               items: [
@@ -1733,21 +1955,115 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
           ),
+          const _SectionLabel('Privacy & passwords'),
+          if (!model.adblockAvailable)
+            const UiText(
+              'Ad blocking is unavailable. Restart Arbiter to try again.',
+            ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const UiText('Block ads and trackers'),
+            subtitle: const UiText(
+              'EasyList + EasyPrivacy. Use the shield in the pill to pause for a website.',
+            ),
+            value: model.adblockEnabled,
+            onChanged: (v) {
+              model.adblockEnabled = v;
+              model.changed();
+            },
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const UiText('Offer to save passwords'),
+            value: model.savePasswords,
+            onChanged: (v) {
+              model.savePasswords = v;
+              model.changed();
+            },
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const UiText('Show password suggestions'),
+            value: model.suggestPasswords,
+            onChanged: (v) {
+              model.suggestPasswords = v;
+              model.changed();
+            },
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const UiText('Verify identity again after'),
+            trailing: DropdownButton<int>(
+              value: model.passwordUnlockSeconds,
+              items: const [
+                DropdownMenuItem(value: 0, child: UiText('Every time')),
+                DropdownMenuItem(value: 60, child: UiText('1 minute')),
+                DropdownMenuItem(value: 300, child: UiText('5 minutes')),
+                DropdownMenuItem(value: 900, child: UiText('15 minutes')),
+              ],
+              onChanged: (v) {
+                if (v != null) {
+                  model.passwordUnlockSeconds = v;
+                  model.changed();
+                }
+              },
+            ),
+          ),
+          const _SectionLabel('Performance'),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const UiText('Put inactive tabs to sleep'),
+            subtitle: const UiText(
+              'Tabs playing audio or with edited forms stay awake. Sleeping tabs reload when opened.',
+            ),
+            trailing: DropdownButton<int>(
+              value: model.tabSleepSeconds,
+              items: const [
+                DropdownMenuItem(value: 0, child: UiText('Off')),
+                DropdownMenuItem(value: 300, child: UiText('5 minutes')),
+                DropdownMenuItem(value: 600, child: UiText('10 minutes')),
+                DropdownMenuItem(value: 1800, child: UiText('30 minutes')),
+              ],
+              onChanged: (v) {
+                if (v != null) {
+                  model.tabSleepSeconds = v;
+                  model.changed();
+                }
+              },
+            ),
+          ),
+          const _SectionLabel('Sync'),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const UiText('Background sync on Wi-Fi'),
+            subtitle: const UiText(
+              'Sync with your paired desktop when the OS allows and the device is unlocked. Keep desktop sync unlocked. No cloud service.',
+            ),
+            value: model.backgroundSync,
+            onChanged: (v) {
+              model.backgroundSync = v;
+              model.changed();
+              engine.command<void>(
+                'configureBackgroundSync',
+                data: {'enabled': v},
+              );
+            },
+          ),
           const _SectionLabel('Private browsing'),
-          const Text(
+          const UiText(
             'Private tabs use separate website storage and are never saved in your tab session or history. They lock whenever the app goes into the background.',
           ),
           const SizedBox(height: 12),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Lock after inactivity'),
+            title: const UiText('Lock after inactivity'),
             trailing: DropdownButton<int>(
               value: model.privateLockSeconds,
               items: const [
-                DropdownMenuItem(value: 0, child: Text('Off')),
-                DropdownMenuItem(value: 60, child: Text('1 minute')),
-                DropdownMenuItem(value: 300, child: Text('5 minutes')),
-                DropdownMenuItem(value: 900, child: Text('15 minutes')),
+                DropdownMenuItem(value: 0, child: UiText('Off')),
+                DropdownMenuItem(value: 60, child: UiText('1 minute')),
+                DropdownMenuItem(value: 300, child: UiText('5 minutes')),
+                DropdownMenuItem(value: 900, child: UiText('15 minutes')),
               ],
               onChanged: (v) {
                 if (v != null) {
@@ -1757,8 +2073,17 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
           ),
-          const Text(
+          const UiText(
             'Unlock uses your device’s biometrics or passcode. Files you explicitly download remain on the device.',
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const UiText('Show welcome & tutorial'),
+            onTap: () {
+              Navigator.of(c).popUntil((r) => r.isFirst);
+              model.onboardingDone = false;
+              model.changed();
+            },
           ),
           const _SectionLabel('About'),
           Row(
@@ -1769,20 +2094,20 @@ class SettingsScreen extends StatelessWidget {
                 color: Theme.of(c).colorScheme.onSurface,
               ),
               const SizedBox(width: 12),
-              const Text('Arbiter', style: TextStyle(fontSize: 26)),
+              const UiText('Arbiter', style: TextStyle(fontSize: 26)),
             ],
           ),
           const SizedBox(height: 14),
-          const Text(
+          const UiText(
             'An open-source browser for people who make the web their own. No Arbiter analytics. Everyone is welcome to contribute.',
           ),
           const SizedBox(height: 12),
-          const Text(
+          const UiText(
             'GNU GPL v3 · Lucide icons (ISC). Flutter (BSD), WebKit on iOS, and GeckoView (MPL 2.0) on Android.',
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('GitHub'),
+            title: const UiText('GitHub'),
             trailing: const Glyph('external-link'),
             onTap: () => launchUrl(
               Uri.parse('https://github.com/pouya-eghbali/arbiter'),
@@ -1791,7 +2116,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Report an issue'),
+            title: const UiText('Report an issue'),
             trailing: const Glyph('external-link'),
             onTap: () => launchUrl(
               Uri.parse(
@@ -1802,7 +2127,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Open-source licenses'),
+            title: const UiText('Open-source licenses'),
             onTap: () =>
                 showLicensePage(context: c, applicationName: 'Arbiter'),
           ),
@@ -1822,7 +2147,7 @@ class SettingsScreen extends StatelessWidget {
     void Function(int) set,
   ) => ListTile(
     contentPadding: EdgeInsets.zero,
-    title: Text(name),
+    title: UiText(name),
     trailing: Container(
       width: 34,
       height: 34,
@@ -1877,7 +2202,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
   late HSVColor color = HSVColor.fromColor(widget.initial);
   @override
   Widget build(BuildContext c) => AlertDialog(
-    title: Text(widget.title),
+    title: UiText(widget.title),
     content: SizedBox(
       width: 300,
       child: Column(
@@ -1920,11 +2245,11 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(c),
-        child: const Text('Cancel'),
+        child: const UiText('Cancel'),
       ),
       FilledButton(
         onPressed: () => Navigator.pop(c, color.toColor()),
-        child: const Text('Use color'),
+        child: const UiText('Use color'),
       ),
     ],
   );

@@ -5437,4 +5437,19 @@
         <translation>Impossible d&apos;enregistrer les espaces de travail.</translation>
     </message>
 </context>
+  <context>
+    <name>SyncSettings</name>
+    <message>
+      <source>Keep sync unlocked until this computer locks</source>
+      <translation>Garder la synchronisation déverrouillée jusqu’au verrouillage de cet ordinateur</translation>
+    </message>
+    <message>
+      <source>Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.</source>
+      <translation>Option pour la synchronisation du téléphone en arrière-plan. Les appareils associés peuvent se synchroniser tant que cet ordinateur reste déverrouillé. Verrouiller l’ordinateur ou quitter Arbiter verrouille toujours la synchronisation.</translation>
+    </message>
+    <message>
+      <source>This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.</source>
+      <translation>Cette session reste déverrouillée jusqu’au verrouillage de cet ordinateur ou de la synchronisation, ou à la fermeture d’Arbiter.</translation>
+    </message>
+  </context>
 </TS>

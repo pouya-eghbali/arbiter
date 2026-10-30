@@ -5437,4 +5437,19 @@
         <translation>Arbeitsbereiche konnten nicht gespeichert werden.</translation>
     </message>
 </context>
+  <context>
+    <name>SyncSettings</name>
+    <message>
+      <source>Keep sync unlocked until this computer locks</source>
+      <translation>Sync bis zum Sperren dieses Computers entsperrt lassen</translation>
+    </message>
+    <message>
+      <source>Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.</source>
+      <translation>Optional für die Hintergrundsynchronisierung des Telefons. Gekoppelte Geräte können synchronisieren, solange dieser Computer entsperrt bleibt. Beim Sperren des Computers oder Beenden von Arbiter wird die Synchronisierung immer gesperrt.</translation>
+    </message>
+    <message>
+      <source>This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.</source>
+      <translation>Diese Sitzung bleibt entsperrt, bis du diesen Computer oder die Synchronisierung sperrst oder Arbiter beendest.</translation>
+    </message>
+  </context>
 </TS>

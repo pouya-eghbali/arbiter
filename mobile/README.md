@@ -5,9 +5,13 @@ workspaces, private browsing, history, downloads, and an encrypted credential va
 Android renders pages with GeckoView; iOS uses the system WKWebView. Desktop continues
 using the patched Qt WebEngine runtime.
 
-This is a development build, not a published mobile release. The custom interface is
-currently English; system controls follow the device locale. Desktop extensions,
-ad blocking, and desktop settings are not shared with this client yet.
+This is a development build, not a published mobile release. It includes built-in
+ad blocking, password suggestions/generation and save prompts, automatic tab sleeping,
+onboarding, and offline UI translations. The interface defaults to the OS language,
+with English, German, French, Italian, Spanish, Portuguese, Japanese and Chinese.
+Translations reuse desktop catalogs and locally drafted mobile strings; native-speaker
+review remains worthwhile. User-installed extensions and split views are excluded.
+Desktop settings do not automatically transfer to mobile.
 
 ## Build
 
@@ -68,10 +72,15 @@ Arbiter's vault into the current matching HTTPS page.
 Build the desktop app from the same revision. In desktop Settings → Sync, unlock
 the vault and show its pairing QR. On the phone open Passwords & passkeys, unlock,
 and scan the QR (or paste the invitation). Verify the desktop name and certificate
-fingerprint in the confirmation. Keep both apps open on the same local network.
-The desktop vault unlock expires after ten minutes; unlock again to continue.
+fingerprint in the confirmation. Keep the desktop app open on the same local network.
+The desktop vault unlock normally expires after ten minutes. For background sync,
+explicitly enable “Keep sync unlocked until this computer locks” in desktop Sync
+settings. Computer lock, manual sync lock and quitting Arbiter still clear its keys.
 The phone syncs every twenty seconds while foregrounded, including while its
-credential list is locked. Opening credentials or making a passkey assertion still
+credential list is locked. Background sync is separately configurable. Android
+uses an OS-scheduled unmetered-network job; iOS uses background refresh. Timing is
+chosen by the OS, not guaranteed. The phone's OS vault must be accessible (unlocked
+on iOS), and the paired desktop must be reachable on the same LAN. Opening credentials or making a passkey assertion still
 requires device authentication.
 
 New Arbiter passkeys support sync. Older desktop passkeys registered as device-bound
@@ -85,6 +94,30 @@ phone preserves its local credentials and does not revoke its desktop token.
 
 The protocol and trust boundary are documented in [credential-sync.md](../docs/credential-sync.md).
 
+## Browser features
+
+The shield in the pill pauses blocking for the current website; Settings controls
+it globally. Android bundles the standalone Ghostery filter engine in a first-party
+GeckoView extension. iOS compiles WebKit content rules generated with Brave's Rust
+converter. Both use the repository's EasyList + EasyPrivacy snapshots. Lists are
+bundled and refreshed through app builds, not downloaded at runtime. Some ABP rules
+cannot be represented by WebKit. Blocking is tested against real network requests;
+it cannot guarantee every ad or tracker is blocked.
+
+HTTPS login fields offer a compact password strip. Selecting a saved account requires
+device authentication; its reuse interval is configurable (including every time).
+Suggestions and save offers can be disabled independently. Private tabs never offer
+to save logins. Submitted credentials are held briefly in memory and offered for
+saving after the password form disappears; ordinary submissions and common SPA
+submit-button flows are handled. This is heuristic and may miss unusual login forms.
+Generation uses cryptographically secure randomness, 16–64 characters and optional
+symbols. Native filling is restricted to the same top-level origin.
+
+Inactive tabs sleep after a configurable interval. The focused tab, pages playing
+media, loading pages and edited top-level forms stay awake. Sleeping releases the
+native page and reloads its current URL on selection; in-page state and the native
+back/forward stack are not retained across sleep.
+
 ## Test
 
 Unit/widget tests run without a browser engine. Native tests need an emulator or
@@ -93,13 +126,20 @@ simulator; `flutter devices` lists their IDs:
 ```sh
 flutter test integration_test/browser_engine_test.dart -d DEVICE_ID
 flutter test integration_test/credential_keychain_test.dart -d IOS_SIMULATOR_ID
+flutter test integration_test/adblock_test.dart -d DEVICE_ID
+flutter test integration_test/form_events_test.dart -d DEVICE_ID
+flutter test integration_test/background_runtime_test.dart -d IOS_SIMULATOR_ID
 ```
 
+The form test exercises browser-generated submissions, rejects synthetic events,
+and checks that disabling password saving survives navigation.
 The native engine test covers navigation, snapshots, origin-bound password fill,
 private storage and isolated workspace storage. The Keychain test uses and removes
 a unique dummy item in the shared iOS group.
 
-Android cryptography instrumentation (JDK 17):
+Android cryptography and actual headless JobScheduler instrumentation (JDK 17):
+first build the normal app with `flutter build apk --debug -t lib/main.dart`. The
+headless worker smoke test never opens a user vault.
 
 ```sh
 cd android
@@ -140,3 +180,6 @@ have compatibility filenames fingerprint and trash-2). The browser certificate l
 is public application/signing metadata from
 <https://www.gstatic.com/gpm-passkeys-privileged-apps/apps.json>, retrieved 2026-10-30;
 there is no runtime request to that endpoint. Keep it current when updating engines.
+
+See [tools/mobile/README.md](../tools/mobile/README.md) for reproducible blocker
+assets, native localization resources, and common isolated form-script maintenance.

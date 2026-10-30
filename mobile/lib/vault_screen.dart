@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -79,7 +81,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     widget.engine.userVerificationActive = true;
     try {
       final allowed = await LocalAuthentication().authenticate(
-        localizedReason: 'Unlock your Arbiter passwords and passkeys',
+        localizedReason: tr('Unlock your Arbiter passwords and passkeys'),
         biometricOnly: false,
         persistAcrossBackgrounding: true,
       );
@@ -160,21 +162,21 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       code = await showDialog<String>(
         context: context,
         builder: (c) => AlertDialog(
-          title: const Text('Paste desktop pairing code'),
+          title: const UiText('Paste desktop pairing code'),
           content: TextField(
             controller: input,
             maxLines: 4,
             autocorrect: false,
-            decoration: const InputDecoration(hintText: 'arbiter-pair://v1…'),
+            decoration: InputDecoration(hintText: tr('arbiter-pair://v1…')),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(c),
-              child: const Text('Cancel'),
+              child: const UiText('Cancel'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(c, input.text),
-              child: const Text('Continue'),
+              child: const UiText('Continue'),
             ),
           ],
         ),
@@ -187,18 +189,22 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       final allowed = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          title: Text('Pair with ${info.name}?'),
-          content: Text(
-            'This shares your Arbiter passwords and passkeys with this desktop. Only continue if you opened this code yourself in Arbiter.\n\nLocal address: ${info.endpoint.host}\nCertificate: ${info.pin.substring(0, 16)}…',
+          title: UiText("Pair with {0}?", values: [(info.name).toString()]),
+          content: UiText(
+            "This shares your Arbiter passwords and passkeys with this desktop. Only continue if you opened this code yourself in Arbiter.\n\nLocal address: {0}\nCertificate: {1}…",
+            values: [
+              (info.endpoint.host).toString(),
+              (info.pin.substring(0, 16)).toString(),
+            ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(c, false),
-              child: const Text('Cancel'),
+              child: const UiText('Cancel'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(c, true),
-              child: const Text('Pair devices'),
+              child: const UiText('Pair devices'),
             ),
           ],
         ),
@@ -226,7 +232,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     final accepted = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Save a password'),
+        title: const UiText('Save a password'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -235,13 +241,13 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                 controller: website,
                 keyboardType: TextInputType.url,
                 autocorrect: false,
-                decoration: const InputDecoration(labelText: 'Website'),
+                decoration: InputDecoration(labelText: tr('Website')),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: username,
                 autocorrect: false,
-                decoration: const InputDecoration(labelText: 'Username'),
+                decoration: InputDecoration(labelText: tr('Username')),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -249,7 +255,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                 obscureText: true,
                 autocorrect: false,
                 enableSuggestions: false,
-                decoration: const InputDecoration(labelText: 'Password'),
+                decoration: InputDecoration(labelText: tr('Password')),
               ),
             ],
           ),
@@ -257,11 +263,11 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c),
-            child: const Text('Cancel'),
+            child: const UiText('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('Save'),
+            child: const UiText('Save'),
           ),
         ],
       ),
@@ -301,20 +307,20 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
               if (isPassword) ...[
                 ListTile(
                   leading: const Glyph('copy'),
-                  title: const Text('Copy password'),
+                  title: const UiText('Copy password'),
                   onTap: () => Navigator.pop(c, 'copy'),
                 ),
                 if (widget.model.activeTab.url.isNotEmpty &&
                     Uri.tryParse(widget.model.activeTab.url)?.origin == origin)
                   ListTile(
                     leading: const Glyph('key-round'),
-                    title: const Text('Fill in current page'),
+                    title: const UiText('Fill in current page'),
                     onTap: () => Navigator.pop(c, 'fill'),
                   ),
               ],
               ListTile(
                 leading: const Glyph('trash-2'),
-                title: const Text('Delete credential'),
+                title: const UiText('Delete credential'),
                 onTap: () => Navigator.pop(c, 'delete'),
               ),
             ],
@@ -352,18 +358,18 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (c) => AlertDialog(
-            title: const Text('Delete credential?'),
-            content: const Text(
+            title: const UiText('Delete credential?'),
+            content: const UiText(
               'This deletion will also sync to your paired devices.',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(c),
-                child: const Text('Cancel'),
+                child: const UiText('Cancel'),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(c, true),
-                child: const Text('Delete'),
+                child: const UiText('Delete'),
               ),
             ],
           ),
@@ -379,11 +385,11 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     final chosen = await showDialog<CredentialVersion>(
       context: context,
       builder: (c) => SimpleDialog(
-        title: const Text('Resolve conflicting changes'),
+        title: const UiText('Resolve conflicting changes'),
         children: [
           const Padding(
             padding: EdgeInsets.all(20),
-            child: Text(
+            child: UiText(
               'Both versions were kept. Choose which change to keep on your devices.',
             ),
           ),
@@ -421,7 +427,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
         [];
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Passwords & passkeys'),
+        title: const UiText('Passwords & passkeys'),
         actions: [
           if (vault != null)
             IconControl('plus', 'Save a password', busy ? null : _add),
@@ -437,24 +443,24 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                   children: [
                     const Glyph('key-round', size: 44),
                     const SizedBox(height: 20),
-                    const Text(
+                    const UiText(
                       'Your keys, close at hand',
                       style: TextStyle(fontSize: 25),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
+                    const UiText(
                       'Credentials are encrypted on this device. Unlock using your biometrics or device passcode.',
                       textAlign: TextAlign.center,
                     ),
                     if (error != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 18),
-                        child: Text(error!, textAlign: TextAlign.center),
+                        child: UiText(error!, textAlign: TextAlign.center),
                       ),
                     const SizedBox(height: 22),
                     FilledButton(
                       onPressed: authenticating ? null : _unlock,
-                      child: const Text('Unlock vault'),
+                      child: const UiText('Unlock vault'),
                     ),
                   ],
                 ),
@@ -466,8 +472,8 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
                   child: TextField(
-                    decoration: const InputDecoration(
-                      hintText: 'Search saved credentials',
+                    decoration: InputDecoration(
+                      hintText: tr('Search saved credentials'),
                       prefixIcon: Icon(Icons.search),
                     ),
                     onChanged: (s) => setState(() => query = s),
@@ -479,7 +485,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                     alignment: Alignment.centerLeft,
                     child: TextButton.icon(
                       icon: const Glyph('key-round', size: 18),
-                      label: Text(
+                      label: UiText(
                         Theme.of(c).platform == TargetPlatform.iOS
                             ? 'Enable system passkeys & AutoFill'
                             : 'Enable system passkeys',
@@ -532,8 +538,8 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Direct encrypted sync. Keep both apps open on the same Wi-Fi.',
+                          const UiText(
+                            'Direct encrypted sync over the same Wi-Fi. Keep Arbiter open on your desktop and its sync unlocked.',
                           ),
                           Wrap(
                             spacing: 8,
@@ -541,13 +547,13 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                               TextButton.icon(
                                 onPressed: busy ? null : _pair,
                                 icon: const Glyph('qr-code', size: 19),
-                                label: const Text('Scan desktop code'),
+                                label: const UiText('Scan desktop code'),
                               ),
                               TextButton(
                                 onPressed: busy
                                     ? null
                                     : () => _pair(camera: false),
-                                child: const Text('Paste code'),
+                                child: const UiText('Paste code'),
                               ),
                               if (vault!.peer != null)
                                 TextButton(
@@ -558,17 +564,17 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                                               await showDialog<bool>(
                                                 context: context,
                                                 builder: (c) => AlertDialog(
-                                                  title: const Text(
+                                                  title: const UiText(
                                                     'Disconnect sync?',
                                                   ),
-                                                  content: const Text(
+                                                  content: const UiText(
                                                     'Credentials stay on this device. Revoke this phone in desktop Sync settings to remove its access there too.',
                                                   ),
                                                   actions: [
                                                     TextButton(
                                                       onPressed: () =>
                                                           Navigator.pop(c),
-                                                      child: const Text(
+                                                      child: const UiText(
                                                         'Cancel',
                                                       ),
                                                     ),
@@ -578,7 +584,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                                                             c,
                                                             true,
                                                           ),
-                                                      child: const Text(
+                                                      child: const UiText(
                                                         'Disconnect',
                                                       ),
                                                     ),
@@ -593,7 +599,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                                             );
                                           }
                                         },
-                                  child: const Text('Disconnect'),
+                                  child: const UiText('Disconnect'),
                                 ),
                             ],
                           ),
@@ -610,7 +616,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                           if (status != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 10),
-                              child: Text(status!),
+                              child: UiText(status!),
                             ),
                         ],
                       ),
@@ -623,14 +629,16 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                       for (final id in vault!.state.conflicts)
                         ListTile(
                           leading: const Glyph('info'),
-                          title: const Text('Conflicting credential changes'),
-                          subtitle: const Text('Both versions have been kept'),
+                          title: const UiText('Conflicting credential changes'),
+                          subtitle: const UiText(
+                            'Both versions have been kept',
+                          ),
                           onTap: () => _resolve(id),
                         ),
                       if (entries.isEmpty)
                         const Padding(
                           padding: EdgeInsets.all(36),
-                          child: Text(
+                          child: UiText(
                             'No saved credentials yet. Add a password or pair with your desktop.',
                             textAlign: TextAlign.center,
                           ),
@@ -684,7 +692,7 @@ class _PairingScannerState extends State<PairingScanner> {
 
   @override
   Widget build(BuildContext c) => Scaffold(
-    appBar: AppBar(title: const Text('Pair with desktop')),
+    appBar: AppBar(title: const UiText('Pair with desktop')),
     body: Stack(
       children: [
         MobileScanner(
@@ -713,7 +721,7 @@ class _PairingScannerState extends State<PairingScanner> {
                 color: Colors.black87,
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: const Text(
+              child: const UiText(
                 'On your desktop, open Settings → Sync and choose Pair a phone. Keep the code private.',
                 style: TextStyle(color: Colors.white),
                 textAlign: TextAlign.center,

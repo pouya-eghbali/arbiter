@@ -9,9 +9,15 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    BackgroundSync.shared.register()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
+  func handleWebURL(_ url:URL) {
+    guard MobileBrowserBridge.webURL(url.absoluteString) != nil else {return}
+    PendingNavigation.url=url.absoluteString
+    browserBridge?.event("","openUrl",["url":url.absoluteString])
+  }
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "ArbiterBrowser") {
