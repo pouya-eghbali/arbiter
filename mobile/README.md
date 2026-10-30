@@ -56,6 +56,25 @@ not an alternative iOS engine.
 
 [Apple browser requirements and request form](https://developer.apple.com/documentation/xcode/preparing-your-app-to-be-the-default-browser)
 
+For a local physical-device test before Apple grants that capability, first run
+`flutter build ios --release --no-codesign -t lib/main.dart`, then sign with:
+
+```sh
+xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner \
+  -configuration Release -destination 'id=YOUR_IPHONE_UDID' \
+  -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
+  DEVELOPMENT_TEAM=YOUR_TEAM CODE_SIGN_STYLE=Automatic \
+  ARBITER_BROWSER_ENTITLEMENTS=Runner/DeviceTesting.entitlements \
+  SYMROOT="$PWD/build/ios" build
+xcrun devicectl device install app --device YOUR_IPHONE_UDID \
+  build/ios/Release-iphoneos/Runner.app
+```
+
+Run those commands from `mobile/`. The test entitlements retain shared Keychain,
+App Groups and the credential extension, but omit default-browser eligibility.
+This build cannot validate arbitrary website passkeys inside WKWebView. The
+normal build still uses `Runner.entitlements` and requires Apple's approval.
+
 ### Android system passkeys
 
 Set Arbiter as the default browser, then enable its credential provider from
