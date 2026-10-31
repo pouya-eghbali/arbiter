@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Templates as Templates
 import Arbiter
 
 ColumnLayout {
@@ -7,6 +8,11 @@ ColumnLayout {
     property string title: ""
     property string description: ""
     default property alias controls: body.data
+    // A single control supplies its own surface. Only groups need a card.
+    readonly property bool grouped: {
+        const items = body.children.filter(item => item.visible);
+        return items.length !== 1 || !(items[0] instanceof Templates.AbstractButton || items[0] instanceof Templates.ComboBox);
+    }
     spacing: 12
     Text {
         visible: root.title.length > 0
@@ -20,15 +26,15 @@ ColumnLayout {
     }
     Rectangle {
         Layout.fillWidth: true
-        implicitHeight: body.implicitHeight + 32
+        implicitHeight: body.implicitHeight + (root.grouped ? 32 : 0)
         radius: 18
-        color: Theme.field
+        color: root.grouped ? Theme.field : "transparent"
         ColumnLayout {
             id: body
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: 16
+            anchors.margins: root.grouped ? 16 : 0
             spacing: 12
         }
     }

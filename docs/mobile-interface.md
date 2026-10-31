@@ -64,7 +64,8 @@ simulator/device rendering before installing an updated development build.
 
 MobileButton, MobileField, MobileToggle, MobileComboBox and MobileIconButton keep
 48-point form controls and at least 44-point icon touch targets separate from
-desktop sizing. MobileSection supplies consistent group padding and descriptions;
+desktop sizing. MobileSection supplies consistent group padding and descriptions, while standalone
+buttons and dropdowns keep only their own surface without a surrounding card;
 MobileEmptyState and MobileLogo handle empty views and theme-aware branding.
 Full pages use a centered column capped at 560 points, safe-area-aware footers,
 vertical scrolling and keyboard avoidance. Settings uses a category index with
