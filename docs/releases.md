@@ -369,6 +369,36 @@ Regenerate Cargo notices with `python tools/update-adblock-notices.py` when need
 Update Python/Rust/html5lib/QtKeychain pins (and QtKeychain's verified archive hash) in
 `dependencies.json`; review/test these alongside the Qt upgrade cycle.
 
+## Validate cross-built SDKs on native hosted runners
+
+`cross-sdk-validation.yml` accepts a precompiled Windows or Linux x64 SDK. It
+builds the application and tests on the target OS, runs the full suite, packages
+and smoke-tests the result, and returns artifacts. **It never compiles Chromium.**
+Windows preflight still requires an interactive desktop; Linux uses Xvfb and a
+disposable Secret Service keyring. Windows sync is also tested with native
+Schannel TLS, independently of the builder's OpenSSL DLLs.
+
+After a cross-build completes, create its verified input ZIP on the Mac:
+
+```sh
+INPUT_PLATFORM=windows python3.12 tools/release/cross_inputs.py pack
+# Or INPUT_PLATFORM=linux. The command prints the asset path and SHA-256.
+```
+
+Create a private GitHub draft for the target version, with `--target` set to the
+full source commit SHA, and upload `build-inputs-windows.zip` or
+`build-inputs-linux.zip` to that draft. Dispatch **Validate cross-built desktop
+SDK** at that same source revision with the draft tag, platform and ZIP SHA-256.
+The workflow rejects published releases, a branch name instead of a pinned
+commit, mismatched commits/checksums, or unsafe archive paths. Linux helper
+executable permissions survive the ZIP transfer.
+
+These input archives contain build SDKs, not user downloads: delete them from
+the draft before publishing. Download the validated application artifacts and
+use the regular release uploader. Every final package must identify the final
+release commit. A changed candidate requires new validation/packages; an SDK
+can be reused when its engine input identity is unchanged.
+
 ## Optional self-hosted automation
 
 The existing **Patched Qt WebEngine SDK** workflow and reusable `native-build.yml`
