@@ -62,6 +62,12 @@ simulator/device rendering before installing an updated development build.
 
 ## Shared mobile layout rules
 
+The iOS launcher icon uses the shared `assets/icon/Arbiter.icon` Icon Composer
+source. Xcode compiles its layered glass appearances and older-iOS compatibility
+images; do not restore a separate flattened AppIcon catalog. Android uses
+adaptive foreground/background layers with mask-safe padding, plus a monochrome
+layer on Android 13+ for themed launcher icons. Both retain the existing logo.
+
 MobileButton, MobileField, MobileToggle, MobileComboBox and MobileIconButton keep
 48-point form controls and at least 44-point icon touch targets separate from
 desktop sizing. MobileSection supplies consistent group padding and descriptions, while standalone

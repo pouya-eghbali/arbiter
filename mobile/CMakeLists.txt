@@ -89,9 +89,13 @@ if(IOS)
             set_target_properties(${t} PROPERTIES XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${ARBITER_APPLE_TEAM}" XCODE_ATTRIBUTE_CODE_SIGN_STYLE Automatic)
         endforeach()
     endif()
-    set_source_files_properties(platform/ios/Assets.xcassets PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-    target_sources(arbiter_mobile PRIVATE platform/ios/Assets.xcassets)
-    set_target_properties(arbiter_mobile PROPERTIES XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME AppIcon)
+    # Let Xcode compile the shared layered Icon Composer source, including
+    # Liquid Glass appearances and compatibility images for older iOS versions.
+    set(mobile_icon "${ARBITER_ROOT}/assets/icon/Arbiter.icon")
+    set_source_files_properties("${mobile_icon}" PROPERTIES
+        MACOSX_PACKAGE_LOCATION Resources XCODE_EXPLICIT_FILE_TYPE folder.icon)
+    target_sources(arbiter_mobile PRIVATE "${mobile_icon}")
+    set_target_properties(arbiter_mobile PROPERTIES XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME Arbiter)
     foreach(code en de fr it es pt ja zh)
         foreach(owner App Provider)
             set(file "${CMAKE_CURRENT_SOURCE_DIR}/platform/ios/${owner}Localization/${code}.lproj/InfoPlist.strings")
