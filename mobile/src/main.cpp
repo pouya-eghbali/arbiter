@@ -26,6 +26,7 @@
 #include <QQuickWindow>
 #include "nativeglasshost.h"
 #include "surfacepalette.h"
+#include "nativepage.h"
 extern QWindow *arbiter_ios_test_window_at(QWindow *, QPointF, QPoint *);
 #endif
 #endif
@@ -87,7 +88,7 @@ int main(int argc, char **argv) {
 #else
 #if defined(Q_OS_IOS) && TARGET_OS_SIMULATOR
     QTemporaryDir smokeProfile;
-    const bool uiSmoke = qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE");
+    const bool uiSmoke = qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE") || qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE");
     if (uiSmoke) {
         const QJsonObject profile{
             {"settings", QJsonObject{{"onboardingDone", true}, {"liquidGlass", true}, {"theme", "dark"}}},
@@ -95,7 +96,7 @@ int main(int argc, char **argv) {
             {"workspaceId", "personal"}, {"activeId", "start"},
             {"tabs", QJsonArray{
                 QJsonObject{{"id", "start"}, {"workspace", "personal"}, {"profile", "shared"}, {"url", ""}},
-                QJsonObject{{"id", "target"}, {"workspace", "personal"}, {"profile", "shared"}, {"url", "https://tab.example.test/"}, {"title", "Target tab"}, {"sleeping", true}}}},
+                QJsonObject{{"id", "target"}, {"workspace", "personal"}, {"profile", "shared"}, {"url", qEnvironmentVariable("ARBITER_OVERLAY_URL", "https://tab.example.test/")}, {"title", "Target tab"}, {"sleeping", true}}}},
             {"history", QJsonArray{QJsonObject{{"url", "https://history.example.test/"}, {"title", "History target"}, {"time", 1}}}}};
         QFile file(smokeProfile.path() + "/browser-session-v1.json");
         if (!smokeProfile.isValid() || !file.open(QIODevice::WriteOnly)) qFatal("Cannot create isolated UI test profile");
@@ -144,9 +145,65 @@ int main(int argc, char **argv) {
 #if defined(Q_OS_IOS) && TARGET_OS_SIMULATOR
     // Native-view visibility and snapshot transitions need a real iOS/Metal test.
     // This diagnostic entry point is never compiled into physical-device builds.
-    if (qEnvironmentVariableIsSet("ARBITER_UI_SMOKE") || qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE")) {
+    if (qEnvironmentVariableIsSet("ARBITER_UI_SMOKE") || qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE") || qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE")) {
         auto window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
         QTimer::singleShot(1500, window, [window, &browser, &engine] {
+            if (qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE")) {
+                browser.selectTab("target");
+                window->setProperty("panel", "");
+                auto timer = new QTimer(window);
+                timer->setInterval(20);
+                QObject::connect(timer, &QTimer::timeout, window, [window, &browser, timer, step = 0, waits = 0, cached = QString()]() mutable {
+                    auto page = NativePage::pages.value("target");
+                    if (step == 0) {
+                        if (!page || page->title() != "Overlay fixture") {
+                            if (++waits > 300) qFatal("Local overlay page did not load");
+                            return;
+                        }
+                        if (!window->property("nativeFloatingOverlays").toBool()) qFatal("Native overlay capability unavailable");
+                        QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "more"));
+                        timer->setInterval(120);
+                    } else if (step == 1 || step == 3 || step == 5 || step == 7 || step == 14) {
+                        if (!page || !page->nativeWindow()->isVisible() || page->coverProgress() <= 0) qFatal("Floating overlay hid or failed to cover the live page");
+                        if (step == 1) {
+                            QPoint local;
+                            const auto hit = arbiter_ios_test_window_at(window, QPointF(window->width()/2, 80), &local);
+                            if (hit == page->nativeWindow()) qFatal("Covered website still accepted outside touches");
+                        }
+                    } else if (step == 2) QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "tabs"));
+                    else if (step == 4) QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "workspaces"));
+                    else if (step == 6) QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "address"));
+                    else if (step == 8) QMetaObject::invokeMethod(window, "dismiss");
+                    else if (step == 11) {
+                        if (!page->nativeWindow()->isVisible() || page->coverProgress() != 0) qFatal("Closing overlays did not restore page interaction");
+                        QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "settings"));
+                    } else if (step == 12) {
+                        if (page->nativeWindow()->isVisible()) qFatal("Live webpage covered the full settings page");
+                        QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "more"));
+                    } else if (step == 15) QMetaObject::invokeMethod(window, "dismiss");
+                    else if (step == 18) {
+                        browser.setSetting("liquidGlass", false);
+                        QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "more"));
+                        if (window->property("pendingPanel") != "more" || !page->nativeWindow()->isVisible()) qFatal("Glacier hid the page before its preview was ready");
+                    } else if (step == 19) {
+                        if (window->property("panel") != "more") {
+                            if (++waits > 320) qFatal("Glacier preview handoff never completed");
+                            return;
+                        }
+                        auto preview = window->findChild<QObject *>("pagePreview");
+                        if (!preview || preview->property("status").toInt() != 1 || page->nativeWindow()->isVisible()) qFatal("Glacier handoff did not use a decoded preview");
+                        cached = browser.previews().value("target").toString();
+                        QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "tabs"));
+                    } else if (step == 22) {
+                        if (cached.isEmpty() || cached != browser.previews().value("target").toString()) qFatal("Switching overlays replaced the page with a hidden capture");
+                        qInfo("Live page preserved under menu, tabs, workspaces and address overlays; interaction blocking, full-page settings and Glacier frame handoff passed");
+                        timer->stop(); qApp->quit();
+                    }
+                    ++step;
+                });
+                timer->start();
+                return;
+            }
             auto device = QTest::createTouchDevice();
             auto tap = [&](QPointF point) {
                 QPoint local;

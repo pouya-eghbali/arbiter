@@ -78,6 +78,30 @@ class MobileCoreTest : public QObject {
         QCOMPARE(restored.settings().value("tabSleepSeconds").toInt(), 3600);
         QCOMPARE(restored.settings().value("passwordUnlockSeconds").toInt(), 1800);
     }
+    void previewValidationAndNavigation() {
+        QTemporaryDir dir;
+        MobileModel model(nullptr, dir.path());
+        const auto tab = model.addTab("https://preview.example/first");
+        QImage image(16, 16, QImage::Format_RGB32);
+        image.fill(Qt::blue);
+        QSignalSpy ready(&model, &MobileModel::previewReady);
+        model.setPreview(tab, image, "https://preview.example/first");
+        QCOMPARE(ready.count(), 1);
+        const auto cached = model.previews().value(tab);
+        model.updatePage(tab, "preview", {{"image", "data:image/png;base64,not-a-png"}});
+        QCOMPARE(model.previews().value(tab), cached);
+        QCOMPARE(ready.count(), 1);
+        model.navigate("https://preview.example/second");
+        image.fill(Qt::red);
+        model.setPreview(tab, image, "https://preview.example/first");
+        QCOMPARE(model.previews().value(tab), cached);
+        model.setPreview(tab, image, "https://preview.example/second");
+        QCOMPARE(ready.count(), 2);
+        QVERIFY(model.previews().value(tab) != cached);
+        const auto fresh = model.previews().value(tab);
+        model.updatePage(tab, "preview", {{"image", cached.toString()}, {"sourceUrl", "https://preview.example/first"}});
+        QCOMPARE(model.previews().value(tab), fresh);
+    }
     void sleepProtectsPages() {
         QTemporaryDir dir;
         MobileModel model(nullptr, dir.path());

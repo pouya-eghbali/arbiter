@@ -71,6 +71,7 @@ jboolean nativeBlocked(JNIEnv *, jclass, jstring url, jstring source, jstring ki
 }
 } // namespace
 namespace MobilePlatform {
+void setCoverProgress(NativePage *, qreal) {}
 void openSystemSettings() { QJniObject::callStaticMethod<void>(bridge, "appSettings"); }
 void initialize() {
     QJniEnvironment env;

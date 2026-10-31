@@ -42,6 +42,38 @@ Controls.ApplicationWindow {
     readonly property bool darkMode: browser.settings.theme === "dark" || (browser.settings.theme === "system" && Application.styleHints.colorScheme === Qt.Dark)
     readonly property bool specialPanel: ["address", "tabs", "workspaces", "more", "find"].includes(panel)
     readonly property bool browsingSurface: panel === "" || panel === "find"
+    NativeGlassHost { id: pageGlassCapability; visible: false }
+    readonly property bool nativeFloatingOverlays: Qt.platform.os === "ios" && browser.backend === "webview" && Theme.liquidGlass && pageGlassCapability.available
+    readonly property bool floatingPanel: ["address", "tabs", "workspaces", "more"].includes(panel)
+    readonly property real pageCoverProgress: nativeFloatingOverlays ? Math.max(overlayProgress, floatingPanel ? .001 : 0, toast.visible ? 1 : 0) : 0
+    property string pendingPanel: ""
+    property string pendingTab: ""
+    property string pendingAddress: ""
+    property bool pendingPreviewReady: false
+    property int pendingPreviewFrames: 0
+    function cancelPendingPanel() { snapshotWait.stop(); pendingPanel = ""; pendingTab = ""; pendingAddress = ""; pendingPreviewReady = false; pendingPreviewFrames = 0 }
+    function finishPendingPanel() {
+        if (!pendingPanel || !pendingPreviewReady || pendingTab !== browser.activeId || browser.privateLocked) return;
+        if (pagePreview.status !== Image.Ready || pagePreview.source.toString() !== browser.previews[pendingTab]) return;
+        const next = pendingPanel;
+        cancelPendingPanel();
+        showPanel(next);
+    }
+    onFrameSwapped: {
+        if (!pendingPanel || !pendingPreviewReady || pagePreview.status !== Image.Ready) return;
+        // Let the decoded image reach the scene graph before removing the
+        // native view. One extra frame also absorbs an already-queued swap.
+        if (pendingPreviewFrames > 0) { --pendingPreviewFrames; window.update(); }
+        else finishPendingPanel();
+    }
+    Timer {
+        id: snapshotWait
+        interval: 1200
+        onTriggered: {
+            if (pagePreview.status === Image.Ready) { window.pendingPreviewReady = true; window.pendingPreviewFrames = 1; window.update(); }
+            else { window.cancelPendingPanel(); browser.message(qsTr("The page is still loading. Please try again.")); }
+        }
+    }
     property real previewKeyboardInset: 0
     readonly property real targetKeyboardInset: {
         const revision = SurfacePalette.keyboardRevision;
@@ -58,6 +90,15 @@ Controls.ApplicationWindow {
         }
     }
     readonly property real overlayProgress: Math.max(addressSheet.progress, moreSheet.progress, tabsOverview.progress, workspacesSheet.progress)
+    Connections {
+        target: browser
+        function onPreviewReady(tabId) {
+            if (window.pendingTab !== tabId) return;
+            window.pendingPreviewReady = true;
+            window.pendingPreviewFrames = 2;
+            window.update();
+        }
+    }
     function keyboardTop() {
         const revision = SurfacePalette.revision;
         return SurfacePalette.keyboardTop(content, Qt.inputMethod.keyboardRectangle.y);
@@ -91,15 +132,30 @@ Controls.ApplicationWindow {
         return Qt.rect(control.x / content.width, control.y / content.height, control.width / content.width, control.height / content.height);
     }
     function refresh() {
+        const next = browser.tabs.find(t => t.id === browser.activeId) || {};
+        if (pendingTab && (pendingTab !== browser.activeId || browser.privateLocked || pendingAddress !== (next.url || ""))) cancelPendingPanel();
         if (browser.privateLocked && panel !== "onboarding") {
             panel = "";
             Qt.inputMethod.hide();
         }
-        current = browser.tabs.find(t => t.id === browser.activeId) || {};
+        current = next;
         visibleTabs = browser.tabs.filter(t => t.workspace === browser.workspaceId && Boolean(t.private) === browser.privateMode);
     }
     function open(name) {
-        browser.captureActive();
+        cancelPendingPanel();
+        // Native glass samples the live WebView. Glacier gets a decoded preview
+        // before hiding that view; switching between panels never recaptures it.
+        if (!nativeFloatingOverlays && browsingSurface && !toast.visible && current.url && !current.sleeping && name !== "find" && browser.backend !== "preview") {
+            pendingPanel = name;
+            pendingTab = browser.activeId;
+            pendingAddress = current.url;
+            snapshotWait.restart();
+            browser.captureActive();
+            return;
+        }
+        showPanel(name);
+    }
+    function showPanel(name) {
         if (name !== "address" && name !== "find")
             Qt.inputMethod.hide();
         panel = name;
@@ -107,6 +163,7 @@ Controls.ApplicationWindow {
         pageScroll.contentItem.contentY = 0;
     }
     function dismiss() {
+        cancelPendingPanel();
         if (panel === "settings" && settingsLoader.item && settingsLoader.item.category) {
             settingsLoader.item.category = "";
             return;
@@ -222,6 +279,7 @@ Controls.ApplicationWindow {
         anchors.fill: parent
         focus: true
         Keys.onBackPressed: event => {
+            if (window.pendingPanel) { window.cancelPendingPanel(); event.accepted = true; return; }
             if (window.panel !== "" && window.panel !== "onboarding") {
                 window.dismiss();
                 event.accepted = true;
@@ -232,6 +290,7 @@ Controls.ApplicationWindow {
                 event.accepted = false;
         }
         Keys.onEscapePressed: event => {
+            if (window.pendingPanel) { window.cancelPendingPanel(); event.accepted = true; return; }
             if (window.panel !== "" && window.panel !== "onboarding") {
                 window.dismiss();
                 event.accepted = true;
@@ -249,7 +308,10 @@ Controls.ApplicationWindow {
                 visible: source.toString().length > 0
             }
             Image {
+                id: pagePreview
+                objectName: "pagePreview"
                 anchors.fill: parent
+                onStatusChanged: if (status === Image.Ready) window.update()
                 source: browser.previews[browser.activeId] || ""
                 fillMode: Image.Stretch
                 cache: false
@@ -264,7 +326,9 @@ Controls.ApplicationWindow {
                 readonly property var record: tab.record
                 anchors.fill: parent
                 active: false
-                visible: record.id === browser.activeId && window.browsingSurface && !browser.privateLocked && !toast.visible
+                visible: record.id === browser.activeId && !browser.privateLocked
+                    && (window.browsingSurface || window.nativeFloatingOverlays && window.floatingPanel)
+                    && (window.nativeFloatingOverlays || !toast.visible)
                 function configure() {
                     if (record.sleeping || !record.url.length) {
                         active = false;
@@ -278,6 +342,7 @@ Controls.ApplicationWindow {
                         const properties = {
                             record: Qt.binding(() => pageLoader.record),
                             presented: Qt.binding(() => pageLoader.visible),
+                            coverProgress: Qt.binding(() => window.pageCoverProgress),
                             overlayRect: Qt.binding(() => window.nativeOverlayRect)
                         };
                         if (browser.backend === "webengine")

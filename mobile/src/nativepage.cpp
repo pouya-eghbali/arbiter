@@ -14,6 +14,13 @@ void NativePage::setOverlayRect(const QRectF &rect) {
     if (m_window)
         MobilePlatform::setOverlayRect(this, rect);
 }
+void NativePage::setCoverProgress(qreal value) {
+    value = qBound(0., value, 1.);
+    if (qFuzzyCompare(m_coverProgress, value)) return;
+    m_coverProgress = value;
+    if (m_window) MobilePlatform::setCoverProgress(this, value);
+    emit coverProgressChanged();
+}
 void NativePage::capture() {
     if (m_window)
         MobilePlatform::capture(this);
@@ -29,6 +36,7 @@ void NativePage::start() {
     m_window = MobilePlatform::createWebView(this, profile, privateMode);
     emit nativeWindowChanged();
     MobilePlatform::setOverlayRect(this, m_overlayRect);
+    MobilePlatform::setCoverProgress(this, m_coverProgress);
     if (!m_url.isEmpty())
         MobilePlatform::navigate(this, m_url);
 }

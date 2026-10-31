@@ -9,6 +9,7 @@
 #include <QStandardPaths>
 #include <keychain.h>
 namespace MobilePlatform {
+void setCoverProgress(NativePage *, qreal) {}
 void openSystemSettings() {}
 void initialize() {}
 void shutdown() {}

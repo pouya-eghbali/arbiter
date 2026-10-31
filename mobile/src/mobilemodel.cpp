@@ -11,6 +11,7 @@
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QJsonArray>
+#include <QImageReader>
 #include <QJsonDocument>
 #include <QLocale>
 #include <QMutexLocker>
@@ -388,9 +389,10 @@ void MobileModel::captureActive() {
     else
         emit pageAction(m_active, "capture", QString());
 }
-void MobileModel::setPreview(const QString &key, const QImage &image) {
+void MobileModel::setPreview(const QString &key, const QImage &image, const QString &sourceUrl) {
     const auto tab = page(key);
-    if (tab.isEmpty() || (tab.value("private").toBool() && m_locked) || image.isNull() ||
+    if (tab.isEmpty() || (!sourceUrl.isEmpty() && tab.value("url").toString() != sourceUrl) ||
+        (tab.value("private").toBool() && m_locked) || image.isNull() ||
         image.width() > 8192 || image.height() > 8192)
         return;
     QByteArray bytes;
@@ -399,6 +401,7 @@ void MobileModel::setPreview(const QString &key, const QImage &image) {
     image.scaledToWidth(qMin(640, image.width()), Qt::SmoothTransformation).save(&buffer, "PNG");
     m_previews[key] = "data:image/png;base64," + QString::fromLatin1(bytes.toBase64());
     emit previewsChanged();
+    emit previewReady(key);
 }
 void MobileModel::cycleTab(int direction) {
     QStringList ids;
@@ -427,8 +430,13 @@ void MobileModel::updatePage(const QString &key, const QString &type, const QVar
         const auto image = values.value("image").toString();
         if (!tab.isEmpty() && !(tab.value("private").toBool() && m_locked) &&
             image.startsWith("data:image/png;base64,") && image.size() < 8 * 1024 * 1024) {
-            m_previews[key] = image;
-            emit previewsChanged();
+            QByteArray bytes = QByteArray::fromBase64(image.mid(22).toLatin1());
+            QBuffer buffer(&bytes);
+            buffer.open(QIODevice::ReadOnly);
+            QImageReader reader(&buffer, "png");
+            const auto size = reader.size();
+            if (size.isValid() && size.width() <= 8192 && size.height() <= 8192 && qint64(size.width()) * size.height() <= 16000000)
+                setPreview(key, reader.read(), values.value("sourceUrl").toString());
         }
         return;
     }

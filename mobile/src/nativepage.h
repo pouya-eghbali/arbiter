@@ -14,6 +14,7 @@ class NativePage : public QObject {
     Q_PROPERTY(QString profile MEMBER profile)
     Q_PROPERTY(bool privateMode MEMBER privateMode)
     Q_PROPERTY(QUrl url READ url WRITE setUrl NOTIFY changed)
+    Q_PROPERTY(qreal coverProgress READ coverProgress WRITE setCoverProgress NOTIFY coverProgressChanged)
     Q_PROPERTY(QRectF overlayRect READ overlayRect WRITE setOverlayRect NOTIFY overlayRectChanged)
     Q_PROPERTY(QString title READ title NOTIFY changed)
     Q_PROPERTY(bool canBack MEMBER canBack NOTIFY changed)
@@ -37,6 +38,8 @@ class NativePage : public QObject {
         return m_overlayRect;
     }
     void setOverlayRect(const QRectF &rect);
+    qreal coverProgress() const { return m_coverProgress; }
+    void setCoverProgress(qreal);
     Q_INVOKABLE void capture();
     Q_INVOKABLE void find(const QString &text, bool backwards = false);
     Q_INVOKABLE void start();
@@ -53,11 +56,13 @@ class NativePage : public QObject {
     void changed();
     void nativeWindowChanged();
     void overlayRectChanged();
+    void coverProgressChanged();
     void browserEvent(QString tabId, QString type, QVariantMap data);
 
   private:
     QWindow *m_window = nullptr;
     QUrl m_url;
     QRectF m_overlayRect;
+    qreal m_coverProgress = 0;
     QString m_title;
 };

@@ -5,9 +5,11 @@ Item {
     id: root
     required property var record
     required property bool presented
+    property real coverProgress: 0
     property rect overlayRect: Qt.rect(0, 0, 0, 0)
     NativePage {
         id: page
+        coverProgress: root.coverProgress
         tabId: root.record.id
         profile: root.record.profile || "shared"
         privateMode: root.record.private || false

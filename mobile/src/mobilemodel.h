@@ -43,7 +43,7 @@ class MobileModel : public QObject {
         return m_previews;
     }
     Q_INVOKABLE void captureActive();
-    Q_INVOKABLE void setPreview(const QString &id, const QImage &image);
+    Q_INVOKABLE void setPreview(const QString &id, const QImage &image, const QString &sourceUrl = QString());
     Q_INVOKABLE void cycleTab(int direction);
     Q_INVOKABLE void findText(const QString &text, bool backwards = false);
     QVariantList tabs() const;
@@ -131,6 +131,7 @@ class MobileModel : public QObject {
     void changed();
     void settingsChanged();
     void previewsChanged();
+    void previewReady(QString tabId);
     void message(QString text);
     void loginOffered(QString origin, QString username);
     void accountsOffered(QVariantList accounts);

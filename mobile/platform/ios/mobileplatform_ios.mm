@@ -256,6 +256,7 @@ void prepareRules(void (^callback)(void)) {
     QPointer<NativePage> page;
 }
 @property(nonatomic, strong) ArbiterPageView *view;
+@property(nonatomic, strong) UIView *coverShade;
 @property(nonatomic, strong) NSMutableDictionary *downloads;
 @property(nonatomic) NSUInteger navigationGeneration;
 @property(nonatomic, copy) NSString *privateProfile;
@@ -332,24 +333,47 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
 - (void)captureForPreview {
     if (!page || !MobileModel::instance || MobileModel::instance->activeId() != page->tabId ||
         (page->privateMode && MobileModel::instance->privateLocked()) ||
-        qGuiApp->applicationState() != Qt::ApplicationActive)
+        qGuiApp->applicationState() != Qt::ApplicationActive || page->coverProgress() > 0 ||
+        self.view.hidden || !self.view.window || self.view.bounds.size.width < 1 || self.view.bounds.size.height < 1)
         return;
+    for (UIView *ancestor = self.view.superview; ancestor; ancestor = ancestor.superview)
+        if (ancestor.hidden) return;
     QPointer<NativePage> target = page;
+    const QUrl sourceUrl = page->url();
+    __weak ArbiterWeb *weakSelf = self;
     WKSnapshotConfiguration *config = [WKSnapshotConfiguration new];
     config.afterScreenUpdates = NO;
     config.snapshotWidth = @(MIN(640, self.view.bounds.size.width));
     [self.view
         takeSnapshotWithConfiguration:config
                     completionHandler:^(UIImage *image, NSError *error) {
-                      if (!target || !image)
+                      auto bridge = weakSelf;
+                      if (!target || !bridge || target->url() != sourceUrl || bridge.view.hidden || target->coverProgress() > 0 ||
+                          qGuiApp->applicationState() != Qt::ApplicationActive || bridge.view.bounds.size.width < 1 || bridge.view.bounds.size.height < 1)
                           return;
+                      for (UIView *ancestor = bridge.view.superview; ancestor; ancestor = ancestor.superview)
+                          if (ancestor.hidden) return;
+                      // A visible-view fallback keeps Glacier usable if WebKit
+                      // cannot produce its compositor snapshot during loading.
+                      if (!image) {
+                          const auto width = MIN(640., bridge.view.bounds.size.width);
+                          const auto scale = width / bridge.view.bounds.size.width;
+                          auto format = [UIGraphicsImageRendererFormat defaultFormat];
+                          format.scale = 1;
+                          auto renderer = [[UIGraphicsImageRenderer alloc] initWithSize:CGSizeMake(width, bridge.view.bounds.size.height * scale) format:format];
+                          __block BOOL drawn = NO;
+                          image = [renderer imageWithActions:^(UIGraphicsImageRendererContext *context) {
+                              drawn = [bridge.view drawViewHierarchyInRect:CGRectMake(0, 0, width, bridge.view.bounds.size.height * scale) afterScreenUpdates:NO];
+                          }];
+                          if (!drawn) return;
+                      }
                       NSData *png = UIImagePNGRepresentation(image);
                       if (png.length > 5 * 1024 * 1024)
                           return;
                       target->event(
                           "preview",
                           {{"image", "data:image/png;base64," +
-                                         QString::fromNSString([png base64EncodedStringWithOptions:0])}});
+                                         QString::fromNSString([png base64EncodedStringWithOptions:0])}, {"sourceUrl", sourceUrl.toString()}});
                     }];
 }
 - (void)configure {
@@ -751,6 +775,22 @@ void setOverlayRect(NativePage *page, const QRectF &rect) {
         return;
     ArbiterWeb *bridge = (__bridge ArbiterWeb *)page->handle;
     bridge.view.overlayFraction = CGRectMake(rect.x(), rect.y(), rect.width(), rect.height());
+}
+void setCoverProgress(NativePage *page, qreal progress) {
+    if (!page->handle) return;
+    ArbiterWeb *bridge = (__bridge ArbiterWeb *)page->handle;
+    if (!bridge.coverShade) {
+        bridge.coverShade = [[UIView alloc] initWithFrame:bridge.view.bounds];
+        bridge.coverShade.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        bridge.coverShade.backgroundColor = UIColor.blackColor;
+        bridge.coverShade.userInteractionEnabled = NO;
+        bridge.coverShade.accessibilityElementsHidden = YES;
+        bridge.coverShade.layer.zPosition = 10000;
+        [bridge.view addSubview:bridge.coverShade];
+    }
+    bridge.coverShade.alpha = .28 * progress;
+    // Let the QML backdrop receive outside taps, never the covered website.
+    bridge.view.userInteractionEnabled = progress <= 0;
 }
 void capture(NativePage *page) {
     if (!page->handle)

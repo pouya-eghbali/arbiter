@@ -71,6 +71,15 @@ Glacier. Older Apple systems, older SDKs, non-Apple platforms, and the offscreen
 renderer use Glacier. The native material samples the composited hierarchy;
 no screenshot is supplied to it.
 
+On iOS, floating menu, address, tab and workspace sheets retain the live
+WKWebView underneath native glass. An animated native shade dims it and disables
+page input until dismissal completes; outside taps reach the sheet backdrop.
+Full settings pages and private locking still hide the native page. Glacier
+waits for a valid page preview to decode and reach the scene graph before hiding
+the web view. Switching between sheets does not capture an already hidden page.
+Late captures from another URL, hidden/covered views, and invalid PNG payloads
+cannot replace the cached preview. Mobile previews remain in memory only.
+
 Tab preview textures cannot cross QQuickWindows. Desktop native tab overview
 therefore retains bounded grab results in memory for the visible workspace,
 and clears them on dismissal/private covering. Glacier keeps its existing live
@@ -102,6 +111,13 @@ scene-graph previews. No preview images are written to disk.
   intermediate panel/inset values, completed dismissal, Reduce Motion and
   immediate private-lock concealment.
 - The software screen matrix checks Glacier across phone sizes and themes.
+- iOS simulator `SIMCTL_CHILD_ARBITER_OVERLAY_SMOKE=1` with
+  `SIMCTL_CHILD_ARBITER_OVERLAY_URL` pointing at a local test page titled
+  `Overlay fixture`: live native page visibility and input blocking under all
+  four floating sheets, restoration on dismissal, full settings concealment,
+  Glacier's rendered-preview handoff, and preservation of the preview when
+  changing sheets. This uses a temporary profile and is excluded from device
+  builds.
 
 `ARBITER_GLASS_FORCE_OPAQUE=1` exercises reduced transparency without changing
 system preferences. Native surfaces require OS/simulator screenshots for visual

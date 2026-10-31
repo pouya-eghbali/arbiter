@@ -31,6 +31,7 @@ void evaluate(NativePage *, const QString &, std::function<void(QVariant)> = {})
 void configurePage(NativePage *);
 void setOverlayRect(NativePage *, const QRectF &normalized);
 void capture(NativePage *);
+void setCoverProgress(NativePage *, qreal);
 void find(NativePage *, const QString &, bool backwards);
 void mediaPlaying(NativePage *, std::function<void(bool)>);
 } // namespace MobilePlatform

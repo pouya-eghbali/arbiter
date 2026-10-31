@@ -7,6 +7,7 @@ bool approved = false;
 int verifications = 0;
 } // namespace TestPlatform
 namespace MobilePlatform {
+void setCoverProgress(NativePage *, qreal) {}
 void initialize() {}
 void openSystemSettings() {}
 void shutdown() {}
