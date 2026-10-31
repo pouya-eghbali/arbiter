@@ -220,6 +220,9 @@ void NativeGlassHost::release() {
 #ifndef Q_OS_DARWIN
 namespace NativeGlass {
 bool supported() { return false; }
+bool nativeKeyboardAvailable() { return false; }
+void watchKeyboard(SurfacePalette *) {}
+qreal keyboardInset(QQuickItem *, const QRectF &) { return 0; }
 bool reducedTransparency() { return false; }
 void *create(QQuickWindow *, QQuickWindow *) { return nullptr; }
 void *createWindow(QQuickWindow *, NativeGlassHost *) { return nullptr; }

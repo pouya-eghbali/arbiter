@@ -4,7 +4,7 @@ import QtQuick.Controls.Basic as Controls
 import QtQuick.Layouts
 import Arbiter
 
-Item {
+MobilePresentation {
     id: root
     signal dismiss
     property real keyboardInset: 0
@@ -18,6 +18,9 @@ Item {
     NativeSheet {
         anchors.fill: parent
         anchors.margins: 12
+        anchors.topMargin: 12 + 16 * (1 - root.progress)
+        anchors.bottomMargin: 12 - 16 * (1 - root.progress)
+        interactive: root.presented
         onEscapeRequested: root.dismiss()
         requested: Theme.liquidGlass && !editor.visible
     ColumnLayout {

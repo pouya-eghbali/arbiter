@@ -12,7 +12,7 @@ qt_standard_project_setup(REQUIRES ${ARBITER_QT_SERIES})
 # Prefer WebEngine wherever the selected Qt kit actually provides it. Phones
 # use the native WebViews because their kits do not provide WebEngine.
 find_package(Qt6 ${ARBITER_QT_VERSION} QUIET COMPONENTS WebEngineQuick WebChannel)
-set(mobile_qml qml/NativeSheet.qml qml/MobileMain.qml qml/MobileSettings.qml qml/MobileColors.qml qml/MobileLanguagePicker.qml qml/PairingScanner.qml qml/MobileIconButton.qml qml/MobilePill.qml qml/MobileStartPage.qml qml/MobileThumbnail.qml qml/MobileTabsOverview.qml qml/MobileWorkspaces.qml qml/MobileSearchSheet.qml qml/MobileMoreSheet.qml qml/NativePane.qml qml/MobileButton.qml qml/MobileField.qml qml/MobileToggle.qml qml/MobileComboBox.qml qml/MobileSection.qml qml/MobileEmptyState.qml qml/MobileLogo.qml)
+set(mobile_qml qml/NativeSheet.qml qml/MobilePresentation.qml qml/MobileMain.qml qml/MobileSettings.qml qml/MobileColors.qml qml/MobileLanguagePicker.qml qml/PairingScanner.qml qml/MobileIconButton.qml qml/MobilePill.qml qml/MobileStartPage.qml qml/MobileThumbnail.qml qml/MobileTabsOverview.qml qml/MobileWorkspaces.qml qml/MobileSearchSheet.qml qml/MobileMoreSheet.qml qml/NativePane.qml qml/MobileButton.qml qml/MobileField.qml qml/MobileToggle.qml qml/MobileComboBox.qml qml/MobileSection.qml qml/MobileEmptyState.qml qml/MobileLogo.qml)
 if(TARGET Qt6::WebEngineQuick)
     set(ARBITER_MOBILE_WEBENGINE ON)
     list(APPEND mobile_qml qml/WebEnginePane.qml qml/EngineProfiles.qml)

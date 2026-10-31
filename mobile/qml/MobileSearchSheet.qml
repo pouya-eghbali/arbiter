@@ -4,7 +4,7 @@ import QtQuick.Controls.Basic as Controls
 import QtQuick.Layouts
 import Arbiter
 
-Item {
+MobilePresentation {
     id: root
     property real keyboardInset: 0
     property string address: ""
@@ -12,28 +12,34 @@ Item {
     signal dismiss
     signal navigate(string value)
     signal tabSelected(string id)
-    onVisibleChanged: if (visible) {
+    onPresentedChanged: if (presented) {
         input.text = address;
         query = "";
         Qt.callLater(() => {
+            if (!root.presented || root.concealed) return;
             sheet.focusControl(input);
             input.selectAll();
         });
+    } else {
+        sheet.desiredFocus = null;
+        input.focus = false;
     }
     Rectangle {
         anchors.fill: parent
         color: Qt.alpha(Theme.window, .36)
         TapHandler {
+            enabled: root.presented
             onTapped: root.dismiss()
         }
     }
     NativeSheet {
         id: sheet
+        interactive: root.presented
         onEscapeRequested: root.dismiss()
         width: Math.min(parent.width - 24, 536)
         x: (parent.width - width) / 2
         height: Math.max(0, Math.min(440, parent.height - root.keyboardInset - 16))
-        y: parent.height - root.keyboardInset - height - 8
+        y: parent.height - root.keyboardInset - height - 8 + 20 * (1 - root.progress)
         radius: 27
         ColumnLayout {
             anchors.fill: parent

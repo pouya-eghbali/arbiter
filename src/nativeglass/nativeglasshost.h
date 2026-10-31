@@ -5,6 +5,8 @@
 #include <QTimer>
 #include <QtQml/qqmlregistration.h>
 
+class SurfacePalette;
+
 class NativeGlassHost : public QQuickItem {
     Q_OBJECT
     QML_ELEMENT
@@ -81,6 +83,9 @@ private:
 
 namespace NativeGlass {
 bool supported();
+bool nativeKeyboardAvailable();
+void watchKeyboard(SurfacePalette *);
+qreal keyboardInset(QQuickItem *, const QRectF &);
 bool reducedTransparency();
 void *create(QQuickWindow *owner, QQuickWindow *foreground);
 void *createWindow(QQuickWindow *, NativeGlassHost *);

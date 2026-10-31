@@ -4,7 +4,7 @@ import QtQuick.Controls.Basic as Controls
 import QtQuick.Layouts
 import Arbiter
 
-Item {
+MobilePresentation {
     id: root
     readonly property color menuText: nativeGlass.active ? nativeGlass.foregroundColor : Theme.textFor(parent)
     readonly property color menuMuted: nativeGlass.active ? Qt.alpha(nativeGlass.foregroundColor, .65) : Theme.mutedFor(parent)
@@ -17,6 +17,7 @@ Item {
         anchors.fill: parent
         color: Qt.alpha(Theme.window, .35)
         TapHandler {
+            enabled: root.presented
             onTapped: root.dismiss()
         }
     }
@@ -24,6 +25,7 @@ Item {
         width: Math.min(parent.width, 560)
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
+        anchors.bottomMargin: -16 * (1 - root.progress)
         height: Math.min(parent.height - 32, body.implicitHeight + 40 + root.bottomInset)
         NativeGlassHost {
             id: nativeGlass
@@ -47,6 +49,7 @@ Item {
         }
         Item {
             id: menuContent
+            enabled: root.presented
             objectName: "mobileMenuContent"
             anchors.fill: parent
             Controls.ScrollView {

@@ -3,13 +3,25 @@
 #include <QHash>
 #include <QPointer>
 #include <QGuiApplication>
+#include <QEasingCurve>
 namespace {
 QHash<QWindow *, QColor> colors;
 QList<QPointer<SurfacePalette>> palettes;
 }
 SurfacePalette::SurfacePalette(QObject *parent) : QObject(parent) {
     palettes.append(this);
+    NativeGlass::watchKeyboard(this);
     connect(qGuiApp, &QGuiApplication::focusWindowChanged, this, [this] { ++m_revision; emit changed(); });
+}
+bool SurfacePalette::nativeKeyboardAvailable() const { return NativeGlass::nativeKeyboardAvailable(); }
+qreal SurfacePalette::keyboardInset(QQuickItem *item) const { return NativeGlass::keyboardInset(item, m_keyboardFrame); }
+void SurfacePalette::setKeyboardFrame(const QRectF &frame, int duration, int curve) {
+    m_keyboardFrame = frame;
+    m_keyboardDuration = qMax(0, duration);
+    m_keyboardEasing = curve == 0 ? QEasingCurve::InOutCubic : curve == 1 ? QEasingCurve::InCubic
+        : curve == 3 ? QEasingCurve::Linear : QEasingCurve::OutCubic;
+    ++m_keyboardRevision;
+    emit keyboardChanged();
 }
 qreal SurfacePalette::keyboardTop(QQuickItem *target, qreal y) const {
     auto focused = qGuiApp->focusWindow();

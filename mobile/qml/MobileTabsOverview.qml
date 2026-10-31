@@ -4,7 +4,7 @@ import QtQuick.Controls.Basic as Controls
 import QtQuick.Layouts
 import Arbiter
 
-Item {
+MobilePresentation {
     id: root
     required property var tabs
     required property string workspaceName
@@ -14,6 +14,9 @@ Item {
     NativeSheet {
         anchors.fill: parent
         anchors.margins: 12
+        anchors.topMargin: 12 + 16 * (1 - root.progress)
+        anchors.bottomMargin: 12 - 16 * (1 - root.progress)
+        interactive: root.presented
         onEscapeRequested: root.dismiss()
     ColumnLayout {
         width: Math.min(parent.width - 40, 560)

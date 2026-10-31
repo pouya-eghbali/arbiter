@@ -4,7 +4,7 @@ import QtQuick.Controls.Basic as Controls
 import QtQuick.Layouts
 import Arbiter
 
-Item {
+MobilePresentation {
     id: root
     objectName: "mobilePill"
     required property var current
@@ -40,6 +40,7 @@ Item {
     }
     Item {
         id: pillContent
+        enabled: root.presented
         objectName: "mobilePillContent"
         anchors.fill: parent
         ColumnLayout {

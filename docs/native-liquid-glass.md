@@ -54,6 +54,16 @@ QUIView activating their top-level parent and resetting the keyboard mid-touch.
 They remain interactive content hosts, excluded from standalone popup/tooltip
 concealment rules. Suggestion buttons retain the editor's pointer focus.
 
+MobilePresentation shares short fade/slide transitions across the pill and
+floating panels, keeping native hosts alive until the exit completes. Exiting
+content stops accepting input. Reduce Motion skips transitions, and private
+locking conceals native content immediately rather than waiting for a fade.
+On iOS, SurfacePalette observes public keyboard frame notifications and uses
+the end frame in screen coordinates plus the system animation duration. The
+shared keyboard inset animates layout without feeding sheet motion back into
+keyboard geometry. Other platforms retain Qt keyboard geometry with eased
+layout movement. Floating iPad keyboards do not shift the entire interface.
+
 UiPopup, UiMenu and UiToolTip close when their owning private window is covered,
 including native windows outside the main Qt overlay. Hidden or disabled child
 hosts immediately hide their native content. Reduce Transparency uses opaque
@@ -88,6 +98,9 @@ scene-graph previews. No preview images are written to disk.
   switch-to-tab touch checks with the software keyboard, native glass and Glacier.
   Includes QUIView's ancestor-activation step before touch delivery (which QTest
   otherwise bypasses) and rejects any keyboard-focus reset before selection.
+  Motion checks return to UIKit's display-link loop between frames, checking
+  intermediate panel/inset values, completed dismissal, Reduce Motion and
+  immediate private-lock concealment.
 - The software screen matrix checks Glacier across phone sizes and themes.
 
 `ARBITER_GLASS_FORCE_OPAQUE=1` exercises reduced transparency without changing

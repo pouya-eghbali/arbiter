@@ -25,6 +25,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include "nativeglasshost.h"
+#include "surfacepalette.h"
 extern QWindow *arbiter_ios_test_window_at(QWindow *, QPointF, QPoint *);
 #endif
 #endif
@@ -145,7 +146,7 @@ int main(int argc, char **argv) {
     // This diagnostic entry point is never compiled into physical-device builds.
     if (qEnvironmentVariableIsSet("ARBITER_UI_SMOKE") || qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE")) {
         auto window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
-        QTimer::singleShot(1500, window, [window, &browser] {
+        QTimer::singleShot(1500, window, [window, &browser, &engine] {
             auto device = QTest::createTouchDevice();
             auto tap = [&](QPointF point) {
                 QPoint local;
@@ -230,8 +231,52 @@ int main(int argc, char **argv) {
             tapControl("mobileAddressCloseButton");
             if (window->property("panel") != "") qFatal("Address sheet close failed");
             if (qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE")) {
-                qInfo("History and switch-to-tab taps preserved keyboard focus and executed in native glass and Glacier; typing and dismissal passed");
-                qApp->quit(); return;
+                auto sheet = window->findChild<QQuickItem *>("mobileAddressSheet");
+                auto motion = new QTimer(window);
+                motion->setInterval(80);
+                // Return to UIKit's normal run loop between frames: nested
+                // QTest::qWait can starve the iOS display-link animation driver.
+                QObject::connect(motion, &QTimer::timeout, window, [window, &browser, &engine, sheet, motion, step = 0, expectedInset = 0.]() mutable {
+                    auto palette = engine.singletonInstance<SurfacePalette *>("Arbiter", "SurfacePalette");
+                    auto theme = engine.singletonInstance<QObject *>("Arbiter", "Theme");
+                    if (step == 0) {
+                        const auto value = sheet->property("progress").toDouble();
+                        if (!sheet->isVisible() || value <= 0 || value >= 1) qFatal("Address sheet did not animate into view");
+                        QMetaObject::invokeMethod(window, "dismiss");
+                        if (!sheet->isVisible()) qFatal("Address sheet disappeared before its exit transition");
+                    } else if (step == 4) {
+                        if (sheet->isVisible()) qFatal("Address exit transition did not finish");
+                        palette->setKeyboardFrame(QRectF(0, window->height() - 300, window->width(), 300), 240, 2);
+                    } else if (step == 5) {
+                        const auto inset = window->property("keyboardInset").toDouble();
+                        expectedInset = window->property("targetKeyboardInset").toDouble();
+                        if (expectedInset < 100 || inset <= 0 || inset >= expectedInset) qFatal("Keyboard inset snapped instead of animating");
+                    } else if (step == 8) {
+                        if (qAbs(window->property("keyboardInset").toDouble() - expectedInset) > 1) qFatal("Keyboard animation did not reach its target");
+                        palette->setKeyboardFrame(QRectF(0, window->height(), window->width(), 300), 240, 2);
+                    } else if (step == 12) {
+                        theme->setProperty("reducedMotion", true);
+                        QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "address"));
+                    } else if (step == 13) {
+                        if (sheet->property("progress").toDouble() != 1) qFatal("Reduce Motion still animated the sheet");
+                        QMetaObject::invokeMethod(window, "dismiss");
+                    } else if (step == 14) {
+                        if (sheet->isVisible()) qFatal("Reduce Motion delayed dismissal");
+                        theme->setProperty("reducedMotion", false);
+                        browser.newPrivateTab();
+                        QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "address"));
+                    } else if (step == 15) {
+                        qGuiApp->applicationStateChanged(Qt::ApplicationInactive);
+                        if (sheet->isVisible()) qFatal("Private lock waited for an animation");
+                        motion->stop();
+                        qInfo("Suggestion actions, panel transitions, keyboard interpolation, Reduce Motion and immediate private concealment passed");
+                        qApp->quit();
+                    }
+                    ++step;
+                });
+                QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "address"));
+                motion->start();
+                return;
             }
             QTest::qWait(300);
             tapControl("mobileTabsButton");

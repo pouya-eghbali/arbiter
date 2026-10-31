@@ -1,4 +1,5 @@
 #include "nativeglasshost.h"
+#include "surfacepalette.h"
 #include <TargetConditionals.h>
 #include <QGuiApplication>
 #include <QAbstractNativeEventFilter>
@@ -8,6 +9,49 @@ namespace NativeGlass { class PopupEventFilter; }
 #else
 #import <AppKit/AppKit.h>
 #endif
+
+namespace NativeGlass {
+bool nativeKeyboardAvailable() {
+#if TARGET_OS_IPHONE
+    return qGuiApp && qGuiApp->platformName() == "ios";
+#else
+    return false;
+#endif
+}
+void watchKeyboard(SurfacePalette *palette) {
+#if TARGET_OS_IPHONE
+    if (!nativeKeyboardAvailable()) return;
+    QPointer<SurfacePalette> guarded(palette);
+    auto token = [NSNotificationCenter.defaultCenter addObserverForName:UIKeyboardWillChangeFrameNotification
+        object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
+            if (!guarded) return;
+            const auto frame = [note.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+            const int duration = qRound([note.userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue] * 1000);
+            const int curve = [note.userInfo[UIKeyboardAnimationCurveUserInfoKey] intValue];
+            guarded->setKeyboardFrame(QRectF(frame.origin.x, frame.origin.y, frame.size.width, frame.size.height), duration, curve);
+        }];
+    QObject::connect(palette, &QObject::destroyed, [token] { [NSNotificationCenter.defaultCenter removeObserver:token]; });
+#else
+    Q_UNUSED(palette);
+#endif
+}
+qreal keyboardInset(QQuickItem *item, const QRectF &frame) {
+#if TARGET_OS_IPHONE
+    if (!nativeKeyboardAvailable() || !item || !item->window() || frame.isEmpty()) return 0;
+    UIView *view = (__bridge UIView *)(void *)item->window()->winId();
+    if (!view.window) return 0;
+    const auto screen = CGRectMake(frame.x(), frame.y(), frame.width(), frame.height());
+    const auto windowFrame = [view.window convertRect:screen fromCoordinateSpace:view.window.screen.coordinateSpace];
+    const auto local = [view convertRect:windowFrame fromView:view.window];
+    // A floating iPad keyboard should not push the entire browser upward.
+    if (!CGRectIntersectsRect(view.bounds, local) || CGRectGetMaxY(local) < CGRectGetMaxY(view.bounds) - 1) return 0;
+    const auto point = item->mapFromScene(QPointF(local.origin.x, local.origin.y));
+    return qMax(0., item->height() - point.y());
+#else
+    Q_UNUSED(item); Q_UNUSED(frame); return 0;
+#endif
+}
+}
 
 #if (TARGET_OS_IPHONE && __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000) || (!TARGET_OS_IPHONE && __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000)
 @interface ArbiterNativeGlassContext : NSObject

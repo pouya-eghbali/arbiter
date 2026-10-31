@@ -43,7 +43,21 @@ Controls.ApplicationWindow {
     readonly property bool specialPanel: ["address", "tabs", "workspaces", "more", "find"].includes(panel)
     readonly property bool browsingSurface: panel === "" || panel === "find"
     property real previewKeyboardInset: 0
-    readonly property real keyboardInset: browser.backend === "preview" && previewKeyboardInset > 0 ? previewKeyboardInset : Qt.inputMethod.visible && Qt.inputMethod.keyboardRectangle.y > 0 ? Math.max(0, content.height - window.keyboardTop()) : 0
+    readonly property real targetKeyboardInset: {
+        const revision = SurfacePalette.keyboardRevision;
+        const height = content.height;
+        if (browser.backend === "preview" && previewKeyboardInset > 0) return previewKeyboardInset;
+        if (SurfacePalette.nativeKeyboardAvailable && height > 0) return SurfacePalette.keyboardInset(content);
+        return Qt.inputMethod.visible && Qt.inputMethod.keyboardRectangle.y > 0 ? Math.max(0, height - window.keyboardTop()) : 0;
+    }
+    property real keyboardInset: targetKeyboardInset
+    Behavior on keyboardInset {
+        NumberAnimation {
+            duration: browser.privateLocked || Theme.reducedMotion ? 0 : SurfacePalette.nativeKeyboardAvailable ? SurfacePalette.keyboardDuration : 250
+            easing.type: SurfacePalette.nativeKeyboardAvailable ? SurfacePalette.keyboardEasing : Easing.OutCubic
+        }
+    }
+    readonly property real overlayProgress: Math.max(addressSheet.progress, moreSheet.progress, tabsOverview.progress, workspacesSheet.progress)
     function keyboardTop() {
         const revision = SurfacePalette.revision;
         return SurfacePalette.keyboardTop(content, Qt.inputMethod.keyboardRectangle.y);
@@ -352,20 +366,22 @@ Controls.ApplicationWindow {
             blurMax: 48
             blur: .65
             autoPaddingEnabled: false
-            visible: ["address", "more", "tabs", "workspaces"].includes(window.panel)
+            visible: !browser.privateLocked && window.overlayProgress > 0.001
+            opacity: window.overlayProgress
             saturation: -.1
         }
         MobilePill {
             id: pill
             x: 16
             width: parent.width - 32
-            y: parent.height - height - Math.max(14, window.bottomInset + 8) - window.keyboardInset
+            y: parent.height - height - Math.max(14, window.bottomInset + 8) - window.keyboardInset + 12 * (1 - pill.progress)
             height: implicitHeight
             current: window.current
             enabled: !browser.privateLocked
             tabCount: window.visibleTabs.length
             suggestions: browser.fieldFocused
-            visible: window.panel === "" && !browser.privateLocked
+            presented: window.panel === "" && !browser.privateLocked
+            concealed: browser.privateLocked
             onSearchRequested: window.open("address")
             onTabsRequested: window.open("tabs")
             onMoreRequested: window.open("more")
@@ -374,90 +390,104 @@ Controls.ApplicationWindow {
                 browser.cycleTab(direction);
             }
         }
-        NativeSheet {
-            id: findBar
-            onEscapeRequested: window.dismiss()
-            x: 12
-            width: parent.width - 24
-            height: 120
-            y: parent.height - height - Math.max(12, window.bottomInset + 8) - window.keyboardInset
-            visible: window.panel === "find"
-            radius: 26
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 12
-                spacing: 6
-                RowLayout {
-                    Layout.fillWidth: true
-                    UiIcon {
-                        name: "search"
-                        color: Theme.mutedFor(parent)
-                        Layout.preferredWidth: 18
-                        Layout.preferredHeight: 18
-                    }
-                    MobileField {
-                        id: findInput
+        MobilePresentation {
+            id: findPresentation
+            anchors.fill: parent
+            presented: window.panel === "find"
+            concealed: browser.privateLocked
+            onPresentedChanged: if (presented) Qt.callLater(() => { if (findPresentation.presented) findBar.focusControl(findInput) }); else findBar.desiredFocus = null
+            NativeSheet {
+                id: findBar
+                onEscapeRequested: window.dismiss()
+                x: 12
+                width: parent.width - 24
+                height: 120
+                y: parent.height - height - Math.max(12, window.bottomInset + 8) - window.keyboardInset + 16 * (1 - findPresentation.progress)
+                interactive: findPresentation.presented
+                radius: 26
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    spacing: 6
+                    RowLayout {
                         Layout.fillWidth: true
-                        placeholderText: qsTr("Find in page")
-                        onTextEdited: browser.findText(text)
-                        onAccepted: browser.findText(text)
+                        UiIcon {
+                            name: "search"
+                            color: Theme.mutedFor(parent)
+                            Layout.preferredWidth: 18
+                            Layout.preferredHeight: 18
+                        }
+                        MobileField {
+                            id: findInput
+                            Layout.fillWidth: true
+                            placeholderText: qsTr("Find in page")
+                            onTextEdited: browser.findText(text)
+                            onAccepted: browser.findText(text)
+                        }
+                        MobileIconButton {
+                            iconName: "x"
+                            label: qsTr("Close")
+                            onClicked: window.dismiss()
+                        }
                     }
-                    MobileIconButton {
-                        iconName: "x"
-                        label: qsTr("Close")
-                        onClicked: window.dismiss()
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text {
+                            text: qsTr("Find in page")
+                            color: Theme.mutedFor(parent)
+                            font.pixelSize: 12
+                            Layout.fillWidth: true
+                        }
+                        MobileIconButton {
+                            iconName: "arrow-up"
+                            label: qsTr("Previous match")
+                            onClicked: browser.findText(findInput.text, true)
+                        }
+                        MobileIconButton {
+                            iconName: "arrow-down"
+                            label: qsTr("Next match")
+                            onClicked: browser.findText(findInput.text)
+                        }
                     }
                 }
-                RowLayout {
-                    Layout.fillWidth: true
-                    Text {
-                        text: qsTr("Find in page")
-                        color: Theme.mutedFor(parent)
-                        font.pixelSize: 12
-                        Layout.fillWidth: true
-                    }
-                    MobileIconButton {
-                        iconName: "arrow-up"
-                        label: qsTr("Previous match")
-                        onClicked: browser.findText(findInput.text, true)
-                    }
-                    MobileIconButton {
-                        iconName: "arrow-down"
-                        label: qsTr("Next match")
-                        onClicked: browser.findText(findInput.text)
-                    }
-                }
+                onVisibleChanged: if (!visible) desiredFocus = null
             }
-            onVisibleChanged: if (visible)
-                Qt.callLater(() => findBar.focusControl(findInput))
         }
 
         Rectangle {
             anchors.fill: parent
             color: Qt.alpha(Theme.window, .35)
-            visible: window.panel === "tabs" || window.panel === "workspaces"
+            visible: !browser.privateLocked && (tabsOverview.progress > 0.001 || workspacesSheet.progress > 0.001)
+            opacity: Math.max(tabsOverview.progress, workspacesSheet.progress)
             TapHandler { onTapped: window.dismiss() }
         }
         MobileTabsOverview {
+            id: tabsOverview
             anchors.fill: parent
             anchors.bottomMargin: window.bottomInset
-            visible: window.panel === "tabs"
+            presented: window.panel === "tabs"
+            concealed: browser.privateLocked
             tabs: window.visibleTabs
             workspaceName: window.workspaceName
             onDismiss: window.dismiss()
             onWorkspacesRequested: window.open("workspaces")
         }
         MobileWorkspaces {
+            id: workspacesSheet
             objectName: "workspaceScreen"
             keyboardInset: window.keyboardInset
             anchors.fill: parent
             anchors.bottomMargin: window.bottomInset
-            visible: window.panel === "workspaces"
+            presented: window.panel === "workspaces"
+            concealed: browser.privateLocked
             onDismiss: window.dismiss()
         }
         MobileSearchSheet {
+            id: addressSheet
+            objectName: "mobileAddressSheet"
             anchors.fill: parent
-            visible: window.panel === "address"
+            presented: window.panel === "address"
+            concealed: browser.privateLocked
             address: window.current.url || ""
             keyboardInset: Math.max(window.keyboardInset, window.bottomInset)
             onDismiss: window.dismiss()
@@ -468,9 +498,11 @@ Controls.ApplicationWindow {
             }
         }
         MobileMoreSheet {
+            id: moreSheet
             anchors.fill: parent
             bottomInset: window.bottomInset
-            visible: window.panel === "more"
+            presented: window.panel === "more"
+            concealed: browser.privateLocked
             hasPage: Boolean(window.current.url)
             blocking: browser.blockingFor(window.current.url || "")
             onDismiss: window.dismiss()

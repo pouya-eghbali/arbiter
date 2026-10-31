@@ -7,6 +7,7 @@ Item {
     default property alias surfaceData: body.data
     property real radius: 28
     property bool requested: Theme.liquidGlass
+    property bool interactive: true
     readonly property bool nativeActive: host.active
     property Item desiredFocus: null
     signal escapeRequested()
@@ -32,6 +33,6 @@ Item {
             dense: true
             forceOpaque: host.reducedTransparency
         },
-        FocusScope { id: body; parent: sheet; anchors.fill: parent }
+        FocusScope { id: body; parent: sheet; anchors.fill: parent; enabled: sheet.interactive }
     ]
 }
