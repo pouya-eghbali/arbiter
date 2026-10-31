@@ -214,7 +214,7 @@
      current_cpu = "arm64"
 --- /dev/null
 +++ b/src/host/BUILD.arbiter-apple.toolchain.gn.in
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,17 @@
 +# Native Apple tools for a Windows target. No Windows programs run here.
 +import("//build/config/mac/mac_sdk.gni")
 +import("//build/toolchain/apple/toolchain.gni")
@@ -228,6 +228,7 @@
 +    v8_current_cpu = "@GN_V8_CPU@"
 +    is_clang = true
 +    is_mingw = false
++    is_msvc = false
 +    use_lld = false
 +  }
 +}
@@ -287,3 +288,13 @@
      cc = compiler_prefix + _cc
      cxx = compiler_prefix + _cxx
      ld = _cxx
+--- a/src/host/BUILD.toolchain.gn.in
++++ b/src/host/BUILD.toolchain.gn.in
+@@ -14,6 +14,7 @@
+     v8_current_cpu = "@GN_V8_CPU@"
+     is_clang = @GN_IS_CLANG@
+     is_mingw = @GN_IS_MINGW@
++    is_msvc = false
+     use_gold = false
+   }
+ }
