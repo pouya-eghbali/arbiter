@@ -73,17 +73,13 @@ MobilePresentation {
                             radius: 2
                             color: Qt.alpha(root.menuText, .3)
                         }
-                        MobileIconButton {
+                        MobileCloseButton {
                             objectName: "mobileMenuCloseButton"
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            iconName: "x"
                             label: qsTr("Close")
                             nativeMaterial: nativeGlass.active
                             iconColor: root.menuText
-                            implicitWidth: 32
-                            implicitHeight: 32
-                            iconSize: 18
                             onClicked: root.dismiss()
                         }
                     }

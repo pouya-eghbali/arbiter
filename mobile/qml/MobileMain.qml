@@ -489,8 +489,7 @@ Controls.ApplicationWindow {
                             onTextEdited: browser.findText(text)
                             onAccepted: browser.findText(text)
                         }
-                        MobileIconButton {
-                            iconName: "x"
+                        MobileCloseButton {
                             label: qsTr("Close")
                             onClicked: window.dismiss()
                         }

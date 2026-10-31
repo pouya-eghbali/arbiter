@@ -9,6 +9,12 @@ MobilePresentation {
     signal dismiss
     property real keyboardInset: 0
     property string editingId: ""
+    function focusEditor() {
+        if (!editor.visible) return;
+        const target = workspaceName.Window.window;
+        if (target) target.requestActivate();
+        workspaceName.forceActiveFocus();
+    }
     function edit(id, name) {
         editingId = id;
         workspaceName.text = name;
@@ -23,6 +29,7 @@ MobilePresentation {
         interactive: root.presented
         onEscapeRequested: root.dismiss()
         requested: Theme.liquidGlass && !editor.visible
+        onNativeActiveChanged: if (!nativeActive && editor.visible) Qt.callLater(root.focusEditor)
     ColumnLayout {
         width: Math.min(parent.width - 40, 560)
         anchors.horizontalCenter: parent.horizontalCenter
@@ -47,8 +54,7 @@ MobilePresentation {
                 label: qsTr("New workspace")
                 onClicked: root.edit("", "")
             }
-            MobileIconButton {
-                iconName: "x"
+            MobileCloseButton {
                 label: qsTr("Done")
                 onClicked: root.dismiss()
             }
@@ -71,9 +77,12 @@ MobilePresentation {
                         Layout.fillWidth: true
                         implicitHeight: body.implicitHeight + 28
                         radius: 18
-                        color: modelData.id === browser.workspaceId ? Qt.alpha(Theme.accent, .12) : Theme.fieldFor(parent)
-                        border.width: modelData.id === browser.workspaceId ? 1.3 : 0
-                        border.color: Qt.alpha(Theme.accent, .75)
+                        readonly property bool nativeMaterial: Theme.nativeFor(card)
+                        readonly property bool selected: modelData.id === browser.workspaceId
+                        color: nativeMaterial ? Qt.alpha(Theme.textFor(card), selected ? .10 : .035)
+                            : selected ? Qt.alpha(Theme.accent, .12) : Theme.fieldFor(parent)
+                        border.width: selected ? 1 : 0
+                        border.color: nativeMaterial ? Qt.alpha(Theme.textFor(card), .25) : Qt.alpha(Theme.accent, .75)
                         UiButton {
                             anchors.fill: parent
                             flat: true
@@ -123,16 +132,16 @@ MobilePresentation {
                                     width: 23
                                     height: 23
                                     radius: 12
-                                    color: card.modelData.id === browser.workspaceId ? Theme.accent : "transparent"
+                                    color: card.selected ? (card.nativeMaterial ? Qt.alpha(Theme.textFor(card), .12) : Theme.accent) : "transparent"
                                     border.width: 1
-                                    border.color: card.modelData.id === browser.workspaceId ? Theme.accent : Theme.mutedFor(parent)
+                                    border.color: card.nativeMaterial ? Qt.alpha(Theme.textFor(card), .28) : card.selected ? Theme.accent : Theme.mutedFor(parent)
                                     UiIcon {
                                         anchors.centerIn: parent
                                         width: 14
                                         height: 14
                                         name: "check"
                                         visible: card.modelData.id === browser.workspaceId
-                                        color: Theme.contrastingText(Theme.accent)
+                                        color: card.nativeMaterial ? Theme.textFor(card) : Theme.contrastingText(Theme.accent)
                                     }
                                 }
                             }
@@ -256,7 +265,7 @@ MobilePresentation {
                 }
             }
         }
-        onOpened: workspaceName.forceActiveFocus()
+        onOpened: Qt.callLater(root.focusEditor)
         onClosed: Qt.inputMethod.hide()
     }
 }

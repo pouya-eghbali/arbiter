@@ -62,7 +62,7 @@ MobilePresentation {
                     Layout.preferredWidth: 20
                     Layout.preferredHeight: 20
                 }
-                Controls.TextField {
+                MobileField {
                     id: input
                     objectName: "mobileAddressInput"
                     Layout.fillWidth: true
@@ -71,22 +71,16 @@ MobilePresentation {
                     font.pixelSize: 16
                     color: Theme.textFor(parent)
                     placeholderTextColor: Theme.mutedFor(parent)
-                    selectionColor: Theme.selection
-                    selectedTextColor: Theme.textFor(parent)
                     selectByMouse: true
                     inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
-                    background: Rectangle {
-                        radius: 16
-                        color: Theme.fieldFor(parent)
-                    }
                     leftPadding: 12
                     rightPadding: 12
                     onTextEdited: root.query = text
                     onAccepted: root.navigate(text)
                 }
-                MobileIconButton {
+                MobileCloseButton {
                     objectName: "mobileAddressCloseButton"
-                    iconName: "x"
+
                     label: qsTr("Close")
                     implicitWidth: 44
                     onClicked: root.dismiss()

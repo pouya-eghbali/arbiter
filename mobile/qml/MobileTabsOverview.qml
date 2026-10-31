@@ -40,7 +40,7 @@ MobilePresentation {
                         Layout.fillWidth: true
                         text: root.workspaceName
                         textFormat: Text.PlainText
-                        font.pixelSize: 22
+                        font.pixelSize: 20
                         color: Theme.textFor(parent)
                         font.weight: Font.DemiBold
                         elide: Text.ElideRight
@@ -53,8 +53,7 @@ MobilePresentation {
                     }
                 }
             }
-            MobileIconButton {
-                iconName: "x"
+            MobileCloseButton {
                 objectName: "mobileTabsDoneButton"
                 label: qsTr("Done")
                 onClicked: root.dismiss()
@@ -88,12 +87,16 @@ MobilePresentation {
                 width: grid.cellWidth
                 height: grid.cellHeight
                 Rectangle {
+                    id: tabCard
                     anchors.fill: parent
                     anchors.margins: 5
                     radius: 16
-                    color: cell.modelData.id === browser.activeId ? Qt.alpha(Theme.accent, .18) : Theme.fieldFor(parent)
-                    border.width: cell.modelData.id === browser.activeId ? 2 : 0
-                    border.color: Theme.accent
+                    readonly property bool selected: cell.modelData.id === browser.activeId
+                    readonly property bool nativeMaterial: Theme.nativeFor(tabCard)
+                    color: nativeMaterial ? Qt.alpha(Theme.textFor(tabCard), selected ? .10 : .025)
+                        : selected ? Qt.alpha(Theme.accent, .18) : Theme.fieldFor(parent)
+                    border.width: selected ? 1 : 0
+                    border.color: nativeMaterial ? Qt.alpha(Theme.textFor(tabCard), .28) : Theme.accent
                     UiButton {
                         anchors.fill: parent
                         flat: true
@@ -132,21 +135,14 @@ MobilePresentation {
                             elide: Text.ElideRight
                         }
                     }
-                    MobileIconButton {
+                    MobileCloseButton {
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.margins: 3
-                        iconName: "x"
                         label: qsTr("Close tab")
                         objectName: "closeTab-" + cell.modelData.id
-                        implicitWidth: 38
-                        implicitHeight: 38
-                        iconSize: 16
+                        overPreview: true
                         onClicked: browser.closeTab(cell.modelData.id)
-                        background: Rectangle {
-                            radius: 19
-                            color: Theme.popupSolid
-                        }
                     }
                 }
             }
@@ -154,10 +150,12 @@ MobilePresentation {
         Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 61
-            GlassSurface {
-                anchors.fill: parent
-                radius: 30
-                dense: true
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                height: 1
+                color: Theme.borderFor(parent)
             }
             Item {
                 anchors.fill: parent
@@ -167,7 +165,8 @@ MobilePresentation {
                     anchors.verticalCenter: parent.verticalCenter
                     iconName: "venetian-mask"
                     label: qsTr("Private browsing")
-                    iconColor: browser.privateMode ? Theme.accent : Theme.textFor(parent)
+                    iconColor: browser.privateMode && !nativeMaterial ? Theme.accent : Theme.textFor(parent)
+                    checked: browser.privateMode
                     onClicked: browser.togglePrivate()
                 }
                 MobileIconButton {
@@ -176,18 +175,20 @@ MobilePresentation {
                     label: qsTr("New tab")
                     iconName: "plus"
                     primary: true
+                    iconColor: nativeMaterial ? Theme.textFor(addTabButton) : foregroundColor
                     implicitWidth: 48
                     implicitHeight: 48
                     background: Rectangle {
                         radius: 24
-                        color: addTabButton.primaryFill
+                        color: addTabButton.nativeMaterial ? Qt.alpha(Theme.textFor(addTabButton), addTabButton.down ? .22 : .13) : addTabButton.primaryFill
                     }
                     onClicked: {
                         browser.addTab();
                         root.dismiss();
                     }
                 }
-                UiButton {
+                MobileButton {
+                    implicitHeight: 44
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     flat: true

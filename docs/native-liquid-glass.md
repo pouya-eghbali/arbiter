@@ -68,6 +68,13 @@ iOS web views explicitly follow the window scene's system appearance before
 navigation, and observe scene appearance changes. The host controller's separate
 status-bar contrast override must not leak into `prefers-color-scheme` in pages.
 
+Mobile floating-panel controls use neutral translucent fills and semantic text
+on native glass. Accent fills remain part of Glacier. Tab/workspace selection
+uses a restrained outline, and tab actions sit directly on the sheet instead
+of a second glass bar. MobileCloseButton shares a 28-point visible face and
+14-point glyph inside a 44-point touch target; preview close buttons use a dark
+scrim for contrast over arbitrary page thumbnails.
+
 UiPopup, UiMenu and UiToolTip close when their owning private window is covered,
 including native windows outside the main Qt overlay. Hidden or disabled child
 hosts immediately hide their native content. Reduce Transparency uses opaque
@@ -115,6 +122,10 @@ scene-graph previews. No preview images are written to disk.
   intermediate panel/inset values, completed dismissal, Reduce Motion and
   immediate private-lock concealment.
 - The software screen matrix checks Glacier across phone sizes and themes.
+- iOS simulator `SIMCTL_CHILD_ARBITER_PANEL_PREVIEW=tabs` (or `more`,
+  `workspaces`, `address`) opens an isolated fixture for native OS screenshots.
+  It keeps the panel open and seeds in-memory tab images without reading the
+  user's profile. This helper is excluded from physical-device builds.
 - iOS simulator `SIMCTL_CHILD_ARBITER_APPEARANCE_SMOKE=1`, with
   `SIMCTL_CHILD_ARBITER_OVERLAY_URL` pointing at the HTTP-served
   `mobile/tests/fixtures/appearance.html`, checks the preference recorded by the
