@@ -162,7 +162,11 @@ Window {
         QTRY_COMPARE_WITH_TIMEOUT(downloads.items().size(),5,10000);
         auto *saved=downloads.items().first().value<DownloadEntry *>(); QTRY_VERIFY_WITH_TIMEOUT(saved->completed(),15000);
         QCOMPARE(saved->path,savePath); QVERIFY(QFileInfo(savePath).size()>0);
-        downloads.setBlocked(true); QVERIFY(QMetaObject::invokeMethod(root,"clickDownload",Q_ARG(QVariant,false))); QTest::qWait(300);
+        QSignalSpy blockedRequests(profile,&QQuickWebEngineProfile::downloadRequested);
+        downloads.setBlocked(true); QVERIFY(QMetaObject::invokeMethod(root,"clickDownload",Q_ARG(QVariant,false)));
+        // Keep blocking until Chromium actually dispatches the asynchronous
+        // request; a fixed sleep could unblock it before the cancellation.
+        QTRY_COMPARE_WITH_TIMEOUT(blockedRequests.size(),1,10000);
         QCOMPARE(downloads.items().size(),5); downloads.setBlocked(false);
         QTRY_VERIFY(QFileInfo::exists(directory.filePath("history.json")));
         QTest::qWait(600);
