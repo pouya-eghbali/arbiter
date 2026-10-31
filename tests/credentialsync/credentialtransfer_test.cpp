@@ -176,6 +176,8 @@ private slots:
         QVERIFY(wireKey!=syncStore.items.value("sync-v1-master"));
         QFile encryptedState(directory.path()+"/sync/state-v1.enc"); QVERIFY(encryptedState.open(QIODevice::ReadOnly));
         bool authenticated=false; ArbiterSync::open(encryptedState.readAll(),wireKey,"ArbiterDesktopSync/v1",&authenticated); QVERIFY(!authenticated);
+        // Windows cannot atomically replace a file while this read handle is open.
+        encryptedState.close();
         const QString phone="00000000-0000-4000-8000-000000000009";
         const QJsonObject identity{{"deviceId",phone},{"name","Fixture phone"}};
         QCOMPARE(post(pairing,"/v1/pair",pairing.value("code").toString(),identity,true).status,400);
