@@ -53,6 +53,11 @@ This entry point requires signing; use the Python driver directly for unsigned t
 
 ### Windows: native build
 
+An experimental macOS/Linux-to-Windows compiler path is documented in
+[Windows cross-build](windows-cross-build.md). It keeps the expensive engine
+compilation on the host; it is not yet a replacement for validated Windows
+packaging and runtime checks.
+
 From an x64 MSVC Developer PowerShell, with the pinned Qt, Python/Rust and OpenSSL
 installed and the variables documented below configured:
 

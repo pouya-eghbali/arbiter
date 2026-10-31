@@ -1,0 +1,289 @@
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -116,13 +116,14 @@
+ #  HOST PROJECT
+ ##
+ 
+-if(CMAKE_CROSSCOMPILING AND NOT IOS AND NOT MACOS AND NOT WIN32)
++if(CMAKE_CROSSCOMPILING AND NOT IOS AND NOT MACOS AND NOT CMAKE_HOST_WIN32)
+ 
+     if(NOT Gn_FOUND)
+         message(FATAL_ERROR "\nHost gn not found - cross compilation not possible")
+     endif()
+ 
+     externalproject_add(hostBuild
++        BUILD_ALWAYS TRUE
+         SOURCE_DIR  ${CMAKE_CURRENT_LIST_DIR}/host
+         BINARY_DIR  ${CMAKE_CURRENT_BINARY_DIR}/host
+         PREFIX      host
+@@ -133,6 +134,10 @@
+                    -DWEBENGINE_ROOT_BUILD_DIR=${PROJECT_BINARY_DIR}
+                    -DWEBENGINE_ROOT_SOURCE_DIR=${WEBENGINE_ROOT_SOURCE_DIR}
+                    -DGN_TARGET_CPU=${TEST_architecture_arch}
++                   -DARBITER_NATIVE_AR=${ARBITER_WINDOWS_CLANG_PREFIX}/bin/llvm-ar
++                   -DGN_HOST_CPU=${CMAKE_HOST_SYSTEM_PROCESSOR}
++                   -DCMAKE_OSX_ARCHITECTURES=${CMAKE_HOST_SYSTEM_PROCESSOR}
++                   -DQT_IS_MACOS_UNIVERSAL=OFF
+                    -DCMAKE_C_FLAGS=
+                    -DCMAKE_CXX_FLAGS=
+                    -DQT_FEATURE_qtwebengine_build=${QT_FEATURE_qtwebengine_build}
+--- a/cmake/QtToolchainHelpers.cmake
++++ b/cmake/QtToolchainHelpers.cmake
+@@ -157,6 +157,10 @@
+ 
+     set(GN_CPU ${cpu})
+     set(GN_V8_CPU ${v8Cpu})
++    if(WIN32 AND CMAKE_CROSSCOMPILING AND NOT CMAKE_HOST_WIN32)
++        string(REPLACE [["]] [[\"]] ARBITER_GN_INCLUDE_FLAGS "${CMAKE_C_FLAGS}")
++        string(REPLACE [["]] [[\"]] ARBITER_GN_LIB_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
++    endif()
+     configure_file(${toolchainIn} ${toolchainOut}/BUILD.gn @ONLY)
+ endfunction()
+ 
+@@ -414,7 +418,7 @@
+             )
+         endif()
+         list(APPEND gnArgArg
+-            clang_base_path="${QWELibClang_LLVM_BASE_PATH}"
++            clang_base_path="${ARBITER_WINDOWS_CLANG_PREFIX}"
+             clang_version="${clang_runtime_path_version}"
+             clang_use_chrome_plugins=false
+             fatal_linker_warnings=false
+@@ -465,7 +469,7 @@
+         endif()
+     else()
+         if(QT_FEATURE_use_lld_linker OR QT_FEATURE_webengine_rust_build)
+-            list(APPEND gnArgArg clang_base_path="${QWELibClang_LLVM_BASE_PATH}")
++            list(APPEND gnArgArg clang_base_path="${ARBITER_WINDOWS_CLANG_PREFIX}")
+             if (QT_FEATURE_webengine_rust_build)
+                 get_clang_runtime_path_version(clang_runtime_path_version)
+                 list(APPEND gnArgArg clang_version="${clang_runtime_path_version}")
+@@ -584,7 +588,24 @@
+ endmacro()
+ 
+ macro(append_toolchain_setup)
+-    if(WIN32)
++    if(WIN32 AND CMAKE_CROSSCOMPILING AND NOT CMAKE_HOST_WIN32)
++        get_gn_arch(target_cpu ${TEST_architecture_arch})
++        get_gn_arch(host_cpu ${CMAKE_HOST_SYSTEM_PROCESSOR})
++        if(CMAKE_HOST_APPLE)
++            execute_process(COMMAND xcrun --sdk macosx --show-sdk-version
++                OUTPUT_VARIABLE arbiter_mac_sdk OUTPUT_STRIP_TRAILING_WHITESPACE
++                COMMAND_ERROR_IS_FATAL ANY)
++            list(APPEND gnArgArg use_system_xcode=true enable_stripping=false
++                mac_sdk_min="${arbiter_mac_sdk}")
++        endif()
++        list(APPEND gnArgArg
++            target_os="win" target_cpu="${target_cpu}" host_cpu="${host_cpu}"
++            custom_toolchain="${buildDir}/target_toolchain:${target_cpu}"
++            host_toolchain="${buildDir}/host_toolchain:host"
++            v8_snapshot_toolchain="${buildDir}/v8_toolchain:v8")
++        unset(target_cpu)
++        unset(host_cpu)
++    elseif(WIN32)
+         if(CMAKE_CROSSCOMPILING)
+            #TODO: fetch this from HOST QT or gn
+            set(host_cpu "x64")
+--- a/src/host/CMakeLists.txt
++++ b/src/host/CMakeLists.txt
+@@ -23,16 +23,21 @@
+ find_package(Qt6 6.5 CONFIG REQUIRED COMPONENTS BuildInternals Core)
+ qt_internal_project_setup()
+ get_gn_arch(target_arch ${GN_TARGET_CPU})
+-get_gn_arch(host_arch ${TEST_architecture_arch})
++set(CMAKE_AR "${ARBITER_NATIVE_AR}")
++get_gn_arch(host_arch ${GN_HOST_CPU})
+ get_v8_arch(v8_arch ${target_arch} ${host_arch})
+ 
+ set(buildDir ${CMAKE_CURRENT_BINARY_DIR})
++set(arbiter_host_template BUILD.toolchain.gn.in)
++if(APPLE)
++    set(arbiter_host_template BUILD.arbiter-apple.toolchain.gn.in)
++endif()
+ configure_gn_toolchain(host ${host_arch} ${host_arch}
+-    ${WEBENGINE_ROOT_SOURCE_DIR}/src/host/BUILD.toolchain.gn.in
++    ${WEBENGINE_ROOT_SOURCE_DIR}/src/host/${arbiter_host_template}
+     ${buildDir}/host_toolchain
+ )
+ configure_gn_toolchain(v8 ${v8_arch} ${target_arch}
+-    ${WEBENGINE_ROOT_SOURCE_DIR}/src/host/BUILD.toolchain.gn.in
++    ${WEBENGINE_ROOT_SOURCE_DIR}/src/host/${arbiter_host_template}
+     ${buildDir}/v8_toolchain)
+ 
+ if(QT_FEATURE_qtwebengine_build)
+--- a/src/host/BUILD.clang-cl.toolchain.gn.in
++++ b/src/host/BUILD.clang-cl.toolchain.gn.in
+@@ -2,7 +2,9 @@
+ import("//build/toolchain/win/toolchain.gni")
+ 
+ msvc_toolchain("x64") {
+-  cl = "clang-cl.exe"
++  cl = "@CMAKE_CXX_COMPILER@ /clang:--target=x86_64-pc-windows-msvc /clang:-fms-compatibility-version=19.44"
++  sys_include_flags = "@ARBITER_GN_INCLUDE_FLAGS@"
++  sys_lib_flags = "@ARBITER_GN_LIB_FLAGS@"
+   environment = "environment.x64"
+   toolchain_args = {
+     current_os = "win"
+@@ -13,7 +15,9 @@
+ }
+ 
+ msvc_toolchain("x86") {
+-  cl = "clang-cl.exe"
++  cl = "@CMAKE_CXX_COMPILER@ /clang:--target=x86_64-pc-windows-msvc /clang:-fms-compatibility-version=19.44"
++  sys_include_flags = "@ARBITER_GN_INCLUDE_FLAGS@"
++  sys_lib_flags = "@ARBITER_GN_LIB_FLAGS@"
+   environment = "environment.x86"
+   toolchain_args = {
+     current_os = "win"
+@@ -24,7 +28,9 @@
+ }
+ 
+ msvc_toolchain("arm64") {
+-  cl = "clang-cl.exe"
++  cl = "@CMAKE_CXX_COMPILER@ /clang:--target=x86_64-pc-windows-msvc /clang:-fms-compatibility-version=19.44"
++  sys_include_flags = "@ARBITER_GN_INCLUDE_FLAGS@"
++  sys_lib_flags = "@ARBITER_GN_LIB_FLAGS@"
+   environment = "environment.arm64"
+   toolchain_args = {
+     current_os = "win"
+@@ -36,7 +42,9 @@
+ 
+ #TODO: drop it after clean up breakpad, remove upload symbols exacutable
+ msvc_system_allocator_toolchain("x64_host_with_system_allocator") {
+-  cl = "clang-cl.exe"
++  cl = "@CMAKE_CXX_COMPILER@ /clang:--target=x86_64-pc-windows-msvc /clang:-fms-compatibility-version=19.44"
++  sys_include_flags = "@ARBITER_GN_INCLUDE_FLAGS@"
++  sys_lib_flags = "@ARBITER_GN_LIB_FLAGS@"
+   environment = "environment.x64"
+   toolchain_args = {
+     current_cpu = "x64"
+@@ -47,7 +55,9 @@
+ }
+ 
+ msvc_system_allocator_toolchain("arm64_host_with_system_allocator") {
+-  cl = "clang-cl.exe"
++  cl = "@CMAKE_CXX_COMPILER@ /clang:--target=x86_64-pc-windows-msvc /clang:-fms-compatibility-version=19.44"
++  sys_include_flags = "@ARBITER_GN_INCLUDE_FLAGS@"
++  sys_lib_flags = "@ARBITER_GN_LIB_FLAGS@"
+   environment = "environment.arm64"
+   toolchain_args = {
+     current_cpu = "arm64"
+@@ -58,7 +68,9 @@
+ }
+ 
+ msvc_system_allocator_toolchain("x64_with_system_allocator") {
+-  cl = "clang-cl.exe"
++  cl = "@CMAKE_CXX_COMPILER@ /clang:--target=x86_64-pc-windows-msvc /clang:-fms-compatibility-version=19.44"
++  sys_include_flags = "@ARBITER_GN_INCLUDE_FLAGS@"
++  sys_lib_flags = "@ARBITER_GN_LIB_FLAGS@"
+   environment = "environment.x64"
+   toolchain_args = {
+     current_cpu = "x64"
+@@ -69,7 +81,9 @@
+ }
+ 
+ msvc_system_allocator_toolchain("arm64_with_system_allocator") {
+-  cl = "clang-cl.exe"
++  cl = "@CMAKE_CXX_COMPILER@ /clang:--target=x86_64-pc-windows-msvc /clang:-fms-compatibility-version=19.44"
++  sys_include_flags = "@ARBITER_GN_INCLUDE_FLAGS@"
++  sys_lib_flags = "@ARBITER_GN_LIB_FLAGS@"
+   environment = "environment.arm64"
+   toolchain_args = {
+     current_cpu = "arm64"
+@@ -80,7 +94,9 @@
+ }
+ 
+ msvc_rust_host_build_tools_toolchain("x64_for_rust_host_build_tools") {
+-  cl = "clang-cl.exe"
++  cl = "@CMAKE_CXX_COMPILER@ /clang:--target=x86_64-pc-windows-msvc /clang:-fms-compatibility-version=19.44"
++  sys_include_flags = "@ARBITER_GN_INCLUDE_FLAGS@"
++  sys_lib_flags = "@ARBITER_GN_LIB_FLAGS@"
+   environment = "environment.x64"
+   toolchain_args = {
+     current_cpu = "x64"
+@@ -91,7 +107,9 @@
+ }
+ 
+ msvc_rust_host_build_tools_toolchain("arm64_for_rust_host_build_tools") {
+-  cl = "clang-cl.exe"
++  cl = "@CMAKE_CXX_COMPILER@ /clang:--target=x86_64-pc-windows-msvc /clang:-fms-compatibility-version=19.44"
++  sys_include_flags = "@ARBITER_GN_INCLUDE_FLAGS@"
++  sys_lib_flags = "@ARBITER_GN_LIB_FLAGS@"
+   environment = "environment.arm64"
+   toolchain_args = {
+     current_cpu = "arm64"
+--- /dev/null
++++ b/src/host/BUILD.arbiter-apple.toolchain.gn.in
+@@ -0,0 +1,16 @@
++# Native Apple tools for a Windows target. No Windows programs run here.
++import("//build/config/mac/mac_sdk.gni")
++import("//build/toolchain/apple/toolchain.gni")
++apple_toolchain("@GN_TOOLCHAIN@") {
++  bin_path = mac_bin_path
++  cc = "@GN_C_COMPILER@"
++  cxx = "@GN_CXX_COMPILER@"
++  toolchain_args = {
++    current_os = "mac"
++    current_cpu = "@GN_CPU@"
++    v8_current_cpu = "@GN_V8_CPU@"
++    is_clang = true
++    is_mingw = false
++    use_lld = false
++  }
++}
+--- a/src/3rdparty/chromium/build/toolchain/win/qwe_setup_toolchain.py
++++ b/src/3rdparty/chromium/build/toolchain/win/qwe_setup_toolchain.py
+@@ -96,8 +96,11 @@
+   target_cpu = sys.argv[5]
+   environment_block_name = sys.argv[6]
+ 
+-  # Extract environment variables for subprocesses.
+-  env = _LoadToolchainEnv(target_cpu, visual_studio_path, win_sdk_path)
++  # Cross-host builds use xwin's compact, version-pinned SDK layout.
++  root = os.environ["ARBITER_WINDOWS_SYSROOT"]
++  env = {"INCLUDE": ";".join(os.path.join(root, p) for p in (
++      "crt/include", "sdk/include/ucrt", "sdk/include/shared",
++      "sdk/include/um", "sdk/include/winrt"))}
+ 
+   def relflag(s):  # Make s relative to builddir when cwd and sdk on same drive.
+     try:
+--- a/src/3rdparty/chromium/build/toolchain/win/toolchain.gni
++++ b/src/3rdparty/chromium/build/toolchain/win/toolchain.gni
+@@ -95,6 +95,9 @@
+     object_subdir = "{{target_out_dir}}/{{label_name}}"
+ 
+     env = invoker.environment
++    if (host_os != "win") {
++      not_needed([ "env" ])
++    }
+ 
+     if (use_lld) {
+       # lld-link includes a replacement for lib.exe that can produce thin
+@@ -262,7 +265,12 @@
+       } else {
+         werror = ""
+       }
++      if (host_os != "win") {
++        arbiter_rc = rebase_path("//build/toolchain/win/arbiter_rc.py", root_build_dir)
++        command = "\"$python_path\" $arbiter_rc $werror {{defines}} {{include_dirs}} /fo{{output}} {{source}}"
++      } else {
+       command = "\"$python_path\" $_tool_wrapper_path rc-wrapper $env rc.exe /nologo $werror {{defines}} {{include_dirs}} /fo{{output}} {{source}}"
++      }
+       depsformat = "msvc"
+       outputs = [ "$object_subdir/{{source_name_part}}.res" ]
+       description = "RC {{output}}"
+--- a/src/3rdparty/chromium/build/toolchain/apple/toolchain.gni
++++ b/src/3rdparty/chromium/build/toolchain/apple/toolchain.gni
+@@ -178,6 +178,12 @@
+       compiler_prefix = ""
+     }
+ 
++    if (defined(invoker.cc)) {
++      _cc = invoker.cc
++    }
++    if (defined(invoker.cxx)) {
++      _cxx = invoker.cxx
++    }
+     cc = compiler_prefix + _cc
+     cxx = compiler_prefix + _cxx
+     ld = _cxx

@@ -1,5 +1,8 @@
 # Unified diff context lines contain a single space even for empty source lines.
 engine/patches/*.patch whitespace=-blank-at-eol
+tools/cross/*.patch whitespace=-blank-at-eol
+tools/cross/** text eol=lf
+cmake/toolchains/** text eol=lf
 # Engine inputs must have identical checkout bytes on all release machines.
 engine/** text eol=lf
 dependencies.json text eol=lf
