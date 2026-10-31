@@ -298,3 +298,14 @@
      use_gold = false
    }
  }
+--- a/src/core/configure/BUILD.root.gn.in
++++ b/src/core/configure/BUILD.root.gn.in
+@@ -602,7 +602,7 @@
+     ]
+     output_dir = "$root_out_dir"
+     sources = [
+-      "@GN_SOURCE_ROOT@/sandbox_win.cpp"
++      "//qtwebengine/arbiter_sandbox/sandbox_win.cpp"
+     ]
+     public_deps = [ "//sandbox/win:sandbox" ]
+   }

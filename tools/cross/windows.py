@@ -203,6 +203,14 @@ def prepare_source(args):
     run("patch", "--dry-run", "--force", "--fuzz=0", "--batch", "--forward", "-p1", "-i", patch, cwd=source)
     run("patch", "--force", "--fuzz=0", "--batch", "--forward", "-p1", "-i", patch, cwd=source)
     shutil.copyfile(HERE / "rc.py", source / "src/3rdparty/chromium/build/toolchain/win/arbiter_rc.py")
+    # GN renders files outside Chromium's root as absolute paths. clang-cl
+    # treats a macOS /Users/... input as /U (undefine), so stage Qt's tiny
+    # sandbox translation unit inside the Chromium root for a relative input.
+    sandbox = source / "src/3rdparty/chromium/qtwebengine/arbiter_sandbox/sandbox_win.cpp"
+    sandbox.parent.mkdir(parents=True, exist_ok=True)
+    original = source / "src/core/sandbox_win.cpp"
+    if not sandbox.exists() or sandbox.read_bytes() != original.read_bytes():
+        shutil.copyfile(original, sandbox)
     return source
 
 
