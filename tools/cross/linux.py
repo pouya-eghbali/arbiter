@@ -78,6 +78,14 @@ def tool_facade(args):
     if linker.is_symlink():
         linker.unlink()
     linker.symlink_to(args.lld / 'bin/ld.lld')
+    # Chromium's ELF TOC helper invokes the GNU-style name even when the
+    # configured compiler/binutils are LLVM. Keep that helper native too.
+    reader = tools / 'bin/readelf'
+    if reader.is_symlink():
+        reader.unlink()
+    elif reader.exists():
+        raise RuntimeError(f'Refusing to replace non-symlink {reader}')
+    reader.symlink_to(args.llvm / 'bin/llvm-readelf')
     for language in ('clang', 'clang++'):
         wrapper = tools / 'bin' / ('x86_64-linux-gnu-' + language)
         command = [args.llvm / 'bin' / language, '--target=x86_64-unknown-linux-gnu',
