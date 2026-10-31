@@ -37,11 +37,20 @@ if(ARBITER_PATCHED_WEBENGINE)
     # libraries and the helper process come from the same patched SDK.
     foreach(module WebEngineCore WebEngineQuick WebEngineWidgets WebEngineCoreTools)
         unset(arbiter_module_path CACHE)
-        find_path(arbiter_module_path "Qt6${module}Config.cmake"
-            PATHS "${ARBITER_WEBENGINE_PREFIX}"
-            PATH_SUFFIXES "lib/cmake/Qt6${module}" "lib64/cmake/Qt6${module}"
-                "lib/${CMAKE_LIBRARY_ARCHITECTURE}/cmake/Qt6${module}"
-            NO_DEFAULT_PATH REQUIRED)
+        if(CMAKE_CROSSCOMPILING AND module STREQUAL "WebEngineCoreTools")
+            # convert_dict executes during the build. Cross SDK installs omit
+            # host tools; select the matching native Qt kit, never target .exe files.
+            find_path(arbiter_module_path "Qt6${module}Config.cmake"
+                PATHS "${QT_HOST_PATH}"
+                PATH_SUFFIXES "lib/cmake/Qt6${module}" "lib64/cmake/Qt6${module}"
+                NO_CMAKE_FIND_ROOT_PATH NO_DEFAULT_PATH REQUIRED)
+        else()
+            find_path(arbiter_module_path "Qt6${module}Config.cmake"
+                PATHS "${ARBITER_WEBENGINE_PREFIX}"
+                PATH_SUFFIXES "lib/cmake/Qt6${module}" "lib64/cmake/Qt6${module}"
+                    "lib/${CMAKE_LIBRARY_ARCHITECTURE}/cmake/Qt6${module}"
+                NO_DEFAULT_PATH REQUIRED)
+        endif()
         set("Qt6${module}_DIR" "${arbiter_module_path}" CACHE PATH "Arbiter SDK component" FORCE)
     endforeach()
     unset(arbiter_module_path CACHE)

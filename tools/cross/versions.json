@@ -5,5 +5,5 @@
   "msvc_compatibility": "19.44",
   "llvm_major": 22,
   "aqt_commit": "076e1659807d0b362a3ed684d54c2e9c775eb9c7",
-  "qt_modules": ["qtpositioning", "qtwebchannel", "qtshadertools", "qtwebengine"]
+  "qt_modules": ["qtpositioning", "qtwebchannel", "qtshadertools", "qtwebengine", "qtpdf"]
 }
