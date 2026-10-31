@@ -96,6 +96,7 @@ int main(int argc, char *argv[])
                 property alias surface: surface
                 property bool privateCovered: false
                 property bool nativeEnabled: true
+                property bool dismissOutside: true
                 Binding { target: Theme; property: "liquidGlass"; value: root.nativeEnabled }
                 property alias panel: panel
                 property alias input: input
@@ -108,7 +109,7 @@ int main(int argc, char *argv[])
                 UiPopup {
                     id: panel; x: 100; y: 100; width: 420; height: 240
                     padding: 20; modal: true; focus: true
-                    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                    closePolicy: root.dismissOutside ? Popup.CloseOnEscape | Popup.CloseOnPressOutside : Popup.CloseOnEscape
                     background: GlassSurface { id: surface }
                     contentItem: ColumnLayout {
                         TextField { id: input; objectName: "overlayInput"; Layout.fillWidth: true }
@@ -123,6 +124,12 @@ int main(int argc, char *argv[])
         const bool expectedNative = NativeGlass::supported();
         NativeGlass::activateForTest(qobject_cast<QQuickWindow *>(root));
         QTimer::singleShot(400, root, [root] { QMetaObject::invokeMethod(root->property("panel").value<QObject *>(), "open"); });
+        QTimer::singleShot(480, root, [root, expectedNative] {
+            auto surface = root->property("surface").value<QObject *>();
+            if (expectedNative && (!surface->property("nativeActive").toBool() || !surface->property("nativePreferred").toBool())) {
+                qCritical("Native material was not attached during the opening fade"); qApp->exit(14);
+            }
+        });
         // A standalone GUI diagnostic may return activation to its launching
         // app when a native popup closes. Re-enter through the parent window
         // before the next interaction, just as a real user would.
@@ -169,9 +176,23 @@ int main(int argc, char *argv[])
                     auto main = qobject_cast<QQuickWindow *>(root);
                     const QPointF point(20, 20);
                     const auto global = main->mapToGlobal(point);
-                    const auto local = input->window()->mapFromGlobal(global);
-                    QWindowSystemInterface::handleMouseEvent<QWindowSystemInterface::SynchronousDelivery>(input->window(), local, global, Qt::LeftButton, Qt::LeftButton, QEvent::MouseButtonPress);
-                    QWindowSystemInterface::handleMouseEvent<QWindowSystemInterface::SynchronousDelivery>(input->window(), local, global, Qt::NoButton, Qt::LeftButton, QEvent::MouseButtonRelease);
+                    if (expectedNative && (cycle == 1 || cycle == 3)) {
+                        // Reproduce clicks delivered directly to the browser or
+                        // an embedded native page view, rather than injecting
+                        // out-of-bounds coordinates into the popup itself.
+                        QWindow child(main);
+                        child.setGeometry(0, 0, 80, 80);
+                        auto target = cycle == 3 ? &child : static_cast<QWindow *>(main);
+                        const auto local = target->mapFromGlobal(global);
+                        QMouseEvent press(QEvent::MouseButtonPress, local, global, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                        QMouseEvent release(QEvent::MouseButtonRelease, local, global, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+                        QCoreApplication::sendEvent(target, &press);
+                        QCoreApplication::sendEvent(target, &release);
+                    } else {
+                        const auto local = input->window()->mapFromGlobal(global);
+                        QWindowSystemInterface::handleMouseEvent<QWindowSystemInterface::SynchronousDelivery>(input->window(), local, global, Qt::LeftButton, Qt::LeftButton, QEvent::MouseButtonPress);
+                        QWindowSystemInterface::handleMouseEvent<QWindowSystemInterface::SynchronousDelivery>(input->window(), local, global, Qt::NoButton, Qt::LeftButton, QEvent::MouseButtonRelease);
+                    }
                 } else {
                     QKeyEvent escape(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
                     QCoreApplication::sendEvent(input->window(), &escape);
@@ -197,8 +218,16 @@ int main(int argc, char *argv[])
                     QTimer::singleShot(1800, root, [root, openPanel] { root->setProperty("nativeEnabled", true); openPanel(); });
                     QTimer::singleShot(2300, root, [root, expectedNative] {
                         if (root->property("surface").value<QObject *>()->property("nativeActive").toBool() != expectedNative) { qApp->exit(12); return; }
-                        qInfo("Overlay bounds, input, nested menus, dismissal, private cover and Glacier toggles passed (8 cycles; native=%s)", expectedNative ? "true" : "false");
-                        qApp->quit();
+                        root->setProperty("dismissOutside", false);
+                        auto main = qobject_cast<QQuickWindow *>(root);
+                        const QPointF local(20, 20);
+                        QMouseEvent press(QEvent::MouseButtonPress, local, main->mapToGlobal(local), Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                        QCoreApplication::sendEvent(main, &press);
+                        QTimer::singleShot(300, root, [root, expectedNative] {
+                            if (!root->property("panel").value<QObject *>()->property("visible").toBool()) { qCritical("Outside click dismissed a protected dialog"); qApp->exit(15); return; }
+                            qInfo("Overlay bounds, opening fade, input, nested menus, outside dismissal, protected dialogs, private cover and Glacier toggles passed (8 cycles; native=%s)", expectedNative ? "true" : "false");
+                            qApp->quit();
+                        });
                     });
                     return;
                 }

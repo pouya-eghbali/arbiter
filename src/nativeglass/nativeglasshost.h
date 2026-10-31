@@ -8,12 +8,14 @@
 class NativeGlassHost : public QQuickItem {
     Q_OBJECT
     QML_ELEMENT
+    Q_PROPERTY(bool blockOutsideInput MEMBER m_blockOutsideInput)
     Q_PROPERTY(QRectF contentRect READ contentRect WRITE setContentRect NOTIFY contentRectChanged)
     Q_PROPERTY(bool windowSurface READ windowSurface WRITE setWindowSurface NOTIFY windowSurfaceChanged)
     Q_PROPERTY(bool requested READ requested WRITE setRequested NOTIFY requestedChanged)
     Q_PROPERTY(bool available READ available CONSTANT)
     Q_PROPERTY(bool reducedTransparency READ reducedTransparency NOTIFY accessibilityChanged)
     Q_PROPERTY(bool active READ active NOTIFY activeChanged)
+    Q_PROPERTY(bool preferred READ preferred NOTIFY preferredChanged)
     Q_PROPERTY(QWindow *containerWindow READ containerWindow NOTIFY containerWindowChanged)
     Q_PROPERTY(QColor foregroundColor READ foregroundColor NOTIFY foregroundColorChanged)
     Q_PROPERTY(qreal radius READ radius WRITE setRadius NOTIFY radiusChanged)
@@ -29,6 +31,7 @@ public:
     bool available() const;
     bool reducedTransparency() const { return m_reduced; }
     bool active() const { return m_active; }
+    bool preferred() const { return m_requested && available() && !m_reduced; }
     QWindow *containerWindow() const { return m_container; }
     QColor foregroundColor() const { return m_color; }
     qreal radius() const { return m_radius; }
@@ -45,6 +48,8 @@ signals:
     void requestedChanged();
     void accessibilityChanged();
     void activeChanged();
+    void preferredChanged();
+    void outsidePointer(const QPointF &globalPosition, bool pressed);
     void containerWindowChanged();
     void foregroundColorChanged();
     void radiusChanged();
@@ -59,6 +64,7 @@ private:
     void release();
     void watchGeometry();
     bool m_windowSurface = false;
+    bool m_blockOutsideInput = false;
     bool m_requested = false, m_active = false, m_queued = false, m_reduced = false;
     qreal m_radius = 28;
     QRectF m_contentRect;
@@ -81,6 +87,7 @@ QWindow *container(void *);
 void update(void *, const QRectF &, qreal radius);
 void destroy(void *);
 void setVisible(void *, bool);
+void setOpacity(void *, qreal);
 bool geometryAligned(void *);
 // Manual native UI diagnostic; never called by page content.
 void activateForTest(QQuickWindow *);

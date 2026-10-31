@@ -158,6 +158,15 @@ void setVisible(void *value, bool visible) {
     auto context = (__bridge ArbiterNativeGlassContext *)value;
     context.effect.hidden = !visible;
 }
+void setOpacity(void *value, qreal opacity) {
+    auto context = (__bridge ArbiterNativeGlassContext *)value;
+#if TARGET_OS_IPHONE
+    context.containerView.alpha = opacity;
+#else
+    if (context.windowSurface) context.effect.alphaValue = opacity;
+    else context.containerView.alphaValue = opacity;
+#endif
+}
 void activateForTest(QQuickWindow *window) {
     if (!supported()) { window->requestActivate(); return; }
 #if !TARGET_OS_IPHONE
@@ -218,6 +227,7 @@ QWindow *container(void *) { return nullptr; }
 void update(void *, const QRectF &, qreal) {}
 void destroy(void *) {}
 void setVisible(void *, bool) {}
+void setOpacity(void *, qreal) {}
 bool geometryAligned(void *) { return false; }
 void activateForTest(QQuickWindow *window) { window->requestActivate(); }
 QColor foregroundColor(void *) { return Qt::black; }

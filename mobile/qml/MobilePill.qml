@@ -32,7 +32,7 @@ Item {
         }
     }
     GlassSurface {
-        visible: !nativeGlass.active
+        visible: !nativeGlass.preferred
         forceOpaque: nativeGlass.reducedTransparency
         anchors.fill: parent
         radius: 29

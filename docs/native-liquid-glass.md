@@ -33,6 +33,10 @@ a plain UIView/NSView carrying the scene offset, while the foreground uses local
 stacking so a returning web view cannot cover it. Native input windows survive
 ordinary panel transitions. Inactive hosts restore focus only if their own
 window actually held it; hidden surfaces do not poll or reclaim focus.
+Materials attach during the opening transition and follow its opacity; Glacier
+is reserved for the fallback path rather than painted while native glass starts.
+Native popup hosts observe outside presses delivered to browser/page windows,
+respect close policies and child menus, and block click-through for modal dialogs.
 
 SurfacePalette records the actual native foreground color per window. Shared
 controls resolve text, secondary text, fields and hover states against that
@@ -57,7 +61,8 @@ scene-graph previews. No preview images are written to disk.
 - `arbiter --native-glass-smoke-test`: isolated pill lifecycle, actual native
   foreground bounds, address focus, and More input. No user profiles are opened.
 - `arbiter --native-overlays-smoke-test`: repeated popup input, nested menus,
-  Escape/outside dismissal, private covering and native/Glacier toggling.
+  Escape/outside dismissal (including native page windows), protected dialogs,
+  glass during the opening fade, private covering and native/Glacier toggling.
   Mouse checks use Qt's platform input pipeline; macOS activation uses public
   AppKit APIs. Native runs need uninterrupted foreground access; switching to
   another application correctly dismisses the popups. With the offscreen

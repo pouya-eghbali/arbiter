@@ -12,16 +12,31 @@ Rectangle {
     border.width: 0
     property var popup: null
     readonly property bool nativeActive: nativeWindow.active
+    // Reserve native presentation while the window is being created. Showing
+    // Glacier here produces a visible material swap on every opening.
+    readonly property bool nativePreferred: nativeWindow.preferred || (popup !== null && Theme.nativePopups && !nativeWindow.reducedTransparency)
+    function dismissOutside(global, pressed) {
+        if (!popup) return
+        const outsideFlag = pressed ? Basic.Popup.CloseOnPressOutside : Basic.Popup.CloseOnReleaseOutside
+        const parentFlag = pressed ? Basic.Popup.CloseOnPressOutsideParent : Basic.Popup.CloseOnReleaseOutsideParent
+        if (popup.closePolicy & outsideFlag) { popup.close(); return }
+        if ((popup.closePolicy & parentFlag) && popup.parent) {
+            const point = popup.parent.mapFromGlobal(global.x, global.y)
+            if (!popup.parent.contains(point)) popup.close()
+        }
+    }
     NativeGlassHost {
         id: nativeWindow
         anchors.fill: parent
         windowSurface: Theme.nativePopups
+        blockOutsideInput: glass.popup ? glass.popup.modal : false
         content: glass.popup ? glass.popup.contentItem : null
         contentRect: glass.popup ? Qt.rect(glass.popup.leftPadding, glass.popup.topPadding,
             Math.max(1, glass.popup.availableWidth), Math.max(1, glass.popup.availableHeight)) : Qt.rect(0, 0, 0, 0)
         requested: Theme.liquidGlass && (Theme.nativePopups
             ? SurfacePalette.popupWindow(glass.ownerWindow) && glass.width >= glass.ownerWindow.width - 1 && glass.height >= glass.ownerWindow.height - 1
             : glass.popup !== null)
+        onOutsidePointer: (globalPosition, pressed) => glass.dismissOutside(globalPosition, pressed)
         onEscapeRequested: if (glass.popup && (glass.popup.closePolicy & Basic.Popup.CloseOnEscape)) glass.popup.close()
         WindowContainer { anchors.fill: parent; window: nativeWindow.containerWindow; visible: nativeWindow.active && !nativeWindow.windowSurface }
         radius: glass.radius
@@ -33,7 +48,7 @@ Rectangle {
     property Item sourceItem: ownerWindow && ownerWindow["glassBackdrop"] !== undefined
         ? ownerWindow["glassBackdrop"] : Theme.backdrop
     readonly property bool effectsAvailable: GraphicsInfo.api !== GraphicsInfo.Software && GraphicsInfo.api !== GraphicsInfo.Unknown
-    readonly property bool samplesBackdrop: !nativeActive && !forceOpaque && visible && effectsAvailable && sourceItem !== null
+    readonly property bool samplesBackdrop: !nativePreferred && !forceOpaque && visible && effectsAvailable && sourceItem !== null
         && ownerWindow !== null && sourceItem.Window.window === ownerWindow
     readonly property point samplePosition: {
         // mapToItem doesn't notify bindings about ancestor motion. Track both
@@ -56,7 +71,7 @@ Rectangle {
     RectangularShadow {
         anchors.fill: parent
         z: -2
-        visible: !glass.nativeActive && glass.shadowEnabled && glass.effectsAvailable
+        visible: !glass.nativePreferred && glass.shadowEnabled && glass.effectsAvailable
         radius: glass.radius
         blur: 32
         spread: 2
@@ -67,7 +82,7 @@ Rectangle {
     RectangularShadow {
         anchors.fill: parent
         z: -1
-        visible: !glass.nativeActive && glass.shadowEnabled && glass.effectsAvailable
+        visible: !glass.nativePreferred && glass.shadowEnabled && glass.effectsAvailable
         radius: glass.radius
         blur: 10
         offset: Qt.vector2d(0, 2)
@@ -103,7 +118,7 @@ Rectangle {
     }
     Item {
         anchors.fill: parent
-        visible: !glass.nativeActive
+        visible: !glass.nativePreferred
         // Composite blur, tint and sheen first. Masking each separately leaves
         // a bright fringe where their partially covered corner pixels overlap.
         layer.enabled: glass.samplesBackdrop

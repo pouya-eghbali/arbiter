@@ -27,7 +27,7 @@ Item {
         GlassSurface {
             parent: sheet
             anchors.fill: parent
-            visible: !host.active
+            visible: !host.preferred
             radius: sheet.radius
             dense: true
             forceOpaque: host.reducedTransparency

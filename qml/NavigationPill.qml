@@ -122,7 +122,7 @@ FocusScope {
     }
     GlassSurface {
         id: pillSurface
-        visible: !nativeGlass.active
+        visible: !nativeGlass.preferred
         forceOpaque: nativeGlass.reducedTransparency
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
