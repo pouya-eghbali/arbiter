@@ -237,8 +237,26 @@ void renderDesignPreview(MobileModel &model, QQmlApplicationEngine &engine, cons
                 qApp->exit(1);
                 return;
             }
+            // Exercise dynamic overlay visibility and creation, not just static frames.
+            for (int i = 0; i < 12; ++i) {
+                window->setProperty("panel", "more");
+                QTest::qWait(40);
+                window->setProperty("panel", "settings");
+                QTest::qWait(40);
+                auto loader = window->findChild<QObject *>("settingsLoader");
+                auto settings = loader ? loader->property("item").value<QObject *>() : nullptr;
+                if (!settings) {
+                    qCritical("Settings did not load from the menu");
+                    qApp->exit(1);
+                    return;
+                }
+                settings->setProperty("category", "privacy");
+                QTest::qWait(40);
+                window->setProperty("panel", "");
+                QTest::qWait(40);
+            }
             window->grabWindow().save(output, "PNG");
-            qInfo("Pill swipes and tab-close interaction checks passed");
+            qInfo("Pill, tab-close and repeated menu/settings transition checks passed");
             qApp->exit(0);
         });
         return;

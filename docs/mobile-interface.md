@@ -85,3 +85,16 @@ runtime errors; inspect the images as well. The default output is in ignored
 `output/mobile-ui-audit`. Fixtures use fabricated data and never unlock a real
 vault; the scanner fixture does not request camera permission. Native permission
 sheets and the final GPU glass treatment still need native-device verification.
+
+For native iOS menu/snapshot transitions, a simulator-only smoke test repeatedly
+opens and closes the menu over the current page. Use a disposable simulator with
+a local test page; this path is excluded from physical-device builds:
+
+```sh
+SIMCTL_CHILD_ARBITER_UI_SMOKE=1 xcrun simctl launch --console \
+  <simulator-udid> com.arbiter.mobile
+```
+
+The `interactions` desktop fixture also exercises repeated menu → settings →
+privacy → page transitions. Run it with the normal platform renderer as well as
+`QT_QPA_PLATFORM=offscreen` to cover GPU-specific rendering paths.

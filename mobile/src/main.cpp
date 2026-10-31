@@ -15,6 +15,10 @@
 #include <QQuickImageProvider>
 #include <QPainter>
 #include <QTranslator>
+#ifdef Q_OS_IOS
+#include <TargetConditionals.h>
+#include <QTimer>
+#endif
 #ifdef ARBITER_MOBILE_WEBENGINE
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
 #endif
@@ -107,6 +111,28 @@ int main(int argc, char **argv) {
 #ifdef ARBITER_MOBILE_DESIGN_PREVIEW
     if (design)
         renderDesignPreview(browser, engine, designScreen, designOutput);
+#endif
+#if defined(Q_OS_IOS) && TARGET_OS_SIMULATOR
+    // Native-view visibility and snapshot transitions need a real iOS/Metal test.
+    // This diagnostic entry point is never compiled into physical-device builds.
+    if (qEnvironmentVariableIsSet("ARBITER_UI_SMOKE")) {
+        auto window = engine.rootObjects().first();
+        auto timer = new QTimer(window);
+        timer->setInterval(200);
+        QObject::connect(timer, &QTimer::timeout, window, [window, timer, step = 0]() mutable {
+            if (step++ >= 40) {
+                qInfo("Native menu transition smoke test passed");
+                timer->stop();
+                qApp->quit();
+                return;
+            }
+            if (step % 2) {
+                qInfo("Opening native menu, iteration %d", step / 2);
+                QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, QVariant("more")));
+            } else window->setProperty("panel", "");
+        });
+        QTimer::singleShot(1200, timer, [timer] { timer->start(); });
+    }
 #endif
     const auto result = app.exec();
     MobilePlatform::shutdown();
