@@ -1,0 +1,13 @@
+<!doctype html>
+<meta name="color-scheme" content="light dark">
+<script>
+  const preference = matchMedia('(prefers-color-scheme: dark)');
+  const state = document.documentElement.dataset;
+  state.initialDark = String(preference.matches);
+  state.schemeChanges = 0;
+  preference.addEventListener('change', () => {
+    state.schemeChanges = Number(state.schemeChanges) + 1;
+  });
+  document.title = 'Appearance fixture';
+</script>
+<p>System appearance fixture</p>

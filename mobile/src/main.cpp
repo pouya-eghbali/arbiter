@@ -28,6 +28,7 @@
 #include "surfacepalette.h"
 #include "nativepage.h"
 extern QWindow *arbiter_ios_test_window_at(QWindow *, QPointF, QPoint *);
+extern void arbiter_ios_test_system_appearance(bool);
 #endif
 #endif
 #ifdef ARBITER_MOBILE_WEBENGINE
@@ -88,7 +89,7 @@ int main(int argc, char **argv) {
 #else
 #if defined(Q_OS_IOS) && TARGET_OS_SIMULATOR
     QTemporaryDir smokeProfile;
-    const bool uiSmoke = qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE") || qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE");
+    const bool uiSmoke = qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE") || qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE") || qEnvironmentVariableIsSet("ARBITER_APPEARANCE_SMOKE");
     if (uiSmoke) {
         const QJsonObject profile{
             {"settings", QJsonObject{{"onboardingDone", true}, {"liquidGlass", true}, {"theme", "dark"}}},
@@ -145,9 +146,52 @@ int main(int argc, char **argv) {
 #if defined(Q_OS_IOS) && TARGET_OS_SIMULATOR
     // Native-view visibility and snapshot transitions need a real iOS/Metal test.
     // This diagnostic entry point is never compiled into physical-device builds.
-    if (qEnvironmentVariableIsSet("ARBITER_UI_SMOKE") || qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE") || qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE")) {
+    if (qEnvironmentVariableIsSet("ARBITER_UI_SMOKE") || qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE") || qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE") || qEnvironmentVariableIsSet("ARBITER_APPEARANCE_SMOKE")) {
         auto window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
         QTimer::singleShot(1500, window, [window, &browser, &engine] {
+            if (qEnvironmentVariableIsSet("ARBITER_APPEARANCE_SMOKE")) {
+                arbiter_ios_test_system_appearance(true);
+                MobilePlatform::setSystemAppearance(Qt::white);
+                browser.selectTab("target");
+                auto timer = new QTimer(window);
+                timer->setInterval(100);
+                QObject::connect(timer, &QTimer::timeout, window,
+                    [timer, stage = 0, attempts = 0, busy = false]() mutable {
+                        if (busy) return;
+                        auto page = NativePage::pages.value("target");
+                        if (!page || page->title() != "Appearance fixture") {
+                            if (++attempts > 100) qFatal("Appearance fixture did not load");
+                            return;
+                        }
+                        // Status-bar contrast must never change web content's preference.
+                        MobilePlatform::setSystemAppearance(stage == 0 ? Qt::white : Qt::black);
+                        busy = true;
+                        page->evaluate(stage == 0 ?
+                            "document.documentElement.dataset.initialDark === 'true' && matchMedia('(prefers-color-scheme: dark)').matches" :
+                            stage == 1 ? "document.documentElement.dataset.initialDark === 'true' && !matchMedia('(prefers-color-scheme: dark)').matches && Number(document.documentElement.dataset.schemeChanges) > 0" :
+                            "document.documentElement.dataset.initialDark === 'false' && !matchMedia('(prefers-color-scheme: dark)').matches",
+                            [timer, page, &stage, &attempts, &busy](QVariant result) {
+                                busy = false;
+                                if (!result.toBool()) {
+                                    if (++attempts > 100) qFatal("Web content did not follow system appearance independently of status-bar contrast (stage %d)", stage);
+                                    return;
+                                }
+                                attempts = 0;
+                                if (stage == 0) {
+                                    stage = 1;
+                                    arbiter_ios_test_system_appearance(false);
+                                } else if (stage == 1) {
+                                    stage = 2;
+                                    page->action("reload");
+                                } else {
+                                    qInfo("First-document dark/light preferences, live system change and independent status-bar contrast passed");
+                                    timer->stop(); qApp->quit();
+                                }
+                            });
+                    });
+                timer->start();
+                return;
+            }
             if (qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE")) {
                 browser.selectTab("target");
                 window->setProperty("panel", "");

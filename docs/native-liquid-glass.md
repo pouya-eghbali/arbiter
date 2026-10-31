@@ -64,6 +64,10 @@ shared keyboard inset animates layout without feeding sheet motion back into
 keyboard geometry. Other platforms retain Qt keyboard geometry with eased
 layout movement. Floating iPad keyboards do not shift the entire interface.
 
+iOS web views explicitly follow the window scene's system appearance before
+navigation, and observe scene appearance changes. The host controller's separate
+status-bar contrast override must not leak into `prefers-color-scheme` in pages.
+
 UiPopup, UiMenu and UiToolTip close when their owning private window is covered,
 including native windows outside the main Qt overlay. Hidden or disabled child
 hosts immediately hide their native content. Reduce Transparency uses opaque
@@ -111,6 +115,12 @@ scene-graph previews. No preview images are written to disk.
   intermediate panel/inset values, completed dismissal, Reduce Motion and
   immediate private-lock concealment.
 - The software screen matrix checks Glacier across phone sizes and themes.
+- iOS simulator `SIMCTL_CHILD_ARBITER_APPEARANCE_SMOKE=1`, with
+  `SIMCTL_CHILD_ARBITER_OVERLAY_URL` pointing at the HTTP-served
+  `mobile/tests/fixtures/appearance.html`, checks the preference recorded by the
+  first document script, live OS appearance changes without reloading, and
+  independence from opposite status-bar contrast overrides. The simulator-only
+  test changes scene traits in an isolated profile.
 - iOS simulator `SIMCTL_CHILD_ARBITER_OVERLAY_SMOKE=1` with
   `SIMCTL_CHILD_ARBITER_OVERLAY_URL` pointing at a local test page titled
   `Overlay fixture`: live native page visibility and input blocking under all

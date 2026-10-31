@@ -48,6 +48,16 @@ UIViewController *presenter() {
                 }
     return nil;
 }
+UIWindowScene *activeWindowScene() {
+    UIWindowScene *fallback = nil;
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        auto windowScene = (UIWindowScene *)scene;
+        if (scene.activationState == UISceneActivationStateForegroundActive) return windowScene;
+        if (scene.activationState == UISceneActivationStateForegroundInactive) fallback = windowScene;
+    }
+    return fallback;
+}
 QVariantMap map(NSDictionary *data) {
     if (![NSJSONSerialization isValidJSONObject:data])
         return {};
@@ -213,8 +223,38 @@ void prepareRules(void (^callback)(void)) {
 // Hit testing uses the same cutout so gestures reach the QML controls.
 @interface ArbiterPageView : WKWebView
 @property(nonatomic) CGRect overlayFraction;
+@property(nonatomic, weak) UIWindowScene *appearanceScene;
+@property(nonatomic, strong) id<UITraitChangeRegistration> appearanceRegistration;
+- (void)followSystemAppearance;
 @end
 @implementation ArbiterPageView
+- (void)followSystemAppearance {
+    // A new page may navigate before Qt attaches it to a native window, and
+    // the glass foreground can temporarily leave no key window to present from.
+    UIWindowScene *scene = self.window.windowScene ?: activeWindowScene();
+    if (!scene) return;
+    if (scene != self.appearanceScene) {
+        if (self.appearanceRegistration)
+            [self.appearanceScene unregisterForTraitChanges:self.appearanceRegistration];
+        self.appearanceScene = scene;
+        __weak ArbiterPageView *weakSelf = self;
+        self.appearanceRegistration = [scene registerForTraitChanges:@[ UITraitUserInterfaceStyle.class ]
+            withHandler:^(id<UITraitEnvironment> environment, UITraitCollection *previous) {
+                [weakSelf followSystemAppearance];
+            }];
+    }
+    // The root controller's override is only for status-bar contrast. WebKit
+    // must see the scene's system preference before its first document loads.
+    self.overrideUserInterfaceStyle = scene.traitCollection.userInterfaceStyle;
+}
+- (void)didMoveToWindow {
+    [super didMoveToWindow];
+    [self followSystemAppearance];
+}
+- (void)dealloc {
+    if (self.appearanceRegistration)
+        [self.appearanceScene unregisterForTraitChanges:self.appearanceRegistration];
+}
 - (CGRect)overlayFrame {
     CGRect r = self.overlayFraction;
     return CGRectMake(r.origin.x * self.bounds.size.width, r.origin.y * self.bounds.size.height,
@@ -294,6 +334,7 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
                                                             name:@"arbiterForms"];
     self.view = [[ArbiterPageView alloc] initWithFrame:CGRectMake(0, 0, 400, 700)
                                          configuration:configuration];
+    [self.view followSystemAppearance];
     self.view.navigationDelegate = self;
     self.view.UIDelegate = self;
     self.view.allowsBackForwardNavigationGestures = YES;
@@ -826,6 +867,7 @@ void navigate(NativePage *page, const QUrl &url) {
       if (!current || current.navigationGeneration != generation || !current->page)
           return;
       [current configure];
+      [current.view followSystemAppearance];
       [current.view loadRequest:[NSURLRequest requestWithURL:url.toNSURL()]];
     });
 }
@@ -858,6 +900,10 @@ void evaluate(NativePage *page, const QString &script, std::function<void(QVaria
 } // namespace MobilePlatform
 
 #if TARGET_OS_SIMULATOR
+void arbiter_ios_test_system_appearance(bool dark) {
+    activeWindowScene().traitOverrides.userInterfaceStyle =
+        dark ? UIUserInterfaceStyleDark : UIUserInterfaceStyleLight;
+}
 // Resolve the actual UIKit hit target before injecting a test touch into Qt.
 // This catches native views that cover controls or disagree with Qt geometry.
 QWindow *arbiter_ios_test_window_at(QWindow *owner, QPointF point, QPoint *local) {
