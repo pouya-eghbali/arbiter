@@ -8,6 +8,13 @@ import sys
 import tempfile
 
 
+def resource_bytes(data):
+    # Microsoft's RC accepts UTF-16 BOMs, but Clang's C preprocessor does not.
+    if data.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return data.decode("utf-16").encode("utf-8")
+    return data
+
+
 def main(argv):
     llvm = Path(os.environ["ARBITER_WINDOWS_LLVM"])
     sysroot = Path(os.environ["ARBITER_WINDOWS_SYSROOT"])
@@ -30,11 +37,16 @@ def main(argv):
         "crt/include", "sdk/include/ucrt", "sdk/include/shared", "sdk/include/um", "sdk/include/winrt")]
     with tempfile.TemporaryDirectory(prefix="arbiter-rc-") as folder:
         preprocessed = Path(folder) / "input.rc"
+        data = source.read_bytes()
+        compiler_source = source
+        if data.startswith((b"\xff\xfe", b"\xfe\xff")):
+            compiler_source = Path(folder) / "source.rc"
+            compiler_source.write_bytes(resource_bytes(data))
         command = [str(llvm / "bin/clang-cl"), "--target=x86_64-pc-windows-msvc",
                    "/clang:-fms-compatibility-version=19.44", "/P", "/TC", "/DRC_INVOKED",
-                   "/showIncludes", "/Fi" + str(preprocessed), *flags]
+                   "/showIncludes", "/Fi" + str(preprocessed), "/I" + str(source.parent), *flags]
         command += ["/imsvc" + name for name in system_includes]
-        command += ["--", str(source)]
+        command += ["--", str(compiler_source)]
         subprocess.run(command, check=True)
         search = [str(source.parent), *includes, *system_includes]
         # LLVM's parser consumes the already preprocessed file. Search paths
@@ -51,6 +63,7 @@ def main(argv):
                     print(f"Note: including file: {candidate.resolve()}")
                     break
     print(f"Note: including file: {Path(__file__).resolve()}")
+    print(f"Note: including file: {source.resolve()}")
 
 
 if __name__ == "__main__":
