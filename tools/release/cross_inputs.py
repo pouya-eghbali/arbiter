@@ -20,10 +20,10 @@ def download():
     if platform not in ('windows', 'linux') or not re.fullmatch(r'v\d+\.\d+\.\d+', tag) or not re.fullmatch(r'[0-9a-f]{64}', digest):
         raise RuntimeError('Invalid cross-build input request')
     repo = os.environ['GITHUB_REPOSITORY']
-    release = json.loads(subprocess.check_output(['gh', 'api', f'repos/{repo}/releases/tags/{tag}'], text=True))
-    revision = release.get('target_commitish', '')
+    release = json.loads(subprocess.check_output(['gh', 'release', 'view', tag, '--repo', repo, '--json', 'isDraft,targetCommitish'], text=True))
+    revision = release.get('targetCommitish', '')
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
-    if not release.get('draft') or not re.fullmatch(r'[0-9a-f]{40}', revision) or revision != head:
+    if not release.get('isDraft') or not re.fullmatch(r'[0-9a-f]{40}', revision) or revision != head:
         raise RuntimeError('Build inputs must belong to a draft pinned to the exact checked-out release commit')
     WORK.mkdir(exist_ok=True)
     asset = f'build-inputs-{platform}.zip'

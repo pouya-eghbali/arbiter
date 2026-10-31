@@ -27,7 +27,7 @@ class CrossInputTests(unittest.TestCase):
                 env = dict(INPUT_PLATFORM='linux', RELEASE_TAG='v0.2.1',
                            INPUT_SHA256=hashlib.sha256(archive.read_bytes()).hexdigest(), GITHUB_REPOSITORY='owner/repo')
                 with patch.object(inputs, 'WORK', root), patch.dict(os.environ, env), \
-                     patch.object(inputs.subprocess, 'check_output', side_effect=[json.dumps(dict(draft=True,target_commitish='a'*40)), 'a'*40]), \
+                     patch.object(inputs.subprocess, 'check_output', side_effect=[json.dumps(dict(isDraft=True,targetCommitish='a'*40)), 'a'*40]), \
                      patch.object(inputs.subprocess, 'run'):
                     with self.assertRaisesRegex(RuntimeError, 'Unsafe'):
                         inputs.download()
@@ -43,7 +43,7 @@ class CrossInputTests(unittest.TestCase):
             env = dict(INPUT_PLATFORM='linux', RELEASE_TAG='v0.2.1',
                        INPUT_SHA256=hashlib.sha256(archive.read_bytes()).hexdigest(), GITHUB_REPOSITORY='owner/repo')
             with patch.object(inputs, 'WORK', root), patch.dict(os.environ, env), \
-                 patch.object(inputs.subprocess, 'check_output', side_effect=[json.dumps(dict(draft=True,target_commitish='a'*40)), 'a'*40]), \
+                 patch.object(inputs.subprocess, 'check_output', side_effect=[json.dumps(dict(isDraft=True,targetCommitish='a'*40)), 'a'*40]), \
                  patch.object(inputs.subprocess, 'run'):
                 inputs.download()
             self.assertEqual((root / helper.filename).stat().st_mode & 0o777, 0o755)
@@ -51,7 +51,7 @@ class CrossInputTests(unittest.TestCase):
     def test_published_release_cannot_be_used_for_private_build_inputs(self):
         env = dict(INPUT_PLATFORM='linux', RELEASE_TAG='v0.2.1', INPUT_SHA256='a'*64, GITHUB_REPOSITORY='owner/repo')
         with patch.dict(os.environ, env), \
-             patch.object(inputs.subprocess, 'check_output', side_effect=[json.dumps(dict(draft=False,target_commitish='a'*40)), 'a'*40]), \
+             patch.object(inputs.subprocess, 'check_output', side_effect=[json.dumps(dict(isDraft=False,targetCommitish='a'*40)), 'a'*40]), \
              patch.object(inputs.subprocess, 'run') as download:
             with self.assertRaisesRegex(RuntimeError, 'draft pinned'):
                 inputs.download()
@@ -60,7 +60,7 @@ class CrossInputTests(unittest.TestCase):
     def test_sdk_must_match_exact_release_commit(self):
         env = dict(INPUT_PLATFORM='linux', RELEASE_TAG='v0.2.1', INPUT_SHA256='a' * 64, GITHUB_REPOSITORY='owner/repo')
         with patch.dict(os.environ, env), \
-             patch.object(inputs.subprocess, 'check_output', side_effect=[json.dumps(dict(draft=True,target_commitish='a'*40)), 'b'*40]), \
+             patch.object(inputs.subprocess, 'check_output', side_effect=[json.dumps(dict(isDraft=True,targetCommitish='a'*40)), 'b'*40]), \
              patch.object(inputs.subprocess, 'run') as download:
             with self.assertRaisesRegex(RuntimeError, 'exact checked-out release'):
                 inputs.download()
