@@ -103,6 +103,53 @@ class MobileCoreTest : public QObject {
         vault.lock();
         QVERIFY(vault.entries().isEmpty());
     }
+    void privatePreviewsAreMemoryOnlyAndLockCannotBeBypassed() {
+        QTemporaryDir dir;
+        MobileModel model(nullptr, dir.path());
+        model.togglePrivate();
+        const auto key = model.activeId();
+        QImage image(40, 40, QImage::Format_RGB32);
+        image.fill(Qt::red);
+        model.setPreview(key, image);
+        QVERIFY(model.previews().contains(key));
+        model.persist();
+        QFile session(dir.path() + "/browser-session-v1.json");
+        QVERIFY(session.open(QIODevice::ReadOnly));
+        QVERIFY(!session.readAll().contains("data:image"));
+        model.lockPrivate();
+        QVERIFY(model.previews().isEmpty());
+        QVERIFY(model.privateLocked());
+        model.togglePrivate();
+        QVERIFY(!model.privateLocked());
+        model.togglePrivate();
+        QVERIFY(model.privateLocked());
+    }
+    void closingLastPrivateTabUsesAFreshProfile() {
+        QTemporaryDir dir;
+        MobileModel model(nullptr, dir.path());
+        model.togglePrivate();
+        const auto oldTab = model.activeId();
+        const auto oldProfile = model.page(oldTab).value("profile");
+        model.closeTab(oldTab);
+        QVERIFY(model.page(model.activeId()).value("profile") != oldProfile);
+    }
+    void cyclingStaysWithinWorkspaceAndMode() {
+        QTemporaryDir dir;
+        MobileModel model(nullptr, dir.path());
+        const auto personal = model.workspaceId();
+        model.addTab("https://one.fixture.example");
+        model.addTab("https://two.fixture.example");
+        model.addWorkspace("Other", false);
+        const auto other = model.activeId();
+        model.cycleTab(1);
+        QCOMPARE(model.activeId(), other);
+        model.selectWorkspace(personal);
+        for (int i = 0; i < 5; ++i) {
+            model.cycleTab(1);
+            QCOMPARE(model.page(model.activeId()).value("workspace").toString(), personal);
+            QVERIFY(!model.page(model.activeId()).value("private").toBool());
+        }
+    }
     void malformedSettings() {
         QTemporaryDir dir;
         MobileModel model(nullptr, dir.path());

@@ -27,6 +27,19 @@ import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
+// Clip only the floating QML controls, not a whole bottom toolbar strip.
+class ArbiterPageView(context:android.content.Context):WebView(context){
+ var overlay=android.graphics.RectF()
+ var settled:(()->Unit)?=null
+ private var forwarding=false
+ private val settledTask=Runnable{settled?.invoke()}
+ private fun frame()=android.graphics.RectF(overlay.left*width,overlay.top*height,overlay.right*width,overlay.bottom*height)
+ override fun draw(canvas:android.graphics.Canvas){val rect=frame();if(rect.isEmpty){super.draw(canvas);return};val saved=canvas.save();val path=android.graphics.Path().apply{addRoundRect(rect,minOf(32*resources.displayMetrics.density,rect.height()/2),minOf(32*resources.displayMetrics.density,rect.height()/2),android.graphics.Path.Direction.CW)};canvas.clipOutPath(path);super.draw(canvas);canvas.restoreToCount(saved)}
+ fun drawPreview(canvas:android.graphics.Canvas){super.draw(canvas)}
+ override fun dispatchTouchEvent(event:android.view.MotionEvent):Boolean {if(event.actionMasked==android.view.MotionEvent.ACTION_DOWN)forwarding=frame().contains(event.x,event.y);if(forwarding)return false;return super.dispatchTouchEvent(event)}
+ override fun onScrollChanged(l:Int,t:Int,oldl:Int,oldt:Int){super.onScrollChanged(l,t,oldl,oldt);removeCallbacks(settledTask);postDelayed(settledTask,250)}
+ override fun destroy(){removeCallbacks(settledTask);settled=null;super.destroy()}
+}
 object NativeBridge {
  private val sources=ConcurrentHashMap<String,String>()
  private val scripts=ConcurrentHashMap<String,String>()
@@ -107,7 +120,7 @@ object NativeBridge {
   // must complete before QWindow wraps the returned Java View.
   var view:WebView?=null;var failure:Exception?=null;val ready=java.util.concurrent.CountDownLatch(1)
   activity().runOnUiThread{try{
-   val web=WebView(activity());view=web;scripts[id]=script;if(privateMode)privateProfiles[id]=profile
+   val web=ArbiterPageView(activity());web.settled={capture(id)};view=web;scripts[id]=script;if(privateMode)privateProfiles[id]=profile
    web.settings.javaScriptEnabled=true;web.settings.allowFileAccess=false;web.settings.allowContentAccess=false;web.settings.mixedContentMode=WebSettings.MIXED_CONTENT_NEVER_ALLOW;web.settings.mediaPlaybackRequiresUserGesture=true
    if(WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE))WebViewCompat.setProfile(web,profile)
    else check(profile=="shared"&&!privateMode){"This Android WebView does not support isolated profiles"}
@@ -154,8 +167,12 @@ object NativeBridge {
  @JvmStatic fun action(id:String,name:String){activity().runOnUiThread{views[id]?.let{when(name){"back"->it.goBack();"forward"->it.goForward();"reload"->it.reload()}}}}
  @JvmStatic fun evaluate(id:String,script:String){activity().runOnUiThread{views[id]?.evaluateJavascript(script,null)}}
  @JvmStatic fun inspect(id:String){activity().runOnUiThread{views[id]?.evaluateJavascript("globalThis.__arbiterHasPassword?.()??true"){value->event(id,"loginInspection",JSONObject(mapOf("hasPassword" to (value!="false"))).toString())}}}
- @JvmStatic fun destroy(id:String){activity().runOnUiThread{views.remove(id)?.let{it.stopLoading();it.destroy()};sources.remove(id);scripts.remove(id);privateProfiles.remove(id)?.let{profile->if(!privateProfiles.containsValue(profile))clearPrivateProfile(profile)}}}
+ @JvmStatic fun destroy(id:String){activity().runOnUiThread{views.remove(id)?.let{it.stopLoading();it.destroy()};sources.remove(id);scripts.remove(id);findQueries.remove(id);privateProfiles.remove(id)?.let{profile->if(!privateProfiles.containsValue(profile))clearPrivateProfile(profile)}}}
  @JvmStatic fun configure(id:String,script:String,prefs:String){scripts[id]=script;evaluate(id,"globalThis.__arbiterUpdatePreferences?.($prefs)")}
+ @JvmStatic fun overlay(id:String,x:Float,y:Float,width:Float,height:Float){activity().runOnUiThread{(views[id] as? ArbiterPageView)?.let{it.overlay=android.graphics.RectF(x,y,x+width,y+height);it.invalidate()}}}
+ @JvmStatic fun capture(id:String){activity().runOnUiThread{val view=views[id] as? ArbiterPageView ?: return@runOnUiThread;if(view.width<=0||view.height<=0)return@runOnUiThread;try{val scale=minOf(1f,640f/view.width);val bitmap=android.graphics.Bitmap.createBitmap(maxOf(1,(view.width*scale).toInt()),maxOf(1,(view.height*scale).toInt()),android.graphics.Bitmap.Config.ARGB_8888);val canvas=android.graphics.Canvas(bitmap);canvas.scale(scale,scale);view.drawPreview(canvas);val stream=java.io.ByteArrayOutputStream();bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,90,stream);bitmap.recycle();event(id,"preview",JSONObject(mapOf("image" to "data:image/png;base64,"+android.util.Base64.encodeToString(stream.toByteArray(),android.util.Base64.NO_WRAP))).toString())}catch(_:Exception){}}}
+ private val findQueries=ConcurrentHashMap<String,String>()
+ @JvmStatic fun find(id:String,query:String,backwards:Boolean){activity().runOnUiThread{views[id]?.let{if(query.isEmpty()){it.clearMatches();findQueries.remove(id)}else if(findQueries[id]==query)it.findNext(!backwards)else{findQueries[id]=query;it.findAllAsync(query)}}}}
  @JvmStatic fun canSleep():Boolean = !activity().getSystemService(AudioManager::class.java).isMusicActive
  fun activityResult(request:Int,result:Int,data:Intent?){when(request){71001->verified(result==Activity.RESULT_OK);71002->{fileCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result,data));fileCallback=null}}}
  fun permissionsResult(request:Int,results:IntArray){val approved=results.isNotEmpty()&&results.all{it==PackageManager.PERMISSION_GRANTED};if(request==71003){val p=permission;permission=null;if(approved)p?.grant(p.resources)else p?.deny()};if(request==71004){geolocation?.let{it.second.invoke(it.first,approved,false)};geolocation=null}}

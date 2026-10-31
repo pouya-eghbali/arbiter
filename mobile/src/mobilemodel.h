@@ -2,6 +2,7 @@
 #include "mobiletabs.h"
 #include "mobilevault.h"
 #include <QElapsedTimer>
+#include <QImage>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QMutex>
@@ -16,6 +17,7 @@ class MobileModel : public QObject {
     Q_PROPERTY(QVariantList tabs READ tabs NOTIFY changed)
     Q_PROPERTY(QVariantList workspaces READ workspaces NOTIFY changed)
     Q_PROPERTY(QVariantList history READ history NOTIFY changed)
+    Q_PROPERTY(QVariantMap previews READ previews NOTIFY previewsChanged)
     Q_PROPERTY(QVariantList downloads READ downloads NOTIFY changed)
     Q_PROPERTY(QVariantMap settings READ settings NOTIFY settingsChanged)
     Q_PROPERTY(QString activeId READ activeId NOTIFY changed)
@@ -36,6 +38,13 @@ class MobileModel : public QObject {
     MobileTabs *screens() {
         return &m_screens;
     }
+    QVariantMap previews() const {
+        return m_previews;
+    }
+    Q_INVOKABLE void captureActive();
+    Q_INVOKABLE void setPreview(const QString &id, const QImage &image);
+    Q_INVOKABLE void cycleTab(int direction);
+    Q_INVOKABLE void findText(const QString &text, bool backwards = false);
     QVariantList tabs() const;
     QVariantList workspaces() const;
     QVariantList history() const;
@@ -56,7 +65,7 @@ class MobileModel : public QObject {
         return m_private;
     }
     bool privateLocked() const {
-        return m_locked;
+        return m_private && m_locked;
     }
     bool onboardingDone() const {
         return m_settings.value("onboardingDone").toBool();
@@ -79,6 +88,7 @@ class MobileModel : public QObject {
     Q_INVOKABLE void removeWorkspace(const QString &id);
     Q_INVOKABLE void renameWorkspace(const QString &id, const QString &name);
     Q_INVOKABLE void togglePrivate();
+    Q_INVOKABLE void newPrivateTab();
     Q_INVOKABLE void unlockPrivate();
     Q_INVOKABLE void setSetting(const QString &name, const QVariant &value);
     Q_INVOKABLE void toggleSiteBlocking();
@@ -116,6 +126,7 @@ class MobileModel : public QObject {
   signals:
     void changed();
     void settingsChanged();
+    void previewsChanged();
     void message(QString text);
     void loginOffered(QString origin, QString username);
     void accountsOffered(QVariantList accounts);
@@ -133,6 +144,7 @@ class MobileModel : public QObject {
     int tabIndex(const QString &id) const;
     QJsonArray m_tabs, m_workspaces, m_history, m_downloads;
     QJsonObject m_settings, m_pending, m_focus;
+    QVariantMap m_previews;
     QString m_active, m_workspace, m_privateContext, m_storePath;
     bool m_private = false, m_locked = false, m_syncing = false;
     MobileTabs m_screens;

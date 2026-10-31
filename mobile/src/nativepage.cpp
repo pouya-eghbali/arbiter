@@ -6,12 +6,29 @@ NativePage::~NativePage() {
     delete m_window;
     MobilePlatform::destroyWebView(this);
 }
+void NativePage::setOverlayRect(const QRectF &rect) {
+    if (m_overlayRect == rect)
+        return;
+    m_overlayRect = rect;
+    emit overlayRectChanged();
+    if (m_window)
+        MobilePlatform::setOverlayRect(this, rect);
+}
+void NativePage::capture() {
+    if (m_window)
+        MobilePlatform::capture(this);
+}
+void NativePage::find(const QString &text, bool backwards) {
+    if (m_window)
+        MobilePlatform::find(this, text, backwards);
+}
 void NativePage::start() {
     if (m_window)
         return;
     pages[tabId] = this;
     m_window = MobilePlatform::createWebView(this, profile, privateMode);
     emit nativeWindowChanged();
+    MobilePlatform::setOverlayRect(this, m_overlayRect);
     if (!m_url.isEmpty())
         MobilePlatform::navigate(this, m_url);
 }

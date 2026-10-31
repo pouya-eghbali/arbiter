@@ -34,17 +34,32 @@ class NativeWebViewTest {
   fun js(view:WebView,source:String):String {val result=CompletableFuture<String>();instrumentation.runOnMainSync{view.evaluateJavascript(source){result.complete(it)}};return result.get(5,TimeUnit.SECONDS)}
   try {
    first=NativeBridge.create(id,id,false,script)
-   instrumentation.runOnMainSync{first!!.loadDataWithBaseURL("https://fixture.example/","<title>Native fixture</title><input type=password>","text/html","UTF-8",null)}
+   instrumentation.runOnMainSync{(MainActivity.current!!.window.decorView as android.view.ViewGroup).addView(first,android.view.ViewGroup.LayoutParams(400,800));first!!.loadDataWithBaseURL("https://fixture.example/","<title>Native fixture</title><body style='margin:0;background:#ff0000;min-height:800px'><input type=password></body>","text/html","UTF-8",null)}
    val loaded=System.currentTimeMillis()+10000
    while(System.currentTimeMillis()<loaded&&js(first!!,"typeof globalThis.__arbiterFill")!="\"function\"")Thread.sleep(100)
    assertEquals("\"function\"",js(first!!,"typeof globalThis.__arbiterFill"))
    assertEquals("\"fixture\"",js(first!!,"localStorage.setItem('arbiter-test','fixture');localStorage.getItem('arbiter-test')"))
+   val painted=CompletableFuture<Boolean>()
+   instrumentation.runOnMainSync{first!!.postVisualStateCallback(1,object:WebView.VisualStateCallback(){override fun onComplete(id:Long){painted.complete(true)}})}
+   assertTrue(painted.get(10,TimeUnit.SECONDS))
+   NativeBridge.overlay(id,.05f,.9f,.9f,.075f)
+   instrumentation.runOnMainSync{
+    val image=android.graphics.Bitmap.createBitmap(400,800,android.graphics.Bitmap.Config.ARGB_8888)
+    image.eraseColor(android.graphics.Color.GREEN);first!!.draw(android.graphics.Canvas(image))
+    assertEquals("The floating-pill cutout must reveal Qt Quick",android.graphics.Color.GREEN,image.getPixel(200,750))
+    assertTrue("The page must still render outside the cutout",android.graphics.Color.red(image.getPixel(200,200))>240)
+    (first as ArbiterPageView).drawPreview(android.graphics.Canvas(image))
+    assertTrue("Tab previews must include the page behind the pill",android.graphics.Color.red(image.getPixel(200,750))>240)
+    val press=android.view.MotionEvent.obtain(0,0,android.view.MotionEvent.ACTION_DOWN,200f,750f,0)
+    assertFalse("Pill touches must pass through to Qt Quick",first!!.dispatchTouchEvent(press));press.recycle();image.recycle()
+   }
    second=NativeBridge.create(other,other,false,script)
    instrumentation.runOnMainSync{second!!.loadDataWithBaseURL("https://fixture.example/","<title>Other fixture</title>","text/html","UTF-8",null)}
    val otherLoaded=System.currentTimeMillis()+10000
    while(System.currentTimeMillis()<otherLoaded&&js(second!!,"document.title")!="\"Other fixture\"")Thread.sleep(100)
    assertEquals("null",js(second!!,"localStorage.getItem('arbiter-test')"))
   }finally{
+   instrumentation.runOnMainSync{(first?.parent as? android.view.ViewGroup)?.removeView(first)}
    NativeBridge.destroy(id);NativeBridge.destroy(other)
    instrumentation.runOnMainSync{}
    val done=CompletableFuture<Boolean>()

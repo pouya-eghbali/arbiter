@@ -14,7 +14,6 @@ Controls.ApplicationWindow {
     title: "Arbiter"
     color: Theme.window
     property string panel: browser.onboardingDone ? "" : "onboarding"
-    property string activeTab: browser.activeId
     property var current: ({})
     property var visibleTabs: []
     property string query: ""
@@ -26,18 +25,80 @@ Controls.ApplicationWindow {
     property int onboardingStep: 0
     property bool colorDark: Theme.dark
     readonly property bool darkMode: browser.settings.theme === "dark" || (browser.settings.theme === "system" && Application.styleHints.colorScheme === Qt.Dark)
+    readonly property bool specialPanel: ["address", "tabs", "workspaces", "more", "find"].includes(panel)
+    readonly property bool browsingSurface: panel === "" || panel === "find"
+    readonly property real keyboardInset: Qt.inputMethod.visible && Qt.inputMethod.keyboardRectangle.y > 0 ? Math.max(0, content.height - Qt.inputMethod.keyboardRectangle.y) : 0
+    readonly property Item glassBackdrop: backdropScene
+    readonly property string workspaceName: (browser.workspaces.find(w => w.id === browser.workspaceId) || {}).name || qsTr("Personal")
+    readonly property rect nativeOverlayRect: {
+        const control = panel === "find" ? findBar : pill;
+        if (!browsingSurface || !control.visible || content.width <= 0 || content.height <= 0)
+            return Qt.rect(0, 0, 0, 0);
+        return Qt.rect(control.x / content.width, control.y / content.height, control.width / content.width, control.height / content.height);
+    }
     function refresh() {
+        if (browser.privateLocked && panel !== "onboarding") {
+            panel = "";
+            Qt.inputMethod.hide();
+        }
         current = browser.tabs.find(t => t.id === browser.activeId) || {};
         visibleTabs = browser.tabs.filter(t => t.workspace === browser.workspaceId && Boolean(t.private) === browser.privateMode);
     }
     function open(name) {
+        browser.captureActive();
+        if (name !== "address" && name !== "find")
+            Qt.inputMethod.hide();
         panel = name;
         query = "";
     }
+    function dismiss() {
+        Qt.inputMethod.hide();
+        if (panel === "find")
+            browser.findText("");
+        panel = "";
+    }
     function go(value) {
         browser.navigate(value);
-        panel = "";
-        Qt.inputMethod.hide();
+        dismiss();
+    }
+    function moreAction(name) {
+        if (name === "share") {
+            dismiss();
+            browser.share();
+        } else if (name === "reload") {
+            dismiss();
+            if (window.current.sleeping)
+                browser.selectTab(browser.activeId);
+            else
+                browser.pageAction(browser.activeId, "reload", "");
+        } else if (name === "block") {
+            browser.toggleSiteBlocking();
+            dismiss();
+        } else if (name === "private") {
+            if (browser.privateMode)
+                browser.togglePrivate();
+            else
+                browser.newPrivateTab();
+            dismiss();
+        } else
+            open(name);
+    }
+    Shortcut {
+        sequence: "Escape"
+        enabled: window.panel !== "" && window.panel !== "onboarding"
+        onActivated: window.dismiss()
+    }
+    Shortcut {
+        sequence: "Back"
+        enabled: browser.privateLocked || window.panel !== "" && window.panel !== "onboarding" || Boolean(window.current.back)
+        onActivated: {
+            if (browser.privateLocked)
+                browser.togglePrivate();
+            else if (window.panel !== "")
+                window.dismiss();
+            else
+                browser.pageAction(browser.activeId, "back", "");
+        }
     }
     Component.onCompleted: refresh()
     Connections {
@@ -93,24 +154,44 @@ Controls.ApplicationWindow {
         value: browser.settings.darkBackground
     }
 
-    // Native WebViews occupy their own window. Keep the pill in a reserved safe
-    // region and hide the native surface for QML sheets, avoiding unsupported
-    // native-view/QML overlap on Android and iOS.
     Item {
         id: content
-        anchors {
-            left: parent.left
-            right: parent.right
-            top: parent.top
-            bottom: pill.top
-            bottomMargin: 12
+        anchors.fill: parent
+        focus: true
+        Keys.onBackPressed: event => {
+            if (window.panel !== "" && window.panel !== "onboarding") {
+                window.dismiss();
+                event.accepted = true;
+            } else if (window.current.back) {
+                browser.pageAction(browser.activeId, "back", "");
+                event.accepted = true;
+            } else
+                event.accepted = false;
         }
-        Image {
+        Keys.onEscapePressed: event => {
+            if (window.panel !== "" && window.panel !== "onboarding") {
+                window.dismiss();
+                event.accepted = true;
+            } else
+                event.accepted = false;
+        }
+        Item {
+            id: backdropScene
             anchors.fill: parent
-            source: (Theme.dark ? browser.settings.darkImage : browser.settings.lightImage) || ""
-            fillMode: Image.PreserveAspectCrop
-            opacity: .6
-            visible: source.toString().length > 0
+            Image {
+                anchors.fill: parent
+                source: (Theme.dark ? browser.settings.darkImage : browser.settings.lightImage) || ""
+                fillMode: Image.PreserveAspectCrop
+                opacity: .6
+                visible: source.toString().length > 0
+            }
+            Image {
+                anchors.fill: parent
+                source: browser.previews[browser.activeId] || ""
+                fillMode: Image.Stretch
+                cache: false
+                visible: Boolean(window.current.url) && !browser.privateLocked
+            }
         }
         Repeater {
             model: browser.screens
@@ -120,7 +201,7 @@ Controls.ApplicationWindow {
                 readonly property var record: tab.record
                 anchors.fill: parent
                 active: false
-                visible: record.id === browser.activeId && window.panel === "" && !browser.privateLocked
+                visible: record.id === browser.activeId && window.browsingSurface && !browser.privateLocked && !toast.visible
                 function configure() {
                     if (record.sleeping || !record.url.length) {
                         active = false;
@@ -130,10 +211,11 @@ Controls.ApplicationWindow {
                         active = false;
                         return;
                     }
-                    if (!source.toString().length) {
+                    if (!active || !source.toString().length) {
                         const properties = {
                             record: Qt.binding(() => pageLoader.record),
-                            presented: Qt.binding(() => pageLoader.visible)
+                            presented: Qt.binding(() => pageLoader.visible),
+                            overlayRect: Qt.binding(() => window.nativeOverlayRect)
                         };
                         if (browser.backend === "webengine")
                             properties.pageProfile = engineProfiles.profile(record);
@@ -151,55 +233,17 @@ Controls.ApplicationWindow {
                 }
             }
         }
-        ColumnLayout {
-            anchors.centerIn: parent
-            width: Math.min(parent.width - 48, 480)
-            spacing: 26
+        MobileStartPage {
+            anchors.fill: parent
+            anchors.bottomMargin: 100
             visible: !window.current.url && window.panel === "" && !browser.privateLocked
-            RowLayout {
-                Layout.alignment: Qt.AlignHCenter
-                spacing: 14
-                Image {
-                    source: "qrc:/brand/valkyrie-source.png"
-                    sourceSize.width: 60
-                    Layout.preferredWidth: 60
-                    Layout.preferredHeight: 60
-                    fillMode: Image.PreserveAspectFit
-                    layer.enabled: !Theme.dark
-                    layer.effect: MultiEffect {
-                        colorization: 1
-                        colorizationColor: Theme.text
-                    }
-                }
-                Text {
-                    textFormat: Text.PlainText
-                    text: "Arbiter"
-                    color: Theme.text
-                    font.pixelSize: 36
-                    font.weight: Font.DemiBold
-                }
-            }
-            UiButton {
-                Layout.fillWidth: true
-                text: qsTr("Search or enter address")
-                iconName: "search"
-                implicitHeight: 58
-                onClicked: window.open("address")
-            }
-            Text {
-                textFormat: Text.PlainText
-                Layout.fillWidth: true
-                text: browser.privateMode ? qsTr("Private browsing") : qsTr("Your space on the web")
-                color: Theme.muted
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-            }
+            onNavigate: url => window.go(url)
         }
         ColumnLayout {
             anchors.centerIn: parent
             width: Math.min(parent.width - 48, 420)
             spacing: 20
-            visible: window.current.sleeping && window.current.error && window.panel === "" && !browser.privateLocked
+            visible: Boolean(window.current.sleeping && window.current.error) && window.panel === "" && !browser.privateLocked
             Text {
                 textFormat: Text.PlainText
                 text: window.current.error || ""
@@ -245,94 +289,145 @@ Controls.ApplicationWindow {
                 onClicked: browser.togglePrivate()
             }
         }
-    }
-    Rectangle {
-        id: pill
-        anchors {
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
-            leftMargin: 12
-            rightMargin: 12
-            bottomMargin: 10
-        }
-        height: browser.fieldFocused ? 102 : 58
-        radius: 29
-        color: Theme.glassDense
-        visible: window.panel === ""
-        opacity: visible ? 1 : 0
-        Behavior on opacity {
-            NumberAnimation {
-                duration: Theme.enterDuration
-            }
-        }
-        ColumnLayout {
+        ShaderEffectSource {
+            id: backdropTexture
+            sourceItem: backdropScene
             anchors.fill: parent
-            anchors.margins: 6
-            spacing: 2
-            RowLayout {
-                visible: browser.fieldFocused
-                Layout.fillWidth: true
-                implicitHeight: 38
-                UiButton {
+            visible: false
+            live: true
+        }
+        MultiEffect {
+            anchors.fill: parent
+            source: backdropTexture
+            blurEnabled: true
+            blurMax: 48
+            blur: .65
+            autoPaddingEnabled: false
+            visible: window.panel === "address" || window.panel === "more"
+            saturation: -.1
+        }
+        MobilePill {
+            id: pill
+            x: 16
+            width: parent.width - 32
+            y: parent.height - height - 14 - window.keyboardInset
+            height: implicitHeight
+            current: window.current
+            enabled: !browser.privateLocked
+            tabCount: window.visibleTabs.length
+            suggestions: browser.fieldFocused
+            visible: window.panel === ""
+            onSearchRequested: window.open("address")
+            onTabsRequested: window.open("tabs")
+            onMoreRequested: window.open("more")
+            onCycleRequested: direction => {
+                browser.captureActive();
+                browser.cycleTab(direction);
+            }
+        }
+        Item {
+            id: findBar
+            x: 12
+            width: parent.width - 24
+            height: 120
+            y: parent.height - height - 12 - window.keyboardInset
+            visible: window.panel === "find"
+            GlassSurface {
+                anchors.fill: parent
+                radius: 26
+                dense: true
+            }
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 6
+                RowLayout {
                     Layout.fillWidth: true
-                    flat: true
-                    text: qsTr("Passwords")
-                    iconName: "key-round"
-                    onClicked: browser.passwordAccounts()
+                    UiIcon {
+                        name: "search"
+                        color: Theme.muted
+                        Layout.preferredWidth: 18
+                        Layout.preferredHeight: 18
+                    }
+                    UiTextField {
+                        id: findInput
+                        Layout.fillWidth: true
+                        placeholderText: qsTr("Find in page")
+                        onTextEdited: browser.findText(text)
+                        onAccepted: browser.findText(text)
+                    }
+                    MobileIconButton {
+                        iconName: "x"
+                        label: qsTr("Close")
+                        onClicked: window.dismiss()
+                    }
                 }
-                UiButton {
+                RowLayout {
                     Layout.fillWidth: true
-                    flat: true
-                    text: qsTr("Suggest password")
-                    iconName: "sparkles"
-                    onClicked: browser.suggestPassword()
-                }
-                UiIconButton {
-                    iconName: "x"
-                    label: qsTr("Dismiss")
-                    onClicked: browser.dismissSuggestions()
+                    Text {
+                        text: qsTr("Find in page")
+                        color: Theme.muted
+                        font.pixelSize: 12
+                        Layout.fillWidth: true
+                    }
+                    MobileIconButton {
+                        iconName: "arrow-up"
+                        label: qsTr("Previous match")
+                        onClicked: browser.findText(findInput.text, true)
+                    }
+                    MobileIconButton {
+                        iconName: "arrow-down"
+                        label: qsTr("Next match")
+                        onClicked: browser.findText(findInput.text)
+                    }
                 }
             }
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 2
-                UiIconButton {
-                    iconName: "arrow-left"
-                    label: qsTr("Back")
-                    enabled: window.current.back || false
-                    onClicked: browser.pageAction(browser.activeId, "back", "")
-                }
-                UiIconButton {
-                    iconName: "arrow-right"
-                    label: qsTr("Forward")
-                    enabled: window.current.forward || false
-                    onClicked: browser.pageAction(browser.activeId, "forward", "")
-                }
-                UiButton {
-                    Layout.fillWidth: true
-                    flat: true
-                    text: window.current.url ? window.current.url.replace(/^https?:\/\//, "").split("/")[0] : qsTr("Search")
-                    onClicked: window.open("address")
-                    onPressAndHold: window.open("tabs")
-                }
-                UiIconButton {
-                    iconName: "panels-top-left"
-                    label: qsTr("Tabs")
-                    onClicked: window.open("tabs")
-                }
-                UiIconButton {
-                    iconName: "ellipsis"
-                    label: qsTr("More")
-                    onClicked: window.open("more")
-                }
+            onVisibleChanged: if (visible)
+                Qt.callLater(() => findInput.forceActiveFocus())
+        }
+        Rectangle {
+            anchors.fill: parent
+            color: Theme.window
+            visible: window.panel === "tabs" || window.panel === "workspaces"
+        }
+        MobileTabsOverview {
+            anchors.fill: parent
+            visible: window.panel === "tabs"
+            tabs: window.visibleTabs
+            workspaceName: window.workspaceName
+            onDismiss: window.dismiss()
+            onWorkspacesRequested: window.open("workspaces")
+        }
+        MobileWorkspaces {
+            anchors.fill: parent
+            visible: window.panel === "workspaces"
+            onDismiss: window.dismiss()
+        }
+        MobileSearchSheet {
+            anchors.fill: parent
+            visible: window.panel === "address"
+            address: window.current.url || ""
+            keyboardInset: window.keyboardInset
+            onDismiss: window.dismiss()
+            onNavigate: value => window.go(value)
+            onTabSelected: id => {
+                browser.selectTab(id);
+                window.dismiss();
             }
+        }
+        MobileMoreSheet {
+            anchors.fill: parent
+            visible: window.panel === "more"
+            hasPage: Boolean(window.current.url)
+            blocking: browser.blockingFor(window.current.url || "")
+            onDismiss: window.dismiss()
+            onAction: name => window.moreAction(name)
         }
     }
     // Sheets replace the native surface; all controls remain QML, including on phones.
     Rectangle {
         anchors.fill: parent
-        visible: window.panel !== ""
+        visible: window.panel !== "" && !window.specialPanel
         color: Theme.window
         ColumnLayout {
             anchors.fill: parent
@@ -343,7 +438,7 @@ Controls.ApplicationWindow {
                 Text {
                     textFormat: Text.PlainText
                     Layout.fillWidth: true
-                    text: window.panel === "onboarding" ? "Arbiter" : window.panel === "address" ? qsTr("Go somewhere") : window.panel === "tabs" ? qsTr("Tabs") : window.panel === "more" ? qsTr("Arbiter") : window.panel === "settings" ? qsTr("Settings") : window.panel === "history" ? qsTr("History") : window.panel === "downloads" ? qsTr("Downloads") : window.panel === "workspaces" ? qsTr("Workspaces") : window.panel === "vault" ? qsTr("Passwords & passkeys") : window.panel === "save" ? qsTr("Save password?") : window.panel === "accounts" ? qsTr("Passwords") : qsTr("Pair with your desktop")
+                    text: window.panel === "onboarding" ? "Arbiter" : window.panel === "settings" ? qsTr("Settings") : window.panel === "history" ? qsTr("History") : window.panel === "downloads" ? qsTr("Downloads") : window.panel === "vault" ? qsTr("Passwords & passkeys") : window.panel === "save" ? qsTr("Save password?") : window.panel === "accounts" ? qsTr("Passwords") : qsTr("Pair with your desktop")
                     font.pixelSize: 27
                     font.weight: Font.DemiBold
                     color: Theme.text
@@ -361,9 +456,9 @@ Controls.ApplicationWindow {
             }
             UiTextField {
                 id: filter
-                visible: ["address", "tabs", "history", "vault"].includes(window.panel)
+                visible: ["history", "vault"].includes(window.panel)
                 Layout.fillWidth: true
-                placeholderText: window.panel === "address" ? qsTr("Search or enter address") : qsTr("Search")
+                placeholderText: qsTr("Search")
                 text: window.query
                 onTextEdited: window.query = text
                 onAccepted: if (window.panel === "address")
@@ -379,181 +474,6 @@ Controls.ApplicationWindow {
                 ColumnLayout {
                     width: parent.width
                     spacing: 14
-                    Repeater {
-                        model: window.panel === "address" ? browser.suggestions(window.query) : []
-                        delegate: UiButton {
-                            required property var modelData
-                            Layout.fillWidth: true
-                            text: modelData.title || modelData.url
-                            textAlignment: Text.AlignLeft
-                            iconName: modelData.tab ? "panels-top-left" : "globe"
-                            onClicked: {
-                                if (modelData.tab) {
-                                    browser.selectTab(modelData.tab);
-                                    window.panel = "";
-                                } else
-                                    window.go(modelData.url);
-                            }
-                        }
-                    }
-                    UiButton {
-                        visible: window.panel === "address" && window.query.length > 0
-                        Layout.fillWidth: true
-                        primary: true
-                        text: qsTr("Go")
-                        iconName: "arrow-right"
-                        onClicked: window.go(window.query)
-                    }
-                    RowLayout {
-                        visible: window.panel === "tabs"
-                        Layout.fillWidth: true
-                        UiButton {
-                            text: qsTr("Workspaces")
-                            iconName: "layers"
-                            onClicked: window.open("workspaces")
-                        }
-                        Item {
-                            Layout.fillWidth: true
-                        }
-                        UiButton {
-                            text: qsTr("New tab")
-                            iconName: "plus"
-                            primary: true
-                            onClicked: {
-                                browser.addTab();
-                                window.panel = "";
-                            }
-                        }
-                    }
-                    Repeater {
-                        model: window.panel === "tabs" ? window.visibleTabs.filter(t => !window.query || t.title.toLowerCase().includes(window.query.toLowerCase()) || t.url.includes(window.query)) : []
-                        delegate: Rectangle {
-                            required property var modelData
-                            Layout.fillWidth: true
-                            implicitHeight: 82
-                            radius: 20
-                            color: modelData.id === browser.activeId ? Theme.selection : Theme.field
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: 12
-                                UiIcon {
-                                    name: modelData.private ? "lock" : modelData.sleeping ? "moon" : "globe"
-                                    color: Theme.accent
-                                    Layout.preferredWidth: 24
-                                    Layout.preferredHeight: 24
-                                }
-                                UiButton {
-                                    Layout.fillWidth: true
-                                    flat: true
-                                    text: modelData.title || qsTr("New tab")
-                                    textAlignment: Text.AlignLeft
-                                    onClicked: {
-                                        browser.selectTab(modelData.id);
-                                        window.panel = "";
-                                    }
-                                }
-                                UiIconButton {
-                                    iconName: "x"
-                                    label: qsTr("Close tab")
-                                    onClicked: browser.closeTab(modelData.id)
-                                }
-                            }
-                        }
-                    }
-                    Repeater {
-                        model: window.panel === "more" ? [["layers", qsTr("Workspaces"), "workspaces"], ["shield-check", browser.blockingFor(window.current.url || "") ? qsTr("Pause ad blocking for this site") : qsTr("Enable ad blocking for this site"), "block"], ["share-2", qsTr("Share"), "share"], ["key-round", qsTr("Passwords & passkeys"), "vault"], ["fingerprint", qsTr("Fill password"), "fill"], ["sparkles", qsTr("Suggest password"), "generate"], ["history", qsTr("History"), "history"], ["download", qsTr("Downloads"), "downloads"], ["lock", browser.privateMode ? qsTr("Return to regular browsing") : qsTr("Private browsing"), "private"], ["rotate-cw", qsTr("Reload"), "reload"], ["settings", qsTr("Settings"), "settings"]] : []
-                        delegate: UiButton {
-                            required property var modelData
-                            Layout.fillWidth: true
-                            flat: true
-                            iconName: modelData[0]
-                            text: modelData[1]
-                            textAlignment: Text.AlignLeft
-                            implicitHeight: 48
-                            onClicked: {
-                                const action = modelData[2];
-                                if (action === "block") {
-                                    browser.toggleSiteBlocking();
-                                    window.panel = "";
-                                } else if (action === "share") {
-                                    window.panel = "";
-                                    browser.share();
-                                } else if (action === "private") {
-                                    browser.togglePrivate();
-                                    window.panel = "";
-                                } else if (action === "reload") {
-                                    browser.pageAction(browser.activeId, "reload", "");
-                                    window.panel = "";
-                                } else if (action === "fill") {
-                                    browser.passwordAccounts();
-                                } else if (action === "generate") {
-                                    browser.suggestPassword();
-                                    window.panel = "";
-                                } else
-                                    window.open(action);
-                            }
-                        }
-                    }
-                    Repeater {
-                        model: window.panel === "workspaces" ? browser.workspaces : []
-                        delegate: Rectangle {
-                            required property var modelData
-                            Layout.fillWidth: true
-                            implicitHeight: 90
-                            radius: 20
-                            color: modelData.id === browser.workspaceId ? Theme.selection : Theme.field
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: 12
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    UiButton {
-                                        Layout.fillWidth: true
-                                        flat: true
-                                        text: modelData.name
-                                        textAlignment: Text.AlignLeft
-                                        onClicked: {
-                                            browser.selectWorkspace(modelData.id);
-                                            window.panel = "";
-                                        }
-                                    }
-                                    Text {
-                                        textFormat: Text.PlainText
-                                        color: Theme.muted
-                                        text: modelData.isolated ? qsTr("Separate session") : qsTr("Shared session")
-                                    }
-                                }
-                                UiIconButton {
-                                    iconName: "trash-2"
-                                    label: qsTr("Delete workspace")
-                                    visible: browser.workspaces.length > 1
-                                    onClicked: browser.removeWorkspace(modelData.id)
-                                }
-                            }
-                        }
-                    }
-                    RowLayout {
-                        visible: window.panel === "workspaces"
-                        Layout.fillWidth: true
-                        UiTextField {
-                            id: workspaceName
-                            Layout.fillWidth: true
-                            placeholderText: qsTr("Workspace name")
-                        }
-                        UiIconButton {
-                            iconName: "plus"
-                            label: qsTr("Add workspace")
-                            onClicked: {
-                                browser.addWorkspace(workspaceName.text, isolate.checked);
-                                workspaceName.clear();
-                            }
-                        }
-                    }
-                    UiCheckBox {
-                        id: isolate
-                        visible: window.panel === "workspaces"
-                        text: qsTr("Use a separate session")
-                    }
                     Repeater {
                         model: window.panel === "history" ? browser.history.filter(t => !window.query || t.url.toLowerCase().includes(window.query.toLowerCase()) || t.title.toLowerCase().includes(window.query.toLowerCase())) : []
                         delegate: ColumnLayout {
@@ -941,6 +861,8 @@ Controls.ApplicationWindow {
     }
     Controls.Popup {
         id: toast
+        focus: false
+        closePolicy: Controls.Popup.NoAutoClose
         property string text: ""
         anchors.centerIn: parent
         width: Math.min(parent.width - 40, 420)

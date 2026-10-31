@@ -126,7 +126,7 @@ bool MobileVault::transaction(const std::function<bool(QJsonObject &, ArbiterSyn
     return true;
 }
 bool MobileVault::load(bool create) {
-    return transaction([](QJsonObject &, ArbiterSync::State &) {  return true; }, create);
+    return transaction([](QJsonObject &, ArbiterSync::State &) { return true; }, create);
 }
 bool MobileVault::persist(bool changePeer) {
     const auto desired = m_state;

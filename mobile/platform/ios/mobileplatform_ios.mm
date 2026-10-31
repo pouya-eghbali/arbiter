@@ -13,6 +13,7 @@
 #include <QPointer>
 #include <QStandardPaths>
 #include <QTimer>
+#import <QuartzCore/QuartzCore.h>
 #import <UIKit/UIKit.h>
 #import <WebKit/WebKit.h>
 #include <memory>
@@ -207,17 +208,60 @@ void prepareRules(void (^callback)(void)) {
 }
 @end
 
+// Foreign native views sit above Qt Quick. A rounded cutout exposes the QML
+// pill below them while preserving a full-height, normally scrolling page.
+// Hit testing uses the same cutout so gestures reach the QML controls.
+@interface ArbiterPageView : WKWebView
+@property(nonatomic) CGRect overlayFraction;
+@end
+@implementation ArbiterPageView
+- (CGRect)overlayFrame {
+    CGRect r = self.overlayFraction;
+    return CGRectMake(r.origin.x * self.bounds.size.width, r.origin.y * self.bounds.size.height,
+                      r.size.width * self.bounds.size.width, r.size.height * self.bounds.size.height);
+}
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    [self updateOverlayMask];
+}
+- (void)setOverlayFraction:(CGRect)rect {
+    _overlayFraction = rect;
+    [self updateOverlayMask];
+}
+- (void)updateOverlayMask {
+    CGRect rect = [self overlayFrame];
+    if (CGRectIsEmpty(rect)) {
+        self.layer.mask = nil;
+        return;
+    }
+    UIBezierPath *path = [UIBezierPath bezierPathWithRect:self.bounds];
+    [path appendPath:[UIBezierPath bezierPathWithRoundedRect:rect
+                                                cornerRadius:MIN(32, rect.size.height / 2)]];
+    CAShapeLayer *mask = [CAShapeLayer layer];
+    mask.frame = self.bounds;
+    mask.fillRule = kCAFillRuleEvenOdd;
+    mask.path = path.CGPath;
+    self.layer.mask = mask;
+}
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
+    if (CGRectContainsPoint([self overlayFrame], point))
+        return nil;
+    return [super hitTest:point withEvent:event];
+}
+@end
+
 @interface ArbiterWeb
     : NSObject <WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler, WKDownloadDelegate> {
   @public
     QPointer<NativePage> page;
 }
-@property(nonatomic, strong) WKWebView *view;
+@property(nonatomic, strong) ArbiterPageView *view;
 @property(nonatomic, strong) NSMutableDictionary *downloads;
 @property(nonatomic) NSUInteger navigationGeneration;
 @property(nonatomic, copy) NSString *privateProfile;
 - (instancetype)initWithPage:(NativePage *)owner profile:(NSString *)profile privateMode:(BOOL)privateMode;
 - (void)configure;
+- (void)captureForPreview;
 @end
 static NSMutableDictionary<NSString *, WKWebsiteDataStore *> *privateStores;
 static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
@@ -247,7 +291,8 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
     [configuration.userContentController addScriptMessageHandler:self
                                                     contentWorld:WKContentWorld.defaultClientWorld
                                                             name:@"arbiterForms"];
-    self.view = [[WKWebView alloc] initWithFrame:CGRectMake(0, 0, 400, 700) configuration:configuration];
+    self.view = [[ArbiterPageView alloc] initWithFrame:CGRectMake(0, 0, 400, 700)
+                                         configuration:configuration];
     self.view.navigationDelegate = self;
     self.view.UIDelegate = self;
     self.view.allowsBackForwardNavigationGestures = YES;
@@ -256,6 +301,7 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
                 forKeyPath:@"estimatedProgress"
                    options:NSKeyValueObservingOptionNew
                    context:nil];
+    [self.view addObserver:self forKeyPath:@"scrollView.contentOffset" options:0 context:nil];
     [self configure];
     return self;
 }
@@ -269,6 +315,8 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
             [privateStores removeObjectForKey:self.privateProfile];
         }
     }
+    [NSObject cancelPreviousPerformRequestsWithTarget:self];
+    [self.view removeObserver:self forKeyPath:@"scrollView.contentOffset"];
     [self.view stopLoading];
     [self.view removeObserver:self forKeyPath:@"title"];
     [self.view removeObserver:self forKeyPath:@"estimatedProgress"];
@@ -277,6 +325,29 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
                              contentWorld:WKContentWorld.defaultClientWorld];
     self.view.navigationDelegate = nil;
     self.view.UIDelegate = nil;
+}
+- (void)captureForPreview {
+    if (!page || !MobileModel::instance || MobileModel::instance->activeId() != page->tabId ||
+        (page->privateMode && MobileModel::instance->privateLocked()) ||
+        qGuiApp->applicationState() != Qt::ApplicationActive)
+        return;
+    QPointer<NativePage> target = page;
+    WKSnapshotConfiguration *config = [WKSnapshotConfiguration new];
+    config.afterScreenUpdates = NO;
+    config.snapshotWidth = @(MIN(640, self.view.bounds.size.width));
+    [self.view
+        takeSnapshotWithConfiguration:config
+                    completionHandler:^(UIImage *image, NSError *error) {
+                      if (!target || !image)
+                          return;
+                      NSData *png = UIImagePNGRepresentation(image);
+                      if (png.length > 5 * 1024 * 1024)
+                          return;
+                      target->event(
+                          "preview",
+                          {{"image", "data:image/png;base64," +
+                                         QString::fromNSString([png base64EncodedStringWithOptions:0])}});
+                    }];
 }
 - (void)configure {
     if (!page || !MobileModel::instance)
@@ -314,6 +385,14 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
                       ofObject:(id)object
                         change:(NSDictionary *)change
                        context:(void *)context {
+    if ([key isEqualToString:@"scrollView.contentOffset"]) {
+        [NSObject cancelPreviousPerformRequestsWithTarget:self
+                                                 selector:@selector(captureForPreview)
+                                                   object:nil];
+        [self performSelector:@selector(captureForPreview) withObject:nil afterDelay:.25];
+        return;
+    }
+
     if (!page)
         return;
     if ([key isEqualToString:@"title"])
@@ -517,7 +596,7 @@ void initialize() {
                             complete(false);
                           };
                           if (MobileModel::instance)
-                              MobileModel::instance->backgroundSync([complete](bool ok) {  complete(ok); });
+                              MobileModel::instance->backgroundSync([complete](bool ok) { complete(ok); });
                           else
                               complete(false);
                         }];
@@ -646,6 +725,30 @@ void mediaPlaying(NativePage *page, std::function<void(bool)> callback) {
     [bridge.view requestMediaPlaybackStateWithCompletionHandler:^(WKMediaPlaybackState state) {
       callback(state == WKMediaPlaybackStatePlaying);
     }];
+}
+void setOverlayRect(NativePage *page, const QRectF &rect) {
+    if (!page->handle)
+        return;
+    ArbiterWeb *bridge = (__bridge ArbiterWeb *)page->handle;
+    bridge.view.overlayFraction = CGRectMake(rect.x(), rect.y(), rect.width(), rect.height());
+}
+void capture(NativePage *page) {
+    if (!page->handle)
+        return;
+    ArbiterWeb *bridge = (__bridge ArbiterWeb *)page->handle;
+    [bridge captureForPreview];
+}
+void find(NativePage *page, const QString &text, bool backwards) {
+    if (!page->handle)
+        return;
+    ArbiterWeb *bridge = (__bridge ArbiterWeb *)page->handle;
+    WKFindConfiguration *config = [WKFindConfiguration new];
+    config.backwards = backwards;
+    config.wraps = YES;
+    [bridge.view findString:string(text)
+          withConfiguration:config
+          completionHandler:^(WKFindResult *){
+          }];
 }
 void configurePage(NativePage *page) {
     ArbiterWeb *bridge = (__bridge ArbiterWeb *)page->handle;

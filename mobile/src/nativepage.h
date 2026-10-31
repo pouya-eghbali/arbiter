@@ -1,6 +1,7 @@
 #pragma once
 #include <QObject>
 #include <QPointer>
+#include <QRectF>
 #include <QUrl>
 #include <QVariantMap>
 #include <QWindow>
@@ -13,6 +14,7 @@ class NativePage : public QObject {
     Q_PROPERTY(QString profile MEMBER profile)
     Q_PROPERTY(bool privateMode MEMBER privateMode)
     Q_PROPERTY(QUrl url READ url WRITE setUrl NOTIFY changed)
+    Q_PROPERTY(QRectF overlayRect READ overlayRect WRITE setOverlayRect NOTIFY overlayRectChanged)
     Q_PROPERTY(QString title READ title NOTIFY changed)
     Q_PROPERTY(bool canBack MEMBER canBack NOTIFY changed)
     Q_PROPERTY(bool canForward MEMBER canForward NOTIFY changed)
@@ -31,6 +33,12 @@ class NativePage : public QObject {
         return m_title;
     }
     void setUrl(const QUrl &);
+    QRectF overlayRect() const {
+        return m_overlayRect;
+    }
+    void setOverlayRect(const QRectF &rect);
+    Q_INVOKABLE void capture();
+    Q_INVOKABLE void find(const QString &text, bool backwards = false);
     Q_INVOKABLE void start();
     Q_INVOKABLE void action(const QString &name);
     Q_INVOKABLE void configure();
@@ -44,10 +52,12 @@ class NativePage : public QObject {
   signals:
     void changed();
     void nativeWindowChanged();
+    void overlayRectChanged();
     void browserEvent(QString tabId, QString type, QVariantMap data);
 
   private:
     QWindow *m_window = nullptr;
     QUrl m_url;
+    QRectF m_overlayRect;
     QString m_title;
 };

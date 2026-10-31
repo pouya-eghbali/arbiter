@@ -12,7 +12,7 @@ qt_standard_project_setup(REQUIRES ${ARBITER_QT_SERIES})
 # Prefer WebEngine wherever the selected Qt kit actually provides it. Phones
 # use the native WebViews because their kits do not provide WebEngine.
 find_package(Qt6 ${ARBITER_QT_VERSION} QUIET COMPONENTS WebEngineQuick WebChannel)
-set(mobile_qml qml/MobileMain.qml qml/MobileSettings.qml qml/MobileColors.qml qml/MobileLanguagePicker.qml qml/PairingScanner.qml)
+set(mobile_qml qml/MobileMain.qml qml/MobileSettings.qml qml/MobileColors.qml qml/MobileLanguagePicker.qml qml/PairingScanner.qml qml/MobileIconButton.qml qml/MobilePill.qml qml/MobileStartPage.qml qml/MobileThumbnail.qml qml/MobileTabsOverview.qml qml/MobileWorkspaces.qml qml/MobileSearchSheet.qml qml/MobileMoreSheet.qml qml/NativePane.qml)
 if(TARGET Qt6::WebEngineQuick)
     set(ARBITER_MOBILE_WEBENGINE ON)
     list(APPEND mobile_qml qml/WebEnginePane.qml qml/EngineProfiles.qml)
@@ -20,7 +20,6 @@ else()
     if(NOT IOS AND NOT ANDROID)
         message(FATAL_ERROR "The desktop mobile preview requires a Qt WebEngine kit")
     endif()
-    list(APPEND mobile_qml qml/NativePane.qml)
 endif()
 qt_add_executable(arbiter_mobile MANUAL_FINALIZATION
     src/main.cpp src/qrscanner.cpp src/qrscanner.h src/mobilemodel.cpp src/mobilemodel.h src/mobiletabs.h
@@ -151,6 +150,16 @@ qt_add_resources(arbiter_mobile mobile_lists PREFIX /adblock BASE "${ARBITER_ROO
 qt_add_resources(arbiter_mobile mobile_webkit PREFIX /adblock BASE assets/adblock FILES assets/adblock/webkit.json)
 qt_add_resources(arbiter_mobile mobile_brand PREFIX /brand BASE "${ARBITER_ROOT}/assets/icon/Arbiter.icon/Assets" FILES "${ARBITER_ROOT}/assets/icon/Arbiter.icon/Assets/valkyrie-source.png")
 qt_add_resources(arbiter_mobile mobile_licenses PREFIX /licenses BASE "${ARBITER_ROOT}" FILES "${ARBITER_ROOT}/LICENSE" "${ARBITER_ROOT}/licenses/Lucide.txt" "${ARBITER_ROOT}/licenses/ZXingCpp.txt" "${ARBITER_ROOT}/licenses/AdBlock.txt" "${ARBITER_ROOT}/licenses/AdBlockDependencies.txt" "${ARBITER_ROOT}/licenses/EasyList.txt")
+option(ARBITER_MOBILE_DESIGN_PREVIEW "Enable isolated desktop design-fixture rendering" OFF)
+if(ARBITER_MOBILE_DESIGN_PREVIEW)
+    if(IOS OR ANDROID)
+        message(FATAL_ERROR "Design fixtures are desktop-only and must not be included in phone builds")
+    endif()
+    find_package(Qt6 ${ARBITER_QT_VERSION} REQUIRED COMPONENTS Test)
+    target_link_libraries(arbiter_mobile PRIVATE Qt6::Test)
+    target_sources(arbiter_mobile PRIVATE src/designpreview.cpp src/designpreview.h)
+    target_compile_definitions(arbiter_mobile PRIVATE ARBITER_MOBILE_DESIGN_PREVIEW)
+endif()
 qt_finalize_executable(arbiter_mobile)
 
 option(ARBITER_MOBILE_TESTS "Build isolated host tests for the mobile core" OFF)

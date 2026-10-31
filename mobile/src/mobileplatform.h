@@ -1,6 +1,7 @@
 #pragma once
 #include <QByteArray>
 #include <QJsonObject>
+#include <QRectF>
 #include <QUrl>
 #include <functional>
 class QWindow;
@@ -25,5 +26,8 @@ void navigate(NativePage *, const QUrl &);
 void action(NativePage *, const QString &);
 void evaluate(NativePage *, const QString &, std::function<void(QVariant)> = {});
 void configurePage(NativePage *);
+void setOverlayRect(NativePage *, const QRectF &normalized);
+void capture(NativePage *);
+void find(NativePage *, const QString &, bool backwards);
 void mediaPlaying(NativePage *, std::function<void(bool)>);
 } // namespace MobilePlatform

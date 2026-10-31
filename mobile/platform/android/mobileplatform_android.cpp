@@ -202,6 +202,20 @@ void evaluate(NativePage *page, const QString &script, std::function<void(QVaria
 void mediaPlaying(NativePage *, std::function<void(bool)> callback) {
     callback(!QJniObject::callStaticMethod<jboolean>(bridge, "canSleep"));
 }
+void setOverlayRect(NativePage *page, const QRectF &rect) {
+    QJniObject::callStaticMethod<void>(
+        bridge, "overlay", "(Ljava/lang/String;FFFF)V", QJniObject::fromString(page->tabId).object<jstring>(),
+        jfloat(rect.x()), jfloat(rect.y()), jfloat(rect.width()), jfloat(rect.height()));
+}
+void capture(NativePage *page) {
+    QJniObject::callStaticMethod<void>(bridge, "capture", "(Ljava/lang/String;)V",
+                                       QJniObject::fromString(page->tabId).object<jstring>());
+}
+void find(NativePage *page, const QString &text, bool backwards) {
+    QJniObject::callStaticMethod<void>(bridge, "find", "(Ljava/lang/String;Ljava/lang/String;Z)V",
+                                       QJniObject::fromString(page->tabId).object<jstring>(),
+                                       QJniObject::fromString(text).object<jstring>(), jboolean(backwards));
+}
 void configurePage(NativePage *page) {
     auto model = MobileModel::instance;
     if (!model)

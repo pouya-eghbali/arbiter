@@ -1,6 +1,7 @@
 #include "mobilemodel.h"
 #include "mobileplatform.h"
 #include "nativepage.h"
+#include <QBuffer>
 #include <QClipboard>
 #include <QColor>
 #include <QDateTime>
@@ -81,7 +82,17 @@ MobileModel::MobileModel(QObject *parent, const QString &directory) : QObject(pa
         instance = this;
     }
     m_privateContext = id();
-    connect(this, &MobileModel::changed, this, [this] { m_screens.synchronize(m_tabs); });
+    connect(this, &MobileModel::changed, this, [this] {
+        m_screens.synchronize(m_tabs);
+        bool removed = false;
+        for (const auto &key : m_previews.keys())
+            if (tabIndex(key) < 0) {
+                m_previews.remove(key);
+                removed = true;
+            }
+        if (removed)
+            emit previewsChanged();
+    });
     restore();
     m_screens.synchronize(m_tabs);
     m_activity.start();
@@ -140,6 +151,10 @@ MobileModel::~MobileModel() {
 #endif
 }
 QString MobileModel::backend() const {
+#ifdef ARBITER_MOBILE_DESIGN_PREVIEW
+    if (property("_designPreview").toBool())
+        return "preview";
+#endif
 #ifdef ARBITER_MOBILE_WEBENGINE
     return "webengine";
 #else
@@ -302,7 +317,17 @@ void MobileModel::closeTab(const QString &key) {
     auto index = tabIndex(key);
     if (index < 0)
         return;
+    m_previews.remove(key);
+    emit previewsChanged();
     m_tabs.removeAt(index);
+    bool remainingPrivate = false;
+    for (auto value : m_tabs)
+        if (value.toObject().value("private").toBool())
+            remainingPrivate = true;
+    if (!remainingPrivate) {
+        m_privateContext = id();
+        m_locked = false;
+    }
     if (m_active == key)
         m_active = {};
     ensureTab();
@@ -353,7 +378,58 @@ void MobileModel::navigate(const QString &input) {
     emit changed();
     emit pageAction(m_active, "navigate", url.toString());
 }
+void MobileModel::captureActive() {
+    if (m_private && m_locked)
+        return;
+    if (auto page = NativePage::pages.value(m_active))
+        page->capture();
+    else
+        emit pageAction(m_active, "capture", QString());
+}
+void MobileModel::setPreview(const QString &key, const QImage &image) {
+    const auto tab = page(key);
+    if (tab.isEmpty() || (tab.value("private").toBool() && m_locked) || image.isNull() ||
+        image.width() > 8192 || image.height() > 8192)
+        return;
+    QByteArray bytes;
+    QBuffer buffer(&bytes);
+    buffer.open(QIODevice::WriteOnly);
+    image.scaledToWidth(qMin(640, image.width()), Qt::SmoothTransformation).save(&buffer, "PNG");
+    m_previews[key] = "data:image/png;base64," + QString::fromLatin1(bytes.toBase64());
+    emit previewsChanged();
+}
+void MobileModel::cycleTab(int direction) {
+    QStringList ids;
+    for (auto value : m_tabs) {
+        auto t = value.toObject();
+        if (t.value("workspace") == m_workspace && t.value("private").toBool() == m_private)
+            ids.append(t.value("id").toString());
+    }
+    if (ids.size() < 2)
+        return;
+    const auto current = ids.indexOf(m_active);
+    selectTab(ids[(current + (direction < 0 ? -1 : 1) + ids.size()) % ids.size()]);
+}
+void MobileModel::findText(const QString &text, bool backwards) {
+    if (auto page = NativePage::pages.value(m_active))
+        page->find(text.left(4096), backwards);
+    else
+        emit pageAction(
+            m_active, "find",
+            QString::fromUtf8(QJsonDocument(QJsonObject{{"query", text.left(4096)}, {"backwards", backwards}})
+                                  .toJson(QJsonDocument::Compact)));
+}
 void MobileModel::updatePage(const QString &key, const QString &type, const QVariantMap &values) {
+    if (type == "preview") {
+        const auto tab = page(key);
+        const auto image = values.value("image").toString();
+        if (!tab.isEmpty() && !(tab.value("private").toBool() && m_locked) &&
+            image.startsWith("data:image/png;base64,") && image.size() < 8 * 1024 * 1024) {
+            m_previews[key] = image;
+            emit previewsChanged();
+        }
+        return;
+    }
     auto index = tabIndex(key);
     if (index < 0)
         return;
@@ -410,6 +486,8 @@ void MobileModel::updatePage(const QString &key, const QString &type, const QVar
         emit message(data.value("message").toString());
     }
     m_tabs[index] = t;
+    if (type == "finish" && key == m_active)
+        QTimer::singleShot(120, this, &MobileModel::captureActive);
     if (type == "finish" && !t.value("private").toBool() &&
         QUrl(t.value("url").toString()).scheme().startsWith("http")) {
         for (int i = m_history.size() - 1; i >= 0; --i)
@@ -509,22 +587,50 @@ void MobileModel::removeWorkspace(const QString &key) {
     m_saveTimer.start();
     emit changed();
 }
+void MobileModel::newPrivateTab() {
+    bool existing = false;
+    for (auto value : m_tabs) {
+        const auto tab = value.toObject();
+        if (tab.value("private").toBool() && tab.value("workspace") == m_workspace)
+            existing = true;
+    }
+    if (!m_private) {
+        togglePrivate();
+        if (existing)
+            addTab();
+    } else
+        addTab();
+}
 void MobileModel::togglePrivate() {
+    bool existing = false;
+    for (auto value : m_tabs)
+        if (value.toObject().value("private").toBool())
+            existing = true;
     m_private = !m_private;
     m_active = {};
     m_focus = {};
     m_pending = {};
     ensureTab();
-    if (m_private)
+    if (m_private && !existing)
         m_locked = false;
     MobilePlatform::secureScreen(m_private);
     m_activity.restart();
     emit changed();
 }
 void MobileModel::lockPrivate() {
-    if (!m_private)
+    bool existing = false;
+    for (auto value : m_tabs)
+        if (value.toObject().value("private").toBool())
+            existing = true;
+    if (!existing)
         return;
     m_locked = true;
+    for (auto value : m_tabs) {
+        auto tab = value.toObject();
+        if (tab.value("private").toBool())
+            m_previews.remove(tab.value("id").toString());
+    }
+    emit previewsChanged();
     m_pending = {};
     m_focus = {};
     emit changed();
@@ -857,6 +963,13 @@ void MobileModel::sleepIdle() {
         emit changed();
 }
 void MobileModel::backgroundSync(std::function<void(bool)> done) {
+#ifdef ARBITER_MOBILE_DESIGN_PREVIEW
+    if (property("_designPreview").toBool()) {
+        if (done)
+            done(false);
+        return;
+    }
+#endif
     if (m_syncing || !onboardingDone()) {
         if (done)
             done(false);

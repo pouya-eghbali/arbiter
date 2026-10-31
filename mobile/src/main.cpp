@@ -1,5 +1,9 @@
 #include "mobilemodel.h"
 #include "mobileplatform.h"
+#ifdef ARBITER_MOBILE_DESIGN_PREVIEW
+#include "designpreview.h"
+#include <QTemporaryDir>
+#endif
 #include <QDesktopServices>
 #include <QFile>
 #include <QGuiApplication>
@@ -29,7 +33,24 @@ int main(int argc, char **argv) {
     app.setApplicationVersion(ARBITER_VERSION);
     QQuickStyle::setStyle("Basic");
     MobilePlatform::initialize();
+#ifdef ARBITER_MOBILE_DESIGN_PREVIEW
+    QTemporaryDir designDirectory;
+    QString designScreen, designOutput;
+    for (const auto &argument : app.arguments()) {
+        if (argument.startsWith("--design-screen="))
+            designScreen = argument.mid(16);
+        if (argument.startsWith("--design-output="))
+            designOutput = argument.mid(16);
+    }
+    const bool design = !designScreen.isEmpty() && !designOutput.isEmpty() && designDirectory.isValid();
+    if (design)
+        seedDesignPreview(designDirectory.path());
+    MobileModel browser(nullptr, design ? designDirectory.path() : QString());
+    if (design)
+        browser.setProperty("_designPreview", true);
+#else
     MobileModel browser;
+#endif
     QDesktopServices::setUrlHandler("http", &browser, "openUrl");
     QDesktopServices::setUrlHandler("https", &browser, "openUrl");
     QQmlApplicationEngine engine;
@@ -60,6 +81,10 @@ int main(int argc, char **argv) {
     engine.loadFromModule("Arbiter", "MobileMain");
     if (engine.rootObjects().isEmpty())
         return 1;
+#ifdef ARBITER_MOBILE_DESIGN_PREVIEW
+    if (design)
+        renderDesignPreview(browser, engine, designScreen, designOutput);
+#endif
     const auto result = app.exec();
     MobilePlatform::shutdown();
     return result;

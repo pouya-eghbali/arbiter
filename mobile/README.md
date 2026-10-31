@@ -71,9 +71,12 @@ loads native WebKit content-blocking rules generated from the same filter lists;
 WebKit cannot express every filter feature. No Gecko extension or downloaded
 filter engine is used. WebView itself controls web compatibility and updates.
 
-Qt/QML sheets hide the native page surface while open, since native WebViews
-cannot reliably interleave with QML overlays. The pill occupies a reserved area
-below the page. Camera scanning uses Qt Multimedia and native OS permission UI.
+Qt/QML sheets use an in-memory page backdrop while open. Native adapters expose
+only the rounded floating-pill region to Qt Quick and route its touches correctly,
+so the page continues behind the pill at full viewport height. Snapshots also
+supply the glass effect and tab thumbnails; private previews clear on lock and
+never enter saved sessions. Camera scanning uses Qt Multimedia and native OS
+permission UI. See [the interface guide](../docs/mobile-interface.md).
 
 ## Tests
 

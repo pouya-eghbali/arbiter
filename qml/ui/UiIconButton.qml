@@ -5,6 +5,7 @@ import Arbiter
 UiButton {
     id: control
     required property string label
+    property bool toolTipEnabled:true
     text: ""
     implicitWidth: 32
     implicitHeight: 32
@@ -14,7 +15,7 @@ UiButton {
     flat: true
     Accessible.name: label
     UiToolTip {
-        visible: control.hovered || control.activeFocus
+        visible: control.toolTipEnabled && (control.hovered || control.activeFocus)
         text: control.label
     }
 }

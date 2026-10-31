@@ -7,6 +7,7 @@ Item {
     id: root
     required property var record
     required property bool presented
+    property rect overlayRect: Qt.rect(0, 0, 0, 0)
     required property var pageProfile
     WebEngineView {
         id: web
@@ -72,7 +73,12 @@ Item {
         function onPageAction(tabId, action, argument) {
             if (tabId !== root.record.id)
                 return;
-            if (action === "back")
+            if (action === "capture")
+                web.grabToImage(result => browser.setPreview(root.record.id, result.image), Qt.size(640, Math.round(640 * web.height / Math.max(1, web.width))));
+            else if (action === "find") {
+                const options = JSON.parse(argument);
+                web.findText(options.query, options.backwards ? WebEngineView.FindBackward : 0);
+            } else if (action === "back")
                 web.goBack();
             else if (action === "forward")
                 web.goForward();
