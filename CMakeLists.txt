@@ -52,7 +52,7 @@ arbiter_add_native_share(arbiter)
 target_sources(arbiter PRIVATE src/pageprinter.cpp src/pageprinter.h)
 target_sources(arbiter PRIVATE src/localization.cpp src/localization.h)
 target_sources(arbiter PRIVATE src/updatetracker.cpp src/updatetracker.h
-    src/credentialsync.cpp src/credentialsync.h src/credentialsyncserver.cpp src/credentialsyncserver.h src/credentialsyncstate.cpp src/credentialsynccrypto.cpp src/credentialsyncstate.h)
+    src/credentialsync.cpp src/credentialsync.h src/credentialsyncserver.cpp src/credentialsyncserver.h src/credentialsyncstate.cpp src/credentialsyncpeer.cpp src/credentialsynccrypto.cpp src/credentialsyncstate.h)
 qt_add_resources(arbiter language_index PREFIX /i18n BASE translations FILES translations/languages.json)
 target_link_libraries(arbiter PRIVATE Qt6::PrintSupport Qt6::Pdf)
 include(cmake/AdBlock.cmake)

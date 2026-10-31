@@ -13,6 +13,7 @@ class MobileVault : public QObject {
     Q_PROPERTY(bool unlocked READ unlocked NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
+    Q_PROPERTY(QVariantList devices READ devices NOTIFY changed)
     Q_PROPERTY(QString peerName READ peerName NOTIFY changed)
     Q_PROPERTY(int conflicts READ conflicts NOTIFY changed)
     Q_PROPERTY(QVariantList conflictChoices READ conflictChoices NOTIFY changed)
@@ -20,7 +21,7 @@ class MobileVault : public QObject {
     explicit MobileVault(QObject *parent = nullptr);
     QVariantList entries() const;
     QVariantList conflictChoices() const;
-    Q_INVOKABLE void resolveConflict(const QString &id, const QString &version);
+    Q_INVOKABLE void resolveConflict(const QString &id, const QString &version, const QString &generation);
     bool unlocked() const {
         return m_verified.isValid();
     }
@@ -30,9 +31,8 @@ class MobileVault : public QObject {
     QString error() const {
         return m_error;
     }
-    QString peerName() const {
-        return m_document.value("peer").toObject().value("name").toString();
-    }
+    QString peerName() const;
+    QVariantList devices() const;
     int conflicts() const {
         return m_state.conflicts();
     }
@@ -42,7 +42,7 @@ class MobileVault : public QObject {
     Q_INVOKABLE void pair(const QString &invitation);
     Q_INVOKABLE void confirmPair();
     Q_INVOKABLE void sync();
-    Q_INVOKABLE void disconnectPeer();
+    Q_INVOKABLE void disconnectPeer(const QString &id = QString());
     void readPassword(const QString &id, const QString &origin,
                       std::function<void(QString, QString)> callback);
     void savePassword(const QString &origin, const QString &username, const QString &password);
@@ -62,7 +62,8 @@ class MobileVault : public QObject {
 
   private:
     bool load(bool create);
-    bool persist(bool changePeer = false);
+    bool persist();
+    void syncNext(QStringList peers, QStringList errors);
     void authenticated(std::function<void()> action);
     bool transaction(const std::function<bool(QJsonObject &, ArbiterSync::State &)> &edit, bool create);
     void exchange(const QString &path, const QJsonObject &peer, const QByteArray &token,

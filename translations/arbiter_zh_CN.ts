@@ -212,7 +212,7 @@
 <context>
     <name>AdBlocker</name>
     <message>
-        <location filename="../src/adblocker.cpp" line="+53"/>
+        <location filename="../src/adblocker.cpp" line="+29"/>
         <source>Using supplied filter rules.</source>
         <translation>使用提供的过滤规则。</translation>
     </message>
@@ -306,7 +306,7 @@
 <context>
     <name>Appearance</name>
     <message>
-        <location filename="../src/appearance.cpp" line="+85"/>
+        <location filename="../src/appearance.cpp" line="+91"/>
         <source>New tab</source>
         <translation>新建标签页</translation>
     </message>
@@ -710,6 +710,146 @@
     </message>
 </context>
 <context>
+    <name>CredentialSync</name>
+    <message>
+        <location filename="../src/credentialsync.cpp" line="+78"/>
+        <source>This computer</source>
+        <translation>此电脑</translation>
+    </message>
+    <message>
+        <location line="+45"/>
+        <source>Could not create the encrypted sync directory.</source>
+        <translation>无法创建加密同步目录。</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>The encrypted sync state exists, but its OS vault key is missing. It was not overwritten.</source>
+        <translation>加密同步状态已存在，但操作系统密码库中的密钥缺失。未覆盖原有数据。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Could not protect the sync key in memory.</source>
+        <translation>无法保护内存中的同步密钥。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>The stored sync key is invalid or unavailable.</source>
+        <translation>已存储的同步密钥无效或不可用。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Could not read encrypted sync state.</source>
+        <translation>无法读取加密同步状态。</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Encrypted sync state could not be authenticated. It was not overwritten.</source>
+        <translation>无法验证加密同步状态，未覆盖原有数据。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The encrypted sync transport key is missing or invalid.</source>
+        <translation>加密同步传输密钥缺失或无效。</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>The pinned sync certificate lost its private key. Existing pairing was preserved.</source>
+        <translation>固定的同步证书丢失了私钥。已保留现有配对。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not create a local TLS identity.</source>
+        <translation>无法创建本地 TLS 身份。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Could not save the public sync certificate.</source>
+        <translation>无法保存公共同步证书。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Could not load the pinned sync certificate.</source>
+        <translation>无法加载固定的同步证书。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Could not listen for local sync: %1</source>
+        <translation>无法监听本地同步：%1。</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Connect this computer to a local Wi-Fi or Ethernet network before pairing.</source>
+        <translation>配对前，请将此电脑连接到本地 Wi-Fi 或以太网。</translation>
+    </message>
+    <message>
+        <location line="+37"/>
+        <source>Could not save encrypted sync changes.</source>
+        <translation>无法保存加密的同步更改。</translation>
+    </message>
+    <message>
+        <location line="+25"/>
+        <source>Could not render the pairing code.</source>
+        <translation>无法显示配对码。</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Could not revoke the device. Try again.</source>
+        <translation>无法撤销设备访问权限，请重试。</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Invalid pairing code or this device&apos;s own invitation.</source>
+        <translation>配对码无效，或来自此设备自身的邀请。</translation>
+    </message>
+    <message>
+        <location line="+12"/>
+        <source>Invalid device authorization.</source>
+        <translation>设备授权无效。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Too many paired devices.</source>
+        <translation>已配对设备过多。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not save the device connection.</source>
+        <translation>无法保存设备连接。</translation>
+    </message>
+    <message>
+        <location line="+29"/>
+        <source>Could not merge sync data.</source>
+        <translation>无法合并同步数据。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location line="+93"/>
+        <source>Could not persist incoming encrypted changes.</source>
+        <translation>无法保存收到的加密更改。</translation>
+    </message>
+    <message>
+        <location line="-82"/>
+        <location line="+91"/>
+        <source>Could not save sync status.</source>
+        <translation>无法保存同步状态。</translation>
+    </message>
+    <message>
+        <location line="-67"/>
+        <source>Could not save the conflict choice.</source>
+        <translation>无法保存冲突选择。</translation>
+    </message>
+    <message>
+        <location line="+78"/>
+        <source>The sync session expired.</source>
+        <translation>同步会话已过期。</translation>
+    </message>
+    <message>
+        <location line="+14"/>
+        <source>Unsupported credential type.</source>
+        <translation>不支持的凭据类型。</translation>
+    </message>
+</context>
+<context>
     <name>DesktopSharePanel</name>
     <message>
         <location filename="../qml/DesktopSharePanel.qml" line="+67"/>
@@ -753,7 +893,7 @@
 <context>
     <name>DownloadEntry</name>
     <message>
-        <location filename="../src/downloads.cpp" line="+40"/>
+        <location filename="../src/downloads.cpp" line="+41"/>
         <source>Generated file</source>
         <translation>生成的文件</translation>
     </message>
@@ -812,7 +952,7 @@
         <translation>无法在下载文件夹中创建文件。在“设置”→“下载”中选择另一个文件夹。</translation>
     </message>
     <message>
-        <location line="+36"/>
+        <location line="+45"/>
         <source>The file is missing or could not be opened.</source>
         <translation>文件丢失或无法打开。</translation>
     </message>
@@ -1953,7 +2093,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+137"/>
+        <location filename="../qml/Main.qml" line="+138"/>
         <source>Private browsing — Arbiter</source>
         <translation>无痕浏览 — Arbiter</translation>
     </message>
@@ -1963,22 +2103,23 @@
         <translation>设置 — Arbiter</translation>
     </message>
     <message>
-        <location line="+613"/>
-        <location line="+1630"/>
+        <location line="+644"/>
+        <location line="+1652"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>新建标签页</translation>
     </message>
     <message>
-        <location line="-1627"/>
-        <location line="+1714"/>
+        <location line="-1649"/>
+        <location line="+1738"/>
+        <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
         <source>Start page</source>
         <translation>起始页</translation>
     </message>
     <message>
-        <location line="-1211"/>
+        <location line="-1243"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
@@ -2049,6 +2190,12 @@
         <translation>关于</translation>
     </message>
     <message>
+        <location line="-48"/>
+        <location line="+48"/>
+        <source>Sync</source>
+        <translation>同步</translation>
+    </message>
+    <message>
         <location line="-13"/>
         <source>Done</source>
         <translation>完成</translation>
@@ -2066,13 +2213,13 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+31"/>
+        <location line="+45"/>
         <source>Dark</source>
         <translation>深色</translation>
     </message>
     <message>
-        <location line="-31"/>
-        <location line="+19"/>
+        <location line="-45"/>
+        <location line="+33"/>
         <source>Light</source>
         <translation>浅色</translation>
     </message>
@@ -2188,12 +2335,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+346"/>
+        <location line="+353"/>
         <source>Off</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location line="-339"/>
+        <location line="-346"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>在选项卡标题下显示网站导航，或在 macOS 菜单栏中显示为单独的菜单。</translation>
     </message>
@@ -2425,7 +2572,7 @@
         <translation>该文件包含首选项和键盘快捷键。密码、密钥、浏览历史记录、选项卡和站点数据单独存储。</translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+47"/>
         <source>Put inactive tabs to sleep after</source>
         <translation>将非活动选项卡置于睡眠状态</translation>
     </message>
@@ -2606,7 +2753,7 @@
         <translation>添加至 Arbiter</translation>
     </message>
     <message>
-        <location line="+338"/>
+        <location line="+339"/>
         <source>%1 open · Pick up where you left off</source>
         <translation>%1 打开 · 从上次停下的地方继续</translation>
     </message>
@@ -2642,12 +2789,12 @@
         <translation>搜索打开的选项卡</translation>
     </message>
     <message>
-        <location line="+97"/>
+        <location line="+107"/>
         <source>Arbiter</source>
         <translation>Arbiter</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+13"/>
         <source>Search or enter address</source>
         <translation>搜索或输入地址</translation>
     </message>
@@ -2677,15 +2824,17 @@
         <translation>↑ ↓ ← → 导航 ↵ 打开 esc 关闭</translation>
     </message>
     <message>
-        <location line="+105"/>
+        <location line="+106"/>
         <source>Private</source>
         <translation>私人</translation>
     </message>
     <message>
+        <location line="-1335"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass（实验性）</translation>
     </message>
     <message>
+        <location line="+7"/>
         <source>Liquid Glass uses the system appearance. Custom colors apply to Glacier when Liquid Glass is off.</source>
         <translation>Liquid Glass 使用系统外观。关闭 Liquid Glass 后，自定义颜色将应用于 Glacier。</translation>
     </message>
@@ -2701,12 +2850,12 @@
 <context>
     <name>NavigationPill</name>
     <message>
-        <location filename="../qml/NavigationPill.qml" line="+116"/>
+        <location filename="../qml/NavigationPill.qml" line="+156"/>
         <source>Show navigation</source>
         <translation>显示导航</translation>
     </message>
     <message>
-        <location line="+36"/>
+        <location line="+40"/>
         <source>Back</source>
         <translation>后退</translation>
     </message>
@@ -2726,7 +2875,7 @@
         <translation>重新加载</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+16"/>
         <source>Edit address: %1</source>
         <translation>编辑地址：%1</translation>
     </message>
@@ -3263,8 +3412,8 @@
     </message>
     <message>
         <location line="+2"/>
-        <source>Choose a passphrase of at least 12 characters. Use it to create or use an Arbiter passkey, or enable optional biometric unlocking in Settings. Private keys are encrypted and kept in your operating system&apos;s credential store on this computer. There is no sync or passphrase recovery; losing this profile, its system credentials, or the passphrase can lose access to these passkeys. Keep another sign-in method for your accounts.</source>
-        <translation>选择至少包含 12 个字符的密码。用它来创建或使用 Arbiter 密钥，或在“设置”中启用可选的生物识别解锁。私钥经过加密并保存在该计算机上操作系统的凭据存储中。没有同步或密码恢复；丢失此配置文件、其系统凭据或密码可能会失去对这些密钥的访问权限。为您的帐户保留另一种登录方法。</translation>
+        <source>Choose a passphrase of at least 12 characters. Use it to create or use an Arbiter passkey, or enable optional biometric unlocking in Settings. Private keys are encrypted and kept in your operating system&apos;s credential store on this computer. Optional encrypted local sync is available in Settings. There is no passphrase recovery; losing this profile, its system credentials, or the passphrase can lose access to these passkeys. Keep another sign-in method for your accounts.</source>
+        <translation>请选择至少 12 个字符的口令。创建或使用 Arbiter 通行密钥时需输入此口令，也可在设置中启用可选的生物识别解锁。私钥经过加密，并保存在此电脑的操作系统凭据存储中。可在设置中启用可选的加密本地同步。口令无法找回；丢失此配置文件、系统凭据或口令，可能导致无法使用这些通行密钥。请为账号保留其他登录方式。</translation>
     </message>
     <message>
         <location line="+5"/>
@@ -3290,7 +3439,7 @@
 <context>
     <name>PasskeyVault</name>
     <message>
-        <location filename="../src/passkeyvault.cpp" line="+62"/>
+        <location filename="../src/passkeyvault.cpp" line="+66"/>
         <source>Set up the passkey vault first.</source>
         <translation>首先设置密钥库。</translation>
     </message>
@@ -3432,7 +3581,7 @@
         <translation>无法生成密钥。</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+9"/>
         <source>The passkey exceeds the secure storage limit.</source>
         <translation>密钥超出安全存储限制。</translation>
     </message>
@@ -3457,7 +3606,65 @@
         <translation>无法签署身份验证请求。</translation>
     </message>
     <message>
-        <location filename="../src/passkeyvault.h" line="+28"/>
+        <location line="+22"/>
+        <source>Set up your passkey vault before enabling encrypted sync.</source>
+        <translation>启用加密同步前，请先设置通行密钥库。</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Sync unlocking was cancelled.</source>
+        <translation>同步解锁已取消。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not unlock the vault for sync.</source>
+        <translation>无法为同步解锁密码库。</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <location line="+36"/>
+        <location line="+39"/>
+        <source>Unlock the desktop sync vault and try again.</source>
+        <translation>请解锁桌面端同步密码库后重试。</translation>
+    </message>
+    <message>
+        <location line="-68"/>
+        <location line="+9"/>
+        <source>The sync session expired.</source>
+        <translation>同步会话已过期。</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>A passkey could not be verified for transfer.</source>
+        <translation>无法验证要传输的通行密钥。</translation>
+    </message>
+    <message>
+        <location line="+21"/>
+        <source>The synced passkey is invalid or unsupported.</source>
+        <translation>同步的通行密钥无效或不受支持。</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>A synced passkey conflicts with an existing credential identity.</source>
+        <translation>同步的通行密钥与现有凭据标识冲突。</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>The synced passkey is too large for secure storage.</source>
+        <translation>同步的通行密钥过大，无法安全存储。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Could not save the synced passkey index.</source>
+        <translation>无法保存已同步的通行密钥索引。</translation>
+    </message>
+    <message>
+        <location line="+19"/>
+        <source>The passkey was removed, but its index needs a retry.</source>
+        <translation>通行密钥已移除，但索引更新需要重试。</translation>
+    </message>
+    <message>
+        <location filename="../src/passkeyvault.h" line="+30"/>
         <source>Biometrics</source>
         <translation>生物识别</translation>
     </message>
@@ -3540,22 +3747,35 @@
         <translation>密码已安全更新。</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+25"/>
         <source>The secret was deleted, but its index entry could not be removed. Retry deletion.</source>
         <translation>秘密已删除，但无法删除其索引条目。重试删除。</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>Password deleted.</source>
         <translation>密码已删除。</translation>
     </message>
     <message>
+        <location line="+278"/>
+        <source>A password does not match its secure index entry.</source>
+        <translation>密码与其安全索引条目不匹配。</translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>The synced password origin is invalid.</source>
+        <translation>同步密码的来源无效。</translation>
+    </message>
+    <message>
+        <location line="-313"/>
+        <location line="+53"/>
+        <location line="+228"/>
         <location line="+30"/>
         <source>Password storage is unavailable or busy.</source>
         <translation>密码存储不可用或正忙。</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="-250"/>
         <source>This account does not belong to the current website.</source>
         <translation>该帐号不属于当前网站。</translation>
     </message>
@@ -3956,7 +4176,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+296"/>
+        <location filename="../src/main.cpp" line="+582"/>
         <source>Settings…</source>
         <translation>设置…</translation>
     </message>
@@ -4181,6 +4401,31 @@
         <location filename="../src/systemintegration_mac.mm" line="+15"/>
         <source>Launch the Arbiter app bundle to set it as your default browser.</source>
         <translation>启动 Arbiter 应用程序包，将其设置为您的默认浏览器。</translation>
+    </message>
+    <message>
+        <location filename="../src/credentialsyncpeer.cpp" line="+49"/>
+        <source>Invalid sync connection.</source>
+        <translation>同步连接无效。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Sync data is too large.</source>
+        <translation>同步数据过大。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not encrypt sync data.</source>
+        <translation>无法加密同步数据。</translation>
+    </message>
+    <message>
+        <location line="+33"/>
+        <source>Device access was revoked. Pair again to reconnect.</source>
+        <translation>设备访问权限已撤销。请重新配对以恢复连接。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Could not sync. Keep the other device open and unlocked on the same Wi-Fi.</source>
+        <translation>无法同步。请在另一设备上保持应用开启并解锁，并连接到同一 Wi-Fi。</translation>
     </message>
 </context>
 <context>
@@ -4432,6 +4677,186 @@
         <location line="+7"/>
         <source>Settings</source>
         <translation>设置</translation>
+    </message>
+</context>
+<context>
+    <name>SyncSettings</name>
+    <message>
+        <location filename="../qml/SyncSettings.qml" line="+14"/>
+        <source>Bring your vault along</source>
+        <translation>随身携带密码库</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Connect your computers and phones to share one credential vault over local Wi-Fi. Connected devices exchange encrypted changes, including deletions. Keep Arbiter open and desktop sync unlocked; no cloud account is needed.</source>
+        <translation>连接电脑和手机，通过本地 Wi-Fi 共享一个凭据库。连接的设备会交换加密的更改，包括删除操作。请保持 Arbiter 开启，并解锁桌面端同步；无需云端账号。</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Open Sync in a regular browser window to pair your devices.</source>
+        <translation>请在普通浏览窗口中打开同步设置以配对设备。</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Set up your Arbiter passkey vault first. Its passphrase or biometric verification will also unlock your sync session.</source>
+        <translation>请先设置 Arbiter 通行密钥库。其口令或生物识别验证也会解锁同步会话。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Set up passkey vault</source>
+        <translation>设置通行密钥库</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Vault passphrase</source>
+        <translation>密码库口令</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Unlock sync</source>
+        <translation>解锁同步</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Unlock with %1</source>
+        <translation>用 %1 解锁</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Keep sync unlocked until this computer locks</source>
+        <translation>在此计算机锁定前保持同步解锁</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.</source>
+        <translation>供手机后台同步使用的可选设置。此计算机保持解锁时，已配对设备可以同步。锁定计算机或退出 Arbiter 始终会锁定同步。</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Working with your secure vault…</source>
+        <translation>正在处理安全密码库…</translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>Sync is unlocked</source>
+        <translation>同步已解锁</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Lock</source>
+        <translation>锁定</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.</source>
+        <translation>此会话将保持解锁，直到你锁定此计算机、手动锁定同步或退出 Arbiter。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>This session locks after 10 minutes or when your computer locks. Keep Arbiter open on both devices while syncing.</source>
+        <translation>此会话将在 10 分钟后或电脑锁定时锁定。同步期间请在两台设备上保持 Arbiter 开启。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Add a device</source>
+        <translation>添加设备</translation>
+    </message>
+    <message>
+        <location line="+15"/>
+        <source>On your phone, open Passwords &amp; passkeys → Scan desktop code, then scan this code. It grants access to this vault. The invitation expires in two minutes and can be used once.</source>
+        <translation>在手机上打开“密码与通行密钥”→“扫描桌面端代码”，然后扫描此码。这会授予对此密码库的访问权限。邀请两分钟后过期，且只能使用一次。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Copy pairing code for another computer</source>
+        <translation>复制供另一台电脑使用的配对码</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Cancel pairing</source>
+        <translation>取消配对</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Paste a pairing code from another computer</source>
+        <translation>粘贴另一台电脑的配对码</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Review connection</source>
+        <translation>检查连接</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Connect to %1? This shares your vault with this device and the devices it syncs with.</source>
+        <translation>连接到 %1？密码库将与此设备及其同步的其他设备共享。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Connect</source>
+        <translation>连接</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+63"/>
+        <source>Cancel</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <location line="-60"/>
+        <source>Sync now</source>
+        <translation>立即同步</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Paired devices</source>
+        <translation>已配对设备</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Your connected computers and phones will appear here.</source>
+        <translation>已连接的电脑和手机将显示在这里。</translation>
+    </message>
+    <message>
+        <location line="+12"/>
+        <source>Last synced %1</source>
+        <translation>上次同步：%1</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Not synced yet</source>
+        <translation>尚未同步</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Changes waiting to sync</source>
+        <translation>有更改等待同步</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <location line="+36"/>
+        <source>Remove device</source>
+        <translation>移除设备</translation>
+    </message>
+    <message>
+        <location line="-28"/>
+        <source>Conflicting changes were kept. Choose which version to use on your connected devices.</source>
+        <translation>冲突的更改已保留。请选择要在已连接设备上使用的版本。</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Delete everywhere</source>
+        <translation>在所有设备上删除</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Keep this version</source>
+        <translation>保留此版本</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <source>Remove this sync connection? Saved credentials are kept. Other connections to this device are unchanged.</source>
+        <translation>移除此同步连接？已保存的凭据将保留。与此设备的其他连接不会改变。</translation>
     </message>
 </context>
 <context>
@@ -5445,19 +5870,4 @@
         <translation>无法保存工作区。</translation>
     </message>
 </context>
-  <context>
-    <name>SyncSettings</name>
-    <message>
-      <source>Keep sync unlocked until this computer locks</source>
-      <translation>在此计算机锁定前保持同步解锁</translation>
-    </message>
-    <message>
-      <source>Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.</source>
-      <translation>供手机后台同步使用的可选设置。此计算机保持解锁时，已配对设备可以同步。锁定计算机或退出 Arbiter 始终会锁定同步。</translation>
-    </message>
-    <message>
-      <source>This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.</source>
-      <translation>此会话将保持解锁，直到你锁定此计算机、手动锁定同步或退出 Arbiter。</translation>
-    </message>
-  </context>
 </TS>

@@ -215,7 +215,23 @@ ColumnLayout {
         MobileButton { Layout.fillWidth: true; text: browser.vault.peerName ? qsTr("Sync now") : qsTr("Pair with your desktop"); enabled: !browser.vault.busy; onClicked: browser.vault.peerName ? browser.vault.sync() : root.pairRequested() }
         Caption { visible: browser.vault.busy; text: qsTr("Syncing…") }
         Caption { visible: browser.vault.error.length > 0; text: browser.vault.error }
-        MobileButton { Layout.fillWidth: true; visible: Boolean(browser.vault.peerName); enabled: !browser.vault.busy; text: qsTr("Disconnect desktop"); flat: true; onClicked: disconnect.open() }
+        MobileButton { Layout.fillWidth: true; text: qsTr("Add another computer"); iconName: "plus"; enabled: !browser.vault.busy; onClicked: root.pairRequested() }
+        Repeater {
+            model: browser.vault.devices
+            delegate: ColumnLayout {
+                required property var modelData
+                Layout.fillWidth: true
+                MobileSettingsRow {
+                    Layout.fillWidth: true
+                    text: modelData.name
+                    detail: modelData.lastSeen > 0 ? qsTr("Last synced %1").arg(Qt.formatDateTime(new Date(modelData.lastSeen), Qt.DefaultLocaleShortDate)) : qsTr("Not synced yet")
+                    iconName: "smartphone"
+                    enabled: !browser.vault.busy
+                    onClicked: { disconnect.deviceId = modelData.id; disconnect.open() }
+                }
+                Caption { visible: modelData.pending; text: qsTr("Changes waiting to sync") }
+            }
+        }
     }
     MobileSettingsRow { visible: root.category === "sync" && browser.vault.conflicts > 0; Layout.fillWidth: true; text: qsTr("Resolve sync conflicts"); iconName: "refresh-cw"; onClicked: root.vaultRequested() }
 
@@ -235,6 +251,7 @@ ColumnLayout {
     }
     UiPopup {
         id: disconnect
+        property string deviceId: ""
         parent: Controls.Overlay.overlay
         anchors.centerIn: parent
         width: Math.min(380, parent.width - 32)
@@ -245,8 +262,8 @@ ColumnLayout {
         closePolicy: Controls.Popup.CloseOnEscape
         contentItem: ColumnLayout {
             spacing: 16
-            Caption { text: qsTr("Disconnect this desktop? Credentials already saved on this device are kept.") }
-            MobileButton { Layout.fillWidth: true; text: qsTr("Disconnect desktop"); onClicked: { browser.vault.disconnectPeer(); disconnect.close() } }
+            Caption { text: qsTr("Remove this sync connection? Saved credentials are kept. Other connections to this device are unchanged.") }
+            MobileButton { Layout.fillWidth: true; text: qsTr("Disconnect desktop"); onClicked: { browser.vault.disconnectPeer(disconnect.deviceId); disconnect.close() } }
             MobileButton { Layout.fillWidth: true; text: qsTr("Cancel"); flat: true; onClicked: disconnect.close() }
         }
     }

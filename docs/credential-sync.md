@@ -4,6 +4,42 @@ Desktop uses Qt Network TLS and QtKeychain; mobile uses the same encrypted recor
 format with native credential providers. Sync stays LAN-only: foreground polling
 and optional OS-scheduled phone background jobs, with no relay or cloud backup. Passphrases, OS unlock credentials and device biometric data never sync.
 
+## Multiple computers and phones
+
+Connections form a trusted replication graph: each connected device exchanges
+its complete versioned vault, so changes can travel through a shared peer. Each
+connection stores its pinned endpoint and individual bearer token. Transport
+encryption keys belong to the serving desktop and are separate from at-rest keys. Linking another computer explicitly shares the combined vault with the
+devices that computer already syncs with; confirm that choice before joining.
+The graph is one shared credential set, not separate per-computer password lists.
+Device names also travel with the versioned state so conflicts remain readable
+when changes arrive through a shared peer. This directory is display metadata,
+not an authorization or membership list; the device page lists direct connections.
+
+On computer A, unlock Sync and choose **Add a device**. For another computer,
+copy the pairing code and paste it into computer B's Sync settings, review the
+device and certificate fingerprint, then connect. On a phone, scan A's code;
+**Add another computer** adds B without replacing A. Existing single-computer
+phone pairings upgrade automatically. A phone can bridge two computers without
+those computers being paired directly; direct computer-to-computer pairing also
+works without a phone. Phones initiate connections rather than hosting a LAN
+server. Devices need a connected path over time, not simultaneous availability
+of every device. No internet relay or automatic membership/key sharing is used.
+
+Desktop polls outgoing connections while sync is unlocked; mobile polls in the
+foreground and can use OS-scheduled background jobs. A failed/offline connection
+does not stop the other connections in a batch. The device list shows the last
+successful exchange and whether local state is waiting to be acknowledged.
+These timestamps are display information only, never conflict precedence.
+Changed LAN addresses can be refreshed by pairing again with the new invitation.
+
+Removing an incoming device revokes its bearer token on that computer. Removing
+an outgoing connection forgets its endpoint/token locally. Neither operation
+deletes credentials or removes other paths in the graph. To stop a lost device
+that has several connections, revoke each of its connections on the remaining
+computers; there is no global remote wipe. Phones support 16 computer connections; desktops support 16 incoming and 16
+outgoing connections. Credential histories support up to 32 device identities.
+
 ## Trust and encryption
 
 Pairing is explicitly initiated in desktop Settings. A two-minute single-use QR
@@ -39,7 +75,17 @@ not protection against a compromised OS or a modified Arbiter executable.
 
 Records use a multi-value register with per-device vector clocks. Dominated values
 are removed; concurrent edits and edit/delete conflicts remain available for explicit
-resolution on the phone. Deletions use tombstones. All clients merge the most recent
+resolution on desktop or phone. A resolution is itself a versioned edit and
+propagates to the other devices. Choices carry a generation digest: a stale
+screen cannot silently resolve additional changes that arrived since it was
+displayed. Identical independent password imports coalesce with their causal
+histories instead of creating a conflict. Different values are never discarded
+using wall-clock timestamps.
+
+Deletions use tombstones, retained indefinitely rather than aged out while an
+offline device may still hold an old copy. A stale copy cannot resurrect a
+causally newer deletion; a concurrent edit/delete needs an explicit choice.
+Disconnecting a device leaves its local credentials intact. All clients merge the most recent
 on-disk state under a process-shared file lock before atomically replacing encrypted
 state. The Qt mobile client additionally serializes transactions with an in-process
 mutex, since POSIX record locks alone do not isolate threads in the same process.

@@ -235,7 +235,7 @@ class MobileCoreTest : public QObject {
         const auto choice = vault.conflictChoices().first().toMap();
         QVERIFY(!choice.contains("password"));
         QVERIFY(!choice.contains("privateKey"));
-        vault.resolveConflict(id, choice.value("version").toString());
+        vault.resolveConflict(id, choice.value("version").toString(), choice.value("generation").toString());
         QCOMPARE(vault.conflicts(), 0);
         QCOMPARE(vault.entries().size(), 1);
     }
@@ -247,7 +247,7 @@ class MobileCoreTest : public QObject {
                                         QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals))},
                             {"code", QString::fromLatin1(QByteArray(32, 'c').toBase64(
                                          QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals))},
-                            {"vaultId", "fixture-vault-identifier"}};
+                            {"vaultId", "fixture-vault-identifier"}, {"name", "Fixture computer"}};
         auto invitation = [&] {
             QUrl url("arbiter-pair://v1");
             QUrlQuery query;
@@ -263,6 +263,54 @@ class MobileCoreTest : public QObject {
         QVERIFY(MobileVault::pairingInfo(invitation()).isEmpty());
         QVERIFY(!MobileVault::localEndpoint(QUrl("https://192.168.1.1@evil.example")));
         QVERIFY(!MobileVault::localEndpoint(QUrl("http://127.0.0.1")));
+    }
+    void legacyPairingKeepsIdentityAndCredentials() {
+        QTemporaryDir dir; TestPlatform::directory=dir.path(); TestPlatform::approved=true;
+        const QJsonObject peer{{"name","Original computer"},{"vaultId","original-vault"}};
+        ArbiterSync::State state;
+        const QJsonObject document{{"device","original-phone-identity"},{"peer",peer},{"state",state.json()}};
+        QFile file(dir.path()+"/credentials-v1.enc"); QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(MobilePlatform::seal(QJsonDocument(document).toJson(QJsonDocument::Compact),QByteArray(32,'x'),"ArbiterMobileVault/v1")); file.close();
+        MobileVault vault; vault.unlock(); QCOMPARE(vault.devices().size(),1);
+        QCOMPARE(vault.devices().first().toMap().value("name").toString(),"Original computer");
+        vault.savePassword("https://retained.fixture","user","secret"); QCOMPARE(vault.entries().size(),1);
+        QVERIFY(file.open(QIODevice::ReadOnly)); bool ok=false;
+        const auto migrated=QJsonDocument::fromJson(MobilePlatform::open(file.readAll(),QByteArray(32,'x'),"ArbiterMobileVault/v1",&ok)).object(); file.close();
+        QVERIFY(ok); QVERIFY(!migrated.contains("peer")); QCOMPARE(migrated.value("device").toString(),"original-phone-identity");
+        QCOMPARE(migrated.value("peers").toObject().size(),1);
+        vault.disconnectPeer("original-vault"); QCOMPARE(vault.devices().size(),0); QCOMPARE(vault.entries().size(),1);
+    }
+    void twoDesktopPeers() {
+        const auto fixture=qEnvironmentVariable("ARBITER_TEST_DESKTOP_FIXTURE");
+        if(fixture.isEmpty()) QSKIP("Set ARBITER_TEST_DESKTOP_FIXTURE for two-computer TLS sync");
+        QProcess a,b; a.start(fixture); b.start(fixture);
+        QVERIFY(a.waitForStarted()); QVERIFY(b.waitForStarted());
+        QVERIFY(a.waitForReadyRead()); QVERIFY(b.waitForReadyRead());
+        const auto first=QString::fromUtf8(a.readLine()).trimmed(),second=QString::fromUtf8(b.readLine()).trimmed();
+        QVERIFY(first.startsWith("arbiter-pair://")); QVERIFY(second.startsWith("arbiter-pair://"));
+        QTemporaryDir dir; TestPlatform::directory=dir.path(); TestPlatform::approved=true;
+        MobileVault vault; vault.savePassword("https://phone.fixture.example","phone-user","phone-secret");
+        QSignalSpy complete(&vault,&MobileVault::completed);
+        for(const auto &code:{first,second}) {
+            complete.clear(); vault.pair(code); vault.confirmPair();
+            QTRY_VERIFY_WITH_TIMEOUT(!complete.isEmpty(),30000);
+            QVERIFY2(complete.last().first().toBool(),qPrintable(vault.error()));
+        }
+        QCOMPARE(vault.devices().size(),2); QCOMPARE(vault.entries().size(),2); QCOMPARE(vault.conflicts(),0);
+        const auto contacts=vault.devices();
+        a.terminate(); QVERIFY(a.waitForFinished());
+        // One offline computer must not stop the other computer from syncing.
+        complete.clear(); vault.sync(); QTRY_VERIFY_WITH_TIMEOUT(!complete.isEmpty(),30000);
+        QVERIFY(!complete.last().first().toBool());
+        QVERIFY(vault.devices().at(0).toMap().value("lastSeen").toDouble()>0);
+        QVERIFY(vault.devices().at(1).toMap().value("lastSeen").toDouble()>0);
+        const auto firstId=MobileVault::pairingInfo(first).value("vaultId").toString();
+        vault.disconnectPeer(firstId); QCOMPARE(vault.devices().size(),1); QCOMPARE(vault.entries().size(),2);
+        complete.clear(); vault.sync(); QTRY_VERIFY_WITH_TIMEOUT(!complete.isEmpty(),30000);
+        QVERIFY2(complete.last().first().toBool(),qPrintable(vault.error()));
+        MobileVault reopened; reopened.unlock(); QCOMPARE(reopened.devices().size(),1);
+        QCOMPARE(reopened.entries().size(),2);
+        b.terminate(); b.waitForFinished();
     }
     void nativePeer() {
         const auto fixture = qEnvironmentVariable("ARBITER_TEST_DESKTOP_FIXTURE");

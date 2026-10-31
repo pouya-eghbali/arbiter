@@ -6,6 +6,7 @@
 #include <QJsonObject>
 #include <QPointer>
 #include <utility>
+#include <memory>
 #include <QTimer>
 #include <QVariantList>
 class PasswordManager;
@@ -23,6 +24,9 @@ class CredentialSync final : public QObject {
     Q_PROPERTY(QString address READ address NOTIFY changed)
     Q_PROPERTY(QVariantList devices READ devices NOTIFY changed)
     Q_PROPERTY(int conflicts READ conflicts NOTIFY changed)
+    Q_PROPERTY(QVariantList conflictChoices READ conflictChoices NOTIFY changed)
+    Q_PROPERTY(QString pendingDevice READ pendingDevice NOTIFY changed)
+    Q_PROPERTY(QString pendingPin READ pendingPin NOTIFY changed)
 public:
     CredentialSync(PasswordManager *passwords,PasskeyVault *passkeys,QObject *parent=nullptr);
     CredentialSync(PasswordManager *passwords,PasskeyVault *passkeys,const QString &directory,
@@ -38,11 +42,20 @@ public:
     QString address() const { return m_address; }
     QVariantList devices() const;
     int conflicts() const { return m_state.conflicts(); }
+    QVariantList conflictChoices() const;
+    QString pendingDevice() const { return m_pending.value("name").toString(); }
+    QString pendingPin() const { return m_pending.value("pin").toString(); }
     Q_INVOKABLE void unlock(const QString &passphrase,bool biometric=false);
     Q_INVOKABLE void lock();
     Q_INVOKABLE void pair();
     Q_INVOKABLE void cancelPairing();
     Q_INVOKABLE void revoke(const QString &deviceId);
+    Q_INVOKABLE void reviewPairing(const QString &invitation);
+    Q_INVOKABLE void confirmPairing();
+    Q_INVOKABLE void cancelJoin();
+    Q_INVOKABLE void copyPairingCode();
+    Q_INVOKABLE void sync();
+    Q_INVOKABLE void resolveConflict(const QString &id,const QString &version,const QString &generation);
 signals:
     void changed();
 private:
@@ -50,8 +63,9 @@ private:
     // let an old completion restore keys or mutate a newly unlocked session.
     template<class F> auto protect(F function) {
         const QPointer<CredentialSync> guard(this); const auto epoch=m_epoch;
-        return [guard,epoch,function=std::move(function)](auto &&...arguments) {
-            if(guard && guard->m_epoch==epoch) function(std::forward<decltype(arguments)>(arguments)...);
+        auto action=std::make_shared<std::decay_t<F>>(std::move(function));
+        return [guard,epoch,action](auto &&...arguments) {
+            if(guard && guard->m_epoch==epoch) (*action)(std::forward<decltype(arguments)>(arguments)...);
         };
     }
     using Done=std::function<void(const QString &)>;
@@ -61,6 +75,7 @@ private:
     bool save();
     void refresh(Done callback);
     void apply(Done callback);
+    void syncNext(QStringList peers,QStringList errors);
     void request(const QString &path,const QByteArray &token,const QByteArray &body,CredentialSyncServer::Reply reply);
     QByteArray payload(const QJsonObject &data) const;
     PasswordManager *m_passwords;
@@ -73,7 +88,8 @@ private:
     QString m_directory,m_error,m_qr,m_code,m_address;
     QByteArray m_pairCode,m_certificate;
     QTimer m_pairExpiry;
-    QJsonObject m_document,m_current;
+    QTimer m_poll;
+    QJsonObject m_document,m_current,m_pending;
     ArbiterSync::State m_state;
     bool m_busy=false,m_keepUnlocked=false,m_persistSettings=false,m_locking=false;
     quint64 m_epoch=0;

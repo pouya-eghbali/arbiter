@@ -1,6 +1,7 @@
 #pragma once
 #include <QByteArray>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QString>
 
 // Versioned, multi-value credential registers. Conflicts require an explicit
@@ -18,10 +19,17 @@ public:
     static bool parse(const QJsonObject &json, State *out, QString *error);
     QJsonObject json() const;
     QJsonObject records() const { return m_records; }
+    QString digest() const;
+    QJsonObject deviceNames() const;
+    void rememberDevice(const QString &id,const QString &name);
     bool merge(const State &other, QString *error);
     bool update(const QString &id, const QString &device, const QJsonObject &data, bool deleted, QString *error);
     int conflicts() const;
+    QJsonArray conflictChoices() const;
+    bool resolve(const QString &id, const QString &version, const QString &generation,
+                 const QString &device, QString *error);
 private:
     QJsonObject m_records;
+    QJsonObject m_devices;
 };
 }

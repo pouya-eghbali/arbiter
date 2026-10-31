@@ -7,13 +7,13 @@ set(CMAKE_AUTOMOC ON)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Network Test)
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 enable_testing()
-add_executable(credentialsync_test credentialsync_test.cpp ../../src/credentialsyncstate.cpp ../../src/credentialsynccrypto.cpp ../../src/credentialsyncstate.h ../../src/credentialsyncserver.cpp ../../src/credentialsyncserver.h)
+add_executable(credentialsync_test credentialsync_test.cpp ../../src/credentialsyncstate.cpp ../../src/credentialsyncpeer.cpp ../../src/credentialsynccrypto.cpp ../../src/credentialsyncstate.h ../../src/credentialsyncserver.cpp ../../src/credentialsyncserver.h)
 target_link_libraries(credentialsync_test PRIVATE Qt6::Core Qt6::Network Qt6::Test OpenSSL::Crypto)
 add_test(NAME credentialsync COMMAND credentialsync_test)
 
 if(TARGET password_core AND TARGET passkey_core)
     add_library(credentialsync_application STATIC ../../src/credentialsync.cpp ../../src/credentialsync.h
-        ../../src/credentialsyncserver.cpp ../../src/credentialsyncserver.h ../../src/credentialsyncstate.cpp ../../src/credentialsynccrypto.cpp ../../src/credentialsyncstate.h
+        ../../src/credentialsyncserver.cpp ../../src/credentialsyncserver.h ../../src/credentialsyncstate.cpp ../../src/credentialsyncpeer.cpp ../../src/credentialsynccrypto.cpp ../../src/credentialsyncstate.h
         ../../third_party/qrcodegen/qrcodegen.cpp)
     target_include_directories(credentialsync_application PRIVATE ../../src ../../third_party/qrcodegen)
     target_link_libraries(credentialsync_application PUBLIC password_core passkey_core Qt6::Gui Qt6::Network)

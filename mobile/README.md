@@ -47,6 +47,9 @@ The C++ client uses the desktop CRDT and encrypted wire format. Pair using a QR
 code or invitation, verify the desktop name and certificate fingerprint, then
 confirm. Both devices must be on the same LAN, with desktop open and unlocked.
 TLS is pinned and payloads are encrypted; there is no hosted relay or cloud sync.
+Add multiple computers without replacing existing connections. Edits, conflict
+choices and deletion markers propagate through shared peers; see
+[credential sync](../docs/credential-sync.md) for pairing steps and device removal.
 
 Credentials are AES-GCM encrypted. iOS keeps the wrapping key in the shared
 Keychain access group; Android uses Android Keystore to wrap the random vault key.

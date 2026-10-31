@@ -1,5 +1,7 @@
 #include "mobilevault.h"
 #include "mobileplatform.h"
+#include "credentialsyncpeer.h"
+#include <QDateTime>
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
@@ -108,6 +110,15 @@ bool MobileVault::transaction(const std::function<bool(QJsonObject &, ArbiterSyn
             return false;
         document = {{"device", QUuid::createUuid().toString(QUuid::WithoutBraces)}, {"state", state.json()}};
     }
+    // Preserve existing one-computer pairings while upgrading to a connection map.
+    if (document.value("peer").isObject()) {
+        auto peers = document.value("peers").toObject();
+        const auto peer = document.value("peer").toObject();
+        peers.insert(peer.value("vaultId").toString(), peer);
+        document["peers"] = peers;
+        document.remove("peer");
+    }
+    state.rememberDevice(document.value("device").toString(),QSysInfo::machineHostName().left(80));
     if (!edit(document, state))
         return false;
     document["state"] = state.json();
@@ -128,23 +139,26 @@ bool MobileVault::transaction(const std::function<bool(QJsonObject &, ArbiterSyn
 bool MobileVault::load(bool create) {
     return transaction([](QJsonObject &, ArbiterSync::State &) { return true; }, create);
 }
-bool MobileVault::persist(bool changePeer) {
+bool MobileVault::persist() {
     const auto desired = m_state;
-    const auto peer = m_document.value("peer");
-    return transaction(
-        [&](QJsonObject &doc, ArbiterSync::State &state) {
-            QString error;
-            if (!state.merge(desired, &error))
-                return false;
-            if (changePeer) {
-                if (peer.isObject())
-                    doc["peer"] = peer;
-                else
-                    doc.remove("peer");
-            }
-            return true;
-        },
-        true);
+    return transaction([&](QJsonObject &, ArbiterSync::State &state) {
+        QString error; return state.merge(desired, &error);
+    }, true);
+}
+QVariantList MobileVault::devices() const {
+    QVariantList result;
+    const auto peers = m_document.value("peers").toObject();
+    for (auto i = peers.begin(); i != peers.end(); ++i) {
+        const auto p = i.value().toObject();
+        result.append(QVariantMap{{"id", i.key()}, {"name", p.value("name").toString()},
+            {"lastSeen", p.value("lastSeen").toDouble()}, {"pending", p.value("ack").toString()!=m_state.digest()}});
+    }
+    return result;
+}
+QString MobileVault::peerName() const {
+    QStringList names;
+    for (const auto &peer : devices()) names.append(peer.toMap().value("name").toString());
+    return names.join(", ");
 }
 QVariantList MobileVault::entries() const {
     QVariantList result;
@@ -164,61 +178,28 @@ QVariantList MobileVault::entries() const {
     return result;
 }
 QVariantList MobileVault::conflictChoices() const {
-    QVariantList choices;
-    if (!unlocked())
-        return choices;
-    const auto records = m_state.records();
-    for (auto i = records.begin(); i != records.end(); ++i) {
-        auto versions = i.value().toArray();
-        if (versions.size() < 2)
-            continue;
-        for (const auto &value : versions) {
-            auto version = value.toObject();
-            auto data = version.value("data").toObject();
-            data.remove("password");
-            data.remove("privateKey");
-            data["id"] = i.key();
-            data["deleted"] = version.value("deleted");
-            data["device"] = version.value("clock").toObject().keys().join(", ").left(8);
-            data["version"] = QString::fromLatin1(
-                QCryptographicHash::hash(QJsonDocument(version).toJson(QJsonDocument::Compact),
-                                         QCryptographicHash::Sha256)
-                    .toHex());
-            choices.append(data.toVariantMap());
-        }
+    if (!unlocked()) return {};
+    QVariantList choices; QMap<QString,QString> names;
+    const auto directory=m_state.deviceNames();
+    for(auto i=directory.begin();i!=directory.end();++i) names[i.key()]=i.value().toString();
+    names[m_document.value("device").toString()]=tr("This device");
+    for(const auto &v:m_document.value("peers").toObject()) {
+        const auto p=v.toObject(); names[p.value("deviceId").toString()]=p.value("name").toString();
+    }
+    for(const auto &v:m_state.conflictChoices()) {
+        auto choice=v.toObject(); const auto id=choice.value("device").toString();
+        choice["device"]=names.value(id,id); choices.append(choice.toVariantMap());
     }
     return choices;
 }
-void MobileVault::resolveConflict(const QString &id, const QString &version) {
-    const auto shown = m_state.records().value(id).toArray();
-    if (shown.size() < 2)
-        return;
-    authenticated([this, id, version, shown] {
+void MobileVault::resolveConflict(const QString &id, const QString &version, const QString &generation) {
+    if (m_busy) return;
+    authenticated([this, id, version, generation] {
         QString error;
-        const bool saved = transaction(
-            [&](QJsonObject &doc, ArbiterSync::State &state) {
-                const auto latest = state.records().value(id).toArray();
-                if (latest != shown)
-                    return false;
-                for (const auto &value : latest) {
-                    const auto selected = value.toObject();
-                    if (QString::fromLatin1(
-                            QCryptographicHash::hash(QJsonDocument(selected).toJson(QJsonDocument::Compact),
-                                                     QCryptographicHash::Sha256)
-                                .toHex()) == version)
-                        return state.update(id, doc.value("device").toString(),
-                                            selected.value("data").toObject(),
-                                            selected.value("deleted").toBool(), &error);
-                }
-                return false;
-            },
-            false);
-        if (!saved)
-            fail(tr("Credential changes were updated. Unlock the vault and review them again."));
-        else {
-            emit changed();
-            emit completed(true);
-        }
+        if (!transaction([&](QJsonObject &doc, ArbiterSync::State &state) {
+            return state.resolve(id, version, generation, doc.value("device").toString(), &error);
+        }, false)) fail(tr("Credential changes were updated. Unlock the vault and review them again."));
+        else { emit changed(); emit completed(true); }
     });
 }
 void MobileVault::authenticated(std::function<void()> action) {
@@ -302,35 +283,10 @@ void MobileVault::savePassword(const QString &origin, const QString &username, c
         }
     });
 }
-bool MobileVault::localEndpoint(const QUrl &url) {
-    if (url.scheme() != "https" || !url.userInfo().isEmpty() || url.hasQuery() || url.hasFragment() ||
-        (!url.path().isEmpty() && url.path() != "/"))
-        return false;
-    const auto host = url.host().toLower();
-    if (host == "localhost" || host.endsWith(".local"))
-        return true;
-    const QHostAddress address(host);
-    return address.isLoopback() || address.isInSubnet(QHostAddress("10.0.0.0"), 8) ||
-           address.isInSubnet(QHostAddress("172.16.0.0"), 12) ||
-           address.isInSubnet(QHostAddress("192.168.0.0"), 16) ||
-           address.isInSubnet(QHostAddress("fc00::"), 7) || address.isInSubnet(QHostAddress("fe80::"), 10);
-}
-QJsonObject MobileVault::pairingInfo(const QString &invitation) {
-    if (invitation.size() > 16000)
-        return {};
-    QUrl url(invitation.trimmed());
-    if (url.scheme() != "arbiter-pair" || url.host() != "v1")
-        return {};
-    auto data = object(decode(QUrlQuery(url).queryItemValue("data")));
-    if (data.value("v") != 1 || !localEndpoint(QUrl(data.value("endpoint").toString())) ||
-        decode(data.value("key").toString()).size() != 32 ||
-        decode(data.value("code").toString()).size() != 32 ||
-        !QRegularExpression("^[0-9a-f]{64}$").match(data.value("pin").toString()).hasMatch() ||
-        !QRegularExpression("^[a-zA-Z0-9-]{16,80}$").match(data.value("vaultId").toString()).hasMatch())
-        return {};
-    return data;
-}
+bool MobileVault::localEndpoint(const QUrl &url) { return ArbiterSync::localEndpoint(url); }
+QJsonObject MobileVault::pairingInfo(const QString &invitation) { return ArbiterSync::pairingInfo(invitation); }
 void MobileVault::pair(const QString &invitation) {
+    if (m_busy) return;
     auto p = pairingInfo(invitation);
     if (p.isEmpty()) {
         fail(tr("Invalid pairing code"));
@@ -342,7 +298,7 @@ void MobileVault::pair(const QString &invitation) {
     });
 }
 void MobileVault::confirmPair() {
-    if (m_pairing.isEmpty() || !unlocked())
+    if (m_busy || m_pairing.isEmpty() || !unlocked())
         return;
     const auto p = m_pairing;
     m_pairing = {};
@@ -356,8 +312,13 @@ void MobileVault::confirmPair() {
                  auto peer = p;
                  peer.remove("code");
                  peer["token"] = response.value("token");
-                 m_document["peer"] = peer;
-                 if (!persist(true)) {
+                 peer["deviceId"] = response.value("deviceId");
+                 if (!transaction([&](QJsonObject &doc, ArbiterSync::State &) {
+                     auto peers = doc.value("peers").toObject();
+                     if (peers.size() >= 16 && !peers.contains(peer.value("vaultId").toString())) return false;
+                     peers[peer.value("vaultId").toString()] = peer;
+                     doc["peers"] = peers; return true;
+                 }, true)) {
                      fail(tr("Could not update the vault."));
                      return;
                  }
@@ -366,80 +327,15 @@ void MobileVault::confirmPair() {
 }
 void MobileVault::exchange(const QString &path, const QJsonObject &peer, const QByteArray &token,
                            const QJsonObject &payload, std::function<void(QJsonObject)> callback) {
-    const QUrl endpoint(peer.value("endpoint").toString());
-    auto key = decode(peer.value("key").toString());
-    if (!localEndpoint(endpoint) || key.size() != 32) {
-        fail(tr("Pair with your desktop first"));
-        return;
-    }
-    const auto context = "ArbiterSync/v1/" + peer.value("vaultId").toString().toUtf8();
-    auto bytes = QJsonDocument(payload).toJson(QJsonDocument::Compact);
-    auto sealed = MobilePlatform::seal(bytes, key, context);
-    bytes.fill(0);
-    if (sealed.isEmpty()) {
-        fail(tr("Could not encrypt sync data."));
-        return;
-    }
-    auto url = endpoint;
-    url.setPath(path);
-    QNetworkRequest request(url);
-    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-    request.setTransferTimeout(25000);
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/octet-stream");
-    request.setRawHeader("Authorization", "Bearer " + encode(token).toLatin1());
-    // Never send a credential payload until TLS has authenticated the pinned peer.
-    auto manager = new QNetworkAccessManager(this);
-    auto reply = manager->post(request, sealed);
-    connect(reply, &QNetworkReply::finished, manager, &QObject::deleteLater);
+    m_busy = true; m_error.clear(); emit changed();
     const auto epoch = m_epoch;
-    const auto pin = peer.value("pin").toString().toLatin1();
-    auto pinned = std::make_shared<bool>(false);
-    connect(reply, &QNetworkReply::sslErrors, reply, [reply, pin, pinned](const QList<QSslError> &) {
-        auto cert = reply->sslConfiguration().peerCertificate();
-        if (!cert.isNull() && cert.digest(QCryptographicHash::Sha256).toHex() == pin) {
-            *pinned = true;
-            reply->ignoreSslErrors();
-        } else
-            reply->abort();
-    });
-    connect(reply, &QNetworkReply::encrypted, reply, [reply, pin, pinned] {
-        if (reply->sslConfiguration().peerCertificate().digest(QCryptographicHash::Sha256).toHex() != pin)
-            reply->abort();
-        else
-            *pinned = true;
-    });
-    auto received = std::make_shared<QByteArray>();
-    connect(reply, &QIODevice::readyRead, reply, [reply, received] {
-        received->append(reply->readAll());
-        if (received->size() > ArbiterSync::MaximumBytes + 28)
-            reply->abort();
-    });
-    m_busy = true;
-    m_error.clear();
-    emit changed();
-    connect(reply, &QNetworkReply::finished, this,
-            [this, reply, received, key, context, callback = std::move(callback), epoch, pinned]() mutable {
-                reply->deleteLater();
-                if (epoch != m_epoch) {
-                    key.fill(0);
-                    return;
-                }
-                m_busy = false;
-                received->append(reply->readAll());
-                bool ok = false;
-                auto clear = (*pinned && reply->error() == QNetworkReply::NoError &&
-                              reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200)
-                                 ? MobilePlatform::open(*received, key, context, &ok)
-                                 : QByteArray();
-                key.fill(0);
-                auto result = object(clear);
-                clear.fill(0);
-                if (!ok || result.isEmpty()) {
-                    fail(tr("Could not sync. Keep your desktop open and unlocked on the same Wi-Fi."));
-                    return;
-                }
-                callback(result);
-            });
+    ArbiterSync::exchange(this, path, peer, token, payload, MobilePlatform::seal, MobilePlatform::open,
+        [this, epoch, callback = std::move(callback)](QString error, QJsonObject response) {
+            if (epoch != m_epoch) return;
+            m_busy = false;
+            if (!error.isEmpty()) { fail(error); return; }
+            callback(response);
+        });
 }
 void MobileVault::cancel() {
     ++m_epoch;
@@ -449,31 +345,36 @@ void MobileVault::cancel() {
     emit completed(false);
 }
 void MobileVault::sync() {
-    if (m_busy)
-        return;
-    if (m_document.isEmpty() && !load(false))
-        return;
-    const auto peer = m_document.value("peer").toObject();
-    if (peer.isEmpty())
-        return;
-    exchange("/v1/sync", peer, decode(peer.value("token").toString()), m_state.json(),
-             [this, peer](QJsonObject data) {
-                 ArbiterSync::State remote;
-                 QString error;
-                 if (!ArbiterSync::State::parse(data, &remote, &error) ||
-                     !transaction(
-                         [&](QJsonObject &doc, ArbiterSync::State &state) {
-                             if (doc.value("peer").toObject().value("token") != peer.value("token"))
-                                 return false;
-                             return state.merge(remote, &error);
-                         },
-                         false)) {
-                     fail(tr("Could not merge sync data."));
-                     return;
-                 }
-                 emit changed();
-                 emit completed(true);
-             });
+    if (m_busy) return;
+    if (!load(false)) { emit completed(false); return; }
+    m_busy = true; m_error.clear(); emit changed();
+    syncNext(m_document.value("peers").toObject().keys(), {});
+}
+void MobileVault::syncNext(QStringList peers, QStringList errors) {
+    if (peers.isEmpty()) {
+        m_busy = false; m_error = errors.join("\n"); emit changed(); emit completed(errors.isEmpty()); return;
+    }
+    const auto id = peers.takeFirst();
+    const auto peer = m_document.value("peers").toObject().value(id).toObject();
+    const auto epoch = m_epoch;
+    ArbiterSync::exchange(this, "/v1/sync", peer, decode(peer.value("token").toString()), m_state.json(),
+        MobilePlatform::seal, MobilePlatform::open,
+        [this, epoch, id, peer, peers, errors](QString error, QJsonObject response) mutable {
+            if (epoch != m_epoch) return;
+            if (error.isEmpty()) {
+                ArbiterSync::State remote;
+                if (!ArbiterSync::State::parse(response, &remote, &error) || !transaction(
+                    [&](QJsonObject &doc, ArbiterSync::State &state) {
+                        auto contacts = doc.value("peers").toObject();
+                        auto contact = contacts.value(id).toObject();
+                        if (contact.value("token") != peer.value("token") || !state.merge(remote, &error)) return false;
+                        contact["lastSeen"] = QDateTime::currentMSecsSinceEpoch(); contact["ack"] = remote.digest(); contacts[id] = contact;
+                        doc["peers"] = contacts; return true;
+                    }, false)) error = tr("Could not merge sync data.");
+            }
+            if (!error.isEmpty()) errors.append(peer.value("name").toString() + ": " + error);
+            syncNext(peers, errors);
+        });
 }
 void MobileVault::backgroundSync(std::function<void(bool)> done) {
     auto connection = std::make_shared<QMetaObject::Connection>();
@@ -482,20 +383,24 @@ void MobileVault::backgroundSync(std::function<void(bool)> done) {
             QObject::disconnect(*connection);
             done(success);
         });
-    if (!load(false) || m_document.value("peer").toObject().isEmpty()) {
+    if (!load(false) || m_document.value("peers").toObject().isEmpty()) {
         emit completed(true);
         return;
     }
     sync();
 }
-void MobileVault::disconnectPeer() {
-    ++m_epoch;
-    m_document.remove("peer");
-    if (!persist(true))
-        fail(tr("Could not update the vault."));
-    else
-        emit changed();
+void MobileVault::disconnectPeer(const QString &id) {
+    if (m_busy) return;
+    authenticated([this, id] {
+        if (!transaction([&](QJsonObject &doc, ArbiterSync::State &) {
+            auto peers = doc.value("peers").toObject();
+            if (id.isEmpty()) peers = {}; else peers.remove(id);
+            doc["peers"] = peers; return true;
+        }, false)) fail(tr("Could not update the vault."));
+        else emit changed();
+    });
 }
+
 QString MobileVault::generatePassword(int length, bool symbols) {
     if (length < 16 || length > 64)
         return {};

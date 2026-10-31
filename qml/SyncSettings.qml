@@ -14,7 +14,7 @@ ColumnLayout {
     Basic.Label { text: qsTr("Bring your vault along"); color: Theme.text; font.pixelSize: 26; font.weight: Font.DemiBold }
     Basic.Label {
         Layout.fillWidth: true
-        text: qsTr("Pair Arbiter on your phone to sync your saved passwords and Arbiter passkeys directly over your local Wi-Fi. Keep both apps open and unlock the desktop vault. Your credentials stay encrypted in transit and on each device; no cloud account is needed.")
+        text: qsTr("Connect your computers and phones to share one credential vault over local Wi-Fi. Connected devices exchange encrypted changes, including deletions. Keep Arbiter open and desktop sync unlocked; no cloud account is needed.")
         color: Theme.muted; wrapMode: Text.WordWrap
     }
     Basic.Label {
@@ -97,7 +97,7 @@ ColumnLayout {
                 : qsTr("This session locks after 10 minutes or when your computer locks. Keep Arbiter open on both devices while syncing.")
         }
         UiButton {
-            text: qsTr("Pair a phone")
+            text: qsTr("Add a device")
             primary: true
             enabled: !!root.manager && !root.manager.busy
             onClicked: root.manager.pair()
@@ -114,12 +114,38 @@ ColumnLayout {
                 Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.muted
                 text: qsTr("On your phone, open Passwords & passkeys → Scan desktop code, then scan this code. It grants access to this vault. The invitation expires in two minutes and can be used once.")
             }
+            UiButton { text: qsTr("Copy pairing code for another computer"); onClicked: root.manager.copyPairingCode() }
             UiButton { text: qsTr("Cancel pairing"); onClicked: root.manager.cancelPairing() }
         }
+        UiTextField {
+            id: invitation
+            Layout.fillWidth: true
+            placeholderText: qsTr("Paste a pairing code from another computer")
+            enabled: !!root.manager && !root.manager.busy
+        }
+        UiButton {
+            text: qsTr("Review connection")
+            enabled: invitation.text.trim().length > 0 && !!root.manager && !root.manager.busy
+            onClicked: { root.manager.reviewPairing(invitation.text); invitation.clear() }
+        }
+        ColumnLayout {
+            visible: !!root.manager && root.manager.pendingDevice.length > 0
+            Layout.fillWidth: true
+            Basic.Label {
+                Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.text; textFormat: Text.PlainText
+                text: qsTr("Connect to %1? This shares your vault with this device and the devices it syncs with.").arg(root.manager ? root.manager.pendingDevice : "")
+            }
+            Basic.Label { Layout.fillWidth: true; wrapMode: Text.WrapAnywhere; color: Theme.muted; text: root.manager ? root.manager.pendingPin : "" }
+            RowLayout {
+                UiButton { text: qsTr("Connect"); enabled: !!root.manager && !root.manager.busy; primary: true; onClicked: root.manager.confirmPairing() }
+                UiButton { text: qsTr("Cancel"); onClicked: root.manager.cancelJoin() }
+            }
+        }
+        UiButton { text: qsTr("Sync now"); iconName: "refresh-cw"; enabled: !!root.manager && !root.manager.busy; onClicked: root.manager.sync() }
         Basic.Label { text: qsTr("Paired devices"); color: Theme.text; font.pixelSize: 18; font.weight: Font.DemiBold }
         Basic.Label {
             visible: !!root.manager && root.manager.devices.length === 0
-            text: qsTr("Your paired phones will appear here."); color: Theme.muted
+            text: qsTr("Your connected computers and phones will appear here."); color: Theme.muted
         }
         Repeater {
             model: root.manager ? root.manager.devices : []
@@ -127,17 +153,55 @@ ColumnLayout {
                 required property var modelData
                 Layout.fillWidth: true; spacing: 12
                 UiIcon { name: "smartphone"; color: Theme.muted; Layout.preferredWidth: 20; Layout.preferredHeight: 20 }
-                Basic.Label { text: modelData.name; color: Theme.text; Layout.fillWidth: true; elide: Text.ElideRight }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Basic.Label { textFormat: Text.PlainText; text: modelData.name; color: Theme.text; Layout.fillWidth: true; elide: Text.ElideRight }
+                    Basic.Label {
+                        text: modelData.lastSeen > 0 ? qsTr("Last synced %1").arg(Qt.formatDateTime(new Date(modelData.lastSeen), Qt.DefaultLocaleShortDate)) : qsTr("Not synced yet")
+                        color: Theme.muted; font.pixelSize: 12
+                    }
+                    Basic.Label { visible: modelData.pending; text: qsTr("Changes waiting to sync"); color: Theme.muted; font.pixelSize: 12 }
+                    Basic.Label { visible: Boolean(modelData.error); text: modelData.error || ""; color: Theme.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                }
                 UiIconButton {
                     iconName: "trash"; label: qsTr("Remove device")
-                    onClicked: root.manager.revoke(modelData.id)
+                    enabled: !!root.manager && !root.manager.busy
+                    onClicked: { disconnect.deviceId = modelData.id; disconnect.open() }
                 }
             }
         }
         Basic.Label {
             visible: !!root.manager && root.manager.conflicts > 0
-            text: qsTr("%n credential conflict(s) need a choice in your phone’s vault. Both versions have been kept.", "", root.manager ? root.manager.conflicts : 0)
+            text: qsTr("Conflicting changes were kept. Choose which version to use on your connected devices.")
             color: Theme.text; Layout.fillWidth: true; wrapMode: Text.WordWrap
+        }
+        Repeater {
+            model: root.manager ? root.manager.conflictChoices : []
+            delegate: ColumnLayout {
+                required property var modelData
+                Layout.fillWidth: true
+                Basic.Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.text; textFormat: Text.PlainText; text: (modelData.origin || modelData.rpId || "") + " · " + (modelData.username || "") }
+                Basic.Label { Layout.fillWidth: true; wrapMode: Text.WrapAnywhere; color: Theme.muted; font.pixelSize: 12; textFormat: Text.PlainText; text: modelData.device }
+                UiButton {
+                    text: modelData.deleted ? qsTr("Delete everywhere") : qsTr("Keep this version")
+                    enabled: !!root.manager && !root.manager.busy
+                    onClicked: root.manager.resolveConflict(modelData.id, modelData.version, modelData.generation)
+                }
+            }
+        }
+    }
+    UiPopup {
+        id: disconnect
+        property string deviceId: ""
+        anchors.centerIn: parent
+        width: Math.min(420, root.width)
+        padding: 20
+        modal: true
+        contentItem: ColumnLayout {
+            spacing: 16
+            Basic.Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.text; text: qsTr("Remove this sync connection? Saved credentials are kept. Other connections to this device are unchanged.") }
+            UiButton { text: qsTr("Remove device"); onClicked: { root.manager.revoke(disconnect.deviceId); disconnect.close() } }
+            UiButton { text: qsTr("Cancel"); onClicked: disconnect.close() }
         }
     }
 }

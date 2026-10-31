@@ -24,7 +24,7 @@ endif()
 qt_add_executable(arbiter_mobile MANUAL_FINALIZATION
     src/main.cpp src/qrscanner.cpp src/qrscanner.h src/mobilemodel.cpp src/mobilemodel.h src/mobiletabs.h
     src/mobilevault.cpp src/mobilevault.h src/nativepage.cpp src/nativepage.h src/mobileplatform.h
-    "${ARBITER_ROOT}/src/credentialsyncstate.cpp" "${ARBITER_ROOT}/src/credentialsyncstate.h")
+    "${ARBITER_ROOT}/src/credentialsyncstate.cpp" "${ARBITER_ROOT}/src/credentialsyncpeer.cpp" "${ARBITER_ROOT}/src/credentialsyncstate.h")
 include("${ARBITER_ROOT}/cmake/QRCodeScanner.cmake")
 target_link_libraries(arbiter_mobile PRIVATE ZXing::ZXing)
 target_include_directories(arbiter_mobile PRIVATE src "${ARBITER_ROOT}/src")
@@ -179,7 +179,7 @@ if(ARBITER_MOBILE_TESTS AND NOT IOS AND NOT ANDROID)
     qt_add_executable(mobile_core_test tests/mobile_core_test.cpp tests/platform_test.cpp
         src/mobilemodel.cpp src/mobilemodel.h src/mobiletabs.h src/mobilevault.cpp src/mobilevault.h
         src/nativepage.cpp src/nativepage.h src/mobileplatform.h
-        "${ARBITER_ROOT}/src/credentialsyncstate.cpp" "${ARBITER_ROOT}/src/credentialsynccrypto.cpp")
+        "${ARBITER_ROOT}/src/credentialsyncstate.cpp" "${ARBITER_ROOT}/src/credentialsynccrypto.cpp" "${ARBITER_ROOT}/src/credentialsyncpeer.cpp")
     target_include_directories(mobile_core_test PRIVATE src "${ARBITER_ROOT}/src")
     target_link_libraries(mobile_core_test PRIVATE Qt6::Test Qt6::Gui Qt6::Qml Qt6::Network OpenSSL::Crypto arbiter_adblock_engine)
     add_test(NAME mobile_core COMMAND mobile_core_test)

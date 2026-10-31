@@ -1,4 +1,10 @@
 #include "credentialsync.h"
+#include "credentialsyncpeer.h"
+#include <QDateTime>
+#include <QClipboard>
+#include <QGuiApplication>
+#include <QNetworkReply>
+#include <QRandomGenerator>
 #include "passwordmanager.h"
 #include "passkeyvault.h"
 #include "passkeycrypto.h"
@@ -38,6 +44,12 @@ CredentialSync::CredentialSync(PasswordManager *passwords,PasskeyVault *passkeys
                                SecretStore *store,const QString &loopbackAddress,QObject *parent)
     :QObject(parent),m_passwords(passwords),m_passkeys(passkeys),m_defaultStore(this,QStringLiteral("Arbiter Sync")),
      m_store(store ? store : &m_defaultStore),m_loopbackAddress(loopbackAddress),m_server(this),m_directory(directory) {
+    m_poll.setSingleShot(true);
+    connect(&m_poll,&QTimer::timeout,this,[this] {
+        if (unlocked() && !m_busy && !m_document.value("connections").toObject().isEmpty()) sync();
+        m_poll.start(20000 + QRandomGenerator::global()->bounded(15000));
+    });
+    m_poll.start(20000 + QRandomGenerator::global()->bounded(15000));
     m_pairExpiry.setSingleShot(true); m_pairExpiry.setInterval(120000);
     connect(&m_pairExpiry,&QTimer::timeout,this,&CredentialSync::cancelPairing);
     connect(passkeys,&PasskeyVault::syncLocked,this,&CredentialSync::lock);
@@ -48,9 +60,34 @@ CredentialSync::CredentialSync(PasswordManager *passwords,PasskeyVault *passkeys
 }
 bool CredentialSync::m_passkeysReady() const { return m_passkeys->syncReady(); }
 QVariantList CredentialSync::devices() const {
-    QVariantList out; const auto peers=m_document.value("peers").toObject();
-    for(auto i=peers.begin();i!=peers.end();++i) out.append(QVariantMap{{"id",i.key()},{"name",i.value().toObject().value("name").toString()}});
+    QVariantList out;
+    const auto digest=m_state.digest();
+    for (const auto &collection : {QString("peers"),QString("connections")}) {
+        const auto peers=m_document.value(collection).toObject();
+        for(auto i=peers.begin();i!=peers.end();++i) {
+            const auto p=i.value().toObject();
+            out.append(QVariantMap{{"id",(collection=="connections" ? "out:" : "in:")+i.key()},
+                {"name",p.value("name").toString()},{"lastSeen",p.value("lastSeen").toDouble()},
+                {"error",p.value("error").toString()},{"pending",p.value("ack").toString()!=digest}});
+        }
+    }
     return out;
+}
+QVariantList CredentialSync::conflictChoices() const {
+    QVariantList choices; QMap<QString,QString> names;
+    const auto directory=m_state.deviceNames();
+    for(auto i=directory.begin();i!=directory.end();++i) names[i.key()]=i.value().toString();
+    names[m_document.value("deviceId").toString()]=tr("This computer");
+    const auto peers=m_document.value("peers").toObject();
+    for(auto i=peers.begin();i!=peers.end();++i) names[i.key()]=i.value().toObject().value("name").toString();
+    for(const auto &v:m_document.value("connections").toObject()) {
+        const auto p=v.toObject(); names[p.value("deviceId").toString()]=p.value("name").toString();
+    }
+    for(const auto &v:m_state.conflictChoices()) {
+        auto choice=v.toObject(); const auto id=choice.value("device").toString();
+        choice["device"]=names.value(id,id); choices.append(choice.toVariantMap());
+    }
+    return choices;
 }
 void CredentialSync::setKeepUnlocked(bool enabled) {
     if(m_keepUnlocked==enabled) {m_passkeys->setSyncStayUnlocked(enabled);return;}
@@ -79,7 +116,9 @@ void CredentialSync::unlock(const QString &phrase,bool biometric) {
 void CredentialSync::lock() {
     if(m_locking) return;
     m_locking=true;
-    ++m_epoch; m_busy=false; cancelPairing(); m_key.clear(); m_server.stop();
+    ++m_epoch; m_busy=false; m_pending={};
+    for(auto reply:findChildren<QNetworkReply *>()) reply->abort();
+    cancelPairing(); m_key.clear(); m_server.stop();
     m_state={}; m_document={}; m_current={}; m_address.clear(); m_passkeys->lockSync(); m_locking=false; emit changed();
 }
 void CredentialSync::loadIdentity(Done callback) {
@@ -114,6 +153,7 @@ void CredentialSync::loadIdentity(Done callback) {
                 {"peers",QJsonObject{}},{"baseline",QJsonObject{}},{"transportKey",encode(PasskeyCrypto::random(32))},{"port",0}};
             m_state={};
         }
+        m_state.rememberDevice(m_document.value("deviceId").toString(),m_document.value("name").toString());
         m_store->readOptional(QStringLiteral("sync-v1-tls"),protect([this,callback](const QString &error,const QByteArray &privateKey) {
             if(!error.isEmpty()) { callback(error); return; }
             QFile cert(m_directory+"/certificate.pem");
@@ -184,6 +224,7 @@ QByteArray CredentialSync::payload(const QJsonObject &data) const {
     auto key=decode(m_document.value("transportKey")); const auto bytes=ArbiterSync::seal(QJsonDocument(data).toJson(QJsonDocument::Compact),key,"ArbiterSync/v1/"+m_document.value("vaultId").toString().toUtf8());
     PasskeyCrypto::wipe(key); return bytes;
 }
+void CredentialSync::copyPairingCode() { if (!m_code.isEmpty() && QGuiApplication::clipboard()) QGuiApplication::clipboard()->setText(m_code); }
 void CredentialSync::cancelPairing() { m_pairExpiry.stop(); m_pairCode.clear(); m_code.clear(); m_qr.clear(); emit changed(); }
 void CredentialSync::pair() {
     if(!unlocked() || m_busy) return;
@@ -191,7 +232,7 @@ void CredentialSync::pair() {
     const auto pin=QString::fromLatin1(QSslCertificate(m_certificate).digest(QCryptographicHash::Sha256).toHex());
     auto key=decode(m_document.value("transportKey"));
     const QJsonObject info{{"v",1},{"endpoint",m_address},{"pin",pin},{"key",encode(key)},
-        {"vaultId",m_document.value("vaultId")},{"code",encode(m_pairCode)},{"name",m_document.value("name")}};
+        {"vaultId",m_document.value("vaultId")},{"deviceId",m_document.value("deviceId")},{"code",encode(m_pairCode)},{"name",m_document.value("name")}};
     PasskeyCrypto::wipe(key);
     m_code="arbiter-pair://v1?data="+encode(QJsonDocument(info).toJson(QJsonDocument::Compact));
     try {
@@ -204,15 +245,115 @@ void CredentialSync::pair() {
 }
 void CredentialSync::revoke(const QString &id) {
     if(!unlocked() || m_busy) return;
-    auto peers=m_document.value("peers").toObject(),old=peers; peers.remove(id); m_document.insert("peers",peers);
-    if(!save()) { m_document.insert("peers",old); m_error=tr("Could not revoke the device. Try again."); }
+    const auto collection=id.startsWith("out:") ? "connections" : "peers";
+    const auto key=id.startsWith("out:") || id.startsWith("in:") ? id.mid(id.startsWith("in:") ? 3 : 4) : id;
+    auto peers=m_document.value(collection).toObject(),old=peers; peers.remove(key); m_document.insert(collection,peers);
+    if(!save()) { m_document.insert(collection,old); m_error=tr("Could not revoke the device. Try again."); }
     emit changed();
+}
+void CredentialSync::reviewPairing(const QString &invitation) {
+    if (!unlocked() || m_busy) return;
+    auto pending=ArbiterSync::pairingInfo(invitation);
+    if (pending.isEmpty() || pending.value("vaultId")==m_document.value("vaultId")) {
+        m_error=tr("Invalid pairing code or this device's own invitation."); emit changed(); return;
+    }
+    m_pending=pending; m_error.clear(); emit changed();
+}
+void CredentialSync::cancelJoin() { m_pending={}; emit changed(); }
+void CredentialSync::confirmPairing() {
+    if (!unlocked() || m_busy || m_pending.isEmpty()) return;
+    const auto peer=m_pending; m_pending={}; m_busy=true; emit changed();
+    ArbiterSync::exchange(this,"/v1/pair",peer,decode(peer.value("code")),
+        {{"deviceId",m_document.value("deviceId")},{"name",m_document.value("name")}},
+        [](const QByteArray &a,const QByteArray &b,const QByteArray &c){return ArbiterSync::seal(a,b,c);},ArbiterSync::open,
+        protect([this,peer](QString error,QJsonObject response) mutable {
+            if (!error.isEmpty() || decode(response.value("token")).size()!=32) { finish(error.isEmpty() ? tr("Invalid device authorization.") : error); return; }
+            auto contact=peer; contact.remove("code"); contact["token"]=response.value("token"); contact["deviceId"]=response.value("deviceId");
+            auto connections=m_document.value("connections").toObject(); const auto old=connections;
+            if (connections.size()>=16 && !connections.contains(contact.value("vaultId").toString())) { finish(tr("Too many paired devices.")); return; }
+            connections[contact.value("vaultId").toString()]=contact; m_document["connections"]=connections;
+            if (!save()) {m_document["connections"]=old;finish(tr("Could not save the device connection."));return;}
+            finish(); sync();
+        }));
+}
+void CredentialSync::sync() {
+    if (!unlocked() || m_busy) return;
+    m_busy=true; m_error.clear(); emit changed();
+    refresh(protect([this](const QString &error) {
+        if (!error.isEmpty()) {finish(error);return;}
+        // Complete any previously persisted merge before exporting another copy.
+        apply(protect([this](const QString &error) {
+            if (!error.isEmpty()) {finish(error);return;}
+            refresh(protect([this](const QString &error) {
+                if (!error.isEmpty()) {finish(error);return;}
+                syncNext(m_document.value("connections").toObject().keys(),{});
+            }));
+        }));
+    }));
+}
+void CredentialSync::syncNext(QStringList peers,QStringList errors) {
+    if (peers.isEmpty()) {finish(errors.join("\n"));return;}
+    const auto id=peers.takeFirst(); const auto peer=m_document.value("connections").toObject().value(id).toObject();
+    ArbiterSync::exchange(this,"/v1/sync",peer,decode(peer.value("token")),m_state.json(),
+        [](const QByteArray &a,const QByteArray &b,const QByteArray &c){return ArbiterSync::seal(a,b,c);},ArbiterSync::open,
+        protect([this,id,peer,peers,errors](QString error,QJsonObject response) mutable {
+            auto process=protect([this,id,peer,peers,errors,response](QString error) mutable {
+            if (error.isEmpty()) {
+                ArbiterSync::State remote; auto merged=m_state;
+                if (!ArbiterSync::State::parse(response,&remote,&error) || !merged.merge(remote,&error)) {
+                    if(error.isEmpty())error=tr("Could not merge sync data.");
+                } else {
+                    const auto previous=m_state; m_state=merged;
+                    if (!save()) {m_state=previous;error=tr("Could not persist incoming encrypted changes.");}
+                }
+            }
+            auto contacts=m_document.value("connections").toObject(); auto contact=contacts.value(id).toObject();
+            contact["error"]=error;
+            if (error.isEmpty()) {
+                contact["lastSeen"]=QDateTime::currentMSecsSinceEpoch();
+                ArbiterSync::State acknowledged; QString ignored;
+                if(ArbiterSync::State::parse(response,&acknowledged,&ignored))contact["ack"]=acknowledged.digest();
+            }
+            contacts[id]=contact; m_document["connections"]=contacts;
+            if (!save() && error.isEmpty()) error=tr("Could not save sync status.");
+            const auto next=protect([this,peer,peers,errors](QString error) mutable {
+                if (!error.isEmpty()) errors.append(peer.value("name").toString()+": "+error);
+                syncNext(peers,errors);
+            });
+            if (!error.isEmpty()) {next(error);return;}
+            apply(protect([this,next](const QString &error) {
+                if (!error.isEmpty()) {next(error);return;}
+                refresh(next);
+            }));
+            });
+            // Capture edits made while this request was in flight before
+            // merging remote clocks or importing credentials into OS storage.
+            if(error.isEmpty()) refresh(process); else process(error);
+        }));
+}
+void CredentialSync::resolveConflict(const QString &id,const QString &version,const QString &generation) {
+    if (!unlocked() || m_busy) return;
+    m_busy=true; emit changed();
+    refresh(protect([this,id,version,generation](const QString &error) {
+        if (!error.isEmpty()) {finish(error);return;}
+        auto resolved=m_state; QString resolveError;
+        if (!resolved.resolve(id,version,generation,m_document.value("deviceId").toString(),&resolveError)) {finish(resolveError);return;}
+        const auto previous=m_state; m_state=resolved;
+        if (!save()) {m_state=previous;finish(tr("Could not save the conflict choice."));return;}
+        apply(protect([this](const QString &error) {
+            if (!error.isEmpty()) {finish(error);return;}
+            refresh(protect([this](const QString &error) {finish(error); if(error.isEmpty())sync();}));
+        }));
+    }));
 }
 void CredentialSync::request(const QString &path,const QByteArray &token,const QByteArray &body,CredentialSyncServer::Reply reply) {
     if(!unlocked() || m_busy) { reply(409,{}); return; }
-    bool authorized=false; const auto provided=QByteArray::fromBase64(token,QByteArray::Base64UrlEncoding);
+    bool authorized=false; QString sender; const auto provided=QByteArray::fromBase64(token,QByteArray::Base64UrlEncoding);
     if(path=="/v1/pair") authorized=m_pairExpiry.isActive() && equalToken(provided,m_pairCode);
-    else for(const auto &peer:m_document.value("peers").toObject()) if(equalToken(provided,decode(peer.toObject().value("token")))) authorized=true;
+    else {
+        const auto peers=m_document.value("peers").toObject();
+        for(auto i=peers.begin();i!=peers.end();++i) if(equalToken(provided,decode(i.value().toObject().value("token")))) { authorized=true; sender=i.key(); }
+    }
     if(!authorized) { reply(401,{}); return; }
     bool authenticated=false; auto key=decode(m_document.value("transportKey"));
     auto plain=ArbiterSync::open(body,key,"ArbiterSync/v1/"+m_document.value("vaultId").toString().toUtf8(),&authenticated); PasskeyCrypto::wipe(key);
@@ -224,9 +365,10 @@ void CredentialSync::request(const QString &path,const QByteArray &token,const Q
         auto peers=m_document.value("peers").toObject();
         if(peers.size()>=16 && !peers.contains(id)) { reply(409,{}); return; }
         const auto token=PasskeyCrypto::random(32); const auto old=peers;
+        const auto previousState=m_state; m_state.rememberDevice(id,name);
         peers.insert(id,QJsonObject{{"name",name},{"token",encode(token)}}); m_document.insert("peers",peers);
-        if(!save()) { m_document.insert("peers",old); reply(500,{}); return; }
-        const auto response=payload({{"token",encode(token)}}); cancelPairing(); reply(200,response); return;
+        if(!save()) { m_state=previousState; m_document.insert("peers",old); reply(500,{}); return; }
+        const auto response=payload({{"token",encode(token)},{"deviceId",m_document.value("deviceId")},{"name",m_document.value("name")}}); cancelPairing(); reply(200,response); return;
     }
     ArbiterSync::State incoming; QString stateError;
     if(!ArbiterSync::State::parse(data.object(),&incoming,&stateError)) { reply(400,{}); return; }
@@ -235,7 +377,8 @@ void CredentialSync::request(const QString &path,const QByteArray &token,const Q
         const auto v=version.toObject(); if(!v.value("deleted").toBool() && identifier(v.value("data").toObject())!=i.key()) { reply(400,{}); return; }
     }
     m_busy=true; emit changed(); const auto epoch=m_epoch;
-    refresh(protect([this,incoming,reply,epoch](const QString &error) {
+    const auto acknowledged=incoming.digest();
+    refresh(protect([this,incoming,reply,epoch,sender,acknowledged](const QString &error) {
         if(epoch!=m_epoch) { reply(409,{}); return; }
         if(!error.isEmpty()) { finish(error); reply(409,{}); return; }
         auto merged=m_state; QString mergeError;
@@ -256,12 +399,15 @@ void CredentialSync::request(const QString &path,const QByteArray &token,const Q
         }
         const auto previous=m_state; m_state=merged;
         if(!save()) { m_state=previous; finish(tr("Could not persist incoming encrypted changes.")); reply(500,{}); return; }
-        apply(protect([this,reply,epoch](const QString &error) {
+        apply(protect([this,reply,epoch,sender,acknowledged](const QString &error) {
             if(epoch!=m_epoch || !unlocked()) { finish(); reply(409,{}); return; }
             if(!error.isEmpty()) { finish(error); reply(409,{}); return; }
-            refresh(protect([this,reply,epoch](const QString &error) {
+            refresh(protect([this,reply,epoch,sender,acknowledged](const QString &error) {
                 if(epoch!=m_epoch || !unlocked()) { finish(); reply(409,{}); return; }
                 if(!error.isEmpty()) { finish(error); reply(409,{}); return; }
+                auto peers=m_document.value("peers").toObject(); auto contact=peers.value(sender).toObject();
+                contact["lastSeen"]=QDateTime::currentMSecsSinceEpoch(); contact["ack"]=acknowledged; peers[sender]=contact; m_document["peers"]=peers;
+                if (!save()) {finish(tr("Could not save sync status."));reply(500,{});return;}
                 const auto response=payload(m_state.json()); finish(); reply(200,response);
             }));
         }));

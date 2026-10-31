@@ -98,6 +98,69 @@ private slots:
         destination.lockSync(); QVERIFY(!destination.syncReady());
         destination.exportForSync([&](const QString &e,const QJsonArray &) { error=e; }); QVERIFY(!error.isEmpty());
     }
+    void threeComputersConvergeWithOfflineConflictsAndDeletion() {
+        struct Computer {
+            QTemporaryDir directory;
+            MemorySecrets passwordStore,passkeyStore,syncStore;
+            PasswordManager passwords;
+            PasskeyVault passkeys;
+            CredentialSync sync;
+            Computer(const QString &phrase):passwords(directory.path()+"/passwords","Fixture",&passwordStore),
+                passkeys(&passkeyStore,directory.path()+"/passkeys"),
+                sync(&passwords,&passkeys,directory.path()+"/sync",&syncStore,"127.0.0.1") {
+                passkeys.setup(phrase,phrase);
+            }
+        } a(phrase), b(phrase), c(phrase);
+        const auto url=QUrl("https://three.example");
+        const auto id=ArbiterSync::passwordId(url.toString(),"user");
+        a.passwords.save(url,"user","original");
+        for(auto computer:{&a,&b,&c}) { computer->sync.unlock(phrase); QTRY_VERIFY_WITH_TIMEOUT(!computer->sync.busy(),15000); QVERIFY2(computer->sync.unlocked(),qPrintable(computer->sync.error())); }
+        a.sync.pair(); b.sync.reviewPairing(a.sync.pairingCode()); QVERIFY(!b.sync.pendingDevice().isEmpty()); b.sync.confirmPairing();
+        QTRY_VERIFY_WITH_TIMEOUT(!b.sync.busy(),15000); QVERIFY2(b.sync.error().isEmpty(),qPrintable(b.sync.error())); QCOMPARE(b.passwords.entries().size(),1);
+        a.passwords.save(url,"user","remote change");
+        b.sync.sync();
+        QTimer::singleShot(0,&b.sync,[&] {b.passwords.save(url,"user","edit during sync");});
+        QTRY_VERIFY_WITH_TIMEOUT(!b.sync.busy(),15000); QCOMPARE(b.sync.conflicts(),1);
+        QJsonArray current;
+        b.passwords.exportAfterVerification([&](const QString &,const QJsonArray &values){current=values;});
+        QTRY_COMPARE(current.size(),1); QCOMPARE(current.first().toObject().value("password").toString(),"edit during sync");
+        const auto inFlight=b.sync.conflictChoices().first().toMap();
+        b.sync.resolveConflict(id,inFlight.value("version").toString(),inFlight.value("generation").toString());
+        QTRY_VERIFY_WITH_TIMEOUT(!b.sync.busy(),15000); QCOMPARE(b.sync.conflicts(),0);
+        b.sync.pair(); c.sync.reviewPairing(b.sync.pairingCode()); c.sync.confirmPairing();
+        QTRY_VERIFY_WITH_TIMEOUT(!c.sync.busy(),15000); QVERIFY2(c.sync.error().isEmpty(),qPrintable(c.sync.error())); QCOMPARE(c.passwords.entries().size(),1);
+        // C has never paired with A. Changes travel through B.
+        b.sync.lock();
+        a.passwords.save(url,"user","edit on A");
+        c.passwords.save(url,"user","edit on C");
+        b.sync.unlock(phrase); QTRY_VERIFY_WITH_TIMEOUT(!b.sync.busy(),15000); QVERIFY(b.sync.unlocked());
+        c.sync.sync(); QTRY_VERIFY_WITH_TIMEOUT(!c.sync.busy(),15000); QVERIFY2(c.sync.error().isEmpty(),qPrintable(c.sync.error()));
+        b.sync.sync(); QTRY_VERIFY_WITH_TIMEOUT(!b.sync.busy(),15000); QVERIFY2(b.sync.error().isEmpty(),qPrintable(b.sync.error()));
+        QCOMPARE(a.sync.conflicts(),1); QCOMPARE(b.sync.conflicts(),1);
+        c.sync.sync(); QTRY_VERIFY_WITH_TIMEOUT(!c.sync.busy(),15000); QCOMPARE(c.sync.conflicts(),1);
+        const auto choice=b.sync.conflictChoices().first().toMap();
+        QVERIFY(!choice.contains("password"));
+        b.sync.resolveConflict(id,choice.value("version").toString(),choice.value("generation").toString());
+        QTRY_VERIFY_WITH_TIMEOUT(!b.sync.busy(),15000); QVERIFY2(b.sync.error().isEmpty(),qPrintable(b.sync.error()));
+        c.sync.sync(); QTRY_VERIFY_WITH_TIMEOUT(!c.sync.busy(),15000);
+        for(auto computer:{&a,&b,&c}) QCOMPARE(computer->sync.conflicts(),0);
+        // A plain old offline copy cannot undo a causally newer delete.
+        a.sync.lock();
+        c.passwords.remove(c.passwords.entries().first().toMap().value("id").toString());
+        c.sync.sync(); QTRY_VERIFY_WITH_TIMEOUT(!c.sync.busy(),15000); QVERIFY(b.passwords.entries().isEmpty());
+        a.sync.unlock(phrase); QTRY_VERIFY_WITH_TIMEOUT(!a.sync.busy(),15000);
+        b.sync.sync(); QTRY_VERIFY_WITH_TIMEOUT(!b.sync.busy(),15000);
+        QVERIFY2(a.passwords.entries().isEmpty(),qPrintable(b.sync.error()));
+        c.sync.sync(); QTRY_VERIFY_WITH_TIMEOUT(!c.sync.busy(),15000); QVERIFY(c.passwords.entries().isEmpty());
+        // Disconnecting a connection preserves all credentials on its peers.
+        b.passwords.save(QUrl("https://retained.example"),"user","retained");
+        b.sync.sync(); QTRY_VERIFY_WITH_TIMEOUT(!b.sync.busy(),15000);
+        c.sync.sync(); QTRY_VERIFY_WITH_TIMEOUT(!c.sync.busy(),15000);
+        QString outgoing;
+        for(const auto &v:b.sync.devices()) if(v.toMap().value("id").toString().startsWith("out:")) outgoing=v.toMap().value("id").toString();
+        QVERIFY(!outgoing.isEmpty()); b.sync.revoke(outgoing); QCOMPARE(b.sync.devices().size(),1);
+        for(auto computer:{&a,&b,&c}) QCOMPARE(computer->passwords.entries().size(),1);
+    }
     void pinnedLocalPairingSyncRevocationAndTombstones() {
         QTemporaryDir directory; MemorySecrets passwordsStore,passkeysStore,syncStore;
         PasswordManager passwords(directory.path()+"/passwords","Fixture",&passwordsStore);

@@ -832,9 +832,10 @@ Controls.ApplicationWindow {
                         delegate: MobileButton {
                             Layout.fillWidth: true
                             required property var modelData
-                            text: modelData.deleted ? qsTr("Keep deletion") : (modelData.origin || modelData.rpId) + " · " + (modelData.username || "") + " · " + modelData.device
+                            text: (modelData.origin || modelData.rpId || "") + " · " + (modelData.username || "") + " · " + modelData.device + " — " + (modelData.deleted ? qsTr("Delete everywhere") : qsTr("Keep this version"))
+                            enabled: !browser.vault.busy
                             textAlignment: Text.AlignLeft
-                            onClicked: browser.vault.resolveConflict(modelData.id, modelData.version)
+                            onClicked: browser.vault.resolveConflict(modelData.id, modelData.version, modelData.generation)
                         }
                     }
                     Text {

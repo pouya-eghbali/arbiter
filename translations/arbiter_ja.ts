@@ -212,7 +212,7 @@
 <context>
     <name>AdBlocker</name>
     <message>
-        <location filename="../src/adblocker.cpp" line="+53"/>
+        <location filename="../src/adblocker.cpp" line="+29"/>
         <source>Using supplied filter rules.</source>
         <translation>提供されたフィルター ルールを使用します。</translation>
     </message>
@@ -306,7 +306,7 @@
 <context>
     <name>Appearance</name>
     <message>
-        <location filename="../src/appearance.cpp" line="+85"/>
+        <location filename="../src/appearance.cpp" line="+91"/>
         <source>New tab</source>
         <translation>新しいタブ</translation>
     </message>
@@ -710,6 +710,146 @@
     </message>
 </context>
 <context>
+    <name>CredentialSync</name>
+    <message>
+        <location filename="../src/credentialsync.cpp" line="+78"/>
+        <source>This computer</source>
+        <translation>このコンピュータ</translation>
+    </message>
+    <message>
+        <location line="+45"/>
+        <source>Could not create the encrypted sync directory.</source>
+        <translation>暗号化同期ディレクトリを作成できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>The encrypted sync state exists, but its OS vault key is missing. It was not overwritten.</source>
+        <translation>暗号化された同期状態は存在しますが、OS保管庫のキーが見つかりません。上書きは行っていません。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Could not protect the sync key in memory.</source>
+        <translation>メモリ内の同期キーを保護できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>The stored sync key is invalid or unavailable.</source>
+        <translation>保存された同期キーが無効か、利用できません。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Could not read encrypted sync state.</source>
+        <translation>暗号化された同期状態を読み取りできませんでした。</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Encrypted sync state could not be authenticated. It was not overwritten.</source>
+        <translation>暗号化された同期状態を認証できませんでした。上書きは行っていません。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The encrypted sync transport key is missing or invalid.</source>
+        <translation>暗号化同期の転送キーが見つからないか無効です。</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>The pinned sync certificate lost its private key. Existing pairing was preserved.</source>
+        <translation>固定された同期証明書の秘密キーが見つかりません。既存のペアリングは保持されています。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not create a local TLS identity.</source>
+        <translation>ローカルTLS IDを作成できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Could not save the public sync certificate.</source>
+        <translation>公開同期証明書を保存できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Could not load the pinned sync certificate.</source>
+        <translation>固定された同期証明書を読み込みできませんでした。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Could not listen for local sync: %1</source>
+        <translation>ローカル同期接続を待機：%1できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Connect this computer to a local Wi-Fi or Ethernet network before pairing.</source>
+        <translation>ペアリングする前に、このコンピュータをローカルWi-Fiまたはイーサネットに接続してください。</translation>
+    </message>
+    <message>
+        <location line="+37"/>
+        <source>Could not save encrypted sync changes.</source>
+        <translation>暗号化された同期変更を保存できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+25"/>
+        <source>Could not render the pairing code.</source>
+        <translation>ペアリングコードを表示できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Could not revoke the device. Try again.</source>
+        <translation>デバイスのアクセス権を取り消せませんでした。もう一度お試しください。</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Invalid pairing code or this device&apos;s own invitation.</source>
+        <translation>ペアリングコードが無効か、このデバイス自身の招待です。</translation>
+    </message>
+    <message>
+        <location line="+12"/>
+        <source>Invalid device authorization.</source>
+        <translation>デバイスの認証情報が無効です。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Too many paired devices.</source>
+        <translation>ペアリング済みデバイスが多すぎます。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not save the device connection.</source>
+        <translation>デバイス接続を保存できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+29"/>
+        <source>Could not merge sync data.</source>
+        <translation>同期データを統合できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location line="+93"/>
+        <source>Could not persist incoming encrypted changes.</source>
+        <translation>受信した暗号化変更を保存できませんでした。</translation>
+    </message>
+    <message>
+        <location line="-82"/>
+        <location line="+91"/>
+        <source>Could not save sync status.</source>
+        <translation>同期状態を保存できませんでした。</translation>
+    </message>
+    <message>
+        <location line="-67"/>
+        <source>Could not save the conflict choice.</source>
+        <translation>競合の選択を保存できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+78"/>
+        <source>The sync session expired.</source>
+        <translation>同期セッションの有効期限が切れました。</translation>
+    </message>
+    <message>
+        <location line="+14"/>
+        <source>Unsupported credential type.</source>
+        <translation>サポートされていない認証情報の種類です。</translation>
+    </message>
+</context>
+<context>
     <name>DesktopSharePanel</name>
     <message>
         <location filename="../qml/DesktopSharePanel.qml" line="+67"/>
@@ -753,7 +893,7 @@
 <context>
     <name>DownloadEntry</name>
     <message>
-        <location filename="../src/downloads.cpp" line="+40"/>
+        <location filename="../src/downloads.cpp" line="+41"/>
         <source>Generated file</source>
         <translation>生成されたファイル</translation>
     </message>
@@ -812,7 +952,7 @@
         <translation>ダウンロードフォルダーにファイルを作成できませんでした。 「設定」→「ダウンロード」で別のフォルダーを選択します。</translation>
     </message>
     <message>
-        <location line="+36"/>
+        <location line="+45"/>
         <source>The file is missing or could not be opened.</source>
         <translation>ファイルが見つからないか、開けませんでした。</translation>
     </message>
@@ -1953,7 +2093,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+137"/>
+        <location filename="../qml/Main.qml" line="+138"/>
         <source>Private browsing — Arbiter</source>
         <translation>プライベート ブラウジング — Arbiter</translation>
     </message>
@@ -1963,22 +2103,23 @@
         <translation>設定 — Arbiter</translation>
     </message>
     <message>
-        <location line="+613"/>
-        <location line="+1630"/>
+        <location line="+644"/>
+        <location line="+1652"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>新しいタブ</translation>
     </message>
     <message>
-        <location line="-1627"/>
-        <location line="+1714"/>
+        <location line="-1649"/>
+        <location line="+1738"/>
+        <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
         <source>Start page</source>
         <translation>スタートページ</translation>
     </message>
     <message>
-        <location line="-1211"/>
+        <location line="-1243"/>
         <source>Settings</source>
         <translation>設定</translation>
     </message>
@@ -2049,6 +2190,12 @@
         <translation>概要</translation>
     </message>
     <message>
+        <location line="-48"/>
+        <location line="+48"/>
+        <source>Sync</source>
+        <translation>同期</translation>
+    </message>
+    <message>
         <location line="-13"/>
         <source>Done</source>
         <translation>完了</translation>
@@ -2066,13 +2213,13 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+31"/>
+        <location line="+45"/>
         <source>Dark</source>
         <translation>ダーク</translation>
     </message>
     <message>
-        <location line="-31"/>
-        <location line="+19"/>
+        <location line="-45"/>
+        <location line="+33"/>
         <source>Light</source>
         <translation>ライト</translation>
     </message>
@@ -2188,12 +2335,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+346"/>
+        <location line="+353"/>
         <source>Off</source>
         <translation>オフ</translation>
     </message>
     <message>
-        <location line="-339"/>
+        <location line="-346"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>Web サイトのナビゲーションをタブ タイトルの下に表示するか、macOS メニュー バーの別のメニューとして表示します。</translation>
     </message>
@@ -2425,7 +2572,7 @@
         <translation>このファイルには設定とキーボード ショートカットが含まれています。パスワード、パスキー キー、閲覧履歴、タブ、サイト データは個別に保存されます。</translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+47"/>
         <source>Put inactive tabs to sleep after</source>
         <translation>非アクティブなタブをスリープ状態にするのは次のとおりです</translation>
     </message>
@@ -2606,7 +2753,7 @@
         <translation>Arbiter に追加</translation>
     </message>
     <message>
-        <location line="+338"/>
+        <location line="+339"/>
         <source>%1 open · Pick up where you left off</source>
         <translation>%1 が開いています · 中断したところから再開します</translation>
     </message>
@@ -2642,12 +2789,12 @@
         <translation>開いているタブを検索</translation>
     </message>
     <message>
-        <location line="+97"/>
+        <location line="+107"/>
         <source>Arbiter</source>
         <translation>Arbiter</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+13"/>
         <source>Search or enter address</source>
         <translation>検索またはアドレスを入力</translation>
     </message>
@@ -2677,15 +2824,17 @@
         <translation>↑ ↓ ← → 移動 ↵ Esc を開く 閉じる</translation>
     </message>
     <message>
-        <location line="+105"/>
+        <location line="+106"/>
         <source>Private</source>
         <translation>プライベート</translation>
     </message>
     <message>
+        <location line="-1335"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass（試験的）</translation>
     </message>
     <message>
+        <location line="+7"/>
         <source>Liquid Glass uses the system appearance. Custom colors apply to Glacier when Liquid Glass is off.</source>
         <translation>Liquid Glass はシステムの外観を使用します。Liquid Glass をオフにすると、カスタムカラーが Glacier に適用されます。</translation>
     </message>
@@ -2701,12 +2850,12 @@
 <context>
     <name>NavigationPill</name>
     <message>
-        <location filename="../qml/NavigationPill.qml" line="+116"/>
+        <location filename="../qml/NavigationPill.qml" line="+156"/>
         <source>Show navigation</source>
         <translation>ナビゲーションを表示</translation>
     </message>
     <message>
-        <location line="+36"/>
+        <location line="+40"/>
         <source>Back</source>
         <translation>戻る</translation>
     </message>
@@ -2726,7 +2875,7 @@
         <translation>再読み込み</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+16"/>
         <source>Edit address: %1</source>
         <translation>編集アドレス: %1</translation>
     </message>
@@ -3263,8 +3412,8 @@
     </message>
     <message>
         <location line="+2"/>
-        <source>Choose a passphrase of at least 12 characters. Use it to create or use an Arbiter passkey, or enable optional biometric unlocking in Settings. Private keys are encrypted and kept in your operating system&apos;s credential store on this computer. There is no sync or passphrase recovery; losing this profile, its system credentials, or the passphrase can lose access to these passkeys. Keep another sign-in method for your accounts.</source>
-        <translation>少なくとも 12 文字のパスフレーズを選択してください。これを使用して、Arbiter パスキーを作成または使用したり、設定でオプションの生体認証ロック解除を有効にしたりできます。秘密キーは暗号化され、このコンピューター上のオペレーティング システムの資格情報ストアに保存されます。同期やパスフレーズの回復はありません。このプロファイル、そのシステム認証情報、またはパスフレーズを失うと、これらのパスキーにアクセスできなくなる可能性があります。アカウントには別のサインイン方法を維持してください。</translation>
+        <source>Choose a passphrase of at least 12 characters. Use it to create or use an Arbiter passkey, or enable optional biometric unlocking in Settings. Private keys are encrypted and kept in your operating system&apos;s credential store on this computer. Optional encrypted local sync is available in Settings. There is no passphrase recovery; losing this profile, its system credentials, or the passphrase can lose access to these passkeys. Keep another sign-in method for your accounts.</source>
+        <translation>12文字以上のパスフレーズを設定してください。Arbiterのパスキーの作成や使用時に入力するか、設定で生体認証によるロック解除を有効にします。秘密キーは暗号化され、このコンピュータのOSの認証情報ストレージに保存されます。設定から任意で暗号化ローカル同期を有効にできます。パスフレーズは復元できません。このプロファイル、システムの認証情報、またはパスフレーズを失うと、これらのパスキーにアクセスできなくなる場合があります。アカウントには別のログイン方法も用意してください。</translation>
     </message>
     <message>
         <location line="+5"/>
@@ -3290,7 +3439,7 @@
 <context>
     <name>PasskeyVault</name>
     <message>
-        <location filename="../src/passkeyvault.cpp" line="+62"/>
+        <location filename="../src/passkeyvault.cpp" line="+66"/>
         <source>Set up the passkey vault first.</source>
         <translation>最初にパスキー保管庫を設定します。</translation>
     </message>
@@ -3432,7 +3581,7 @@
         <translation>パスキーを生成できませんでした。</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+9"/>
         <source>The passkey exceeds the secure storage limit.</source>
         <translation>パスキーが安全なストレージの制限を超えています。</translation>
     </message>
@@ -3457,7 +3606,65 @@
         <translation>認証リクエストに署名できませんでした。</translation>
     </message>
     <message>
-        <location filename="../src/passkeyvault.h" line="+28"/>
+        <location line="+22"/>
+        <source>Set up your passkey vault before enabling encrypted sync.</source>
+        <translation>暗号化同期を有効にする前に、パスキー保管庫を設定してください。</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Sync unlocking was cancelled.</source>
+        <translation>同期のロック解除をキャンセルしました。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not unlock the vault for sync.</source>
+        <translation>同期用に保管庫のロックを解除できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <location line="+36"/>
+        <location line="+39"/>
+        <source>Unlock the desktop sync vault and try again.</source>
+        <translation>デスクトップの同期保管庫のロックを解除して、もう一度お試しください。</translation>
+    </message>
+    <message>
+        <location line="-68"/>
+        <location line="+9"/>
+        <source>The sync session expired.</source>
+        <translation>同期セッションの有効期限が切れました。</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>A passkey could not be verified for transfer.</source>
+        <translation>転送するパスキーを検証できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+21"/>
+        <source>The synced passkey is invalid or unsupported.</source>
+        <translation>同期したパスキーが無効か、サポートされていません。</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>A synced passkey conflicts with an existing credential identity.</source>
+        <translation>同期したパスキーが既存の認証情報のIDと競合しています。</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>The synced passkey is too large for secure storage.</source>
+        <translation>同期したパスキーは安全なストレージに保存するには大きすぎます。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Could not save the synced passkey index.</source>
+        <translation>同期済みパスキーの索引を保存できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+19"/>
+        <source>The passkey was removed, but its index needs a retry.</source>
+        <translation>パスキーは削除されましたが、索引の更新を再試行する必要があります。</translation>
+    </message>
+    <message>
+        <location filename="../src/passkeyvault.h" line="+30"/>
         <source>Biometrics</source>
         <translation>生体認証</translation>
     </message>
@@ -3540,22 +3747,35 @@
         <translation>パスワードが安全に更新されました。</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+25"/>
         <source>The secret was deleted, but its index entry could not be removed. Retry deletion.</source>
         <translation>シークレットは削除されましたが、そのインデックス エントリを削除できませんでした。削除を再試行してください。</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>Password deleted.</source>
         <translation>パスワードが削除されました。</translation>
     </message>
     <message>
+        <location line="+278"/>
+        <source>A password does not match its secure index entry.</source>
+        <translation>パスワードが安全な索引の項目と一致しません。</translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>The synced password origin is invalid.</source>
+        <translation>同期したパスワードのオリジンが無効です。</translation>
+    </message>
+    <message>
+        <location line="-313"/>
+        <location line="+53"/>
+        <location line="+228"/>
         <location line="+30"/>
         <source>Password storage is unavailable or busy.</source>
         <translation>パスワード ストレージが利用できないか使用中です。</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="-250"/>
         <source>This account does not belong to the current website.</source>
         <translation>このアカウントは現在の Web サイトに属していません。</translation>
     </message>
@@ -3956,7 +4176,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+296"/>
+        <location filename="../src/main.cpp" line="+582"/>
         <source>Settings…</source>
         <translation>設定…</translation>
     </message>
@@ -4181,6 +4401,31 @@
         <location filename="../src/systemintegration_mac.mm" line="+15"/>
         <source>Launch the Arbiter app bundle to set it as your default browser.</source>
         <translation>Arbiter アプリ バンドルを起動して、デフォルトのブラウザーとして設定します。</translation>
+    </message>
+    <message>
+        <location filename="../src/credentialsyncpeer.cpp" line="+49"/>
+        <source>Invalid sync connection.</source>
+        <translation>同期接続が無効です。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Sync data is too large.</source>
+        <translation>同期データが大きすぎます。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not encrypt sync data.</source>
+        <translation>同期データを暗号化できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+33"/>
+        <source>Device access was revoked. Pair again to reconnect.</source>
+        <translation>デバイスのアクセス権が取り消されました。再接続するには再度ペアリングしてください。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Could not sync. Keep the other device open and unlocked on the same Wi-Fi.</source>
+        <translation>同期できませんでした。他のデバイスを同じWi-Fiに接続し、アプリを開いてロックを解除してください。</translation>
     </message>
 </context>
 <context>
@@ -4432,6 +4677,186 @@
         <location line="+7"/>
         <source>Settings</source>
         <translation>設定</translation>
+    </message>
+</context>
+<context>
+    <name>SyncSettings</name>
+    <message>
+        <location filename="../qml/SyncSettings.qml" line="+14"/>
+        <source>Bring your vault along</source>
+        <translation>保管庫を持ち歩く</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Connect your computers and phones to share one credential vault over local Wi-Fi. Connected devices exchange encrypted changes, including deletions. Keep Arbiter open and desktop sync unlocked; no cloud account is needed.</source>
+        <translation>コンピュータとスマートフォンを接続し、ローカルWi-Fiで認証情報の保管庫を共有します。接続済みデバイスは削除を含む変更を暗号化して交換します。Arbiterを開いたまま、デスクトップの同期をロック解除してください。クラウドアカウントは不要です。</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Open Sync in a regular browser window to pair your devices.</source>
+        <translation>通常のブラウザウィンドウで同期を開き、デバイスをペアリングしてください。</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Set up your Arbiter passkey vault first. Its passphrase or biometric verification will also unlock your sync session.</source>
+        <translation>最初にArbiterのパスキー保管庫を設定してください。そのパスフレーズまたは生体認証で同期セッションもロック解除できます。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Set up passkey vault</source>
+        <translation>パスキー保管庫を設定</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Vault passphrase</source>
+        <translation>保管庫のパスフレーズ</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Unlock sync</source>
+        <translation>同期のロックを解除</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Unlock with %1</source>
+        <translation>%1 でロックを解除します</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Keep sync unlocked until this computer locks</source>
+        <translation>このコンピューターがロックされるまで同期を解除したままにする</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.</source>
+        <translation>電話のバックグラウンド同期用の任意設定です。このコンピューターがロック解除されている間、ペアリングした端末が同期できます。コンピューターをロックするかArbiterを終了すると、同期は必ずロックされます。</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Working with your secure vault…</source>
+        <translation>安全な保管庫を処理中…</translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>Sync is unlocked</source>
+        <translation>同期のロックは解除されています</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Lock</source>
+        <translation>ロック</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.</source>
+        <translation>このコンピューターまたは同期をロックするか、Arbiterを終了するまで、このセッションのロック解除を維持します。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>This session locks after 10 minutes or when your computer locks. Keep Arbiter open on both devices while syncing.</source>
+        <translation>このセッションは10分後、またはコンピュータのロック時にロックされます。同期中は両方のデバイスでArbiterを開いたままにしてください。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Add a device</source>
+        <translation>デバイスを追加</translation>
+    </message>
+    <message>
+        <location line="+15"/>
+        <source>On your phone, open Passwords &amp; passkeys → Scan desktop code, then scan this code. It grants access to this vault. The invitation expires in two minutes and can be used once.</source>
+        <translation>スマートフォンで「パスワードとパスキー」→「デスクトップのコードをスキャン」を開き、このコードを読み取ってください。この保管庫へのアクセスが許可されます。招待は2分後に失効し、1回のみ使用できます。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Copy pairing code for another computer</source>
+        <translation>別のコンピュータ用のペアリングコードをコピー</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Cancel pairing</source>
+        <translation>ペアリングをキャンセル</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Paste a pairing code from another computer</source>
+        <translation>別のコンピュータのペアリングコードを貼り付け</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Review connection</source>
+        <translation>接続を確認</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Connect to %1? This shares your vault with this device and the devices it syncs with.</source>
+        <translation>%1に接続しますか？保管庫がこのデバイスと、その同期先のデバイスに共有されます。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Connect</source>
+        <translation>接続</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+63"/>
+        <source>Cancel</source>
+        <translation>キャンセル</translation>
+    </message>
+    <message>
+        <location line="-60"/>
+        <source>Sync now</source>
+        <translation>今すぐ同期</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Paired devices</source>
+        <translation>ペアリング済みデバイス</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Your connected computers and phones will appear here.</source>
+        <translation>接続済みのコンピュータとスマートフォンがここに表示されます。</translation>
+    </message>
+    <message>
+        <location line="+12"/>
+        <source>Last synced %1</source>
+        <translation>最終同期：%1</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Not synced yet</source>
+        <translation>未同期</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Changes waiting to sync</source>
+        <translation>同期を待機している変更</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <location line="+36"/>
+        <source>Remove device</source>
+        <translation>デバイスを削除</translation>
+    </message>
+    <message>
+        <location line="-28"/>
+        <source>Conflicting changes were kept. Choose which version to use on your connected devices.</source>
+        <translation>競合する変更を保持しました。接続済みデバイスで使用するバージョンを選択してください。</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Delete everywhere</source>
+        <translation>すべてのデバイスから削除</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Keep this version</source>
+        <translation>このバージョンを保持</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <source>Remove this sync connection? Saved credentials are kept. Other connections to this device are unchanged.</source>
+        <translation>この同期接続を削除しますか？保存済みの認証情報は保持されます。このデバイスへの他の接続は変更されません。</translation>
     </message>
 </context>
 <context>
@@ -5445,19 +5870,4 @@
         <translation>ワークスペースを保存できませんでした。</translation>
     </message>
 </context>
-  <context>
-    <name>SyncSettings</name>
-    <message>
-      <source>Keep sync unlocked until this computer locks</source>
-      <translation>このコンピューターがロックされるまで同期を解除したままにする</translation>
-    </message>
-    <message>
-      <source>Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.</source>
-      <translation>電話のバックグラウンド同期用の任意設定です。このコンピューターがロック解除されている間、ペアリングした端末が同期できます。コンピューターをロックするかArbiterを終了すると、同期は必ずロックされます。</translation>
-    </message>
-    <message>
-      <source>This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.</source>
-      <translation>このコンピューターまたは同期をロックするか、Arbiterを終了するまで、このセッションのロック解除を維持します。</translation>
-    </message>
-  </context>
 </TS>

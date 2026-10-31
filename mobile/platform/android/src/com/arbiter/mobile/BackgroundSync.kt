@@ -43,8 +43,13 @@ class SyncJobService:JobService(){
     if(parameters.extras.getBoolean("smoke")){check(BackgroundSync.merge("{\"v\":1,\"records\":{}}","{\"v\":1,\"records\":{}}")!=null);success=true}
     else if(!getSystemService(KeyguardManager::class.java).isDeviceLocked){
      val (key,document)=BackgroundSync.read(this);localKey=key
-     val peer=document.optJSONObject("peer")
-     if(peer==null)success=true else {
+     val peers=document.optJSONObject("peers") ?: JSONObject().apply {
+      document.optJSONObject("peer")?.let{put(it.getString("vaultId"),it)}
+     }
+     success=true
+     for(id in peers.keys().asSequence().toList()) {
+      val peer=peers.getJSONObject(id)
+      try {
       val endpoint=Uri.parse(peer.getString("endpoint"));check(BackgroundSync.local(endpoint));check(peer.getString("pin").matches(Regex("[0-9a-f]{64}")))
       val secret=PlatformCredentialVault.decode(peer.getString("key"));require(secret.size==32);peerKey=secret
       val pin=peer.getString("pin")
@@ -69,11 +74,20 @@ class SyncJobService:JobService(){
       check(!stopped&&!getSystemService(KeyguardManager::class.java).isDeviceLocked)
       val saved=CompletableFuture<Boolean>()
       PlatformCredentialVault.afterVerification(this,{vaultKey,current->
-       check(!stopped&&current.optJSONObject("peer")?.optString("token")==peer.getString("token")){"Pairing changed"}
+       try {
+       val contacts=current.optJSONObject("peers") ?: JSONObject().apply {
+        current.optJSONObject("peer")?.let{put(it.getString("vaultId"),it)}
+       }
+       check(!stopped&&contacts.optJSONObject(id)?.optString("token")==peer.getString("token")){"Pairing changed"}
        val merged=BackgroundSync.merge(current.getJSONObject("state").toString(),remote) ?: error("Invalid sync state")
-       current.put("state",JSONObject(merged));PlatformCredentialVault.writeDocument(this,vaultKey,current);saved.complete(true)
+       current.put("state",JSONObject(merged));contacts.getJSONObject(id).put("lastSeen",System.currentTimeMillis()).put("ack",MessageDigest.getInstance("SHA-256").digest(remote.toByteArray()).joinToString(""){"%02x".format(it)});current.put("peers",contacts);current.remove("peer");PlatformCredentialVault.writeDocument(this,vaultKey,current);saved.complete(true)
+       }catch(error:Exception){saved.completeExceptionally(error)}
       },{saved.completeExceptionally(it)})
-      success=saved.get(15,TimeUnit.SECONDS)
+      check(saved.get(15,TimeUnit.SECONDS))
+      // Carry the latest merged state to the next computer in this batch.
+      val (freshKey,latest)=BackgroundSync.read(this);freshKey.fill(0);document.put("state",latest.getJSONObject("state"))
+      }catch(_:Exception){success=false}finally{peerKey?.fill(0);peerKey=null;connection?.disconnect();connection=null}
+      if(stopped)break
      }
     }
    }catch(_:Exception){}finally{localKey?.fill(0);peerKey?.fill(0);connection?.disconnect();connection=null;File(filesDir,"background-last-run.json").writeText(JSONObject(mapOf("time" to System.currentTimeMillis(),"success" to success)).toString());if(!stopped)jobFinished(parameters,false);worker=null}

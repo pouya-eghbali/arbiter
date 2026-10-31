@@ -212,7 +212,7 @@
 <context>
     <name>AdBlocker</name>
     <message>
-        <location filename="../src/adblocker.cpp" line="+53"/>
+        <location filename="../src/adblocker.cpp" line="+29"/>
         <source>Using supplied filter rules.</source>
         <translation>Verwendung der bereitgestellten Filterregeln.</translation>
     </message>
@@ -306,7 +306,7 @@
 <context>
     <name>Appearance</name>
     <message>
-        <location filename="../src/appearance.cpp" line="+85"/>
+        <location filename="../src/appearance.cpp" line="+91"/>
         <source>New tab</source>
         <translation>Neuer Tab</translation>
     </message>
@@ -710,6 +710,146 @@
     </message>
 </context>
 <context>
+    <name>CredentialSync</name>
+    <message>
+        <location filename="../src/credentialsync.cpp" line="+78"/>
+        <source>This computer</source>
+        <translation>Dieser Computer</translation>
+    </message>
+    <message>
+        <location line="+45"/>
+        <source>Could not create the encrypted sync directory.</source>
+        <translation>Nicht möglich: Verschlüsseltes Synchronisierungsverzeichnis erstellen.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>The encrypted sync state exists, but its OS vault key is missing. It was not overwritten.</source>
+        <translation>Verschlüsselte Synchronisierungsdaten sind vorhanden, aber der Schlüssel im Betriebssystem-Tresor fehlt. Sie wurden nicht überschrieben.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Could not protect the sync key in memory.</source>
+        <translation>Nicht möglich: Synchronisierungsschlüssel im Speicher schützen.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>The stored sync key is invalid or unavailable.</source>
+        <translation>Der gespeicherte Synchronisierungsschlüssel ist ungültig oder nicht verfügbar.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Could not read encrypted sync state.</source>
+        <translation>Nicht möglich: Verschlüsselten Synchronisierungsstatus lesen.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Encrypted sync state could not be authenticated. It was not overwritten.</source>
+        <translation>Der verschlüsselte Synchronisierungsstatus konnte nicht authentifiziert werden. Er wurde nicht überschrieben.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The encrypted sync transport key is missing or invalid.</source>
+        <translation>Der verschlüsselte Synchronisierungs-Übertragungsschlüssel fehlt oder ist ungültig.</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>The pinned sync certificate lost its private key. Existing pairing was preserved.</source>
+        <translation>Der private Schlüssel des angehefteten Synchronisierungszertifikats fehlt. Die bestehende Kopplung wurde beibehalten.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not create a local TLS identity.</source>
+        <translation>Nicht möglich: Lokale TLS-Identität erstellen.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Could not save the public sync certificate.</source>
+        <translation>Nicht möglich: Öffentliches Synchronisierungszertifikat speichern.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Could not load the pinned sync certificate.</source>
+        <translation>Nicht möglich: Angeheftetes Synchronisierungszertifikat laden.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Could not listen for local sync: %1</source>
+        <translation>Nicht möglich: Auf lokale Synchronisierung warten: %1.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Connect this computer to a local Wi-Fi or Ethernet network before pairing.</source>
+        <translation>Verbinde diesen Computer vor dem Koppeln mit einem lokalen WLAN oder Ethernet-Netzwerk.</translation>
+    </message>
+    <message>
+        <location line="+37"/>
+        <source>Could not save encrypted sync changes.</source>
+        <translation>Nicht möglich: Verschlüsselte Synchronisierungsänderungen speichern.</translation>
+    </message>
+    <message>
+        <location line="+25"/>
+        <source>Could not render the pairing code.</source>
+        <translation>Nicht möglich: Kopplungscode darstellen.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Could not revoke the device. Try again.</source>
+        <translation>Der Gerätezugriff konnte nicht widerrufen werden. Versuche es erneut.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Invalid pairing code or this device&apos;s own invitation.</source>
+        <translation>Ungültiger Kopplungscode oder Einladung dieses Geräts selbst.</translation>
+    </message>
+    <message>
+        <location line="+12"/>
+        <source>Invalid device authorization.</source>
+        <translation>Ungültige Geräteautorisierung.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Too many paired devices.</source>
+        <translation>Zu viele gekoppelte Geräte.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not save the device connection.</source>
+        <translation>Nicht möglich: Geräteverbindung speichern.</translation>
+    </message>
+    <message>
+        <location line="+29"/>
+        <source>Could not merge sync data.</source>
+        <translation>Nicht möglich: Synchronisierungsdaten zusammenführen.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location line="+93"/>
+        <source>Could not persist incoming encrypted changes.</source>
+        <translation>Nicht möglich: Eingehende verschlüsselte Änderungen speichern.</translation>
+    </message>
+    <message>
+        <location line="-82"/>
+        <location line="+91"/>
+        <source>Could not save sync status.</source>
+        <translation>Nicht möglich: Synchronisierungsstatus speichern.</translation>
+    </message>
+    <message>
+        <location line="-67"/>
+        <source>Could not save the conflict choice.</source>
+        <translation>Nicht möglich: Konfliktauswahl speichern.</translation>
+    </message>
+    <message>
+        <location line="+78"/>
+        <source>The sync session expired.</source>
+        <translation>Die Synchronisierungssitzung ist abgelaufen.</translation>
+    </message>
+    <message>
+        <location line="+14"/>
+        <source>Unsupported credential type.</source>
+        <translation>Nicht unterstützter Zugangsdaten-Typ.</translation>
+    </message>
+</context>
+<context>
     <name>DesktopSharePanel</name>
     <message>
         <location filename="../qml/DesktopSharePanel.qml" line="+67"/>
@@ -753,7 +893,7 @@
 <context>
     <name>DownloadEntry</name>
     <message>
-        <location filename="../src/downloads.cpp" line="+40"/>
+        <location filename="../src/downloads.cpp" line="+41"/>
         <source>Generated file</source>
         <translation>Generierte Datei</translation>
     </message>
@@ -812,7 +952,7 @@
         <translation>Es konnte keine Datei im Download-Ordner erstellt werden. Wählen Sie unter Einstellungen → Downloads einen anderen Ordner.</translation>
     </message>
     <message>
-        <location line="+36"/>
+        <location line="+45"/>
         <source>The file is missing or could not be opened.</source>
         <translation>Die Datei fehlt oder konnte nicht geöffnet werden.</translation>
     </message>
@@ -1953,7 +2093,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+137"/>
+        <location filename="../qml/Main.qml" line="+138"/>
         <source>Private browsing — Arbiter</source>
         <translation>Privates Surfen – Arbiter</translation>
     </message>
@@ -1963,22 +2103,23 @@
         <translation>Einstellungen – Arbiter</translation>
     </message>
     <message>
-        <location line="+613"/>
-        <location line="+1630"/>
+        <location line="+644"/>
+        <location line="+1652"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>Neuer Tab</translation>
     </message>
     <message>
-        <location line="-1627"/>
-        <location line="+1714"/>
+        <location line="-1649"/>
+        <location line="+1738"/>
+        <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
         <source>Start page</source>
         <translation>Startseite</translation>
     </message>
     <message>
-        <location line="-1211"/>
+        <location line="-1243"/>
         <source>Settings</source>
         <translation>Einstellungen</translation>
     </message>
@@ -2049,6 +2190,12 @@
         <translation>Über</translation>
     </message>
     <message>
+        <location line="-48"/>
+        <location line="+48"/>
+        <source>Sync</source>
+        <translation>Synchronisierung</translation>
+    </message>
+    <message>
         <location line="-13"/>
         <source>Done</source>
         <translation>Fertig</translation>
@@ -2066,13 +2213,13 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+31"/>
+        <location line="+45"/>
         <source>Dark</source>
         <translation>Dunkel</translation>
     </message>
     <message>
-        <location line="-31"/>
-        <location line="+19"/>
+        <location line="-45"/>
+        <location line="+33"/>
         <source>Light</source>
         <translation>Hell</translation>
     </message>
@@ -2188,12 +2335,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+346"/>
+        <location line="+353"/>
         <source>Off</source>
         <translation>Aus</translation>
     </message>
     <message>
-        <location line="-339"/>
+        <location line="-346"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>Website-Navigation unter dem Tab-Titel oder als separate Menüs in der macOS-Menüleiste anzeigen.</translation>
     </message>
@@ -2425,7 +2572,7 @@
         <translation>Diese Datei enthält Einstellungen und Tastaturkürzel. Passwörter, Passkeys, Browserverlauf, Registerkarten und Site-Daten werden separat gespeichert.</translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+47"/>
         <source>Put inactive tabs to sleep after</source>
         <translation>Versetzen Sie inaktive Tabs danach in den Ruhezustand</translation>
     </message>
@@ -2606,7 +2753,7 @@
         <translation>Zu Arbiter hinzufügen</translation>
     </message>
     <message>
-        <location line="+338"/>
+        <location line="+339"/>
         <source>%1 open · Pick up where you left off</source>
         <translation>%1 geöffnet · Machen Sie dort weiter, wo Sie aufgehört haben</translation>
     </message>
@@ -2642,12 +2789,12 @@
         <translation>Durchsuchen Sie geöffnete Tabs</translation>
     </message>
     <message>
-        <location line="+97"/>
+        <location line="+107"/>
         <source>Arbiter</source>
         <translation>Arbiter</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+13"/>
         <source>Search or enter address</source>
         <translation>Suchen oder Adresse eingeben</translation>
     </message>
@@ -2677,15 +2824,17 @@
         <translation>↑ ↓ ← → Navigieren ↵ Öffnen esc Verwerfen</translation>
     </message>
     <message>
-        <location line="+105"/>
+        <location line="+106"/>
         <source>Private</source>
         <translation>Privat</translation>
     </message>
     <message>
+        <location line="-1335"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass (experimentell)</translation>
     </message>
     <message>
+        <location line="+7"/>
         <source>Liquid Glass uses the system appearance. Custom colors apply to Glacier when Liquid Glass is off.</source>
         <translation>Liquid Glass verwendet das Erscheinungsbild des Systems. Benutzerdefinierte Farben gelten für Glacier, wenn Liquid Glass deaktiviert ist.</translation>
     </message>
@@ -2701,12 +2850,12 @@
 <context>
     <name>NavigationPill</name>
     <message>
-        <location filename="../qml/NavigationPill.qml" line="+116"/>
+        <location filename="../qml/NavigationPill.qml" line="+156"/>
         <source>Show navigation</source>
         <translation>Navigation anzeigen</translation>
     </message>
     <message>
-        <location line="+36"/>
+        <location line="+40"/>
         <source>Back</source>
         <translation>Zurück</translation>
     </message>
@@ -2726,7 +2875,7 @@
         <translation>Neu laden</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+16"/>
         <source>Edit address: %1</source>
         <translation>Adresse bearbeiten: %1</translation>
     </message>
@@ -3263,8 +3412,8 @@
     </message>
     <message>
         <location line="+2"/>
-        <source>Choose a passphrase of at least 12 characters. Use it to create or use an Arbiter passkey, or enable optional biometric unlocking in Settings. Private keys are encrypted and kept in your operating system&apos;s credential store on this computer. There is no sync or passphrase recovery; losing this profile, its system credentials, or the passphrase can lose access to these passkeys. Keep another sign-in method for your accounts.</source>
-        <translation>Wählen Sie eine Passphrase mit mindestens 12 Zeichen. Verwenden Sie es, um einen Arbiter-Passschlüssel zu erstellen oder zu verwenden, oder aktivieren Sie die optionale biometrische Entsperrung in den Einstellungen. Private Schlüssel werden verschlüsselt und im Anmeldeinformationsspeicher Ihres Betriebssystems auf diesem Computer gespeichert. Es gibt keine Synchronisierung oder Wiederherstellung der Passphrase; Der Verlust dieses Profils, seiner Systemanmeldeinformationen oder der Passphrase kann zum Verlust des Zugriffs auf diese Passschlüssel führen. Behalten Sie eine andere Anmeldemethode für Ihre Konten bei.</translation>
+        <source>Choose a passphrase of at least 12 characters. Use it to create or use an Arbiter passkey, or enable optional biometric unlocking in Settings. Private keys are encrypted and kept in your operating system&apos;s credential store on this computer. Optional encrypted local sync is available in Settings. There is no passphrase recovery; losing this profile, its system credentials, or the passphrase can lose access to these passkeys. Keep another sign-in method for your accounts.</source>
+        <translation>Wähle eine Passphrase mit mindestens 12 Zeichen. Verwende sie zum Erstellen oder Nutzen eines Arbiter-Passkeys oder aktiviere die optionale biometrische Entsperrung in den Einstellungen. Private Schlüssel werden verschlüsselt und im Zugangsdaten-Speicher deines Betriebssystems auf diesem Computer gespeichert. Optionale verschlüsselte lokale Synchronisierung ist in den Einstellungen verfügbar. Die Passphrase kann nicht wiederhergestellt werden. Der Verlust dieses Profils, seiner Systemzugangsdaten oder der Passphrase kann zum Verlust des Zugriffs auf diese Passkeys führen. Behalte eine andere Anmeldemethode für deine Konten bei.</translation>
     </message>
     <message>
         <location line="+5"/>
@@ -3290,7 +3439,7 @@
 <context>
     <name>PasskeyVault</name>
     <message>
-        <location filename="../src/passkeyvault.cpp" line="+62"/>
+        <location filename="../src/passkeyvault.cpp" line="+66"/>
         <source>Set up the passkey vault first.</source>
         <translation>Richten Sie zuerst den Passkey-Tresor ein.</translation>
     </message>
@@ -3432,7 +3581,7 @@
         <translation>Es konnte kein Passkey generiert werden.</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+9"/>
         <source>The passkey exceeds the secure storage limit.</source>
         <translation>Der Passkey überschreitet das sichere Speicherlimit.</translation>
     </message>
@@ -3457,7 +3606,65 @@
         <translation>Die Authentifizierungsanfrage konnte nicht signiert werden.</translation>
     </message>
     <message>
-        <location filename="../src/passkeyvault.h" line="+28"/>
+        <location line="+22"/>
+        <source>Set up your passkey vault before enabling encrypted sync.</source>
+        <translation>Richte deinen Passkey-Tresor ein, bevor du die verschlüsselte Synchronisierung aktivierst.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Sync unlocking was cancelled.</source>
+        <translation>Entsperren der Synchronisierung wurde abgebrochen.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not unlock the vault for sync.</source>
+        <translation>Nicht möglich: Tresor für die Synchronisierung entsperren.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <location line="+36"/>
+        <location line="+39"/>
+        <source>Unlock the desktop sync vault and try again.</source>
+        <translation>Entsperre den Desktop-Synchronisierungstresor und versuche es erneut.</translation>
+    </message>
+    <message>
+        <location line="-68"/>
+        <location line="+9"/>
+        <source>The sync session expired.</source>
+        <translation>Die Synchronisierungssitzung ist abgelaufen.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>A passkey could not be verified for transfer.</source>
+        <translation>Ein Passkey konnte nicht für die Übertragung überprüft werden.</translation>
+    </message>
+    <message>
+        <location line="+21"/>
+        <source>The synced passkey is invalid or unsupported.</source>
+        <translation>Der synchronisierte Passkey ist ungültig oder wird nicht unterstützt.</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>A synced passkey conflicts with an existing credential identity.</source>
+        <translation>Ein synchronisierter Passkey steht im Konflikt mit einer vorhandenen Zugangsdaten-Identität.</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>The synced passkey is too large for secure storage.</source>
+        <translation>Der synchronisierte Passkey ist zu groß für den sicheren Speicher.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Could not save the synced passkey index.</source>
+        <translation>Nicht möglich: Synchronisierten Passkey-Index speichern.</translation>
+    </message>
+    <message>
+        <location line="+19"/>
+        <source>The passkey was removed, but its index needs a retry.</source>
+        <translation>Der Passkey wurde entfernt, aber die Indexaktualisierung muss wiederholt werden.</translation>
+    </message>
+    <message>
+        <location filename="../src/passkeyvault.h" line="+30"/>
         <source>Biometrics</source>
         <translation>Biometrie</translation>
     </message>
@@ -3540,22 +3747,35 @@
         <translation>Passwort sicher aktualisiert.</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+25"/>
         <source>The secret was deleted, but its index entry could not be removed. Retry deletion.</source>
         <translation>The secret was deleted, but its index entry could not be removed. Versuchen Sie den Löschvorgang erneut.</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>Password deleted.</source>
         <translation>Passwort gelöscht.</translation>
     </message>
     <message>
+        <location line="+278"/>
+        <source>A password does not match its secure index entry.</source>
+        <translation>Ein Passwort stimmt nicht mit seinem sicheren Indexeintrag überein.</translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>The synced password origin is invalid.</source>
+        <translation>Der Ursprung des synchronisierten Passworts ist ungültig.</translation>
+    </message>
+    <message>
+        <location line="-313"/>
+        <location line="+53"/>
+        <location line="+228"/>
         <location line="+30"/>
         <source>Password storage is unavailable or busy.</source>
         <translation>Der Passwortspeicher ist nicht verfügbar oder ausgelastet.</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="-250"/>
         <source>This account does not belong to the current website.</source>
         <translation>This account does not belong to the current website.</translation>
     </message>
@@ -3956,7 +4176,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+296"/>
+        <location filename="../src/main.cpp" line="+582"/>
         <source>Settings…</source>
         <translation>Einstellungen…</translation>
     </message>
@@ -4181,6 +4401,31 @@
         <location filename="../src/systemintegration_mac.mm" line="+15"/>
         <source>Launch the Arbiter app bundle to set it as your default browser.</source>
         <translation>Starten Sie das Arbiter-App-Bundle, um es als Ihren Standardbrowser festzulegen.</translation>
+    </message>
+    <message>
+        <location filename="../src/credentialsyncpeer.cpp" line="+49"/>
+        <source>Invalid sync connection.</source>
+        <translation>Ungültige Synchronisierungsverbindung.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Sync data is too large.</source>
+        <translation>Synchronisierungsdaten sind zu groß.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not encrypt sync data.</source>
+        <translation>Nicht möglich: Synchronisierungsdaten verschlüsseln.</translation>
+    </message>
+    <message>
+        <location line="+33"/>
+        <source>Device access was revoked. Pair again to reconnect.</source>
+        <translation>Der Gerätezugriff wurde widerrufen. Kopple es erneut, um die Verbindung wiederherzustellen.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Could not sync. Keep the other device open and unlocked on the same Wi-Fi.</source>
+        <translation>Synchronisierung fehlgeschlagen. Lass das andere Gerät geöffnet und entsperrt im selben WLAN.</translation>
     </message>
 </context>
 <context>
@@ -4432,6 +4677,186 @@
         <location line="+7"/>
         <source>Settings</source>
         <translation>Einstellungen</translation>
+    </message>
+</context>
+<context>
+    <name>SyncSettings</name>
+    <message>
+        <location filename="../qml/SyncSettings.qml" line="+14"/>
+        <source>Bring your vault along</source>
+        <translation>Dein Tresor für unterwegs</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Connect your computers and phones to share one credential vault over local Wi-Fi. Connected devices exchange encrypted changes, including deletions. Keep Arbiter open and desktop sync unlocked; no cloud account is needed.</source>
+        <translation>Verbinde deine Computer und Smartphones, um einen gemeinsamen Zugangsdaten-Tresor im lokalen WLAN zu nutzen. Verbundene Geräte tauschen verschlüsselte Änderungen einschließlich Löschungen aus. Lass Arbiter geöffnet und die Desktop-Synchronisierung entsperrt. Ein Cloud-Konto ist nicht nötig.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Open Sync in a regular browser window to pair your devices.</source>
+        <translation>Öffne die Synchronisierung in einem normalen Browserfenster, um Geräte zu koppeln.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Set up your Arbiter passkey vault first. Its passphrase or biometric verification will also unlock your sync session.</source>
+        <translation>Richte zuerst deinen Arbiter-Passkey-Tresor ein. Seine Passphrase oder die biometrische Überprüfung entsperrt auch deine Synchronisierungssitzung.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Set up passkey vault</source>
+        <translation>Passkey-Tresor einrichten</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Vault passphrase</source>
+        <translation>Tresor-Passphrase</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Unlock sync</source>
+        <translation>Synchronisierung entsperren</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Unlock with %1</source>
+        <translation>Mit %1 entsperren</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Keep sync unlocked until this computer locks</source>
+        <translation>Sync bis zum Sperren dieses Computers entsperrt lassen</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.</source>
+        <translation>Optional für die Hintergrundsynchronisierung des Telefons. Gekoppelte Geräte können synchronisieren, solange dieser Computer entsperrt bleibt. Beim Sperren des Computers oder Beenden von Arbiter wird die Synchronisierung immer gesperrt.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Working with your secure vault…</source>
+        <translation>Sicherer Tresor wird verarbeitet…</translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>Sync is unlocked</source>
+        <translation>Synchronisierung ist entsperrt</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Lock</source>
+        <translation>Sperren</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.</source>
+        <translation>Diese Sitzung bleibt entsperrt, bis du diesen Computer oder die Synchronisierung sperrst oder Arbiter beendest.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>This session locks after 10 minutes or when your computer locks. Keep Arbiter open on both devices while syncing.</source>
+        <translation>Diese Sitzung wird nach 10 Minuten oder beim Sperren des Computers gesperrt. Lass Arbiter während der Synchronisierung auf beiden Geräten geöffnet.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Add a device</source>
+        <translation>Gerät hinzufügen</translation>
+    </message>
+    <message>
+        <location line="+15"/>
+        <source>On your phone, open Passwords &amp; passkeys → Scan desktop code, then scan this code. It grants access to this vault. The invitation expires in two minutes and can be used once.</source>
+        <translation>Öffne auf deinem Smartphone „Passwörter &amp; Passkeys“ → „Desktop-Code scannen“ und scanne diesen Code. Er gewährt Zugriff auf diesen Tresor. Die Einladung läuft nach zwei Minuten ab und kann einmal verwendet werden.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Copy pairing code for another computer</source>
+        <translation>Kopplungscode für anderen Computer kopieren</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Cancel pairing</source>
+        <translation>Kopplung abbrechen</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Paste a pairing code from another computer</source>
+        <translation>Kopplungscode eines anderen Computers einfügen</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Review connection</source>
+        <translation>Verbindung prüfen</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Connect to %1? This shares your vault with this device and the devices it syncs with.</source>
+        <translation>Mit %1 verbinden? Dein Tresor wird mit diesem Gerät und den Geräten geteilt, mit denen es synchronisiert wird.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Connect</source>
+        <translation>Verbinden</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+63"/>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
+    </message>
+    <message>
+        <location line="-60"/>
+        <source>Sync now</source>
+        <translation>Jetzt synchronisieren</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Paired devices</source>
+        <translation>Gekoppelte Geräte</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Your connected computers and phones will appear here.</source>
+        <translation>Deine verbundenen Computer und Smartphones erscheinen hier.</translation>
+    </message>
+    <message>
+        <location line="+12"/>
+        <source>Last synced %1</source>
+        <translation>Zuletzt synchronisiert: %1</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Not synced yet</source>
+        <translation>Noch nicht synchronisiert</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Changes waiting to sync</source>
+        <translation>Änderungen warten auf Synchronisierung</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <location line="+36"/>
+        <source>Remove device</source>
+        <translation>Gerät entfernen</translation>
+    </message>
+    <message>
+        <location line="-28"/>
+        <source>Conflicting changes were kept. Choose which version to use on your connected devices.</source>
+        <translation>Widersprüchliche Änderungen wurden behalten. Wähle die Version für deine verbundenen Geräte.</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Delete everywhere</source>
+        <translation>Überall löschen</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Keep this version</source>
+        <translation>Diese Version behalten</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <source>Remove this sync connection? Saved credentials are kept. Other connections to this device are unchanged.</source>
+        <translation>Diese Synchronisierungsverbindung entfernen? Gespeicherte Zugangsdaten bleiben erhalten. Andere Verbindungen zu diesem Gerät bleiben unverändert.</translation>
     </message>
 </context>
 <context>
@@ -5445,19 +5870,4 @@
         <translation>Arbeitsbereiche konnten nicht gespeichert werden.</translation>
     </message>
 </context>
-  <context>
-    <name>SyncSettings</name>
-    <message>
-      <source>Keep sync unlocked until this computer locks</source>
-      <translation>Sync bis zum Sperren dieses Computers entsperrt lassen</translation>
-    </message>
-    <message>
-      <source>Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.</source>
-      <translation>Optional für die Hintergrundsynchronisierung des Telefons. Gekoppelte Geräte können synchronisieren, solange dieser Computer entsperrt bleibt. Beim Sperren des Computers oder Beenden von Arbiter wird die Synchronisierung immer gesperrt.</translation>
-    </message>
-    <message>
-      <source>This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.</source>
-      <translation>Diese Sitzung bleibt entsperrt, bis du diesen Computer oder die Synchronisierung sperrst oder Arbiter beendest.</translation>
-    </message>
-  </context>
 </TS>

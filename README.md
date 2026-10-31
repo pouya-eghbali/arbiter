@@ -53,8 +53,9 @@ run `./arbiter` from the extracted folder. See the
 - **Bring your essentials.** Import passwords and history, install Chrome Web
   Store extensions, view PDFs, print, manage downloads and share through your OS.
 
-Arbiter’s saved credentials are local to each computer; cross-device sync is
-not available yet. Extension compatibility varies.
+Optional encrypted local sync shares saved passwords and eligible Arbiter passkeys
+across your computers and phones on the same Wi-Fi, without a cloud account.
+Extension compatibility varies.
 
 ## Getting started
 
