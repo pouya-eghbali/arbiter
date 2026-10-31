@@ -16,7 +16,11 @@ Item {
         id: asset
         anchors.fill: parent
         fillMode: Image.PreserveAspectFit
-        sourceSize: Qt.size(Math.max(1, width), Math.max(1, height))
+        // Qt 6.12 does not recognize data: SVGs as scalable for automatic
+        // DPR handling. Request physical pixels explicitly; otherwise a 21pt
+        // icon is enlarged from 21px to 63px on a Retina phone.
+        sourceSize: Qt.size(Math.max(1, Math.ceil(width * icon.Screen.devicePixelRatio)),
+                            Math.max(1, Math.ceil(height * icon.Screen.devicePixelRatio)))
         cache: true
         smooth: true
         // SVG source is bundled, never fetched. Tint before rasterization so icons

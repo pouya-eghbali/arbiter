@@ -62,7 +62,7 @@ Item {
             spacing: 10
             Image {
                 source: "qrc:/brand/valkyrie-source.png"
-                sourceSize.width: 36
+                sourceSize.width: Math.ceil(32 * root.Screen.devicePixelRatio)
                 Layout.preferredWidth: 32
                 Layout.preferredHeight: 32
                 layer.enabled: !Theme.dark
