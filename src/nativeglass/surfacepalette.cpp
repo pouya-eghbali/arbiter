@@ -40,7 +40,8 @@ QWindow *SurfacePalette::owner(QQuickItem *item) const {
     }
     return window;
 }
-bool SurfacePalette::popupWindow(QWindow *window) const { return window && (window->type() == Qt::Popup || window->type() == Qt::ToolTip); }
+bool SurfacePalette::popupWindow(QWindow *window) const { return window && !window->property("nativeGlassForeground").toBool()
+    && (window->type() == Qt::Popup || window->type() == Qt::ToolTip); }
 bool SurfacePalette::active(QQuickItem *item) const { return item && colors.contains(item->window()); }
 QColor SurfacePalette::foreground(QQuickItem *item) const { return item ? colors.value(item->window(), Qt::black) : Qt::black; }
 void SurfacePalette::setForeground(QWindow *window, const QColor &color) {

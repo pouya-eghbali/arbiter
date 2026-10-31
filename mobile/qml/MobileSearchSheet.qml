@@ -87,6 +87,7 @@ Item {
                 }
             }
             ListView {
+                objectName: "mobileAddressSuggestions"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.minimumHeight: 0
@@ -103,9 +104,13 @@ Item {
                 Controls.ScrollBar.vertical: Controls.ScrollBar {}
                 delegate: Controls.AbstractButton {
                     id: row
+                    objectName: "mobileAddressSuggestion"
                     required property var modelData
                     width: ListView.view.width
                     height: 51
+                    // Keep the editor and keyboard stable until selection is
+                    // committed. Hardware keyboard tab focus remains available.
+                    focusPolicy: Qt.TabFocus
                     readonly property string badge: modelData.tab ? qsTr("Open tab") : !modelData.search && browser.history.some(h => h.url === modelData.url) ? qsTr("History") : ""
                     Accessible.name: modelData.title || modelData.url
                     onClicked: if (modelData.tab)

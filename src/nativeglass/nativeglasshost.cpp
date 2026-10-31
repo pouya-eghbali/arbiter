@@ -64,7 +64,8 @@ bool NativeGlassHost::eventFilter(QObject *object, QEvent *event) {
         const bool pressed = event->type() == QEvent::MouseButtonPress || event->type() == QEvent::TouchBegin;
         if (!pointer->points().isEmpty() && handleOutsidePointer(pointer->points().first().globalPosition(), pressed)) return true;
     }
-    if (object == m_foreground && (event->type() == QEvent::TouchBegin || event->type() == QEvent::MouseButtonPress)) m_foreground->requestActivate();
+    if (object == m_foreground && qGuiApp->focusWindow() != m_foreground
+        && (event->type() == QEvent::TouchBegin || event->type() == QEvent::MouseButtonPress)) m_foreground->requestActivate();
     if (object == m_foreground && event->type() == QEvent::KeyPress && static_cast<QKeyEvent *>(event)->key() == Qt::Key_Escape) { emit escapeRequested(); return true; }
     return QQuickItem::eventFilter(object, event);
 }
@@ -134,7 +135,16 @@ void NativeGlassHost::synchronize() {
         m_foreground = new QQuickWindow;
         m_foreground->installEventFilter(this);
         m_foreground->setColor(Qt::transparent);
+#ifdef Q_OS_IOS
+        // QUIView auto-activates a touch target's top-level ancestor. For an
+        // embedded input window that briefly focuses the page and dismisses
+        // the keyboard before Qt receives the press. ToolTip opts out of this
+        // automatic activation; focusControl and the touch filter above still
+        // explicitly activate this interactive child whenever needed.
+        m_foreground->setFlags(Qt::ToolTip | Qt::FramelessWindowHint);
+#else
         m_foreground->setFlags(Qt::FramelessWindowHint);
+#endif
         m_foreground->setParent(window());
         m_foreground->setProperty("nativeGlassForeground", true);
         m_foreground->setGeometry(mapRectToScene(boundingRect()).toAlignedRect());

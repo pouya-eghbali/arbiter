@@ -48,7 +48,11 @@ SurfacePalette records the actual native foreground color per window. Shared
 controls resolve text, secondary text, fields and hover states against that
 material. This leaves ordinary settings/content colors unchanged. Mobile input
 geometry maps the keyboard from the focused window into the main layout before
-adjusting sheet positions.
+adjusting sheet positions. On iOS, foreground children use the non-auto-activating
+ToolTip window type, with explicit activation for editing/touch input. This avoids
+QUIView activating their top-level parent and resetting the keyboard mid-touch.
+They remain interactive content hosts, excluded from standalone popup/tooltip
+concealment rules. Suggestion buttons retain the editor's pointer focus.
 
 UiPopup, UiMenu and UiToolTip close when their owning private window is covered,
 including native windows outside the main Qt overlay. Hidden or disabled child
@@ -80,6 +84,10 @@ scene-graph previews. No preview images are written to disk.
   touch injection, including search typing, workspace editing/cancellation,
   menu dismissal and tab overview cycles. This support is excluded from device
   builds. See mobile-interface.md for launch commands.
+- iOS simulator `SIMCTL_CHILD_ARBITER_SUGGESTIONS_SMOKE=1`: isolated history and
+  switch-to-tab touch checks with the software keyboard, native glass and Glacier.
+  Includes QUIView's ancestor-activation step before touch delivery (which QTest
+  otherwise bypasses) and rejects any keyboard-focus reset before selection.
 - The software screen matrix checks Glacier across phone sizes and themes.
 
 `ARBITER_GLASS_FORCE_OPAQUE=1` exercises reduced transparency without changing

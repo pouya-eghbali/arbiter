@@ -2,8 +2,10 @@
 #include "mobileplatform.h"
 #ifdef ARBITER_MOBILE_DESIGN_PREVIEW
 #include "designpreview.h"
-#include <QTemporaryDir>
 #endif
+#include <QTemporaryDir>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QDesktopServices>
 #include <QFile>
 #include <QGuiApplication>
@@ -82,7 +84,26 @@ int main(int argc, char **argv) {
     if (design)
         browser.setProperty("_designPreview", true);
 #else
+#if defined(Q_OS_IOS) && TARGET_OS_SIMULATOR
+    QTemporaryDir smokeProfile;
+    const bool uiSmoke = qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE");
+    if (uiSmoke) {
+        const QJsonObject profile{
+            {"settings", QJsonObject{{"onboardingDone", true}, {"liquidGlass", true}, {"theme", "dark"}}},
+            {"workspaces", QJsonArray{QJsonObject{{"id", "personal"}, {"name", "Personal"}, {"profile", "shared"}, {"color", "#8dbbff"}}}},
+            {"workspaceId", "personal"}, {"activeId", "start"},
+            {"tabs", QJsonArray{
+                QJsonObject{{"id", "start"}, {"workspace", "personal"}, {"profile", "shared"}, {"url", ""}},
+                QJsonObject{{"id", "target"}, {"workspace", "personal"}, {"profile", "shared"}, {"url", "https://tab.example.test/"}, {"title", "Target tab"}, {"sleeping", true}}}},
+            {"history", QJsonArray{QJsonObject{{"url", "https://history.example.test/"}, {"title", "History target"}, {"time", 1}}}}};
+        QFile file(smokeProfile.path() + "/browser-session-v1.json");
+        if (!smokeProfile.isValid() || !file.open(QIODevice::WriteOnly)) qFatal("Cannot create isolated UI test profile");
+        file.write(QJsonDocument(profile).toJson());
+    }
+    MobileModel browser(nullptr, uiSmoke ? smokeProfile.path() : QString());
+#else
     MobileModel browser;
+#endif
 #endif
     QDesktopServices::setUrlHandler("http", &browser, "openUrl");
     QDesktopServices::setUrlHandler("https", &browser, "openUrl");
@@ -122,7 +143,7 @@ int main(int argc, char **argv) {
 #if defined(Q_OS_IOS) && TARGET_OS_SIMULATOR
     // Native-view visibility and snapshot transitions need a real iOS/Metal test.
     // This diagnostic entry point is never compiled into physical-device builds.
-    if (qEnvironmentVariableIsSet("ARBITER_UI_SMOKE")) {
+    if (qEnvironmentVariableIsSet("ARBITER_UI_SMOKE") || qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE")) {
         auto window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
         QTimer::singleShot(1500, window, [window, &browser] {
             auto device = QTest::createTouchDevice();
@@ -143,6 +164,58 @@ int main(int argc, char **argv) {
                 qInfo() << "Control" << name << "visible" << item->isVisible() << "size" << item->size() << "window" << item->window() << item->window()->geometry();
                 tap(window->mapFromGlobal(global));
             };
+            auto chooseSuggestion = [&](const QString &tabId, const QString &url) {
+                tapControl("mobileAddressButton");
+                QTest::qWait(450);
+                auto input = window->findChild<QQuickItem *>("mobileAddressInput");
+                QQuickItem *row = nullptr;
+                auto list = window->findChild<QQuickItem *>("mobileAddressSuggestions");
+                auto content = list ? qobject_cast<QQuickItem *>(list->property("contentItem").value<QObject *>()) : nullptr;
+                for (auto candidate : content ? content->childItems() : QList<QQuickItem *>()) {
+                    const auto data = candidate->property("modelData").toMap();
+                    if ((!tabId.isEmpty() && data.value("tab") == tabId) || (tabId.isEmpty() && data.value("tab").toString().isEmpty() && data.value("url") == url)) { row = candidate; break; }
+                }
+                if (!row || !input || !input->hasActiveFocus()) {
+                    qInfo() << "Suggestion fixture" << "input" << input << "focused" << (input && input->hasActiveFocus()) << "list" << list << "content" << content << "suggestions" << browser.suggestions(QString());
+                    qFatal("Missing focused address suggestion fixture");
+                }
+                const auto global = row->mapToGlobal(QPointF(row->width()/2, row->height()/2));
+                QPoint local;
+                auto target = arbiter_ios_test_window_at(window, window->mapFromGlobal(global), &local);
+                if (!target) qFatal("Suggestion has no UIKit hit target");
+                int focusResets = 0;
+                const auto focusConnection = QObject::connect(qGuiApp, &QGuiApplication::focusWindowChanged, window, [target, &focusResets](QWindow *focused) { if (focused != target) ++focusResets; });
+                // QTest bypasses QUIView::touchesBegan. Mirror its automatic
+                // activation of the top-level ancestor before delivering touch.
+                // Tooltip windows deliberately opt out of that UIKit behavior.
+                if (target->type() != Qt::ToolTip && (target->type() != Qt::Popup || !target->isActive())) {
+                    auto top = target;
+                    while (top->parent()) top = top->parent();
+                    if (top != qGuiApp->focusWindow()) top->requestActivate();
+                }
+                QTest::touchEvent(target, device).press(0, local, target).commit();
+                QTest::qWait(180);
+                if (!input->hasActiveFocus()) qFatal("Suggestion press stole address focus before release");
+                QObject::disconnect(focusConnection);
+                if (focusResets) qFatal("Suggestion press cycled native keyboard focus before selection");
+                QTest::touchEvent(target, device).release(0, local, target).commit();
+                QTest::qWait(250);
+                if (window->property("panel") != "") qFatal("Suggestion tap did not dismiss the address sheet");
+                if (!tabId.isEmpty() && browser.activeId() != tabId) qFatal("Switch-to-tab suggestion did not select its tab");
+                if (tabId.isEmpty() && window->property("current").toMap().value("url") != url) qFatal("History suggestion did not navigate");
+            };
+            if (qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE")) {
+                chooseSuggestion("target", QString());
+                chooseSuggestion(QString(), "https://history.example.test/");
+                browser.navigate("https://tab.example.test/");
+                browser.selectTab("start");
+                browser.setSetting("liquidGlass", false);
+                QTest::qWait(350);
+                chooseSuggestion("target", QString());
+                chooseSuggestion(QString(), "https://history.example.test/");
+                browser.setSetting("liquidGlass", true);
+                QTest::qWait(350);
+            }
             tapControl("mobileAddressButton");
             if (window->property("panel") != "address") qFatal("Address sheet touch failed");
             QTest::qWait(400);
@@ -156,6 +229,10 @@ int main(int argc, char **argv) {
             if (address->property("text") != "a") qFatal("Native search typing failed");
             tapControl("mobileAddressCloseButton");
             if (window->property("panel") != "") qFatal("Address sheet close failed");
+            if (qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE")) {
+                qInfo("History and switch-to-tab taps preserved keyboard focus and executed in native glass and Glacier; typing and dismissal passed");
+                qApp->quit(); return;
+            }
             QTest::qWait(300);
             tapControl("mobileTabsButton");
             tapControl("mobileWorkspaceSelectorButton");
