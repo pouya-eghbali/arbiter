@@ -79,6 +79,7 @@ jobs:
           INPUT_PLATFORM: ${{ inputs.platform }}
           ARBITER_QT_PREFIX: ${{ env.QT_ROOT_DIR }}
           ARBITER_TEST_KEYCHAIN: '1'
+          ARBITER_TEST_TLS_BACKEND: ${{ runner.os == 'Windows' && 'schannel' || '' }}
           QT_ASSUME_STDERR_HAS_CONSOLE: '1'
           QT_FORCE_STDERR_LOGGING: '1'
           QT_QUICK_BACKEND: software

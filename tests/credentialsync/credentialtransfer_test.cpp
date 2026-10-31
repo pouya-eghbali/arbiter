@@ -54,6 +54,10 @@ class CredentialTransferTest : public QObject {
         return {status,QJsonDocument::fromJson(clear).object()};
     }
 private slots:
+    void initTestCase() {
+        const auto backend=qEnvironmentVariable("ARBITER_TEST_TLS_BACKEND");
+        if(!backend.isEmpty()) QVERIFY2(QSslSocket::setActiveBackend(backend),qPrintable("TLS backend unavailable: "+backend));
+    }
     void computerLockCancelsAnInFlightSyncUnlock() {
         class DeferredSecrets final : public MemorySecrets {
         public:
