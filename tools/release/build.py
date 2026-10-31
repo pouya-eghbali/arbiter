@@ -101,6 +101,14 @@ def main():
     run('cmake', '-S', ROOT / 'tests', '-B', tests, '-G', 'Ninja', *definitions, '-DARBITER_WEBENGINE_SDK_RUNTIME=ON')
     run('cmake', '--build', tests, '--parallel', a.jobs)
     environment = dict(os.environ, ARBITER_TEST_KEYCHAIN='1')
+    # Kit installers may export their stock library path. Select the exact
+    # SDK before the process loader runs, including PDF-only test executables.
+    runtime_dirs = [sdk / 'bin'] if sys.platform == 'win32' else [sdk / 'lib', sdk / 'lib64']
+    runtime_path = os.pathsep.join(str(path) for path in runtime_dirs if path.is_dir())
+    runtime_variables = ('PATH',) if sys.platform == 'win32' else (
+        ('DYLD_FRAMEWORK_PATH', 'DYLD_LIBRARY_PATH') if sys.platform == 'darwin' else ('LD_LIBRARY_PATH',))
+    for variable in runtime_variables:
+        environment[variable] = runtime_path + (os.pathsep + environment[variable] if environment.get(variable) else '')
     if sys.platform.startswith('linux'):
         run_linux_tests(tests, environment)
     else:
