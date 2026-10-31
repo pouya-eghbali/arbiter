@@ -92,79 +92,89 @@ Item {
                     }
                 }
             }
-            Repeater {
-                model: [
-                    {
-                        icon: "history",
-                        label: qsTr("History"),
-                        action: "history"
-                    },
-                    {
-                        icon: "download",
-                        label: qsTr("Downloads"),
-                        action: "downloads"
-                    },
-                    {
-                        icon: "key-round",
-                        label: qsTr("Passwords"),
-                        action: "vault"
-                    },
-                    {
-                        icon: root.blocking ? "shield-check" : "shield",
-                        label: root.blocking ? qsTr("Pause ad blocking for this site") : qsTr("Enable ad blocking for this site"),
-                        action: "block"
-                    },
-                    {
-                        icon: "venetian-mask",
-                        label: browser.privateMode ? qsTr("Return to regular browsing") : qsTr("New private tab"),
-                        action: "private"
-                    },
-                    {
-                        icon: "settings",
-                        label: qsTr("Settings"),
-                        action: "settings"
-                    }
-                ]
-                delegate: Controls.AbstractButton {
-                    id: row
-                    required property var modelData
-                    Layout.fillWidth: true
-                    implicitHeight: 43
-                    Accessible.name: modelData.label
-                    visible: modelData.action !== "block" || root.hasPage
-                    onClicked: root.action(modelData.action)
-                    background: Rectangle {
-                        radius: 12
-                        color: row.down ? Theme.hover : "transparent"
-                    }
-                    contentItem: RowLayout {
-                        spacing: 13
-                        UiIcon {
-                            name: row.modelData.icon
-                            color: Theme.text
-                            Layout.preferredWidth: 21
-                            Layout.preferredHeight: 21
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 0
+                Repeater {
+                    model: [
+                        {
+                            icon: "history",
+                            label: qsTr("History"),
+                            action: "history"
+                        },
+                        {
+                            icon: "download",
+                            label: qsTr("Downloads"),
+                            action: "downloads"
+                        },
+                        {
+                            icon: "key-round",
+                            label: qsTr("Passwords"),
+                            action: "vault"
+                        },
+                        {
+                            icon: root.blocking ? "shield-check" : "shield",
+                            label: root.blocking ? qsTr("Pause ad blocking for this site") : qsTr("Enable ad blocking for this site"),
+                            action: "block"
+                        },
+                        {
+                            icon: "venetian-mask",
+                            label: browser.privateMode ? qsTr("Return to regular browsing") : qsTr("New private tab"),
+                            action: "private"
+                        },
+                        {
+                            icon: "settings",
+                            label: qsTr("Settings"),
+                            action: "settings"
                         }
-                        Text {
-                            Layout.fillWidth: true
-                            text: row.modelData.label
-                            color: Theme.text
-                            font.pixelSize: 14
-                            elide: Text.ElideRight
+                    ]
+                    delegate: Controls.AbstractButton {
+                        id: row
+                        required property var modelData
+                        Layout.fillWidth: true
+                        implicitHeight: 52
+                        topPadding: 1
+                        bottomPadding: 0
+                        leftPadding: 4
+                        rightPadding: 4
+                        Accessible.name: modelData.label
+                        visible: modelData.action !== "block" || root.hasPage
+                        onClicked: root.action(modelData.action)
+                        background: Rectangle {
+                            radius: 12
+                            color: row.down ? Theme.hover : "transparent"
                         }
-                        UiIcon {
-                            name: "chevron-right"
-                            color: Theme.muted
-                            Layout.preferredWidth: 16
-                            Layout.preferredHeight: 16
+                        contentItem: RowLayout {
+                            spacing: 13
+                            UiIcon {
+                                name: row.modelData.icon
+                                color: Theme.text
+                                Layout.preferredWidth: 21
+                                Layout.preferredHeight: 21
+                            }
+                            Text {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                verticalAlignment: Text.AlignVCenter
+                                text: row.modelData.label
+                                color: Theme.text
+                                font.pixelSize: 14
+                                elide: Text.ElideRight
+                            }
+                            UiIcon {
+                                name: "chevron-right"
+                                color: Theme.muted
+                                Layout.preferredWidth: 16
+                                Layout.preferredHeight: 16
+                            }
                         }
-                    }
-                    Rectangle {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        height: 1
-                        color: Qt.alpha(Theme.text, .06)
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            height: 1
+                            color: Qt.alpha(Theme.text, .06)
+                        }
                     }
                 }
             }

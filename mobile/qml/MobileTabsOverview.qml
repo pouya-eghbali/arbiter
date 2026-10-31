@@ -140,21 +140,21 @@ Item {
                 radius: 30
                 dense: true
             }
-            RowLayout {
+            Item {
                 anchors.fill: parent
                 anchors.margins: 5
                 MobileIconButton {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
                     iconName: "venetian-mask"
                     label: qsTr("Private browsing")
                     iconColor: browser.privateMode ? Theme.accent : Theme.text
                     onClicked: browser.togglePrivate()
                 }
-                Item {
-                    Layout.fillWidth: true
-                }
-                UiButton {
+                MobileIconButton {
                     id: addTabButton
-                    text: ""
+                    anchors.centerIn: parent
+                    label: qsTr("New tab")
                     iconName: "plus"
                     primary: true
                     implicitWidth: 48
@@ -163,16 +163,14 @@ Item {
                         radius: 24
                         color: addTabButton.primaryFill
                     }
-                    Accessible.name: qsTr("New tab")
                     onClicked: {
                         browser.addTab();
                         root.dismiss();
                     }
                 }
-                Item {
-                    Layout.fillWidth: true
-                }
                 UiButton {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
                     flat: true
                     text: qsTr("Done")
                     onClicked: root.dismiss()
