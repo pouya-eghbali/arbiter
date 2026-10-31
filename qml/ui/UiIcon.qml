@@ -7,7 +7,7 @@ Item {
     property string name: "user"
     property color color: Theme.text
     // Keep existing semantic names stable across desktop and mobile controls.
-    readonly property string assetName: ({user: "user-round", phone: "smartphone", key: "key-round", fingerprint: "fingerprint-pattern", "trash-2": "trash", "share-2": "share", history: "clock-arrow-up"})[name] || name
+    readonly property string assetName: ({user: "user-round", phone: "smartphone", key: "key-round", fingerprint: "fingerprint-pattern", "trash-2": "trash", "share-2": "share", history: "clock-arrow-up", "refresh-cw": "rotate-cw"})[name] || name
     readonly property int status: asset.status
     implicitWidth: 24
     implicitHeight: 24

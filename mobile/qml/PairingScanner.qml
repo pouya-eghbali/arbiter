@@ -31,7 +31,7 @@ ColumnLayout {
     VideoOutput {
         id: preview
         Layout.fillWidth: true
-        Layout.preferredHeight: 360
+        Layout.preferredHeight: Math.min(300, root.width)
         fillMode: VideoOutput.PreserveAspectCrop
     }
     Text {
@@ -42,7 +42,8 @@ ColumnLayout {
         wrapMode: Text.WordWrap
         Layout.fillWidth: true
     }
-    UiButton {
+    MobileButton {
+        Layout.fillWidth: true
         visible: !decoder.allowed
         text: qsTr("Allow camera")
         onClicked: decoder.requestPermission()

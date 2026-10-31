@@ -7,15 +7,21 @@ import Arbiter
 Item {
     id: root
     signal dismiss
+    property real keyboardInset: 0
     property string editingId: ""
     function edit(id, name) {
         editingId = id;
         workspaceName.text = name;
+        isolated.checked = false;
         editor.open();
     }
     ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 20
+        width: Math.min(parent.width - 40, 560)
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.topMargin: 12
+        anchors.bottomMargin: 12
         spacing: 16
         RowLayout {
             Layout.fillWidth: true
@@ -23,6 +29,7 @@ Item {
                 text: qsTr("Workspaces")
                 color: Theme.text
                 font.pixelSize: 24
+                elide: Text.ElideRight
                 font.weight: Font.DemiBold
                 Layout.fillWidth: true
             }
@@ -38,12 +45,13 @@ Item {
             }
         }
         Controls.ScrollView {
+            id: workspaceScroll
             Layout.fillWidth: true
             Layout.fillHeight: true
             contentWidth: availableWidth
             clip: true
             ColumnLayout {
-                width: parent.width
+                width: workspaceScroll.availableWidth
                 spacing: 12
                 Repeater {
                     model: browser.workspaces
@@ -97,8 +105,8 @@ Item {
                                 MobileIconButton {
                                     iconName: "ellipsis"
                                     label: qsTr("Edit workspace")
-                                    implicitWidth: 32
-                                    implicitHeight: 32
+                                    implicitWidth: 44
+                                    implicitHeight: 44
                                     iconSize: 18
                                     onClicked: root.edit(card.modelData.id, card.modelData.name)
                                 }
@@ -162,48 +170,50 @@ Item {
     }
     Controls.Popup {
         id: editor
-        anchors.centerIn: parent
-        width: Math.min(parent.width - 24, 380)
+        objectName: "workspaceEditor"
+        x: (root.width - width) / 2
+        y: Math.max(12, (root.height - root.keyboardInset - height) / 2)
+        width: Math.min(root.width - 24, 380)
+        height: Math.min(editorBody.implicitHeight + 40, Math.max(160, root.height - root.keyboardInset - 24))
         padding: 20
         modal: true
+        focus: true
         background: GlassSurface {
             dense: true
             radius: 24
         }
-        contentItem: ColumnLayout {
-            spacing: 14
-            Text {
-                text: root.editingId ? qsTr("Edit workspace") : qsTr("New workspace")
-                font.pixelSize: 21
-                color: Theme.text
-            }
-            UiTextField {
-                id: workspaceName
-                Layout.fillWidth: true
-                placeholderText: qsTr("Workspace name")
-                onAccepted: save.clicked()
-            }
-            UiCheckBox {
-                id: isolated
-                visible: !root.editingId
-                text: qsTr("Use a separate session")
-            }
-            RowLayout {
-                Layout.fillWidth: true
-                UiButton {
-                    visible: Boolean(root.editingId) && browser.workspaces.length > 1
-                    iconName: "trash-2"
-                    text: qsTr("Delete")
-                    onClicked: {
-                        browser.removeWorkspace(root.editingId);
-                        editor.close();
-                    }
-                }
-                Item {
+        contentItem: Controls.ScrollView {
+            id: editorScroll
+            contentWidth: availableWidth
+            clip: true
+            ColumnLayout {
+                id: editorBody
+                width: editorScroll.availableWidth
+                spacing: 16
+                Text {
+                    text: root.editingId ? qsTr("Edit workspace") : qsTr("New workspace")
+                    font.pixelSize: 22
+                    font.weight: Font.DemiBold
+                    color: Theme.text
+                    wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                 }
-                UiButton {
+                MobileField {
+                    id: workspaceName
+                    Layout.fillWidth: true
+                    placeholderText: qsTr("Workspace name")
+                    onAccepted: if (save.enabled)
+                        save.clicked()
+                }
+                MobileToggle {
+                    id: isolated
+                    visible: !root.editingId
+                    Layout.fillWidth: true
+                    text: qsTr("Use a separate session")
+                }
+                MobileButton {
                     id: save
+                    Layout.fillWidth: true
                     text: qsTr("Save")
                     primary: true
                     enabled: workspaceName.text.trim().length > 0
@@ -214,6 +224,23 @@ Item {
                             browser.addWorkspace(workspaceName.text, isolated.checked);
                         editor.close();
                     }
+                }
+                MobileButton {
+                    Layout.fillWidth: true
+                    visible: Boolean(root.editingId) && browser.workspaces.length > 1
+                    iconName: "trash-2"
+                    text: qsTr("Delete")
+                    flat: true
+                    onClicked: {
+                        browser.removeWorkspace(root.editingId);
+                        editor.close();
+                    }
+                }
+                MobileButton {
+                    Layout.fillWidth: true
+                    flat: true
+                    text: qsTr("Cancel")
+                    onClicked: editor.close()
                 }
             }
         }

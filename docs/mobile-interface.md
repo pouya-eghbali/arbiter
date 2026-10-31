@@ -59,3 +59,28 @@ Phone builds reject the design-fixture flag. Native Android integration tests
 check rendering outside the pill cutout, uncut thumbnail capture, touch routing,
 workspace storage isolation, and the Rust blocker. Also inspect actual iOS
 simulator/device rendering before installing an updated development build.
+
+## Shared mobile layout rules
+
+MobileButton, MobileField, MobileToggle, MobileComboBox and MobileIconButton keep
+48-point form controls and at least 44-point icon touch targets separate from
+desktop sizing. MobileSection supplies consistent group padding and descriptions;
+MobileEmptyState and MobileLogo handle empty views and theme-aware branding.
+Full pages use a centered column capped at 560 points, safe-area-aware footers,
+vertical scrolling and keyboard avoidance. Settings uses a category index with
+back navigation. Onboarding keeps its navigation outside the scrolling content.
+
+Run the visual matrix after building the desktop fixture target:
+
+```sh
+python3 tools/mobile/render_interface.py \
+  --app build-mobile-qt-preview/arbiter_mobile.app/Contents/MacOS/arbiter_mobile
+```
+
+It renders 52 cases across 390×844, 320×568 and 844×390, including light/dark,
+empty lists, every settings category, onboarding steps, pairing/account prompts,
+private lock, keyboard insets and scrolled forms. Logs fail the command on QML
+runtime errors; inspect the images as well. The default output is in ignored
+`output/mobile-ui-audit`. Fixtures use fabricated data and never unlock a real
+vault; the scanner fixture does not request camera permission. Native permission
+sheets and the final GPU glass treatment still need native-device verification.

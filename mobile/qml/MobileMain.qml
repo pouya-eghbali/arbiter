@@ -12,6 +12,13 @@ Controls.ApplicationWindow {
     height: 880
     visible: true
     title: "Arbiter"
+    font.pixelSize: 15
+    palette.highlight: Theme.accent
+    palette.highlightedText: Theme.accentText
+    palette.window: Theme.window
+    palette.windowText: Theme.text
+    palette.text: Theme.text
+    palette.base: Theme.field
     flags: Qt.Window | (Qt.platform.os === "ios" ? Qt.ExpandedClientAreaHint : 0)
     // Let the page reach the home indicator; keep controls in the safe area.
     bottomPadding: 0
@@ -34,7 +41,27 @@ Controls.ApplicationWindow {
     readonly property bool darkMode: browser.settings.theme === "dark" || (browser.settings.theme === "system" && Application.styleHints.colorScheme === Qt.Dark)
     readonly property bool specialPanel: ["address", "tabs", "workspaces", "more", "find"].includes(panel)
     readonly property bool browsingSurface: panel === "" || panel === "find"
-    readonly property real keyboardInset: Qt.inputMethod.visible && Qt.inputMethod.keyboardRectangle.y > 0 ? Math.max(0, content.height - Qt.inputMethod.keyboardRectangle.y) : 0
+    property real previewKeyboardInset: 0
+    readonly property real keyboardInset: browser.backend === "preview" && previewKeyboardInset > 0 ? previewKeyboardInset : Qt.inputMethod.visible && Qt.inputMethod.keyboardRectangle.y > 0 ? Math.max(0, content.height - content.mapFromItem(null, 0, Qt.inputMethod.keyboardRectangle.y).y) : 0
+    onKeyboardInsetChanged: Qt.callLater(keepFieldVisible)
+    onActiveFocusItemChanged: Qt.callLater(keepFieldVisible)
+    function keepFieldVisible() {
+        const field = window.activeFocusItem;
+        if (!field || window.specialPanel || !pageScroll.visible)
+            return;
+        let ancestor = field.parent;
+        while (ancestor && ancestor !== pageBody)
+            ancestor = ancestor.parent;
+        if (ancestor !== pageBody)
+            return;
+        const top = field.mapToItem(pageBody, 0, 0).y;
+        const viewport = pageScroll.availableHeight;
+        const currentY = pageScroll.contentItem.contentY;
+        if (top + field.height + 16 > currentY + viewport)
+            pageScroll.contentItem.contentY = Math.max(0, top + field.height + 16 - viewport);
+        else if (top - 16 < currentY)
+            pageScroll.contentItem.contentY = Math.max(0, top - 16);
+    }
     readonly property Item glassBackdrop: backdropScene
     readonly property string workspaceName: (browser.workspaces.find(w => w.id === browser.workspaceId) || {}).name || qsTr("Personal")
     readonly property rect nativeOverlayRect: {
@@ -57,8 +84,13 @@ Controls.ApplicationWindow {
             Qt.inputMethod.hide();
         panel = name;
         query = "";
+        pageScroll.contentItem.contentY = 0;
     }
     function dismiss() {
+        if (panel === "settings" && settingsLoader.item && settingsLoader.item.category) {
+            settingsLoader.item.category = "";
+            return;
+        }
         Qt.inputMethod.hide();
         if (panel === "find")
             browser.findText("");
@@ -107,7 +139,10 @@ Controls.ApplicationWindow {
                 browser.pageAction(browser.activeId, "back", "");
         }
     }
-    Component.onCompleted: { refresh(); browser.setSystemAppearance(surfaceColor); }
+    Component.onCompleted: {
+        refresh();
+        browser.setSystemAppearance(surfaceColor);
+    }
     Connections {
         target: browser
         function onChanged() {
@@ -242,7 +277,7 @@ Controls.ApplicationWindow {
         }
         MobileStartPage {
             anchors.fill: parent
-            anchors.bottomMargin: 100
+            anchors.bottomMargin: 90 + window.bottomInset
             visible: !window.current.url && window.panel === "" && !browser.privateLocked
             onNavigate: url => window.go(url)
         }
@@ -258,7 +293,7 @@ Controls.ApplicationWindow {
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
-            UiButton {
+            MobileButton {
                 text: qsTr("Reload")
                 onClicked: browser.selectTab(browser.activeId)
             }
@@ -284,13 +319,13 @@ Controls.ApplicationWindow {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
             }
-            UiButton {
+            MobileButton {
                 Layout.fillWidth: true
                 text: qsTr("Unlock")
                 primary: true
                 onClicked: browser.unlockPrivate()
             }
-            UiButton {
+            MobileButton {
                 Layout.fillWidth: true
                 text: qsTr("Return to regular browsing")
                 onClicked: browser.togglePrivate()
@@ -323,7 +358,7 @@ Controls.ApplicationWindow {
             enabled: !browser.privateLocked
             tabCount: window.visibleTabs.length
             suggestions: browser.fieldFocused
-            visible: window.panel === ""
+            visible: window.panel === "" && !browser.privateLocked
             onSearchRequested: window.open("address")
             onTabsRequested: window.open("tabs")
             onMoreRequested: window.open("more")
@@ -356,7 +391,7 @@ Controls.ApplicationWindow {
                         Layout.preferredWidth: 18
                         Layout.preferredHeight: 18
                     }
-                    UiTextField {
+                    MobileField {
                         id: findInput
                         Layout.fillWidth: true
                         placeholderText: qsTr("Find in page")
@@ -407,6 +442,8 @@ Controls.ApplicationWindow {
             onWorkspacesRequested: window.open("workspaces")
         }
         MobileWorkspaces {
+            objectName: "workspaceScreen"
+            keyboardInset: window.keyboardInset
             anchors.fill: parent
             anchors.bottomMargin: window.bottomInset
             visible: window.panel === "workspaces"
@@ -440,71 +477,118 @@ Controls.ApplicationWindow {
         visible: window.panel !== "" && !window.specialPanel
         color: Theme.window
         ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 20
-            spacing: 14
+            width: Math.min(parent.width - 40, 560)
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            anchors.topMargin: 12
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Math.max(window.bottomInset, window.keyboardInset) + 16
+            spacing: 16
             RowLayout {
                 Layout.fillWidth: true
+                MobileIconButton {
+                    visible: window.panel === "settings" && Boolean(settingsLoader.item && settingsLoader.item.category)
+                    iconName: "arrow-left"
+                    label: qsTr("Settings")
+                    onClicked: window.dismiss()
+                }
                 Text {
                     textFormat: Text.PlainText
                     Layout.fillWidth: true
-                    text: window.panel === "onboarding" ? "Arbiter" : window.panel === "settings" ? qsTr("Settings") : window.panel === "history" ? qsTr("History") : window.panel === "downloads" ? qsTr("Downloads") : window.panel === "vault" ? qsTr("Passwords & passkeys") : window.panel === "save" ? qsTr("Save password?") : window.panel === "accounts" ? qsTr("Passwords") : qsTr("Pair with your desktop")
-                    font.pixelSize: 27
+                    text: window.panel === "onboarding" ? "Arbiter" : window.panel === "settings" ? (settingsLoader.item ? settingsLoader.item.pageTitle : qsTr("Settings")) : window.panel === "history" ? qsTr("History") : window.panel === "downloads" ? qsTr("Downloads") : window.panel === "vault" ? qsTr("Passwords & passkeys") : window.panel === "save" ? qsTr("Save password?") : window.panel === "accounts" ? qsTr("Passwords") : qsTr("Pair with your desktop")
+                    font.pixelSize: 24
+                    wrapMode: Text.WordWrap
                     font.weight: Font.DemiBold
                     color: Theme.text
                 }
-                UiIconButton {
+                MobileIconButton {
                     iconName: "x"
                     label: qsTr("Close")
                     visible: window.panel !== "onboarding"
                     onClicked: {
                         if (window.panel === "save")
                             browser.dismissLogin();
+                        Qt.inputMethod.hide();
                         window.panel = "";
                     }
                 }
             }
-            UiTextField {
+            MobileField {
                 id: filter
-                visible: ["history", "vault"].includes(window.panel)
+                visible: window.panel === "history" || window.panel === "vault" && browser.vault.unlocked
                 Layout.fillWidth: true
                 placeholderText: qsTr("Search")
                 text: window.query
                 onTextEdited: window.query = text
                 onAccepted: if (window.panel === "address")
                     window.go(text)
-                Component.onCompleted: if (visible)
-                    forceActiveFocus()
             }
             Controls.ScrollView {
+                id: pageScroll
+                objectName: "pageScroll"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
                 contentWidth: availableWidth
+                Controls.ScrollBar.horizontal.policy: Controls.ScrollBar.AlwaysOff
                 ColumnLayout {
-                    width: parent.width
-                    spacing: 14
+                    id: pageBody
+                    width: pageScroll.availableWidth
+                    spacing: 16
                     Repeater {
+                        id: historyRows
                         model: window.panel === "history" ? browser.history.filter(t => !window.query || t.url.toLowerCase().includes(window.query.toLowerCase()) || t.title.toLowerCase().includes(window.query.toLowerCase())) : []
-                        delegate: ColumnLayout {
+                        delegate: Rectangle {
                             required property var modelData
                             Layout.fillWidth: true
-                            Text {
-                                textFormat: Text.PlainText
-                                text: new Date(modelData.time).toLocaleDateString(Qt.locale(), Locale.LongFormat)
-                                color: Theme.muted
-                                font.pixelSize: 12
+                            implicitHeight: 88
+                            radius: 16
+                            color: Theme.field
+                            MobileButton {
+                                anchors.fill: parent
+                                text: ""
+                                flat: true
+                                Accessible.name: modelData.title || modelData.url
+                                background: Item {}
+                                onClicked: window.go(modelData.url)
                             }
                             RowLayout {
-                                Layout.fillWidth: true
-                                UiButton {
-                                    Layout.fillWidth: true
-                                    flat: true
-                                    text: modelData.title || modelData.url
-                                    textAlignment: Text.AlignLeft
-                                    onClicked: window.go(modelData.url)
+                                anchors.fill: parent
+                                anchors.margins: 12
+                                spacing: 12
+                                UiIcon {
+                                    name: "history"
+                                    color: Theme.muted
+                                    Layout.preferredWidth: 21
+                                    Layout.preferredHeight: 21
                                 }
-                                UiIconButton {
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 4
+                                    Text {
+                                        text: modelData.title || modelData.url
+                                        textFormat: Text.PlainText
+                                        color: Theme.text
+                                        font.pixelSize: 15
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                    }
+                                    Text {
+                                        text: modelData.url.replace(/^https?:\/\//, "")
+                                        textFormat: Text.PlainText
+                                        color: Theme.muted
+                                        font.pixelSize: 12
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                    }
+                                    Text {
+                                        text: new Date(modelData.time).toLocaleDateString(Qt.locale(), Locale.ShortFormat)
+                                        color: Theme.muted
+                                        font.pixelSize: 11
+                                        Layout.fillWidth: true
+                                    }
+                                }
+                                MobileIconButton {
                                     iconName: "trash-2"
                                     label: qsTr("Delete")
                                     onClicked: browser.removeHistory(modelData.url)
@@ -512,48 +596,75 @@ Controls.ApplicationWindow {
                             }
                         }
                     }
-                    UiButton {
-                        visible: window.panel === "history"
+                    MobileEmptyState {
+                        Layout.fillWidth: true
+                        visible: window.panel === "history" && historyRows.count === 0
+                        iconName: "history"
+                        title: window.query ? qsTr("No matching history") : qsTr("No history yet")
+                    }
+                    MobileButton {
+                        Layout.fillWidth: true
+                        visible: window.panel === "history" && historyRows.count > 0
                         text: window.query ? qsTr("Delete matching history") : qsTr("Clear history")
+                        iconName: "trash-2"
+                        flat: true
                         onClicked: historyConfirmation.open()
                     }
                     Repeater {
                         model: window.panel === "downloads" ? browser.downloads : []
-                        delegate: ColumnLayout {
+                        delegate: MobileSection {
                             required property var modelData
                             Layout.fillWidth: true
-                            Text {
-                                textFormat: Text.PlainText
-                                text: modelData.name || modelData.url
-                                color: Theme.text
-                                elide: Text.ElideMiddle
+                            RowLayout {
                                 Layout.fillWidth: true
-                            }
-                            Text {
-                                textFormat: Text.PlainText
-                                text: modelData.status || qsTr("Downloading…")
-                                color: Theme.muted
-                                Layout.fillWidth: true
-                                wrapMode: Text.WordWrap
+                                spacing: 12
+                                UiIcon {
+                                    name: "download"
+                                    color: Theme.accent
+                                    Layout.preferredWidth: 24
+                                    Layout.preferredHeight: 24
+                                }
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 6
+                                    Text {
+                                        text: modelData.name || modelData.url
+                                        textFormat: Text.PlainText
+                                        color: Theme.text
+                                        font.pixelSize: 15
+                                        elide: Text.ElideMiddle
+                                        Layout.fillWidth: true
+                                    }
+                                    Text {
+                                        text: modelData.status || qsTr("Downloading…")
+                                        textFormat: Text.PlainText
+                                        color: Theme.muted
+                                        font.pixelSize: 13
+                                        wrapMode: Text.WordWrap
+                                        Layout.fillWidth: true
+                                    }
+                                }
+                                MobileIconButton {
+                                    iconName: "external-link"
+                                    label: qsTr("Open")
+                                    enabled: modelData.complete || false
+                                    onClicked: browser.openDownload(modelData.id)
+                                }
                             }
                             Controls.ProgressBar {
                                 Layout.fillWidth: true
+                                visible: !modelData.complete && !modelData.error
                                 from: 0
                                 to: Math.max(1, modelData.total || 1)
                                 value: modelData.received || 0
                             }
-                            UiButton {
-                                text: qsTr("Open")
-                                enabled: modelData.complete || false
-                                onClicked: browser.openDownload(modelData.id)
-                            }
                         }
                     }
-                    Text {
-                        textFormat: Text.PlainText
+                    MobileEmptyState {
+                        Layout.fillWidth: true
                         visible: window.panel === "downloads" && browser.downloads.length === 0
-                        text: qsTr("No downloads yet")
-                        color: Theme.muted
+                        iconName: "download"
+                        title: qsTr("No downloads yet")
                     }
                     Text {
                         textFormat: Text.PlainText
@@ -563,9 +674,9 @@ Controls.ApplicationWindow {
                         color: Theme.muted
                         Layout.fillWidth: true
                     }
-                    UiButton {
-                        visible: window.panel === "vault" && !browser.vault.unlocked
+                    MobileButton {
                         Layout.fillWidth: true
+                        visible: window.panel === "vault" && !browser.vault.unlocked
                         text: qsTr("Unlock")
                         primary: true
                         iconName: "fingerprint"
@@ -599,7 +710,7 @@ Controls.ApplicationWindow {
                                     Layout.fillWidth: true
                                 }
                             }
-                            UiIconButton {
+                            MobileIconButton {
                                 iconName: "trash-2"
                                 label: qsTr("Delete")
                                 onClicked: browser.vault.remove(modelData.id)
@@ -616,9 +727,9 @@ Controls.ApplicationWindow {
                     }
                     Repeater {
                         model: window.panel === "vault" ? browser.vault.conflictChoices : []
-                        delegate: UiButton {
-                            required property var modelData
+                        delegate: MobileButton {
                             Layout.fillWidth: true
+                            required property var modelData
                             text: modelData.deleted ? qsTr("Keep deletion") : (modelData.origin || modelData.rpId) + " · " + (modelData.username || "") + " · " + modelData.device
                             textAlignment: Text.AlignLeft
                             onClicked: browser.vault.resolveConflict(modelData.id, modelData.version)
@@ -632,7 +743,8 @@ Controls.ApplicationWindow {
                         color: Theme.text
                         Layout.fillWidth: true
                     }
-                    UiButton {
+                    MobileButton {
+                        Layout.fillWidth: true
                         visible: window.panel === "vault"
                         text: browser.vault.peerName ? qsTr("Sync now") : qsTr("Pair with your desktop")
                         iconName: "refresh-cw"
@@ -644,15 +756,31 @@ Controls.ApplicationWindow {
                                 window.open("pair");
                         }
                     }
-                    UiButton {
+                    MobileButton {
+                        Layout.fillWidth: true
                         visible: window.panel === "vault"
                         text: qsTr("Enable credential provider")
                         onClicked: browser.enableCredentialProvider()
                     }
-                    UiButton {
+                    MobileButton {
+                        Layout.fillWidth: true
                         visible: window.panel === "vault" && browser.vault.unlocked
                         text: qsTr("Lock")
                         onClicked: browser.vault.lock()
+                    }
+                    Controls.BusyIndicator {
+                        visible: ["pair", "pairReview", "scan", "vault"].includes(window.panel) && browser.vault.busy
+                        running: visible
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.preferredWidth: 32
+                        Layout.preferredHeight: 32
+                    }
+                    Text {
+                        visible: ["pair", "pairReview", "scan"].includes(window.panel) && browser.vault.error.length > 0
+                        text: browser.vault.error
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
+                        color: Theme.text
                     }
                     Text {
                         textFormat: Text.PlainText
@@ -662,46 +790,73 @@ Controls.ApplicationWindow {
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
-                    UiButton {
+                    MobileButton {
+                        Layout.fillWidth: true
                         visible: window.panel === "pair"
                         text: qsTr("Scan QR code")
                         iconName: "qr-code"
                         onClicked: window.open("scan")
                     }
+                    MobileEmptyState {
+                        Layout.fillWidth: true
+                        visible: window.panel === "scan" && browser.backend === "preview"
+                        title: qsTr("Scan QR code")
+                        iconName: "qr-code"
+                    }
                     Loader {
                         visible: window.panel === "scan"
-                        active: visible
+                        active: visible && browser.backend !== "preview"
                         Layout.fillWidth: true
                         source: "PairingScanner.qml"
                         onLoaded: item.invitation.connect(value => {
                             browser.vault.pair(value);
                         })
                     }
-                    UiTextField {
+                    MobileField {
                         id: invitation
+                        onAccepted: if (text.length && !browser.vault.busy)
+                            browser.vault.pair(text)
                         visible: window.panel === "pair"
                         Layout.fillWidth: true
                         placeholderText: qsTr("Pairing invitation")
                         echoMode: TextInput.Password
                     }
-                    UiButton {
+                    MobileButton {
+                        Layout.fillWidth: true
                         visible: window.panel === "pair"
                         text: qsTr("Continue")
                         primary: true
+                        enabled: invitation.text.trim().length > 0 && !browser.vault.busy
                         onClicked: browser.vault.pair(invitation.text)
                     }
                     Text {
                         textFormat: Text.PlainText
                         visible: window.panel === "pairReview"
-                        text: window.pairDesktop + "\n\n" + window.pairPin
+                        text: window.pairDesktop
+                        font.pixelSize: 18
+                        font.weight: Font.Medium
                         color: Theme.text
-                        wrapMode: Text.WrapAnywhere
+                        wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
-                    UiButton {
+                    Text {
+                        visible: window.panel === "pairReview"
+                        text: window.pairPin
+                        font.pixelSize: 32
+                        font.family: "monospace"
+                        font.letterSpacing: 2
+                        color: Theme.accent
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                        Layout.topMargin: 12
+                        Layout.bottomMargin: 12
+                    }
+                    MobileButton {
+                        Layout.fillWidth: true
                         visible: window.panel === "pairReview"
                         text: qsTr("Pair")
                         primary: true
+                        enabled: !browser.vault.busy
                         onClicked: {
                             browser.vault.confirmPair();
                             window.open("vault");
@@ -715,14 +870,15 @@ Controls.ApplicationWindow {
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
-                    UiTextField {
+                    MobileField {
                         id: saveUser
                         visible: window.panel === "save"
                         text: window.pendingUsername
                         placeholderText: qsTr("Username")
                         Layout.fillWidth: true
                     }
-                    UiButton {
+                    MobileButton {
+                        Layout.fillWidth: true
                         visible: window.panel === "save"
                         text: qsTr("Save")
                         primary: true
@@ -731,7 +887,8 @@ Controls.ApplicationWindow {
                             window.panel = "";
                         }
                     }
-                    UiButton {
+                    MobileButton {
+                        Layout.fillWidth: true
                         visible: window.panel === "save"
                         text: qsTr("Not now")
                         onClicked: {
@@ -741,9 +898,9 @@ Controls.ApplicationWindow {
                     }
                     Repeater {
                         model: window.panel === "accounts" ? window.accounts : []
-                        delegate: UiButton {
-                            required property var modelData
+                        delegate: MobileButton {
                             Layout.fillWidth: true
+                            required property var modelData
                             text: modelData.username || qsTr("Saved account")
                             onClicked: {
                                 browser.fillPassword(modelData.id);
@@ -751,32 +908,41 @@ Controls.ApplicationWindow {
                             }
                         }
                     }
+                    MobileEmptyState {
+                        Layout.fillWidth: true
+                        visible: window.panel === "accounts" && window.accounts.length === 0
+                        iconName: "key-round"
+                        title: qsTr("No saved accounts")
+                    }
+                    MobileEmptyState {
+                        Layout.fillWidth: true
+                        visible: window.panel === "vault" && browser.vault.unlocked && browser.vault.entries.length === 0
+                        iconName: "key-round"
+                        title: qsTr("No saved passwords or passkeys")
+                    }
                     Loader {
+                        id: settingsLoader
+                        objectName: "settingsLoader"
                         active: window.panel === "settings"
                         Layout.fillWidth: true
                         source: "MobileSettings.qml"
+                        onLoaded: item.pairRequested.connect(() => window.open("pair"))
+                    }
+                    Connections {
+                        target: settingsLoader.item
+                        function onCategoryChanged() {
+                            pageScroll.contentItem.contentY = 0;
+                        }
                     }
                     ColumnLayout {
                         visible: window.panel === "onboarding"
                         Layout.fillWidth: true
-                        spacing: 24
-                        Image {
-                            source: "qrc:/brand/valkyrie-source.png"
-                            Layout.preferredWidth: 96
-                            Layout.preferredHeight: 96
+                        Layout.topMargin: 16
+                        spacing: 20
+                        MobileLogo {
+                            Layout.preferredWidth: window.onboardingStep === 0 ? 80 : 48
+                            Layout.preferredHeight: window.onboardingStep === 0 ? 80 : 48
                             Layout.alignment: Qt.AlignHCenter
-                            fillMode: Image.PreserveAspectFit
-                            layer.enabled: !Theme.dark
-                            layer.effect: MultiEffect {
-                                colorization: 1
-                                colorizationColor: Theme.text
-                            }
-                            opacity: 1
-                            Behavior on opacity {
-                                NumberAnimation {
-                                    duration: Theme.enterDuration
-                                }
-                            }
                         }
                         Text {
                             textFormat: Text.PlainText
@@ -803,7 +969,9 @@ Controls.ApplicationWindow {
                             Layout.fillWidth: true
                             Repeater {
                                 model: [[qsTr("System"), "system"], [qsTr("Light"), "light"], [qsTr("Dark"), "dark"]]
-                                delegate: UiButton {
+                                delegate: MobileButton {
+                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: 1
                                     required property var modelData
                                     text: modelData[0]
                                     checkable: true
@@ -816,13 +984,14 @@ Controls.ApplicationWindow {
                             visible: window.onboardingStep === 1
                             Layout.fillWidth: true
                         }
-                        UiCheckBox {
+                        MobileToggle {
                             visible: window.onboardingStep === 0
                             text: qsTr("Block ads and trackers")
                             checked: browser.settings.adblockEnabled
                             onToggled: browser.setSetting("adblockEnabled", checked)
                         }
-                        UiButton {
+                        MobileButton {
+                            Layout.fillWidth: true
                             visible: window.onboardingStep === 2
                             text: qsTr("Pair with your desktop")
                             onClicked: {
@@ -830,44 +999,120 @@ Controls.ApplicationWindow {
                                 window.open("pair");
                             }
                         }
-                        UiButton {
+                        MobileButton {
+                            Layout.fillWidth: true
                             visible: window.onboardingStep === 2
                             text: qsTr("Set as default browser")
                             onClicked: browser.setDefaultBrowser()
                         }
-                        UiButton {
-                            Layout.fillWidth: true
-                            primary: true
-                            text: window.onboardingStep === 3 ? qsTr("Start browsing") : qsTr("Continue")
-                            onClicked: {
-                                if (window.onboardingStep === 3) {
-                                    browser.setSetting("onboardingDone", true);
-                                    window.panel = "";
-                                } else
-                                    window.onboardingStep++;
-                            }
+                    }
+                }
+            }
+            ColumnLayout {
+                visible: window.panel === "onboarding"
+                Layout.fillWidth: true
+                spacing: 8
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignHCenter
+                    spacing: 6
+                    Item {
+                        Layout.fillWidth: true
+                    }
+                    Repeater {
+                        model: 4
+                        delegate: Rectangle {
+                            required property int index
+                            Layout.preferredWidth: index === window.onboardingStep ? 20 : 6
+                            Layout.preferredHeight: 6
+                            radius: 3
+                            color: index === window.onboardingStep ? Theme.accent : Theme.border
                         }
-                        UiButton {
-                            Layout.fillWidth: true
-                            text: qsTr("Skip setup")
-                            onClicked: {
+                    }
+                    Item {
+                        Layout.fillWidth: true
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    MobileIconButton {
+                        visible: window.onboardingStep > 0
+                        iconName: "arrow-left"
+                        label: qsTr("Back")
+                        onClicked: {
+                            window.onboardingStep--;
+                            pageScroll.contentItem.contentY = 0;
+                        }
+                    }
+                    MobileButton {
+                        Layout.fillWidth: true
+                        primary: true
+                        text: window.onboardingStep === 3 ? qsTr("Start browsing") : qsTr("Continue")
+                        onClicked: {
+                            if (window.onboardingStep === 3) {
                                 browser.setSetting("onboardingDone", true);
                                 window.panel = "";
-                            }
+                            } else
+                                window.onboardingStep++;
+                            pageScroll.contentItem.contentY = 0;
                         }
+                    }
+                }
+                MobileButton {
+                    Layout.fillWidth: true
+                    flat: true
+                    text: qsTr("Skip setup")
+                    onClicked: {
+                        browser.setSetting("onboardingDone", true);
+                        window.panel = "";
                     }
                 }
             }
         }
     }
-    Controls.Dialog {
+    Controls.Popup {
         id: historyConfirmation
         anchors.centerIn: parent
-        width: Math.min(parent.width - 32, 400)
+        width: Math.min(parent.width - 40, 400)
         modal: true
-        title: qsTr("Delete history?")
-        standardButtons: Controls.Dialog.Cancel | Controls.Dialog.Ok
-        onAccepted: browser.clearHistory(window.query)
+        focus: true
+        padding: 20
+        background: GlassSurface {
+            radius: 24
+            dense: true
+        }
+        contentItem: ColumnLayout {
+            spacing: 20
+            Text {
+                text: qsTr("Delete history?")
+                font.pixelSize: 22
+                font.weight: Font.DemiBold
+                color: Theme.text
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            Text {
+                text: window.query ? qsTr("Delete matching history") : qsTr("Clear history")
+                color: Theme.muted
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            MobileButton {
+                Layout.fillWidth: true
+                primary: true
+                text: qsTr("Delete")
+                onClicked: {
+                    browser.clearHistory(window.query);
+                    historyConfirmation.close();
+                }
+            }
+            MobileButton {
+                Layout.fillWidth: true
+                flat: true
+                text: qsTr("Cancel")
+                onClicked: historyConfirmation.close()
+            }
+        }
     }
     Controls.Popup {
         id: toast

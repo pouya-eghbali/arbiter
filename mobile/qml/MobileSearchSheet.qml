@@ -29,9 +29,9 @@ Item {
     }
     Item {
         id: sheet
-        x: 12
-        width: parent.width - 24
-        height: Math.min(440, Math.max(180, parent.height - root.keyboardInset - 40))
+        width: Math.min(parent.width - 24, 536)
+        x: (parent.width - width) / 2
+        height: Math.max(0, Math.min(440, parent.height - root.keyboardInset - 16))
         y: parent.height - root.keyboardInset - height - 8
         GlassSurface {
             anchors.fill: parent
@@ -50,6 +50,7 @@ Item {
                 color: Qt.alpha(Theme.muted, .4)
             }
             RowLayout {
+                Layout.minimumHeight: 48
                 Layout.fillWidth: true
                 spacing: 9
                 UiIcon {
@@ -61,7 +62,7 @@ Item {
                 Controls.TextField {
                     id: input
                     Layout.fillWidth: true
-                    implicitHeight: 44
+                    implicitHeight: 48
                     placeholderText: qsTr("Search or enter address")
                     font.pixelSize: 16
                     color: Theme.text
@@ -82,13 +83,14 @@ Item {
                 MobileIconButton {
                     iconName: "x"
                     label: qsTr("Close")
-                    implicitWidth: 32
+                    implicitWidth: 44
                     onClicked: root.dismiss()
                 }
             }
             ListView {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.minimumHeight: 0
                 clip: true
                 spacing: 2
                 boundsBehavior: Flickable.StopAtBounds
@@ -126,6 +128,8 @@ Item {
                         }
                         Text {
                             Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            verticalAlignment: Text.AlignVCenter
                             textFormat: Text.PlainText
                             text: row.modelData.title || row.modelData.url
                             color: Theme.text

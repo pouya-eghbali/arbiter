@@ -118,18 +118,61 @@ void renderDesignPreview(MobileModel &model, QQmlApplicationEngine &engine, cons
         if (value.value("id") != "start")
             model.setPreview(value.value("id").toString(), article(value.value("title").toString()));
     }
-    if (screen == "start")
+    const auto state = screen.section(':', 0, 0);
+    const auto detail = screen.section(':', 1);
+    if (state == "start")
         model.addTab();
-    const QString panel = screen == "start" || screen == "browsing" || screen == "interactions" ? QString()
-                          : screen == "search" ? QStringLiteral("address")
-                                               : screen;
+    if (qEnvironmentVariableIsSet("ARBITER_PREVIEW_THEME"))
+        model.setSetting("theme", qEnvironmentVariable("ARBITER_PREVIEW_THEME"));
+    const QString panel = state == "start" || state == "browsing" || state == "private" || state == "suggestions" || state == "interactions" ? QString()
+                          : state == "search" ? QStringLiteral("address")
+                                               : state;
     auto window = qobject_cast<QQuickWindow *>(engine.rootObjects().value(0));
     if (!window) {
         qApp->exit(1);
         return;
     }
+    if (const auto width = qEnvironmentVariableIntValue("ARBITER_PREVIEW_WIDTH"); width > 0)
+        window->setWidth(width);
+    if (const auto height = qEnvironmentVariableIntValue("ARBITER_PREVIEW_HEIGHT"); height > 0)
+        window->setHeight(height);
     window->setProperty("panel", panel);
-    if (screen == "interactions") {
+    if (state == "private") {
+        model.newPrivateTab();
+        qGuiApp->applicationStateChanged(Qt::ApplicationInactive);
+    }
+    if (state == "suggestions")
+        model.updatePage(model.activeId(), "credentialFocus", {{"origin", "https://example.com"}});
+    window->setProperty("pendingOrigin", "https://accounts.example.com");
+    window->setProperty("pendingUsername", "alex@example.com");
+    window->setProperty("pairDesktop", "Alex’s MacBook Pro");
+    window->setProperty("pairPin", "482 916");
+    if (state == "accounts")
+        window->setProperty("accounts", QVariantList{QVariantMap{{"id", "fixture"}, {"username", "alex@example.com"}}, QVariantMap{{"id", "fixture2"}, {"username", "A longer account name to test narrow screens"}}});
+    if (detail.endsWith("keyboard"))
+        window->setProperty("previewKeyboardInset", 280.);
+    if (state == "onboarding")
+        window->setProperty("onboardingStep", detail.toInt());
+    if (state == "downloads" && detail != "empty") {
+        model.downloadEvent("download", {{"id", "fixture-download"}, {"name", "Arbiter-desktop-release-with-a-long-filename.zip"}, {"url", "https://example.com/download.zip"}}, false);
+        model.downloadEvent("downloadProgress", {{"id", "fixture-download"}, {"received", 25000000}, {"total", 100000000}, {"speed", 2500000}}, false);
+    }
+    if (state == "history" && detail == "empty")
+        model.clearHistory("");
+    QTimer::singleShot(100, window, [window, state, detail] {
+        if (state == "settings" && !detail.isEmpty()) {
+            auto loader = window->findChild<QObject *>("settingsLoader");
+            if (loader) {
+                auto item = loader->property("item").value<QObject *>();
+                if (item) item->setProperty("category", detail.section(':', 0, 0));
+            }
+        }
+        if (state == "workspaces" && detail.startsWith("editor")) {
+            auto workspace = window->findChild<QObject *>("workspaceScreen");
+            if (workspace) QMetaObject::invokeMethod(workspace, "edit", Q_ARG(QVariant, QVariant("work")), Q_ARG(QVariant, QVariant("A longer workspace title")));
+        }
+    });
+    if (state == "interactions") {
         QTimer::singleShot(700, window, [window, &model, output] {
             auto pill = window->findChild<QQuickItem *>("mobilePill");
             if (!pill) {
@@ -200,6 +243,26 @@ void renderDesignPreview(MobileModel &model, QQmlApplicationEngine &engine, cons
         });
         return;
     }
+    if (detail.endsWith(":bottom"))
+        QTimer::singleShot(400, window, [window] {
+            if (auto scroll = window->findChild<QObject *>("pageScroll")) {
+                auto flick = scroll->property("contentItem").value<QObject *>();
+                if (flick) flick->setProperty("contentY", qMax(0., flick->property("contentHeight").toDouble() - flick->property("height").toDouble()));
+            }
+        });
+    if (detail.endsWith(":popup"))
+        QTimer::singleShot(400, window, [window] {
+            std::function<QObject *(QQuickItem *)> findCombo = [&](QQuickItem *item) -> QObject * {
+                if (!item || !item->isVisible()) return nullptr;
+                const auto y = item->mapToScene(QPointF(0, item->height() / 2)).y();
+                if (item->property("currentIndex").isValid() && y > 70 && y < window->height() - 60)
+                    if (auto popup = item->property("popup").value<QObject *>()) return popup;
+                for (auto child : item->childItems())
+                    if (auto popup = findCombo(child)) return popup;
+                return nullptr;
+            };
+            if (auto popup = findCombo(window->contentItem())) QMetaObject::invokeMethod(popup, "open");
+        });
     QTimer::singleShot(700, window, [window, output] {
         QDir().mkpath(QFileInfo(output).absolutePath());
         const bool saved = window->grabWindow().save(output, "PNG");

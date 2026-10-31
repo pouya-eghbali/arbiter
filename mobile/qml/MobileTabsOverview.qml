@@ -12,35 +12,38 @@ Item {
     signal workspacesRequested
     property string query: ""
     ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 20
+        width: Math.min(parent.width - 40, 560)
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.topMargin: 12
+        anchors.bottomMargin: 12
         spacing: 15
         RowLayout {
             Layout.fillWidth: true
-            UiButton {
-                flat: true
-                text: root.workspaceName
+            Controls.AbstractButton {
+                Layout.fillWidth: true
+                implicitHeight: 48
+                Accessible.name: root.workspaceName
+                onClicked: root.workspacesRequested()
                 contentItem: RowLayout {
-                    spacing: 7
+                    spacing: 8
                     Text {
+                        Layout.fillWidth: true
                         text: root.workspaceName
-                        font.pixelSize: 21
+                        textFormat: Text.PlainText
+                        font.pixelSize: 22
                         color: Theme.text
-                        font.weight: Font.Medium
+                        font.weight: Font.DemiBold
+                        elide: Text.ElideRight
                     }
                     UiIcon {
                         name: "chevron-down"
-                        color: Theme.text
-                        Layout.preferredWidth: 17
-                        Layout.preferredHeight: 17
+                        color: Theme.muted
+                        Layout.preferredWidth: 18
+                        Layout.preferredHeight: 18
                     }
                 }
-                textAlignment: Text.AlignLeft
-                font.pixelSize: 21
-                onClicked: root.workspacesRequested()
-            }
-            Item {
-                Layout.fillWidth: true
             }
             MobileIconButton {
                 iconName: "x"
@@ -48,7 +51,7 @@ Item {
                 onClicked: root.dismiss()
             }
         }
-        UiTextField {
+        MobileField {
             Layout.fillWidth: true
             placeholderText: qsTr("Search tabs")
             onTextEdited: root.query = text
@@ -57,12 +60,19 @@ Item {
             id: grid
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.minimumHeight: 0
             clip: true
             cellWidth: width / 2
             cellHeight: Math.max(152, Math.min(180, cellWidth * .96))
             boundsBehavior: Flickable.StopAtBounds
             model: root.tabs.filter(t => !root.query || (t.title || "").toLowerCase().includes(root.query.toLowerCase()) || (t.url || "").toLowerCase().includes(root.query.toLowerCase()))
             Controls.ScrollBar.vertical: Controls.ScrollBar {}
+            MobileEmptyState {
+                anchors.centerIn: parent
+                width: parent.width
+                visible: grid.count === 0
+                title: qsTr("No matching tabs")
+            }
             delegate: Item {
                 id: cell
                 required property var modelData

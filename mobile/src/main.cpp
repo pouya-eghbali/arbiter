@@ -12,10 +12,32 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
+#include <QQuickImageProvider>
+#include <QPainter>
 #include <QTranslator>
 #ifdef ARBITER_MOBILE_WEBENGINE
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
 #endif
+// CPU tinting preserves alpha and works in both native GPU and software previews.
+class BrandImages : public QQuickImageProvider {
+  public:
+    BrandImages() : QQuickImageProvider(QQuickImageProvider::Image), source(":/brand/valkyrie-source.png") {}
+    QImage requestImage(const QString &id, QSize *size, const QSize &requested) override {
+        const auto target = requested.isValid() ? requested : QSize(96, 96);
+        auto image = source.scaled(target, Qt::KeepAspectRatio, Qt::SmoothTransformation)
+                         .convertToFormat(QImage::Format_ARGB32_Premultiplied);
+        const QColor color(QUrl::fromPercentEncoding(id.toUtf8()));
+        if (color.isValid()) {
+            QPainter painter(&image);
+            painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+            painter.fillRect(image.rect(), color);
+        }
+        if (size) *size = image.size();
+        return image;
+    }
+  private:
+    QImage source;
+};
 class Catalog : public QTranslator {
   public:
     QJsonObject strings;
@@ -54,6 +76,7 @@ int main(int argc, char **argv) {
     QDesktopServices::setUrlHandler("http", &browser, "openUrl");
     QDesktopServices::setUrlHandler("https", &browser, "openUrl");
     QQmlApplicationEngine engine;
+    engine.addImageProvider("brand", new BrandImages);
     Catalog catalog;
     app.installTranslator(&catalog);
     auto translate = [&] {
