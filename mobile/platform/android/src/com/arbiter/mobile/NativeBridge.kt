@@ -104,6 +104,7 @@ object NativeBridge {
  @JvmStatic fun language(code:String){MobileStrings.language(activity(),code)}
  @JvmStatic fun share(url:String){activity().runOnUiThread{activity().startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply{type="text/plain";putExtra(Intent.EXTRA_TEXT,url)},null))}}
  @JvmStatic fun secure(value:Boolean){activity().runOnUiThread{if(value)activity().window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)else activity().window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)}}
+ @JvmStatic fun appSettings(){activity().runOnUiThread{activity().startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:"+activity().packageName)))}}
  @JvmStatic fun defaultBrowser(){activity().runOnUiThread{if(Build.VERSION.SDK_INT>=29){val manager=activity().getSystemService(RoleManager::class.java);activity().startActivity(manager.createRequestRoleIntent(RoleManager.ROLE_BROWSER))}else activity().startActivity(Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))}}
  @JvmStatic fun credentialProvider(){activity().runOnUiThread{if(Build.VERSION.SDK_INT>=34)androidx.credentials.CredentialManager.create(activity()).createSettingsPendingIntent().send()}}
  @JvmStatic fun verify(reason:String){activity().runOnUiThread{

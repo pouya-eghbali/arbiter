@@ -964,7 +964,12 @@ Controls.ApplicationWindow {
                         active: window.panel === "settings"
                         Layout.fillWidth: true
                         source: "MobileSettings.qml"
-                        onLoaded: item.pairRequested.connect(() => window.open("pair"))
+                        onLoaded: {
+                            item.pairRequested.connect(() => window.open("pair"));
+                            item.vaultRequested.connect(() => window.open("vault"));
+                            item.historyRequested.connect(() => window.open("history"));
+                            item.downloadsRequested.connect(() => window.open("downloads"));
+                        }
                     }
                     Connections {
                         target: settingsLoader.item

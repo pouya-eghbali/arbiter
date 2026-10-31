@@ -9,6 +9,7 @@
 #include <QStandardPaths>
 #include <keychain.h>
 namespace MobilePlatform {
+void openSystemSettings() {}
 void initialize() {}
 void shutdown() {}
 QString vaultDirectory() {

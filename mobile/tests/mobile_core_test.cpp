@@ -1,4 +1,5 @@
 #include "mobilemodel.h"
+#include <QUrlQuery>
 #include "mobileplatform.h"
 #include "mobiletabs.h"
 #include "mobilevault.h"
@@ -55,6 +56,27 @@ class MobileCoreTest : public QObject {
         QVERIFY(model.addressUrl("javascript:alert(1)").host().contains("duckduckgo"));
         QVERIFY(model.addressUrl("https://user:password@example.com").host().contains("duckduckgo"));
         QCOMPARE(model.addressUrl("localhost:8080/path").scheme(), "http");
+    }
+    void searchSettingsPersistence() {
+        QTemporaryDir dir;
+        {
+            MobileModel model(nullptr, dir.path());
+            model.setSetting("searchEngine", "Ecosia");
+            QCOMPARE(model.addressUrl("two words").host(), "www.ecosia.org");
+            QCOMPARE(QUrlQuery(model.addressUrl("two words")).queryItemValue("q"), "two words");
+            model.setSetting("searchEngine", "Startpage");
+            const auto url = model.addressUrl("two words");
+            QCOMPARE(url.host(), "www.startpage.com");
+            QCOMPARE(QUrlQuery(url).queryItemValue("query"), "two words");
+            QVERIFY(!QUrlQuery(url).hasQueryItem("q"));
+            model.setSetting("tabSleepSeconds", 3600);
+            model.setSetting("passwordUnlockSeconds", 1800);
+            model.persist();
+        }
+        MobileModel restored(nullptr, dir.path());
+        QCOMPARE(restored.settings().value("searchEngine").toString(), "Startpage");
+        QCOMPARE(restored.settings().value("tabSleepSeconds").toInt(), 3600);
+        QCOMPARE(restored.settings().value("passwordUnlockSeconds").toInt(), 1800);
     }
     void sleepProtectsPages() {
         QTemporaryDir dir;

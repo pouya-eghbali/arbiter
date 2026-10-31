@@ -350,9 +350,11 @@ QUrl MobileModel::addressUrl(const QString &input) const {
     search = QUrl(engine == "Google"  ? "https://www.google.com/search"
                   : engine == "Bing"  ? "https://www.bing.com/search"
                   : engine == "Brave" ? "https://search.brave.com/search"
+                  : engine == "Ecosia" ? "https://www.ecosia.org/search"
+                  : engine == "Startpage" ? "https://www.startpage.com/sp/search"
                                       : "https://duckduckgo.com/");
     QUrlQuery query;
-    query.addQueryItem("q", text);
+    query.addQueryItem(engine == "Startpage" ? "query" : "q", text);
     search.setQuery(query);
     return search;
 }
@@ -899,6 +901,8 @@ void MobileModel::chooseBackground(const QUrl &url, bool dark) {
         return;
     setSetting(dark ? "darkImage" : "lightImage", QUrl::fromLocalFile(path).toString());
 }
+QString MobileModel::version() const { return QCoreApplication::applicationVersion(); }
+void MobileModel::openSystemSettings() { MobilePlatform::openSystemSettings(); }
 void MobileModel::setDefaultBrowser() {
     emit defaultBrowserRequested();
 }

@@ -571,6 +571,9 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
 }
 @end
 namespace MobilePlatform {
+void openSystemSettings() {
+    [UIApplication.sharedApplication openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString] options:@{} completionHandler:nil];
+}
 void initialize() {
     QTimer::singleShot(0, qApp, [] {
         if (!MobileModel::instance)

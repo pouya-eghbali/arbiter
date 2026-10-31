@@ -69,7 +69,16 @@ buttons and dropdowns keep only their own surface without a surrounding card;
 MobileEmptyState and MobileLogo handle empty views and theme-aware branding.
 Full pages use a centered column capped at 560 points, safe-area-aware footers,
 vertical scrolling and keyboard avoidance. Settings uses a category index with
-back navigation. Onboarding keeps its navigation outside the scrolling content.
+back navigation. General combines search, language, default-browser and tab-sleep
+preferences; Appearance, Privacy, Passwords & passkeys, Sync and About hold the
+remaining controls. The index filters category names and descriptions. Native
+system-settings links handle device permissions. Desktop-only extension, split
+view and shortcut controls are not exposed as nonfunctional mobile settings.
+
+The `settingschecks` desktop fixture verifies category navigation, index filtering,
+all six supported search engines and the saved-credentials link. Backend tests
+cover search URLs and persisted timeout/search preferences. Onboarding keeps its
+navigation outside the scrolling content.
 
 Run the visual matrix after building the desktop fixture target:
 

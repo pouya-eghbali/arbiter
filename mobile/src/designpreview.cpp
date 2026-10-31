@@ -12,6 +12,7 @@
 #include <QJsonDocument>
 #include <QPainter>
 #include <QQmlApplicationEngine>
+#include <QJSValue>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QTest>
@@ -126,6 +127,7 @@ void renderDesignPreview(MobileModel &model, QQmlApplicationEngine &engine, cons
     if (qEnvironmentVariableIsSet("ARBITER_PREVIEW_THEME"))
         model.setSetting("theme", qEnvironmentVariable("ARBITER_PREVIEW_THEME"));
     const QString panel = state == "start" || state == "browsing" || state == "private" || state == "suggestions" || state == "interactions" || state == "nativechecks" ? QString()
+                          : state == "settingschecks" ? QStringLiteral("settings")
                           : state == "search" ? QStringLiteral("address")
                                                : state;
     auto window = qobject_cast<QQuickWindow *>(engine.rootObjects().value(0));
@@ -173,6 +175,45 @@ void renderDesignPreview(MobileModel &model, QQmlApplicationEngine &engine, cons
             if (workspace) QMetaObject::invokeMethod(workspace, "edit", Q_ARG(QVariant, QVariant("work")), Q_ARG(QVariant, QVariant("A longer workspace title")));
         }
     });
+    if (state == "settingschecks") {
+        QTimer::singleShot(700, window, [window, output] {
+            auto loader = window->findChild<QObject *>("settingsLoader");
+            auto settings = loader ? loader->property("item").value<QObject *>() : nullptr;
+            if (!settings) { qCritical("Settings did not load"); qApp->exit(1); return; }
+            auto entries = [](const QVariant &value) {
+                return value.metaType() == QMetaType::fromType<QJSValue>() ? value.value<QJSValue>().toVariant().toList() : value.toList();
+            };
+            if (entries(settings->property("categories")).size() != 6) { qCritical("Settings categories were not consolidated"); qApp->exit(1); return; }
+            settings->setProperty("query", "language");
+            if (entries(settings->property("filteredCategories")).size() != 1) { qCritical("Settings search did not find General"); qApp->exit(1); return; }
+            settings->setProperty("query", "");
+            QTest::qWait(40);
+            auto findItem = [](auto &&self, QQuickItem *item, const QString &name) -> QQuickItem * {
+                if (item->objectName() == name) return item;
+                for (auto child : item->childItems()) if (auto found = self(self, child, name)) return found;
+                return nullptr;
+            };
+            auto general = findItem(findItem, window->contentItem(), "settingsCategory-general");
+            if (!general) { qCritical("General category delegate was not found"); qApp->exit(1); return; }
+            QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, general->mapToScene(QPointF(general->width()/2, general->height()/2)).toPoint());
+            if (settings->property("category") != "general") { qCritical("Settings category click failed"); qApp->exit(1); return; }
+            auto engines = window->findChild<QObject *>("mobileSearchEngine");
+            if (!engines || engines->property("count").toInt() != 6) { qCritical("Missing supported search engines"); qApp->exit(1); return; }
+            settings->setProperty("category", "passwords");
+            QTest::qWait(80);
+            auto vault = findItem(findItem, window->contentItem(), "settingsVaultLink");
+            if (!vault || !vault->isVisible()) { qCritical("Settings vault link was not visible"); qApp->exit(1); return; }
+            QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, vault->mapToScene(QPointF(vault->width()/2, vault->height()/2)).toPoint());
+            if (window->property("panel") != "vault") { qCritical("Settings vault link did not open saved credentials"); qApp->exit(1); return; }
+            QFile result(output);
+            if (!result.open(QIODevice::WriteOnly)) { qApp->exit(1); return; }
+            result.write("Settings grouping, search, category navigation, search engine choices and vault link passed\n");
+            result.close();
+            qInfo("Settings grouping, search, category navigation, search engine choices and vault link passed");
+            qApp->quit();
+        });
+        return;
+    }
     if (state == "nativechecks") {
         QTimer::singleShot(700, window, [window, &model, output] {
             auto host = [&](const QString &name) -> NativeGlassHost * {

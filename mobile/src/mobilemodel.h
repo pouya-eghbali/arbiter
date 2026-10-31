@@ -27,6 +27,7 @@ class MobileModel : public QObject {
     Q_PROPERTY(bool privateLocked READ privateLocked NOTIFY changed)
     Q_PROPERTY(bool onboardingDone READ onboardingDone NOTIFY settingsChanged)
     Q_PROPERTY(QString backend READ backend CONSTANT)
+    Q_PROPERTY(QString version READ version CONSTANT)
     Q_PROPERTY(MobileVault *vault READ vault CONSTANT)
   public:
     explicit MobileModel(QObject *parent = nullptr, const QString &directory = QString());
@@ -71,6 +72,7 @@ class MobileModel : public QObject {
         return m_settings.value("onboardingDone").toBool();
     }
     QString backend() const;
+    QString version() const;
     MobileVault *vault() {
         return &m_vault;
     }
@@ -114,6 +116,7 @@ class MobileModel : public QObject {
     Q_INVOKABLE void copy(const QString &text);
     Q_INVOKABLE void chooseBackground(const QUrl &, bool dark);
     Q_INVOKABLE void setDefaultBrowser();
+    Q_INVOKABLE void openSystemSettings();
     Q_INVOKABLE void enableCredentialProvider();
     QJsonObject page(const QString &id) const;
     Q_INVOKABLE QString formScript(bool privateMode) const;

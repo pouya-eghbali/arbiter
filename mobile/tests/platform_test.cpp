@@ -8,6 +8,7 @@ int verifications = 0;
 } // namespace TestPlatform
 namespace MobilePlatform {
 void initialize() {}
+void openSystemSettings() {}
 void shutdown() {}
 QString vaultDirectory() {
     return TestPlatform::directory;

@@ -9,6 +9,7 @@ class QWindow;
 class NativePage;
 namespace MobilePlatform {
 void initialize();
+void openSystemSettings();
 void shutdown();
 QString vaultDirectory();
 QByteArray vaultKey(bool create);
