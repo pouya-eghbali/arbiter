@@ -25,6 +25,12 @@ bool Appearance::eventFilter(QObject *watched, QEvent *event)
     if (watched == qGuiApp && event->type() == QEvent::ApplicationPaletteChange) emit colorsChanged();
     return QObject::eventFilter(watched, event);
 }
+bool Appearance::liquidGlass() const { return m_settings.value("appearance/liquidGlass", true).toBool(); }
+void Appearance::setLiquidGlass(bool value) {
+    if (value == liquidGlass()) return;
+    m_settings.setValue("appearance/liquidGlass", value);
+    emit liquidGlassChanged();
+}
 bool Appearance::dark() const
 {
     if (m_theme != "system") return m_theme == "dark";

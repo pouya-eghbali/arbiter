@@ -1,0 +1,134 @@
+#include "nativeglasshost.h"
+#include <TargetConditionals.h>
+#include <QGuiApplication>
+#if TARGET_OS_IPHONE
+#import <UIKit/UIKit.h>
+#else
+#import <AppKit/AppKit.h>
+#endif
+
+#if (TARGET_OS_IPHONE && __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000) || (!TARGET_OS_IPHONE && __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000)
+@interface ArbiterNativeGlassContext : NSObject
+#if TARGET_OS_IPHONE
+@property(nonatomic, weak) UIView *owner;
+@property(nonatomic, weak) UIView *foreground;
+@property(nonatomic, strong) UIVisualEffectView *effect;
+#else
+@property(nonatomic, weak) NSView *owner;
+@property(nonatomic, weak) NSView *foreground;
+@property(nonatomic, strong) NSGlassEffectView *effect API_AVAILABLE(macos(26.0));
+#endif
+@end
+@implementation ArbiterNativeGlassContext
+@end
+
+namespace NativeGlass {
+bool supported() {
+    if (!qGuiApp || (qGuiApp->platformName() != "cocoa" && qGuiApp->platformName() != "ios")) return false;
+#if TARGET_OS_IPHONE
+    if (@available(iOS 26.0, *)) return true;
+#else
+    if (@available(macOS 26.0, *)) return true;
+#endif
+    return false;
+}
+bool reducedTransparency() {
+#if TARGET_OS_IPHONE
+    return UIAccessibilityIsReduceTransparencyEnabled();
+#else
+    return NSWorkspace.sharedWorkspace.accessibilityDisplayShouldReduceTransparency;
+#endif
+}
+void *create(QQuickWindow *owner, QQuickWindow *foreground) {
+    if (!supported()) return nullptr;
+    auto context = [ArbiterNativeGlassContext new];
+#if TARGET_OS_IPHONE
+    if (@available(iOS 26.0, *)) {
+        context.owner = (__bridge UIView *)(void *)owner->winId();
+        context.foreground = (__bridge UIView *)(void *)foreground->winId();
+        auto effect = [UIGlassEffect effectWithStyle:UIGlassEffectStyleRegular];
+        effect.interactive = YES;
+        effect.tintColor = nil;
+        context.effect = [[UIVisualEffectView alloc] initWithEffect:effect];
+        context.foreground.opaque = NO;
+        context.foreground.backgroundColor = UIColor.clearColor;
+        [context.owner addSubview:context.effect];
+        [context.effect.contentView addSubview:context.foreground];
+    }
+#else
+    if (@available(macOS 26.0, *)) {
+        context.owner = (__bridge NSView *)(void *)owner->winId();
+        context.foreground = (__bridge NSView *)(void *)foreground->winId();
+        context.effect = [NSGlassEffectView new];
+        context.effect.style = NSGlassEffectViewStyleRegular;
+        context.effect.tintColor = nil;
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= 270000
+        if (@available(macOS 27.0, *)) context.effect.effectIsInteractive = YES;
+#endif
+        context.effect.contentView = context.foreground;
+        [context.owner addSubview:context.effect positioned:NSWindowAbove relativeTo:nil];
+    }
+#endif
+    return (__bridge_retained void *)context;
+}
+void update(void *value, const QRectF &rect, qreal radius) {
+    auto context = (__bridge ArbiterNativeGlassContext *)value;
+#if TARGET_OS_IPHONE
+    if (@available(iOS 26.0, *)) {
+        context.effect.frame = CGRectMake(rect.x(), rect.y(), rect.width(), rect.height());
+        context.effect.layer.cornerRadius = radius;
+        context.effect.layer.cornerCurve = kCACornerCurveContinuous;
+        context.effect.cornerConfiguration = [UICornerConfiguration configurationWithRadius:[UICornerRadius fixedRadius:radius]];
+        context.foreground.frame = context.effect.contentView.bounds;
+        [context.owner bringSubviewToFront:context.effect];
+    }
+#else
+    if (@available(macOS 26.0, *)) {
+        const auto y = context.owner.isFlipped ? rect.y() : context.owner.bounds.size.height - rect.bottom();
+        context.effect.frame = NSMakeRect(rect.x(), y, rect.width(), rect.height());
+        context.effect.cornerRadius = radius;
+
+        context.foreground.frame = context.effect.bounds;
+    }
+#endif
+}
+void setVisible(void *value, bool visible) {
+    auto context = (__bridge ArbiterNativeGlassContext *)value;
+    context.effect.hidden = !visible;
+}
+QColor foregroundColor(void *value) {
+    auto context = (__bridge ArbiterNativeGlassContext *)value;
+#if TARGET_OS_IPHONE
+    CGFloat r = 0, g = 0, b = 0, a = 1;
+    [[UIColor.labelColor resolvedColorWithTraitCollection:context.effect.traitCollection] getRed:&r green:&g blue:&b alpha:&a];
+    return QColor::fromRgbF(r, g, b, a);
+#else
+    if (@available(macOS 26.0, *)) {
+        __block NSColor *color;
+        [context.effect.effectiveAppearance performAsCurrentDrawingAppearance:^{
+            color = [NSColor.labelColor colorUsingColorSpace:NSColorSpace.deviceRGBColorSpace];
+        }];
+        return QColor::fromRgbF(color.redComponent, color.greenComponent, color.blueComponent, color.alphaComponent);
+    }
+    return Qt::black;
+#endif
+}
+void destroy(void *value) {
+    auto context = (__bridge_transfer ArbiterNativeGlassContext *)value;
+    [context.foreground removeFromSuperview];
+    if (context.owner && context.foreground) [context.owner addSubview:context.foreground];
+    [context.effect removeFromSuperview];
+}
+}
+
+#else
+namespace NativeGlass {
+bool supported() { return false; }
+bool reducedTransparency() { return false; }
+void *create(QQuickWindow *, QQuickWindow *) { return nullptr; }
+void update(void *, const QRectF &, qreal) {}
+void destroy(void *) {}
+void setVisible(void *, bool) {}
+QColor foregroundColor(void *) { return Qt::black; }
+}
+#endif

@@ -1363,6 +1363,20 @@ Basic.ApplicationWindow {
                                 onActivated: window.appearance.theme = ["system", "dark", "light"][currentIndex]
                             }
                         }
+                        NativeGlassHost { id: desktopGlassCapability; visible: false }
+                        UiCheckBox {
+                            visible: desktopGlassCapability.available
+                            text: qsTr("Liquid Glass")
+                            checked: window.appearance.liquidGlass
+                            onToggled: window.appearance.liquidGlass = checked
+                        }
+                        Basic.Label {
+                            visible: desktopGlassCapability.available
+                            Layout.fillWidth: true
+                            text: qsTr("Liquid Glass uses the system appearance. Custom colors apply to Glacier when Liquid Glass is off.")
+                            color: Theme.muted
+                            wrapMode: Text.WordWrap
+                        }
                         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; Layout.topMargin: 4; Layout.bottomMargin: 4; color: Theme.border }
                         Basic.Label { text: qsTr("Colors & background"); color: Theme.text; font.pixelSize: 18; font.weight: Font.DemiBold }
                         Basic.Label {

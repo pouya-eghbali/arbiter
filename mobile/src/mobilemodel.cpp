@@ -185,7 +185,7 @@ QJsonObject MobileModel::page(const QString &key) const {
 }
 void MobileModel::restore() {
     m_settings = {
-        {"theme", "system"},           {"language", "system"},         {"searchEngine", "DuckDuckGo"},
+        {"liquidGlass", true}, {"theme", "system"},           {"language", "system"},         {"searchEngine", "DuckDuckGo"},
         {"lightAccent", "#2868b8"},    {"darkAccent", "#ab4dff"},      {"lightBackground", "#edf2f7"},
         {"darkBackground", "#101720"}, {"adblockEnabled", true},       {"backgroundSync", true},
         {"savePasswords", true},       {"suggestPasswords", true},     {"tabSleepSeconds", 600},

@@ -1,6 +1,7 @@
 #include "designpreview.h"
 #include "mobilemodel.h"
 #include "nativepage.h"
+#include "nativeglasshost.h"
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
@@ -124,7 +125,7 @@ void renderDesignPreview(MobileModel &model, QQmlApplicationEngine &engine, cons
         model.addTab();
     if (qEnvironmentVariableIsSet("ARBITER_PREVIEW_THEME"))
         model.setSetting("theme", qEnvironmentVariable("ARBITER_PREVIEW_THEME"));
-    const QString panel = state == "start" || state == "browsing" || state == "private" || state == "suggestions" || state == "interactions" ? QString()
+    const QString panel = state == "start" || state == "browsing" || state == "private" || state == "suggestions" || state == "interactions" || state == "nativechecks" ? QString()
                           : state == "search" ? QStringLiteral("address")
                                                : state;
     auto window = qobject_cast<QQuickWindow *>(engine.rootObjects().value(0));
@@ -172,6 +173,62 @@ void renderDesignPreview(MobileModel &model, QQmlApplicationEngine &engine, cons
             if (workspace) QMetaObject::invokeMethod(workspace, "edit", Q_ARG(QVariant, QVariant("work")), Q_ARG(QVariant, QVariant("A longer workspace title")));
         }
     });
+    if (state == "nativechecks") {
+        QTimer::singleShot(700, window, [window, &model, output] {
+            auto host = [&](const QString &name) -> NativeGlassHost * {
+                for (auto item : window->findChildren<NativeGlassHost *>())
+                    if (item->content() && item->content()->objectName() == name) return item;
+                return nullptr;
+            };
+            auto pill = host("mobilePillContent");
+            if (!pill || !pill->available() || !pill->active()) {
+                qCritical("Native pill glass did not activate"); qApp->exit(1); return;
+            }
+            const auto before = model.activeId();
+            auto target = pill->content()->window();
+            const auto start = QPoint(qRound(target->width() * .5), target->height() / 2);
+            QTest::mousePress(target, Qt::LeftButton, Qt::NoModifier, start);
+            for (int i = 1; i <= 6; ++i) QTest::mouseMove(target, start - QPoint(i * 16, 0), 20);
+            QTest::mouseRelease(target, Qt::LeftButton, Qt::NoModifier, start - QPoint(96, 0));
+            QTest::qWait(100);
+            if (model.activeId() == before) { qCritical("Native pill swallowed the tab swipe"); qApp->exit(1); return; }
+            for (int i = 0; i < 8; ++i) {
+                auto more = visualItem(pill->content(), "mobileMoreButton");
+                if (!more) { qCritical("Native More button missing"); qApp->exit(1); return; }
+                QTest::mouseClick(more->window(), Qt::LeftButton, Qt::NoModifier, more->mapToScene(QPointF(more->width()/2, more->height()/2)).toPoint());
+                QTest::qWait(80);
+                auto menu = host("mobileMenuContent");
+                if (window->property("panel") != "more" || !menu || !menu->active()) { qCritical("Native menu did not activate"); qApp->exit(1); return; }
+                auto settings = visualItem(menu->content(), "mobileMenu-settings");
+                if (!settings) { qCritical("Native settings action missing"); qApp->exit(1); return; }
+                QTest::mouseClick(settings->window(), Qt::LeftButton, Qt::NoModifier, settings->mapToScene(QPointF(settings->width()/2, settings->height()/2)).toPoint());
+                QTest::qWait(80);
+                if (window->property("panel") != "settings" || pill->active() || menu->active()) { qCritical("Native menu failed to return control to settings"); qApp->exit(1); return; }
+                window->setProperty("panel", "");
+                QTest::qWait(80);
+            }
+            model.setSetting("liquidGlass", false);
+            QTest::qWait(80);
+            if (pill->active() || pill->content()->window() != window) { qCritical("Glacier fallback did not restore controls"); qApp->exit(1); return; }
+            model.setSetting("liquidGlass", true);
+            QTest::qWait(80);
+            if (!pill->active()) { qCritical("Native glass did not reactivate"); qApp->exit(1); return; }
+            qputenv("ARBITER_GLASS_FORCE_OPAQUE", "1");
+            QTest::qWait(350);
+            if (pill->active() || !pill->reducedTransparency()) { qCritical("Reduced-transparency fallback failed"); qApp->exit(1); return; }
+            qunsetenv("ARBITER_GLASS_FORCE_OPAQUE");
+            QTest::qWait(350);
+            if (!pill->active()) { qCritical("Glass did not recover after accessibility change"); qApp->exit(1); return; }
+            window->grabWindow().save(output, "PNG");
+            model.newPrivateTab();
+            qGuiApp->applicationStateChanged(Qt::ApplicationInactive);
+            QTest::qWait(80);
+            if (pill->active()) { qCritical("Private lock left native controls visible"); qApp->exit(1); return; }
+            qInfo("Native glass swipe, menu actions, lifetime, fallback and private-lock checks passed");
+            qApp->exit(0);
+        });
+        return;
+    }
     if (state == "interactions") {
         QTimer::singleShot(700, window, [window, &model, output] {
             auto pill = window->findChild<QQuickItem *>("mobilePill");

@@ -6,6 +6,7 @@
 
 class Appearance final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool liquidGlass READ liquidGlass WRITE setLiquidGlass NOTIFY liquidGlassChanged)
     Q_PROPERTY(QString theme READ theme WRITE setTheme NOTIFY themeChanged)
     Q_PROPERTY(bool dark READ dark NOTIFY colorsChanged)
     Q_PROPERTY(bool navigationPill READ navigationPill WRITE setNavigationPill NOTIFY navigationPillChanged)
@@ -21,6 +22,8 @@ class Appearance final : public QObject {
     Q_PROPERTY(QUrl darkBackgroundImage READ darkBackgroundImage NOTIFY backgroundImagesChanged)
 public:
     explicit Appearance(QObject *parent = nullptr);
+    bool liquidGlass() const;
+    void setLiquidGlass(bool);
     QString theme() const { return m_theme; }
     void setTheme(const QString &theme);
     bool dark() const;
@@ -48,6 +51,7 @@ public:
     Q_INVOKABLE void clearBackgroundImage(bool dark);
     Q_INVOKABLE QString displayAddress(const QUrl &url) const;
 signals:
+    void liquidGlassChanged();
     void themeChanged();
     void colorsChanged();
     void navigationPillChanged();

@@ -88,6 +88,15 @@ ColumnLayout {
         visible: root.category === "appearance"
         Layout.fillWidth: true
         title: qsTr("Appearance")
+        description: glassCapability.available ? qsTr("Liquid Glass uses the system appearance. Custom colors apply to Glacier when Liquid Glass is off.") : ""
+        MobileToggle {
+            Layout.fillWidth: true
+            visible: glassCapability.available
+            text: qsTr("Liquid Glass")
+            checked: browser.settings.liquidGlass === true
+            onToggled: browser.setSetting("liquidGlass", checked)
+        }
+        NativeGlassHost { id: glassCapability; visible: false }
         MobileComboBox {
             Layout.fillWidth: true
             model: [qsTr("System"), qsTr("Light"), qsTr("Dark")]

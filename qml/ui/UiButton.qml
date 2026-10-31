@@ -11,6 +11,8 @@ Basic.Button {
     readonly property color primaryFill: enabled ? Theme.accent : Theme.mix(Theme.popupSolid, Theme.accent, 0.45)
     readonly property color foregroundColor: primary ? Theme.contrastingText(primaryFill) : Theme.text
     property color iconColor: foregroundColor
+    property color textColor: foregroundColor
+    property bool nativeMaterial: false
     property bool primary: false
     property int textAlignment: Text.AlignHCenter
     implicitWidth: Math.max(40, implicitContentWidth + leftPadding + rightPadding)
@@ -38,7 +40,7 @@ Basic.Button {
             Layout.fillWidth: true
             text: control.text
             textFormat: Text.PlainText
-            color: control.foregroundColor
+            color: control.textColor
             font: control.font
             horizontalAlignment: control.textAlignment
             verticalAlignment: Text.AlignVCenter
@@ -47,7 +49,8 @@ Basic.Button {
     }
     background: Rectangle {
         radius: 12
-        color: control.primary ? control.primaryFill
+        color: control.nativeMaterial ? (control.down ? Qt.alpha(control.iconColor, .16) : control.hovered || control.activeFocus || control.checked ? Qt.alpha(control.iconColor, .08) : "transparent")
+            : control.primary ? control.primaryFill
             : control.down ? Theme.pressed : control.checked || control.highlighted ? Theme.selection
             : control.hovered || control.activeFocus ? Theme.hover : control.flat ? "transparent" : Theme.field
         border.width: control.activeFocus || control.primary && (control.hovered || control.down) ? 1 : 0

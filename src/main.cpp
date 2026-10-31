@@ -42,6 +42,9 @@
 #include "browsericons.h"
 #include "sitenavigation.h"
 #include <QWindow>
+#include <QQuickItem>
+#include <QQuickWindow>
+#include <QMouseEvent>
 #include <QFileInfo>
 #include <QTimer>
 #ifdef Q_OS_MACOS
@@ -78,6 +81,74 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName(QStringLiteral("Arbiter"));
     QCoreApplication::setApplicationName(QStringLiteral("Arbiter"));
     QCoreApplication::setApplicationVersion(QStringLiteral(ARBITER_VERSION));
+    // Isolated UI smoke path: no settings, profiles, credentials or network.
+    if (app.arguments().contains(QStringLiteral("--native-glass-smoke-test"))) {
+        QQmlApplicationEngine smoke;
+        QObject::connect(&smoke, &QQmlEngine::exit, &app, &QCoreApplication::exit);
+        QTimer::singleShot(15000, &app, [] { QCoreApplication::exit(5); });
+        smoke.loadData(R"QML(
+            import QtQuick
+            import QtQuick.Controls.Basic
+            import Arbiter
+            ApplicationWindow {
+                id: owner; width: 800; height: 500; visible: true; color: "#315449"
+                title: "Arbiter native glass smoke test"
+                NativeGlassHost { id: capability; visible: false }
+                QtObject {
+                    id: preferences
+                    property bool liquidGlass: true
+                    property string navigationRevealMode: "handle"
+                    function displayAddress(url) { return "example.com" }
+                }
+                NavigationPill {
+                    id: pill; anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom; anchors.bottomMargin: 20
+                    view: null; appearance: preferences; workspaceName: "Test"
+                    workspaceColor: "#8dbbff"; tabCount: 2; revealed: true
+                }
+                Timer {
+                    interval: 500; running: true; repeat: true
+                    property int step: 0
+                    onTriggered: {
+                        if (!capability.available) { Qt.exit(pill.nativeActive ? 2 : 0); return }
+                        if (step === 0 && !pill.nativeActive) { Qt.exit(3); return }
+                        if (step === 1 && pill.nativeActive) { Qt.exit(4); return }
+                        if (step === 2 && !pill.nativeActive) { Qt.exit(6); return }
+                        if (step === 3 && pill.nativeActive) { Qt.exit(7); return }
+                        if (step === 4 && !pill.nativeActive) { Qt.exit(8); return }
+                        if (step === 0) preferences.liquidGlass = false
+                        if (step === 1) preferences.liquidGlass = true
+                        if (step === 2) pill.forceHidden = true
+                        if (step === 3) { pill.forceHidden = false; pill.revealed = true }
+                        if (step === 4) pill.reveal()
+                        if (step === 5 && pill.nativeActive) { Qt.exit(10); return }
+                        if (step === 6) { if (!pill.nativeActive) { Qt.exit(11); return }; console.info("Desktop native glass lifecycle and menu-input smoke test passed"); Qt.exit(0) }
+                        step++
+                    }
+                }
+            }
+        )QML", QUrl(QStringLiteral("qrc:/native-glass-smoke.qml")));
+        if (smoke.rootObjects().isEmpty()) return 2;
+        auto root = smoke.rootObjects().first();
+        QTimer::singleShot(2700, root, [root] {
+            auto address = root->findChild<QQuickItem *>("navigationAddressButton");
+            if (!address || !address->hasActiveFocus()) { qCritical("Native address keyboard focus was lost"); QCoreApplication::exit(9); return; }
+            auto button = root->findChild<QQuickItem *>("navigationMoreButton");
+            if (!button || !button->window()) { QCoreApplication::exit(12); return; }
+            const auto point = button->mapToScene(QPointF(button->width()/2, button->height()/2));
+            const auto global = button->mapToGlobal(QPointF(button->width()/2, button->height()/2));
+            QMouseEvent press(QEvent::MouseButtonPress, point, global, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+            QMouseEvent release(QEvent::MouseButtonRelease, point, global, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+            QCoreApplication::sendEvent(button->window(), &press);
+            QCoreApplication::sendEvent(button->window(), &release);
+        });
+        QTimer::singleShot(3200, root, [root] {
+            auto menu = root->findChild<QObject *>("navigationMoreMenu");
+            if (!menu || !menu->property("visible").toBool()) { qCritical("Native More button did not open the menu"); QCoreApplication::exit(13); return; }
+            QMetaObject::invokeMethod(menu, "close");
+        });
+        return app.exec();
+    }
     // CI verifies the deployed WebEngine helper and QML plugins without opening
     // profiles, loading settings, touching credentials, or contacting a website.
     if (app.arguments().contains(QStringLiteral("--release-smoke-test"))) {

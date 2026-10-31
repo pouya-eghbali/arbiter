@@ -2681,6 +2681,14 @@
         <source>Private</source>
         <translation>プライベート</translation>
     </message>
+    <message>
+        <source>Liquid Glass</source>
+        <translation>Liquid Glass</translation>
+    </message>
+    <message>
+        <source>Liquid Glass uses the system appearance. Custom colors apply to Glacier when Liquid Glass is off.</source>
+        <translation>Liquid Glass はシステムの外観を使用します。Liquid Glass をオフにすると、カスタムカラーが Glacier に適用されます。</translation>
+    </message>
 </context>
 <context>
     <name>NativeShare</name>

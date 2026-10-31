@@ -81,6 +81,8 @@
   "Keep deletion": "保留删除",
   "Language": "语言",
   "Light": "浅色",
+  "Liquid Glass": "Liquid Glass",
+  "Liquid Glass uses the system appearance. Custom colors apply to Glacier when Liquid Glass is off.": "Liquid Glass 使用系统外观。关闭 Liquid Glass 后，自定义颜色将应用于 Glacier。",
   "Local encrypted sync": "Local encrypted sync",
   "Lock": "Lock",
   "Lock private browsing after inactivity": "Lock private browsing after inactivity",

@@ -66,6 +66,7 @@ Controls.ApplicationWindow {
     readonly property string workspaceName: (browser.workspaces.find(w => w.id === browser.workspaceId) || {}).name || qsTr("Personal")
     readonly property rect nativeOverlayRect: {
         const control = panel === "find" ? findBar : pill;
+        if (pill.nativeActive && panel !== "find") return Qt.rect(0, 0, 0, 0);
         if (!browsingSurface || !control.visible || content.width <= 0 || content.height <= 0)
             return Qt.rect(0, 0, 0, 0);
         return Qt.rect(control.x / content.width, control.y / content.height, control.width / content.width, control.height / content.height);

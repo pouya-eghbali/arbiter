@@ -4,6 +4,8 @@ import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 
 FocusScope {
+    readonly property bool nativeActive: nativeGlass.active
+    readonly property color pillText: nativeActive ? nativeGlass.foregroundColor : Theme.text
     property bool siteMuted: false
     property bool siteMuteAvailable: false
     signal muteSiteRequested()
@@ -19,7 +21,7 @@ FocusScope {
     property int adBlockBlocked: 0
     signal adBlockRequested()
     function dismissMenu() { more.close() }
-    function shareAnchor() { return shareButton.visible ? shareButton.mapToItem(null, shareButton.width / 2, shareButton.height / 2) : Qt.point(pill.x + pill.width / 2, pill.y) }
+    function shareAnchor() { if (!shareButton.visible) return Qt.point(pill.x + pill.width / 2, pill.y); const global = shareButton.mapToGlobal(shareButton.width / 2, shareButton.height / 2); const local = pill.mapFromGlobal(global.x, global.y); return pill.mapToItem(null, local.x, local.y) }
     function reveal() {
         extensionsMode = false
         collapse.stop()
@@ -31,7 +33,7 @@ FocusScope {
     function focusAddressIfReady() {
         if (!focusAddressPending || !expanded || revealProgress < 0.99) return
         focusAddressPending = false
-        Qt.callLater(function() { if (pill.shown && pill.expanded && pill.activeFocus && !pill.forceHidden) addressButton.forceActiveFocus(Qt.ShortcutFocusReason) })
+        Qt.callLater(function() { if (pill.shown && pill.expanded && (pill.activeFocus || pillForeground.activeFocus || nativeGlass.active) && !pill.forceHidden) { if (nativeGlass.active) nativeGlass.focusControl(addressButton); else addressButton.forceActiveFocus(Qt.ShortcutFocusReason) } })
     }
     signal privateWindowRequested()
     signal lockPrivateRequested()
@@ -61,7 +63,7 @@ FocusScope {
     Behavior on presenceProgress {
         NumberAnimation { duration: pill.forceHidden ? 0 : pill.presented ? Theme.enterDuration : Theme.exitDuration; easing.type: Easing.OutCubic }
     }
-    readonly property bool expanded: extensionsMode || revealed || activeFocus || more.visible
+    readonly property bool expanded: extensionsMode || revealed || activeFocus || pillForeground.activeFocus || more.visible
     signal shareRequested()
     property bool canShare: false
     signal addressRequested()
@@ -100,9 +102,18 @@ FocusScope {
             else collapse.restart()
         }
     }
-    Timer { id: collapse; interval: 1000; onTriggered: if (!hover.hovered && !pill.edgeHovered && !pill.activeFocus && !more.visible) pill.revealed = false }
+    Timer { id: collapse; interval: 1000; onTriggered: if (!hover.hovered && !nativeHover.hovered && !pill.edgeHovered && !pill.activeFocus && !pillForeground.activeFocus && !more.visible) pill.revealed = false }
+    NativeGlassHost {
+        id: nativeGlass
+        anchors.fill: pillSurface
+        requested: pill.appearance.liquidGlass && !more.visible
+        radius: height / 2
+        content: pillForeground
+    }
     GlassSurface {
         id: pillSurface
+        visible: !nativeGlass.active
+        forceOpaque: nativeGlass.reducedTransparency
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 10 * (1 - pill.revealProgress)
@@ -110,6 +121,16 @@ FocusScope {
         height: 6 + 50 * pill.revealProgress
         radius: height / 2
     }
+    FocusScope {
+        id: pillForeground
+        anchors.fill: parent
+        HoverHandler {
+            id: nativeHover
+            onHoveredChanged: {
+                if (hovered) { collapse.stop(); pill.revealed = true; }
+                else collapse.restart();
+            }
+        }
     UiButton {
         anchors.fill: parent
         visible: !pill.expanded
@@ -128,7 +149,11 @@ FocusScope {
         horizontalPadding: 6
         font.pixelSize: 20
         flat: true
+        nativeMaterial: pill.nativeActive
+        iconColor: pill.pillText
+        textColor: pill.pillText
         UiToolTip {
+            popupType: pill.nativeActive ? Basic.Popup.Window : Basic.Popup.Item
             visible: button.hovered && pill.revealProgress > 0.99
             text: button.Accessible.name
         }
@@ -160,6 +185,9 @@ FocusScope {
         Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 20; color: Theme.border }
         UiButton {
             id: addressButton
+            objectName: "navigationAddressButton"
+            nativeMaterial: pill.nativeActive
+            iconColor: pill.pillText
             Layout.fillWidth: true
             Layout.minimumWidth: 40
             implicitHeight: 36
@@ -167,7 +195,7 @@ FocusScope {
             hoverEnabled: true
             text: pill.appearance.displayAddress(pill.view ? pill.view.url : "about:blank")
             Accessible.name: qsTr("Edit address: %1").arg(text)
-            contentItem: Basic.Label { text: addressButton.text; color: Theme.text; elide: Text.ElideMiddle; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 13 }
+            contentItem: Basic.Label { text: addressButton.text; color: pill.pillText; elide: Text.ElideMiddle; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 13 }
             flat: true
             onClicked: pill.addressRequested()
         }
@@ -195,7 +223,7 @@ FocusScope {
             enabled: pill.canShare
             Accessible.name: qsTr("Share current page")
             iconName: "share"
-            iconColor: pill.canShare ? Theme.text : Theme.muted
+            iconColor: pill.canShare ? pill.pillText : Qt.alpha(pill.pillText, .65)
             onPressed: pill.shareRequested()
         }
         NavButton {
@@ -204,7 +232,7 @@ FocusScope {
             visible: pill.siteMuteAvailable
             iconName: pill.siteMuted ? "volume-x" : "volume-2"
             Accessible.name: pill.siteMuted ? qsTr("Unmute site") : qsTr("Mute site")
-            iconColor: pill.siteMuted ? Theme.accent : Theme.text
+            iconColor: pill.siteMuted ? Theme.accent : pill.pillText
             onClicked: pill.muteSiteRequested()
         }
         NavButton {
@@ -216,7 +244,7 @@ FocusScope {
             onClicked: { pill.extensionsMode = true; pill.revealed = true; extensionsBackButton.forceActiveFocus() }
         }
         NavButton { objectName: "navigationTabsButton"; text: String(pill.tabCount); font.pixelSize: 13; Accessible.name: pill.tabCount === 1 ? qsTr("Show 1 tab") : qsTr("Show %1 tabs").arg(pill.tabCount); onClicked: pill.tabsRequested() }
-        NavButton { iconName: "ellipsis"; Accessible.name: qsTr("More browser controls"); onClicked: more.open() }
+        NavButton { objectName: "navigationMoreButton"; iconName: "ellipsis"; Accessible.name: qsTr("More browser controls"); onClicked: more.open() }
     }
     Item {
         anchors.fill: parent
@@ -289,6 +317,7 @@ FocusScope {
                 onClicked: pill.manageExtensionsRequested()
             }
         }
+    }
     }
     }
     UiMenu {

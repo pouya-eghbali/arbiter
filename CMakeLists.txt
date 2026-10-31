@@ -104,6 +104,8 @@ if(APPLE)
     )
 endif()
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+include(cmake/NativeGlass.cmake)
+arbiter_add_native_glass(arbiter)
 qt_add_qml_module(arbiter
     # Dynamic Qt resolves plugins at runtime. Avoid recursively scanning the
     # isolated Chromium checkout beneath this source directory.

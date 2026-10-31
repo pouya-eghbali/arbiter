@@ -23,9 +23,12 @@ Item {
                             Math.max(1, Math.ceil(height * icon.Screen.devicePixelRatio)))
         cache: true
         smooth: true
+        // Qt's #AARRGGBB strings are not SVG's #RRGGBBAA. Keep the SVG
+        // color opaque and apply alpha through the image node instead.
+        opacity: icon.color.a
         // SVG source is bundled, never fetched. Tint before rasterization so icons
         // work with both GPU and software rendering without effects or icon fonts.
         source: Lucide.icons[icon.assetName]
-            ? "data:image/svg+xml," + encodeURIComponent(Lucide.icons[icon.assetName].replace(/currentColor/g, icon.color.toString())) : ""
+            ? "data:image/svg+xml," + encodeURIComponent(Lucide.icons[icon.assetName].replace(/currentColor/g, Qt.rgba(icon.color.r, icon.color.g, icon.color.b, 1).toString())) : ""
     }
 }

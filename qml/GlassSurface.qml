@@ -9,13 +9,14 @@ Rectangle {
     antialiasing: true
     color: "transparent"
     border.width: 0
+    property bool forceOpaque: false
     property bool dense: false
     property bool shadowEnabled: true
     readonly property var ownerWindow: Window.window
     property Item sourceItem: ownerWindow && ownerWindow["glassBackdrop"] !== undefined
         ? ownerWindow["glassBackdrop"] : Theme.backdrop
     readonly property bool effectsAvailable: GraphicsInfo.api !== GraphicsInfo.Software && GraphicsInfo.api !== GraphicsInfo.Unknown
-    readonly property bool samplesBackdrop: visible && effectsAvailable && sourceItem !== null
+    readonly property bool samplesBackdrop: !forceOpaque && visible && effectsAvailable && sourceItem !== null
         && ownerWindow !== null && sourceItem.Window.window === ownerWindow
     readonly property point samplePosition: {
         // mapToItem doesn't notify bindings about ancestor motion. Track both
