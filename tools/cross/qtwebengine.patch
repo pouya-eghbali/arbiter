@@ -305,7 +305,20 @@
      output_dir = "$root_out_dir"
      sources = [
 -      "@GN_SOURCE_ROOT@/sandbox_win.cpp"
-+      "//qtwebengine/arbiter_sandbox/sandbox_win.cpp"
++      "//qtwebengine/arbiter_core/sandbox_win.cpp"
      ]
      public_deps = [ "//sandbox/win:sandbox" ]
    }
+--- a/cmake/QtBuildGnHelpers.cmake
++++ b/cmake/QtBuildGnHelpers.cmake
+@@ -81,6 +81,10 @@
+     get_property(gn_sources DIRECTORY PROPERTY GN_SOURCES)
+     foreach(gn_source_file ${gn_sources})
+         get_filename_component(gn_source_path ${source_dir}/${gn_source_file} ${path_mode})
++        if(DEFINED ENV{ARBITER_WINDOWS_SYSROOT})
++            string(REPLACE "${source_dir}/" "//qtwebengine/arbiter_core/"
++                gn_source_path "${gn_source_path}")
++        endif()
+         list(APPEND source_list \"${gn_source_path}\")
+     endforeach()
+     set(GN_HEADERS ${source_list})

@@ -204,13 +204,16 @@ def prepare_source(args):
     run("patch", "--force", "--fuzz=0", "--batch", "--forward", "-p1", "-i", patch, cwd=source)
     shutil.copyfile(HERE / "rc.py", source / "src/3rdparty/chromium/build/toolchain/win/arbiter_rc.py")
     # GN renders files outside Chromium's root as absolute paths. clang-cl
-    # treats a macOS /Users/... input as /U (undefine), so stage Qt's tiny
-    # sandbox translation unit inside the Chromium root for a relative input.
-    sandbox = source / "src/3rdparty/chromium/qtwebengine/arbiter_sandbox/sandbox_win.cpp"
-    sandbox.parent.mkdir(parents=True, exist_ok=True)
-    original = source / "src/core/sandbox_win.cpp"
-    if not sandbox.exists() or sandbox.read_bytes() != original.read_bytes():
-        shutil.copyfile(original, sandbox)
+    # treats a macOS /Users/... input as /U (undefine). Stage the verified Qt
+    # core tree inside Chromium, preserving unchanged files for incremental builds.
+    staged = source / "src/3rdparty/chromium/qtwebengine/arbiter_core"
+    original = source / "src/core"
+    for item in original.rglob("*"):
+        if item.is_file() and not item.name.endswith((".orig", ".rej")):
+            destination = staged / item.relative_to(original)
+            if not destination.exists() or destination.read_bytes() != item.read_bytes():
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(item, destination)
     return source
 
 
