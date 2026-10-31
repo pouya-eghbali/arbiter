@@ -22,6 +22,12 @@ python3.12 tools/cross/linux.py all \
   --jobs 16
 ```
 
+On macOS, `./tools/release/build-linux.sh --jobs 16` selects this direct cross-build
+by default. `ARBITER_QT_PREFIX`, `ARBITER_LINUX_LLVM` and `ARBITER_LINUX_LLD` can
+override the native kit/tool prefixes. Set `ARBITER_LINUX_DOCKER=1` only to
+explicitly choose the older Docker alternative. This entry point compiles;
+validation and packaging still run on Linux x64.
+
 The default work directory is `build-linux-cross` (ignored by Git). Individual
 phases are `prepare`, `probe`, `runtime`, `engine` and `app`. `engine
 --configure-only` checks the CMake configuration without compiling Chromium.
