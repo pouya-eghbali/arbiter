@@ -16,7 +16,7 @@ ColumnLayout {
         Layout.alignment: Qt.AlignHCenter
         Layout.preferredWidth: 36
         Layout.preferredHeight: 36
-        color: Theme.muted
+        color: Theme.mutedFor(parent)
     }
     Text {
         Layout.fillWidth: true
@@ -24,7 +24,7 @@ ColumnLayout {
         font.pixelSize: 19
         font.weight: Font.Medium
         textFormat: Text.PlainText
-        color: Theme.text
+        color: Theme.textFor(parent)
         horizontalAlignment: Text.AlignHCenter
         wrapMode: Text.WordWrap
     }
@@ -35,7 +35,7 @@ ColumnLayout {
         font.pixelSize: 14
         lineHeight: 1.25
         textFormat: Text.PlainText
-        color: Theme.muted
+        color: Theme.mutedFor(parent)
         horizontalAlignment: Text.AlignHCenter
         wrapMode: Text.WordWrap
     }

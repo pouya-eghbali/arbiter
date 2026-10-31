@@ -5,7 +5,7 @@ import QtQuick.Controls.Basic as Basic
 import Arbiter
 
 UiPopup {
-    popupType: Basic.Popup.Item
+    popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
     id: panel
     required property var manager
     function bytes(value: real): string {
@@ -43,7 +43,7 @@ UiPopup {
         RowLayout {
             id: heading
             Layout.fillWidth: true
-            Basic.Label { Layout.fillWidth: true; text: qsTr("Downloads"); font.pixelSize: 22; font.weight: Font.DemiBold; color: Theme.text }
+            Basic.Label { Layout.fillWidth: true; text: qsTr("Downloads"); font.pixelSize: 22; font.weight: Font.DemiBold; color: Theme.textFor(parent) }
             UiIconButton { label: qsTr("Clear finished"); iconName: "list-x"; enabled: panel.manager.items.some(item => !item.active); onClicked: panel.manager.clearFinished() }
             UiIconButton { label: qsTr("Close downloads"); iconName: "x"; onClicked: panel.close() }
         }
@@ -52,10 +52,10 @@ UiPopup {
             Layout.fillWidth: true
             visible: panel.manager.privateMode
             text: qsTr("This list is private to this window. Saved files remain on your device.")
-            color: Theme.muted
+            color: Theme.mutedFor(parent)
             wrapMode: Text.Wrap
         }
-        Basic.Label { id: errorNote; Layout.fillWidth: true; visible: text.length > 0; text: panel.manager.error; textFormat: Text.PlainText; color: Theme.muted; wrapMode: Text.Wrap }
+        Basic.Label { id: errorNote; Layout.fillWidth: true; visible: text.length > 0; text: panel.manager.error; textFormat: Text.PlainText; color: Theme.mutedFor(parent); wrapMode: Text.Wrap }
         Basic.ScrollView {
             id: scroll
             Layout.fillWidth: true
@@ -66,7 +66,7 @@ UiPopup {
                 id: downloadRows
                 width: scroll.availableWidth
                 spacing: 6
-                Basic.Label { Layout.fillWidth: true; visible: panel.manager.items.length === 0; text: qsTr("No downloads yet."); color: Theme.muted; wrapMode: Text.Wrap }
+                Basic.Label { Layout.fillWidth: true; visible: panel.manager.items.length === 0; text: qsTr("No downloads yet."); color: Theme.mutedFor(parent); wrapMode: Text.Wrap }
                 Repeater {
                     model: panel.manager.items
                     delegate: Rectangle {
@@ -76,7 +76,7 @@ UiPopup {
                         objectName: "downloadRow"
                         implicitHeight: entry.implicitHeight + 20
                         radius: 12
-                        color: Theme.field
+                        color: Theme.fieldFor(parent)
                         RowLayout {
                             id: entry
                             anchors.fill: parent
@@ -105,7 +105,7 @@ UiPopup {
                                         textFormat: Text.PlainText
                                         font.pixelSize: 13
                                         font.weight: Font.DemiBold
-                                        color: Theme.text
+                                        color: Theme.textFor(parent)
                                         elide: Text.ElideMiddle
                                     }
                                     RowLayout {
@@ -146,7 +146,7 @@ UiPopup {
                                     Layout.fillWidth: true
                                     text: card.modelData.source
                                     textFormat: Text.PlainText
-                                    color: Theme.muted
+                                    color: Theme.mutedFor(parent)
                                     elide: Text.ElideMiddle
                                     font.pixelSize: 11
                                 }
@@ -163,7 +163,7 @@ UiPopup {
                                         }
                                         return detail
                                     }
-                                    color: Theme.muted
+                                    color: Theme.mutedFor(parent)
                                     font.pixelSize: 11
                                     wrapMode: Text.Wrap
                                 }
@@ -175,7 +175,7 @@ UiPopup {
                                     from: 0
                                     to: Math.max(1, card.modelData.total)
                                     value: card.modelData.received
-                                    background: Rectangle { implicitHeight: 3; radius: 1.5; color: Theme.border }
+                                    background: Rectangle { implicitHeight: 3; radius: 1.5; color: Theme.borderFor(parent) }
                                     contentItem: Item {
                                         implicitHeight: 3
                                         clip: true
@@ -195,14 +195,14 @@ UiPopup {
                                     }
                                     Accessible.name: qsTr("Download progress")
                                 }
-                                Basic.Label { Layout.fillWidth: true; visible: text.length > 0; text: card.modelData.error; textFormat: Text.PlainText; font.pixelSize: 11; color: Theme.muted; wrapMode: Text.Wrap }
-                                Basic.Label { Layout.fillWidth: true; visible: text.length > 0; text: card.modelData.warning; textFormat: Text.PlainText; font.pixelSize: 11; color: Theme.muted; wrapMode: Text.Wrap }
+                                Basic.Label { Layout.fillWidth: true; visible: text.length > 0; text: card.modelData.error; textFormat: Text.PlainText; font.pixelSize: 11; color: Theme.mutedFor(parent); wrapMode: Text.Wrap }
+                                Basic.Label { Layout.fillWidth: true; visible: text.length > 0; text: card.modelData.warning; textFormat: Text.PlainText; font.pixelSize: 11; color: Theme.mutedFor(parent); wrapMode: Text.Wrap }
                             }
                         }
                     }
                 }
             }
         }
-        Basic.Label { id: footer; text: qsTr("%1 active").arg(panel.manager.activeCount); font.pixelSize: 11; color: Theme.muted }
+        Basic.Label { id: footer; text: qsTr("%1 active").arg(panel.manager.activeCount); font.pixelSize: 11; color: Theme.mutedFor(parent) }
     }
 }

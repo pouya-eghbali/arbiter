@@ -12,20 +12,20 @@ Basic.ComboBox {
     hoverEnabled: true
     background: Rectangle {
         radius: 12
-        color: control.hovered ? Theme.hover : Theme.field
-        border.color: control.activeFocus ? Theme.accent : Theme.border
+        color: control.hovered ? Theme.hoverFor(parent) : Theme.fieldFor(parent)
+        border.color: control.activeFocus ? Theme.accent : Theme.borderFor(parent)
     }
     contentItem: Basic.Label {
         text: control.displayText
         textFormat: Text.PlainText
-        color: Theme.text
+        color: Theme.textFor(parent)
         font: control.font
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
     }
     indicator: UiIcon {
         name: "chevron-down"
-        color: Theme.muted
+        color: Theme.mutedFor(parent)
         width: 20
         height: 20
         x: control.width - width - 14
@@ -45,14 +45,14 @@ Basic.ComboBox {
                 return control.textRole ? (entry && typeof entry === "object" ? entry[control.textRole] : option.model[control.textRole]) : entry
             }
             textFormat: Text.PlainText
-            color: Theme.text
+            color: Theme.textFor(parent)
             elide: Text.ElideRight
             verticalAlignment: Text.AlignVCenter
         }
-        background: Rectangle { radius: 9; color: option.highlighted ? Theme.selection : option.hovered ? Theme.hover : "transparent" }
+        background: Rectangle { radius: 9; color: option.highlighted ? Theme.selection : option.hovered ? Theme.hoverFor(parent) : "transparent" }
     }
     popup: UiPopup {
-        popupType: Basic.Popup.Item
+        popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
         y: control.height + 6
         width: control.width
         padding: 6

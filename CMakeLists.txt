@@ -19,7 +19,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(cmake/ArbiterWebEngine.cmake)
-find_package(Qt6 ${ARBITER_QT_SERIES} REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick Widgets WebChannel Sql Concurrent Network Positioning CorePrivate Svg PrintSupport Pdf LinguistTools)
+find_package(Qt6 ${ARBITER_QT_SERIES} REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick Widgets WebChannel Sql Concurrent Network Positioning CorePrivate GuiPrivate Svg PrintSupport Pdf LinguistTools)
 arbiter_verify_qt_version()
 get_target_property(arbiter_webengine_features Qt6::WebEngineCore QT_ENABLED_PUBLIC_FEATURES)
 if(NOT "webengine_extensions" IN_LIST arbiter_webengine_features)
@@ -133,6 +133,7 @@ target_link_libraries(arbiter PRIVATE
     qt6keychain
     OpenSSL::Crypto
     Qt6::CorePrivate
+    Qt6::GuiPrivate
 )
 set_target_properties(arbiter PROPERTIES
     MACOSX_BUNDLE TRUE

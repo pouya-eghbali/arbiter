@@ -22,13 +22,13 @@ Basic.MenuItem {
             opacity: name.length ? 1 : 0
             Layout.preferredWidth: 18
             Layout.preferredHeight: 18
-            color: Theme.text
+            color: Theme.textFor(parent)
         }
         Basic.Label {
             Layout.fillWidth: true
             text: control.text
             textFormat: Text.PlainText
-            color: Theme.text
+            color: Theme.textFor(parent)
             font: control.font
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
@@ -37,10 +37,10 @@ Basic.MenuItem {
             visible: control.shortcutText.length > 0
             text: control.shortcutText
             textFormat: Text.PlainText
-            color: Theme.muted
+            color: Theme.mutedFor(parent)
             font.pixelSize: 11
             horizontalAlignment: Text.AlignRight
         }
     }
-    background: Rectangle { radius: 10; color: control.highlighted ? Theme.selection : control.hovered ? Theme.hover : "transparent" }
+    background: Rectangle { radius: 10; color: control.highlighted ? Theme.selection : control.hovered ? Theme.hoverFor(parent) : "transparent" }
 }

@@ -116,8 +116,8 @@ Item {
         }
     }
 
-    component Popup: Basic.Popup {
-        popupType: Basic.Popup.Item
+    component Popup: UiPopup {
+        popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
         parent: Basic.Overlay.overlay
         anchors.centerIn: parent
         width: Math.min(600, panel.width - 40)
@@ -143,17 +143,17 @@ Item {
             text: action.text
             textFormat: Text.PlainText
             font.pixelSize: 13
-            color: Theme.text
+            color: Theme.textFor(parent)
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
         background: Rectangle {
             radius: 8
-            color: action.down ? Theme.pressed : action.hovered || action.highlighted ? Theme.hover : "transparent"
+            color: action.down ? Theme.pressedFor(parent) : action.hovered || action.highlighted ? Theme.hoverFor(parent) : "transparent"
         }
     }
-    Basic.Popup {
-        popupType: Basic.Popup.Item
+    UiPopup {
+        popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
         id: suggestionPopup
         objectName: "passwordSuggestions"
         parent: Basic.Overlay.overlay
@@ -187,7 +187,7 @@ Item {
                 Basic.Label {
                     width: parent.width
                     leftPadding: 10; topPadding: 4; bottomPadding: 6
-                    text: qsTr("Passwords"); color: Theme.muted; font.pixelSize: 12
+                    text: qsTr("Passwords"); color: Theme.mutedFor(parent); font.pixelSize: 12
                 }
                 Repeater {
                     model: panel.accounts
@@ -217,7 +217,7 @@ Item {
                 wrapMode: Text.Wrap
                 text: !panel.formAvailable ? qsTr("Focus a login field on an HTTPS page, then open Passwords again. Embedded frames and forms that submit to another website are not filled.")
                     : panel.accounts.length === 0 ? qsTr("No saved accounts for this website.") : qsTr("Choose an account to fill. Arbiter will not submit the form.")
-                color: Theme.muted
+                color: Theme.mutedFor(parent)
             }
             Basic.ScrollView {
                 visible: panel.accounts.length > 0
@@ -265,7 +265,7 @@ Item {
                 text: qsTr("Save the submitted password in your system credential store. If sign-in failed, dismiss this prompt.")
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
-                color: Theme.muted
+                color: Theme.mutedFor(parent)
             }
             UiTextField { id: saveUsername; Layout.fillWidth: true; placeholderText: qsTr("Username (optional)"); Accessible.name: qsTr("Username to save") }
             Basic.Label { text: panel.manager.error; visible: text.length > 0; Layout.fillWidth: true; wrapMode: Text.Wrap }
@@ -295,7 +295,7 @@ Item {
                 text: qsTr("Passwords use macOS Keychain, Windows Credential Manager, or a Linux keyring. Websites and usernames are indexed locally. Credentials do not sync between devices.")
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
-                color: Theme.muted
+                color: Theme.mutedFor(parent)
             }
             UiTextField { id: searchField; Layout.fillWidth: true; placeholderText: qsTr("Search sites and usernames"); Accessible.name: qsTr("Search saved passwords") }
             Basic.ScrollView {
@@ -314,7 +314,7 @@ Item {
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 Basic.Label { text: credentialRow.modelData.origin; textFormat: Text.PlainText; Layout.fillWidth: true; elide: Text.ElideMiddle }
-                                Basic.Label { text: credentialRow.modelData.username || qsTr("No username"); textFormat: Text.PlainText; Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.muted }
+                                Basic.Label { text: credentialRow.modelData.username || qsTr("No username"); textFormat: Text.PlainText; Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.mutedFor(parent) }
                             }
                             UiButton {
                                 text: qsTr("Update")
@@ -332,7 +332,7 @@ Item {
                             }
                         }
                     }
-                    Basic.Label { visible: panel.manager.entries.length === 0; text: qsTr("No saved passwords yet."); color: Theme.muted }
+                    Basic.Label { visible: panel.manager.entries.length === 0; text: qsTr("No saved passwords yet."); color: Theme.mutedFor(parent) }
                 }
             }
             Basic.Label { text: panel.manager.error; visible: text.length > 0; Layout.fillWidth: true; wrapMode: Text.Wrap }
@@ -355,7 +355,7 @@ Item {
                 text: qsTr("Saving here does not change the password on the website. Use the same password when creating or updating your website account.")
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
-                color: Theme.muted
+                color: Theme.mutedFor(parent)
             }
             Basic.Label { text: panel.manager.error; visible: text.length > 0; Layout.fillWidth: true; wrapMode: Text.Wrap }
             RowLayout {

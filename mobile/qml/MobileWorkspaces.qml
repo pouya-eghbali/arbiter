@@ -15,6 +15,11 @@ Item {
         isolated.checked = false;
         editor.open();
     }
+    NativeSheet {
+        anchors.fill: parent
+        anchors.margins: 12
+        onEscapeRequested: root.dismiss()
+        requested: Theme.liquidGlass && !editor.visible
     ColumnLayout {
         width: Math.min(parent.width - 40, 560)
         anchors.horizontalCenter: parent.horizontalCenter
@@ -27,13 +32,14 @@ Item {
             Layout.fillWidth: true
             Text {
                 text: qsTr("Workspaces")
-                color: Theme.text
+                color: Theme.textFor(parent)
                 font.pixelSize: 24
                 elide: Text.ElideRight
                 font.weight: Font.DemiBold
                 Layout.fillWidth: true
             }
             MobileIconButton {
+                objectName: "mobileWorkspaceNewButton"
                 iconName: "plus"
                 label: qsTr("New workspace")
                 onClicked: root.edit("", "")
@@ -62,7 +68,7 @@ Item {
                         Layout.fillWidth: true
                         implicitHeight: body.implicitHeight + 28
                         radius: 18
-                        color: modelData.id === browser.workspaceId ? Qt.alpha(Theme.accent, .12) : Theme.field
+                        color: modelData.id === browser.workspaceId ? Qt.alpha(Theme.accent, .12) : Theme.fieldFor(parent)
                         border.width: modelData.id === browser.workspaceId ? 1.3 : 0
                         border.color: Qt.alpha(Theme.accent, .75)
                         UiButton {
@@ -96,7 +102,7 @@ Item {
                                 Text {
                                     textFormat: Text.PlainText
                                     text: card.modelData.name
-                                    color: Theme.text
+                                    color: Theme.textFor(parent)
                                     font.pixelSize: 16
                                     font.weight: Font.Medium
                                     Layout.fillWidth: true
@@ -116,7 +122,7 @@ Item {
                                     radius: 12
                                     color: card.modelData.id === browser.workspaceId ? Theme.accent : "transparent"
                                     border.width: 1
-                                    border.color: card.modelData.id === browser.workspaceId ? Theme.accent : Theme.muted
+                                    border.color: card.modelData.id === browser.workspaceId ? Theme.accent : Theme.mutedFor(parent)
                                     UiIcon {
                                         anchors.centerIn: parent
                                         width: 14
@@ -135,7 +141,7 @@ Item {
                                     Layout.fillWidth: true
                                     UiIcon {
                                         name: modelData.sleeping ? "moon" : "globe"
-                                        color: Theme.muted
+                                        color: Theme.mutedFor(parent)
                                         Layout.preferredWidth: 16
                                         Layout.preferredHeight: 16
                                     }
@@ -143,7 +149,7 @@ Item {
                                         Layout.fillWidth: true
                                         textFormat: Text.PlainText
                                         text: (modelData.title || qsTr("New tab")) + (modelData.url ? " — " + modelData.url.replace(/^https?:\/\//, "").split("/")[0] : "")
-                                        color: Theme.muted
+                                        color: Theme.mutedFor(parent)
                                         font.pixelSize: 12
                                         elide: Text.ElideRight
                                     }
@@ -152,14 +158,14 @@ Item {
                             Text {
                                 visible: card.previews.length > 3
                                 text: "+ " + (card.previews.length === 4 ? qsTr("1 other tab") : qsTr("%1 other tabs").arg(card.previews.length - 3))
-                                color: Theme.muted
+                                color: Theme.mutedFor(parent)
                                 font.pixelSize: 12
                                 Layout.topMargin: 2
                             }
                             Text {
                                 visible: card.previews.length === 0
                                 text: qsTr("No open tabs")
-                                color: Theme.muted
+                                color: Theme.mutedFor(parent)
                                 font.pixelSize: 12
                             }
                         }
@@ -168,7 +174,8 @@ Item {
             }
         }
     }
-    Controls.Popup {
+    }
+    UiPopup {
         id: editor
         objectName: "workspaceEditor"
         x: (root.width - width) / 2
@@ -194,12 +201,13 @@ Item {
                     text: root.editingId ? qsTr("Edit workspace") : qsTr("New workspace")
                     font.pixelSize: 22
                     font.weight: Font.DemiBold
-                    color: Theme.text
+                    color: Theme.textFor(parent)
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                 }
                 MobileField {
                     id: workspaceName
+                    objectName: "mobileWorkspaceNameInput"
                     Layout.fillWidth: true
                     placeholderText: qsTr("Workspace name")
                     onAccepted: if (save.enabled)
@@ -239,6 +247,7 @@ Item {
                 MobileButton {
                     Layout.fillWidth: true
                     flat: true
+                    objectName: "mobileWorkspaceCancelButton"
                     text: qsTr("Cancel")
                     onClicked: editor.close()
                 }

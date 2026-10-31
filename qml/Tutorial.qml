@@ -4,8 +4,8 @@ import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 import "ui"
 
-Basic.Popup {
-    popupType: Basic.Popup.Item
+UiPopup {
+    popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
     id: tour
     required property var controller
     required property var keyBindings
@@ -31,12 +31,12 @@ Basic.Popup {
         spacing: 14
         RowLayout {
             Layout.fillWidth: true
-            Basic.Label { text: qsTr("A quick look around · %1 / 3").arg(tour.step + 1); color: Theme.muted; font.pixelSize: 12; Layout.fillWidth: true }
+            Basic.Label { text: qsTr("A quick look around · %1 / 3").arg(tour.step + 1); color: Theme.mutedFor(parent); font.pixelSize: 12; Layout.fillWidth: true }
             UiButton { text: qsTr("Skip"); flat: true; onClicked: tour.controller.dismissTutorial() }
         }
         Basic.Label {
             text: [qsTr("Go somewhere."), qsTr("Keep your worlds together."), qsTr("Make room for two. Or more.")][tour.step]
-            font.pixelSize: 22; font.weight: Font.DemiBold; color: Theme.text
+            font.pixelSize: 22; font.weight: Font.DemiBold; color: Theme.textFor(parent)
             Layout.fillWidth: true; wrapMode: Text.Wrap
         }
         Basic.Label {
@@ -45,7 +45,7 @@ Basic.Popup {
                 : tour.step === 1
                     ? qsTr("See your tabs with %1. Use %2 to group tabs into workspaces for different parts of your day.").arg(tour.shortcut("tabs")).arg(tour.shortcut("workspaces"))
                     : qsTr("Split left/right with %1, or top/bottom with %2. Drag the divider to resize. Hold %3 and drag a page onto another to swap them.").arg(tour.shortcut("splitHorizontal")).arg(tour.shortcut("splitVertical")).arg(Qt.platform.os === "osx" ? qsTr("Command + Shift") : qsTr("Control + Shift"))
-            color: Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText
+            color: Theme.mutedFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText
         }
         RowLayout {
             UiButton {
@@ -58,7 +58,7 @@ Basic.Popup {
             visible: tour.step === 2
             text: qsTr("Need a reminder? Press %1 for common keyboard shortcuts.").arg(tour.shortcut("shortcutHelp"))
             textFormat: Text.PlainText
-            color: Theme.text
+            color: Theme.textFor(parent)
             Layout.fillWidth: true
             wrapMode: Text.Wrap
         }

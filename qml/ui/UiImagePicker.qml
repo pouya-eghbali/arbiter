@@ -14,10 +14,10 @@ Basic.Pane {
     signal fileSelected(url file)
     signal removeRequested()
     padding: 16
-    background: Rectangle { radius: 16; color: Theme.field }
+    background: Rectangle { radius: 16; color: Theme.fieldFor(parent) }
     contentItem: ColumnLayout {
         spacing: 12
-        Basic.Label { text: picker.title; color: Theme.text; font.weight: Font.Medium }
+        Basic.Label { text: picker.title; color: Theme.textFor(parent); font.weight: Font.Medium }
         RowLayout {
             Layout.fillWidth: true
             spacing: 16
@@ -26,7 +26,7 @@ Basic.Pane {
                 Layout.preferredHeight: 80
                 radius: 10
                 color: picker.backgroundColor
-                border.color: Theme.border
+                border.color: Theme.borderFor(parent)
                 Image {
                     id: preview
                     anchors.fill: parent
@@ -46,7 +46,7 @@ Basic.Pane {
                     text: picker.value.toString().length === 0 ? qsTr("Use background color")
                         : preview.status === Image.Error ? qsTr("Image unavailable. Choose another or remove it.") : qsTr("Start page and split-view background")
                     wrapMode: Text.Wrap
-                    color: Theme.muted
+                    color: Theme.mutedFor(parent)
                 }
                 RowLayout {
                     Layout.fillWidth: true
@@ -66,7 +66,7 @@ Basic.Pane {
                 }
             }
         }
-        Basic.Label { Layout.fillWidth: true; visible: text.length > 0; text: picker.error; color: Theme.muted; wrapMode: Text.Wrap }
+        Basic.Label { Layout.fillWidth: true; visible: text.length > 0; text: picker.error; color: Theme.mutedFor(parent); wrapMode: Text.Wrap }
     }
     FileDialog {
         id: dialog

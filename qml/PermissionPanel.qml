@@ -18,8 +18,8 @@ Item {
             } else permissionPopup.close()
         }
     }
-    Basic.Popup {
-        popupType: Basic.Popup.Item
+    UiPopup {
+        popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
         id: permissionPopup
         objectName: "sitePermissionPopup"
         parent: Basic.Overlay.overlay
@@ -45,7 +45,7 @@ Item {
             spacing: 18
             RowLayout {
                 Layout.fillWidth: true
-                Basic.Label { text: qsTr("Site permission"); font.pixelSize: 24; font.weight: Font.DemiBold; color: Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap; Layout.alignment: Qt.AlignVCenter }
+                Basic.Label { text: qsTr("Site permission"); font.pixelSize: 24; font.weight: Font.DemiBold; color: Theme.textFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap; Layout.alignment: Qt.AlignVCenter }
                 UiButton { iconName: "x"; flat: true; Layout.alignment: Qt.AlignVCenter; Accessible.name: qsTr("Dismiss permission request"); onClicked: panel.controller.dismiss(panel.presentedId) }
             }
             Basic.Label {
@@ -61,7 +61,7 @@ Item {
                 text: qsTr("Allow access to %1?").arg(panel.controller.label)
                 textFormat: Text.PlainText
                 wrapMode: Text.Wrap
-                color: Theme.text
+                color: Theme.textFor(parent)
                 Layout.fillWidth: true
             }
             Basic.Label {
@@ -69,7 +69,7 @@ Item {
                 text: qsTr("Requested from a page at %1").arg(panel.controller.topOrigin)
                 textFormat: Text.PlainText
                 wrapMode: Text.WrapAnywhere
-                color: Theme.muted
+                color: Theme.mutedFor(parent)
                 Layout.fillWidth: true
             }
             Basic.Label {
@@ -77,7 +77,7 @@ Item {
                     ? panel.privateMode ? qsTr("This decision lasts for this private session.") : qsTr("This decision is saved for this site. Change it in Settings → Privacy.")
                     : qsTr("This permission is temporary. The site must ask again next time.")
                 wrapMode: Text.Wrap
-                color: Theme.muted
+                color: Theme.mutedFor(parent)
                 Layout.fillWidth: true
             }
             RowLayout {

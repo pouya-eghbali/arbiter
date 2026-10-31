@@ -38,8 +38,8 @@ Item {
         owner = null
         sharePopup.close()
     }
-    Basic.Popup {
-        popupType: Basic.Popup.Item
+    UiPopup {
+        popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
         id: sharePopup
         objectName: "desktopSharePopup"
         parent: Basic.Overlay.overlay
@@ -67,7 +67,7 @@ Item {
                 text: qsTr("Choose what to share")
                 wrapMode: Text.Wrap
                 font.pixelSize: 24
-                color: Theme.text
+                color: Theme.textFor(parent)
                 font.weight: Font.DemiBold
             }
             Basic.Label {
@@ -75,7 +75,7 @@ Item {
                 text: qsTr("Tab at %1").arg(panel.tabOrigin)
                 textFormat: Text.PlainText
                 wrapMode: Text.WrapAnywhere
-                color: Theme.muted
+                color: Theme.mutedFor(parent)
             }
             UiComboBox {
                 id: sourcePicker
@@ -101,7 +101,7 @@ Item {
                     text: model.display
                     onClicked: panel.select(index)
                 }
-                Basic.Label { anchors.centerIn: parent; visible: sources.count === 0; text: qsTr("No sources available"); color: Theme.muted }
+                Basic.Label { anchors.centerIn: parent; visible: sources.count === 0; text: qsTr("No sources available"); color: Theme.mutedFor(parent) }
             }
             UiButton {
                 Layout.alignment: Qt.AlignRight

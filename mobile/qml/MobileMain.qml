@@ -27,6 +27,7 @@ Controls.ApplicationWindow {
     color: surfaceColor
     onSurfaceColorChanged: browser.setSystemAppearance(surfaceColor)
 
+    readonly property bool privateCovered: browser.privateLocked
     property string panel: browser.onboardingDone ? "" : "onboarding"
     property var current: ({})
     property var visibleTabs: []
@@ -42,7 +43,11 @@ Controls.ApplicationWindow {
     readonly property bool specialPanel: ["address", "tabs", "workspaces", "more", "find"].includes(panel)
     readonly property bool browsingSurface: panel === "" || panel === "find"
     property real previewKeyboardInset: 0
-    readonly property real keyboardInset: browser.backend === "preview" && previewKeyboardInset > 0 ? previewKeyboardInset : Qt.inputMethod.visible && Qt.inputMethod.keyboardRectangle.y > 0 ? Math.max(0, content.height - content.mapFromItem(null, 0, Qt.inputMethod.keyboardRectangle.y).y) : 0
+    readonly property real keyboardInset: browser.backend === "preview" && previewKeyboardInset > 0 ? previewKeyboardInset : Qt.inputMethod.visible && Qt.inputMethod.keyboardRectangle.y > 0 ? Math.max(0, content.height - window.keyboardTop()) : 0
+    function keyboardTop() {
+        const revision = SurfacePalette.revision;
+        return SurfacePalette.keyboardTop(content, Qt.inputMethod.keyboardRectangle.y);
+    }
     onKeyboardInsetChanged: Qt.callLater(keepFieldVisible)
     onActiveFocusItemChanged: Qt.callLater(keepFieldVisible)
     function keepFieldVisible() {
@@ -66,7 +71,7 @@ Controls.ApplicationWindow {
     readonly property string workspaceName: (browser.workspaces.find(w => w.id === browser.workspaceId) || {}).name || qsTr("Personal")
     readonly property rect nativeOverlayRect: {
         const control = panel === "find" ? findBar : pill;
-        if (pill.nativeActive && panel !== "find") return Qt.rect(0, 0, 0, 0);
+        if (control.nativeActive) return Qt.rect(0, 0, 0, 0);
         if (!browsingSurface || !control.visible || content.width <= 0 || content.height <= 0)
             return Qt.rect(0, 0, 0, 0);
         return Qt.rect(control.x / content.width, control.y / content.height, control.width / content.width, control.height / content.height);
@@ -171,6 +176,7 @@ Controls.ApplicationWindow {
             window.open("pairReview");
         }
     }
+    Binding { target: Theme; property: "liquidGlass"; value: browser.settings.liquidGlass === true }
     Binding {
         target: Theme
         property: "dark"
@@ -290,7 +296,7 @@ Controls.ApplicationWindow {
             Text {
                 textFormat: Text.PlainText
                 text: window.current.error || ""
-                color: Theme.text
+                color: Theme.textFor(parent)
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
@@ -315,7 +321,7 @@ Controls.ApplicationWindow {
                 textFormat: Text.PlainText
                 text: qsTr("Private browsing is locked")
                 font.pixelSize: 25
-                color: Theme.text
+                color: Theme.textFor(parent)
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
@@ -346,7 +352,7 @@ Controls.ApplicationWindow {
             blurMax: 48
             blur: .65
             autoPaddingEnabled: false
-            visible: window.panel === "address" || window.panel === "more"
+            visible: ["address", "more", "tabs", "workspaces"].includes(window.panel)
             saturation: -.1
         }
         MobilePill {
@@ -368,18 +374,15 @@ Controls.ApplicationWindow {
                 browser.cycleTab(direction);
             }
         }
-        Item {
+        NativeSheet {
             id: findBar
+            onEscapeRequested: window.dismiss()
             x: 12
             width: parent.width - 24
             height: 120
             y: parent.height - height - Math.max(12, window.bottomInset + 8) - window.keyboardInset
             visible: window.panel === "find"
-            GlassSurface {
-                anchors.fill: parent
-                radius: 26
-                dense: true
-            }
+            radius: 26
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 12
@@ -388,7 +391,7 @@ Controls.ApplicationWindow {
                     Layout.fillWidth: true
                     UiIcon {
                         name: "search"
-                        color: Theme.muted
+                        color: Theme.mutedFor(parent)
                         Layout.preferredWidth: 18
                         Layout.preferredHeight: 18
                     }
@@ -409,7 +412,7 @@ Controls.ApplicationWindow {
                     Layout.fillWidth: true
                     Text {
                         text: qsTr("Find in page")
-                        color: Theme.muted
+                        color: Theme.mutedFor(parent)
                         font.pixelSize: 12
                         Layout.fillWidth: true
                     }
@@ -426,12 +429,14 @@ Controls.ApplicationWindow {
                 }
             }
             onVisibleChanged: if (visible)
-                Qt.callLater(() => findInput.forceActiveFocus())
+                Qt.callLater(() => findBar.focusControl(findInput))
         }
+
         Rectangle {
             anchors.fill: parent
-            color: Theme.window
+            color: Qt.alpha(Theme.window, .35)
             visible: window.panel === "tabs" || window.panel === "workspaces"
+            TapHandler { onTapped: window.dismiss() }
         }
         MobileTabsOverview {
             anchors.fill: parent
@@ -500,7 +505,7 @@ Controls.ApplicationWindow {
                     font.pixelSize: 24
                     wrapMode: Text.WordWrap
                     font.weight: Font.DemiBold
-                    color: Theme.text
+                    color: Theme.textFor(parent)
                 }
                 MobileIconButton {
                     iconName: "x"
@@ -544,7 +549,7 @@ Controls.ApplicationWindow {
                             Layout.fillWidth: true
                             implicitHeight: 88
                             radius: 16
-                            color: Theme.field
+                            color: Theme.fieldFor(parent)
                             MobileButton {
                                 anchors.fill: parent
                                 text: ""
@@ -559,7 +564,7 @@ Controls.ApplicationWindow {
                                 spacing: 12
                                 UiIcon {
                                     name: "history"
-                                    color: Theme.muted
+                                    color: Theme.mutedFor(parent)
                                     Layout.preferredWidth: 21
                                     Layout.preferredHeight: 21
                                 }
@@ -569,7 +574,7 @@ Controls.ApplicationWindow {
                                     Text {
                                         text: modelData.title || modelData.url
                                         textFormat: Text.PlainText
-                                        color: Theme.text
+                                        color: Theme.textFor(parent)
                                         font.pixelSize: 15
                                         elide: Text.ElideRight
                                         Layout.fillWidth: true
@@ -577,14 +582,14 @@ Controls.ApplicationWindow {
                                     Text {
                                         text: modelData.url.replace(/^https?:\/\//, "")
                                         textFormat: Text.PlainText
-                                        color: Theme.muted
+                                        color: Theme.mutedFor(parent)
                                         font.pixelSize: 12
                                         elide: Text.ElideRight
                                         Layout.fillWidth: true
                                     }
                                     Text {
                                         text: new Date(modelData.time).toLocaleDateString(Qt.locale(), Locale.ShortFormat)
-                                        color: Theme.muted
+                                        color: Theme.mutedFor(parent)
                                         font.pixelSize: 11
                                         Layout.fillWidth: true
                                     }
@@ -631,7 +636,7 @@ Controls.ApplicationWindow {
                                     Text {
                                         text: modelData.name || modelData.url
                                         textFormat: Text.PlainText
-                                        color: Theme.text
+                                        color: Theme.textFor(parent)
                                         font.pixelSize: 15
                                         elide: Text.ElideMiddle
                                         Layout.fillWidth: true
@@ -639,7 +644,7 @@ Controls.ApplicationWindow {
                                     Text {
                                         text: modelData.status || qsTr("Downloading…")
                                         textFormat: Text.PlainText
-                                        color: Theme.muted
+                                        color: Theme.mutedFor(parent)
                                         font.pixelSize: 13
                                         wrapMode: Text.WordWrap
                                         Layout.fillWidth: true
@@ -672,7 +677,7 @@ Controls.ApplicationWindow {
                         visible: window.panel === "vault"
                         text: qsTr("Saved passwords and passkeys stay encrypted on this device.")
                         wrapMode: Text.WordWrap
-                        color: Theme.muted
+                        color: Theme.mutedFor(parent)
                         Layout.fillWidth: true
                     }
                     MobileButton {
@@ -699,14 +704,14 @@ Controls.ApplicationWindow {
                                 Text {
                                     textFormat: Text.PlainText
                                     text: modelData.origin || modelData.rpId
-                                    color: Theme.text
+                                    color: Theme.textFor(parent)
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                 }
                                 Text {
                                     textFormat: Text.PlainText
                                     text: modelData.username || ""
-                                    color: Theme.muted
+                                    color: Theme.mutedFor(parent)
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                 }
@@ -723,7 +728,7 @@ Controls.ApplicationWindow {
                         visible: window.panel === "vault" && browser.vault.conflicts > 0
                         text: qsTr("Both versions were kept. Choose which change to keep on your devices.")
                         wrapMode: Text.WordWrap
-                        color: Theme.muted
+                        color: Theme.mutedFor(parent)
                         Layout.fillWidth: true
                     }
                     Repeater {
@@ -741,7 +746,7 @@ Controls.ApplicationWindow {
                         visible: window.panel === "vault" && browser.vault.error.length > 0
                         text: browser.vault.error
                         wrapMode: Text.WordWrap
-                        color: Theme.text
+                        color: Theme.textFor(parent)
                         Layout.fillWidth: true
                     }
                     MobileButton {
@@ -781,13 +786,13 @@ Controls.ApplicationWindow {
                         text: browser.vault.error
                         Layout.fillWidth: true
                         wrapMode: Text.WordWrap
-                        color: Theme.text
+                        color: Theme.textFor(parent)
                     }
                     Text {
                         textFormat: Text.PlainText
                         visible: window.panel === "pair"
                         text: qsTr("In Arbiter on desktop, open Settings → Sync, unlock the vault and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.")
-                        color: Theme.muted
+                        color: Theme.mutedFor(parent)
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
@@ -836,7 +841,7 @@ Controls.ApplicationWindow {
                         text: window.pairDesktop
                         font.pixelSize: 18
                         font.weight: Font.Medium
-                        color: Theme.text
+                        color: Theme.textFor(parent)
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
@@ -867,7 +872,7 @@ Controls.ApplicationWindow {
                         textFormat: Text.PlainText
                         visible: window.panel === "save"
                         text: window.pendingOrigin
-                        color: Theme.muted
+                        color: Theme.mutedFor(parent)
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
@@ -951,13 +956,13 @@ Controls.ApplicationWindow {
                             text: window.onboardingStep === 0 ? qsTr("Welcome to Arbiter") : window.onboardingStep === 1 ? qsTr("Make yourself at home") : window.onboardingStep === 2 ? qsTr("Bring your vault along") : qsTr("You’re ready")
                             font.pixelSize: 30
                             font.weight: Font.DemiBold
-                            color: Theme.text
+                            color: Theme.textFor(parent)
                             wrapMode: Text.WordWrap
                         }
                         Text {
                             textFormat: Text.PlainText
                             Layout.fillWidth: true
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             wrapMode: Text.WordWrap
                             text: window.onboardingStep === 0 ? qsTr("A quieter browser. Your tabs, your spaces, your rules.") : window.onboardingStep === 1 ? qsTr("Choose how Arbiter feels. You can change everything later in Settings.") : window.onboardingStep === 2 ? qsTr("Sync passwords and passkeys directly with your desktop over the same Wi-Fi. No cloud account.") : qsTr("Use the pill to search, go back, share a page, and open your tabs. Workspaces keep different parts of your life together. Private browsing locks when you leave the app.")
                         }
@@ -1027,7 +1032,7 @@ Controls.ApplicationWindow {
                             Layout.preferredWidth: index === window.onboardingStep ? 20 : 6
                             Layout.preferredHeight: 6
                             radius: 3
-                            color: index === window.onboardingStep ? Theme.accent : Theme.border
+                            color: index === window.onboardingStep ? Theme.accent : Theme.borderFor(parent)
                         }
                     }
                     Item {
@@ -1071,8 +1076,9 @@ Controls.ApplicationWindow {
             }
         }
     }
-    Controls.Popup {
+    UiPopup {
         id: historyConfirmation
+        objectName: "mobileHistoryConfirmation"
         anchors.centerIn: parent
         width: Math.min(parent.width - 40, 400)
         modal: true
@@ -1088,13 +1094,13 @@ Controls.ApplicationWindow {
                 text: qsTr("Delete history?")
                 font.pixelSize: 22
                 font.weight: Font.DemiBold
-                color: Theme.text
+                color: Theme.textFor(parent)
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
             Text {
                 text: window.query ? qsTr("Delete matching history") : qsTr("Clear history")
-                color: Theme.muted
+                color: Theme.mutedFor(parent)
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
@@ -1115,7 +1121,7 @@ Controls.ApplicationWindow {
             }
         }
     }
-    Controls.Popup {
+    UiPopup {
         id: toast
         focus: false
         closePolicy: Controls.Popup.NoAutoClose
@@ -1126,13 +1132,10 @@ Controls.ApplicationWindow {
         contentItem: Text {
             textFormat: Text.PlainText
             text: toast.text
-            color: Theme.text
+            color: Theme.textFor(parent)
             wrapMode: Text.WordWrap
         }
-        background: Rectangle {
-            color: Theme.popupSolid
-            radius: 18
-        }
+        background: GlassSurface { radius: 18; dense: true }
         onOpened: toastTimer.restart()
         Timer {
             id: toastTimer

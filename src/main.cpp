@@ -46,6 +46,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QMouseEvent>
+#include <qpa/qwindowsysteminterface.h>
 #include <QFileInfo>
 #include <QTimer>
 #ifdef Q_OS_MACOS
@@ -82,6 +83,134 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName(QStringLiteral("Arbiter"));
     QCoreApplication::setApplicationName(QStringLiteral("Arbiter"));
     QCoreApplication::setApplicationVersion(QStringLiteral(ARBITER_VERSION));
+    if (app.arguments().contains(QStringLiteral("--native-overlays-smoke-test"))) {
+        QQmlApplicationEngine engine;
+        QObject::connect(&engine, &QQmlEngine::exit, &app, &QCoreApplication::exit);
+        engine.loadData(R"QML(
+            import QtQuick
+            import QtQuick.Controls.Basic
+            import QtQuick.Layouts
+            import Arbiter
+            ApplicationWindow {
+                id: root; width: 900; height: 650; visible: true; color: "#324943"
+                property alias surface: surface
+                property bool privateCovered: false
+                property bool nativeEnabled: true
+                Binding { target: Theme; property: "liquidGlass"; value: root.nativeEnabled }
+                property alias panel: panel
+                property alias input: input
+                property alias menu: menu
+                property int actions: 0
+                UiMenu {
+                    id: menu; parent: panel.contentItem; x: 30; y: 40
+                    UiMenuItem { objectName: "overlayMenuAction"; text: "Test action"; onTriggered: root.actions++ }
+                }
+                UiPopup {
+                    id: panel; x: 100; y: 100; width: 420; height: 240
+                    padding: 20; modal: true; focus: true
+                    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                    background: GlassSurface { id: surface }
+                    contentItem: ColumnLayout {
+                        TextField { id: input; objectName: "overlayInput"; Layout.fillWidth: true }
+                        UiButton { text: "Close"; onClicked: panel.close() }
+                    }
+                    onOpened: input.forceActiveFocus()
+                }
+            }
+        )QML", QUrl("qrc:/native-overlay-smoke.qml"));
+        if (engine.rootObjects().isEmpty()) return 2;
+        auto root = engine.rootObjects().first();
+        const bool expectedNative = NativeGlass::supported();
+        NativeGlass::activateForTest(qobject_cast<QQuickWindow *>(root));
+        QTimer::singleShot(400, root, [root] { QMetaObject::invokeMethod(root->property("panel").value<QObject *>(), "open"); });
+        // A standalone GUI diagnostic may return activation to its launching
+        // app when a native popup closes. Re-enter through the parent window
+        // before the next interaction, just as a real user would.
+        auto openPanel = [root] {
+            auto main = qobject_cast<QQuickWindow *>(root);
+            NativeGlass::activateForTest(main);
+            QTimer::singleShot(80, root, [root] { QMetaObject::invokeMethod(root->property("panel").value<QObject *>(), "open"); });
+        };
+        auto timer = new QTimer(root);
+        timer->setInterval(400);
+        QObject::connect(timer, &QTimer::timeout, root, [root, timer, openPanel, expectedNative, phase = 0, cycle = 0]() mutable {
+            auto panel = root->property("panel").value<QObject *>();
+            auto menu = root->property("menu").value<QObject *>();
+            auto input = qobject_cast<QQuickItem *>(root->property("input").value<QObject *>());
+            auto click = [](QQuickItem *item) {
+                auto point = QPointF(item->width()/2, item->height()/2);
+                auto local = item->mapToScene(point);
+                auto global = item->mapToGlobal(point);
+                item->window()->requestActivate();
+                QWindowSystemInterface::handleMouseEvent<QWindowSystemInterface::SynchronousDelivery>(item->window(), local, global, Qt::LeftButton, Qt::LeftButton, QEvent::MouseButtonPress);
+                QWindowSystemInterface::handleMouseEvent<QWindowSystemInterface::SynchronousDelivery>(item->window(), local, global, Qt::NoButton, Qt::LeftButton, QEvent::MouseButtonRelease);
+            };
+            qInfo() << "Popup cycle" << cycle << "phase" << phase << "visible" << panel->property("visible") << "focused" << (input && input->hasActiveFocus()) << "application" << qGuiApp->applicationState();
+            if (phase == 0) {
+                auto surface = root->property("surface").value<QObject *>();
+                if (!surface || surface->property("nativeActive").toBool() != expectedNative || !input || !input->hasActiveFocus()) { qCritical("Native popup activation or focus failed"); qApp->exit(3); return; }
+                for (auto host : surface->findChildren<NativeGlassHost *>()) {
+                    if (!host->active()) continue;
+                    if (!host->geometryAligned()) { qApp->exit(4); return; }
+                    if (qGuiApp->applicationState() == Qt::ApplicationActive && input->property("color").value<QColor>() != host->foregroundColor()) { qCritical("Popup text did not inherit the native foreground color"); qApp->exit(13); return; }
+                }
+                input->setProperty("text", "");
+                QKeyEvent press(QEvent::KeyPress, Qt::Key_A, Qt::NoModifier, "a");
+                QCoreApplication::sendEvent(input->window(), &press);
+                if (input->property("text").toString() != "a") { qCritical("Native popup text input failed"); qApp->exit(5); return; }
+                QMetaObject::invokeMethod(menu, "open");
+            } else if (phase == 1) {
+                auto action = root->findChild<QQuickItem *>("overlayMenuAction");
+                if (!menu->property("visible").toBool() || !action) { qApp->exit(8); return; }
+                click(action);
+            } else if (phase == 2) {
+                if (root->property("actions").toInt() != cycle + 1 || !panel->property("visible").toBool()) { qCritical("Native nested menu action failed"); qApp->exit(9); return; }
+                if (cycle % 2) {
+                    auto main = qobject_cast<QQuickWindow *>(root);
+                    const QPointF point(20, 20);
+                    const auto global = main->mapToGlobal(point);
+                    const auto local = input->window()->mapFromGlobal(global);
+                    QWindowSystemInterface::handleMouseEvent<QWindowSystemInterface::SynchronousDelivery>(input->window(), local, global, Qt::LeftButton, Qt::LeftButton, QEvent::MouseButtonPress);
+                    QWindowSystemInterface::handleMouseEvent<QWindowSystemInterface::SynchronousDelivery>(input->window(), local, global, Qt::NoButton, Qt::LeftButton, QEvent::MouseButtonRelease);
+                } else {
+                    QKeyEvent escape(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
+                    QCoreApplication::sendEvent(input->window(), &escape);
+                }
+            } else {
+                if (panel->property("visible").toBool()) { qCritical("Native popup dismissal failed"); qApp->exit(6); return; }
+                if (++cycle == 8) {
+                    timer->stop();
+                    openPanel();
+                    QTimer::singleShot(500, root, [root] { root->setProperty("privateCovered", true); });
+                    QTimer::singleShot(900, root, [root, panel, openPanel] {
+                        if (panel->property("visible").toBool()) { qCritical("Private cover left a native popup visible"); qApp->exit(10); return; }
+                        root->setProperty("privateCovered", false);
+                        root->setProperty("nativeEnabled", false);
+                        openPanel();
+                    });
+                    QTimer::singleShot(1400, root, [root, panel] {
+                        auto surface = root->property("surface").value<QObject *>();
+                        auto input = qobject_cast<QQuickItem *>(root->property("input").value<QObject *>());
+                        if (surface->property("nativeActive").toBool() || input->window() != root) { qCritical("Glacier fallback did not restore the original window"); qApp->exit(11); return; }
+                        QMetaObject::invokeMethod(panel, "close");
+                    });
+                    QTimer::singleShot(1800, root, [root, openPanel] { root->setProperty("nativeEnabled", true); openPanel(); });
+                    QTimer::singleShot(2300, root, [root, expectedNative] {
+                        if (root->property("surface").value<QObject *>()->property("nativeActive").toBool() != expectedNative) { qApp->exit(12); return; }
+                        qInfo("Overlay bounds, input, nested menus, dismissal, private cover and Glacier toggles passed (8 cycles; native=%s)", expectedNative ? "true" : "false");
+                        qApp->quit();
+                    });
+                    return;
+                }
+                openPanel();
+                phase = -1;
+            }
+            ++phase;
+        });
+        QTimer::singleShot(700, timer, [timer] { timer->start(); });
+        QTimer::singleShot(25000, &app, [] { qApp->exit(7); });
+        return app.exec();
+    }
     // Isolated UI smoke path: no settings, profiles, credentials or network.
     if (app.arguments().contains(QStringLiteral("--native-glass-smoke-test"))) {
         QQmlApplicationEngine smoke;

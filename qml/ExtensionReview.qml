@@ -4,8 +4,8 @@ import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 import Arbiter
 
-Basic.Popup {
-    popupType: Basic.Popup.Item
+UiPopup {
+    popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
     id: panel
     objectName: "extensionPermissionReview"
     required property var catalog
@@ -71,7 +71,7 @@ Basic.Popup {
             textFormat: Text.PlainText
             font.pixelSize: 24
             font.weight: Font.DemiBold
-            color: Theme.text
+            color: Theme.textFor(parent)
             wrapMode: Text.Wrap
             maximumLineCount: 3
             elide: Text.ElideRight
@@ -79,7 +79,7 @@ Basic.Popup {
         Basic.Label {
             Layout.fillWidth: true
             text: qsTr("Review this extension’s requested permissions and website access. Add extension approves these permissions and enables it in this browser profile.")
-            color: Theme.muted
+            color: Theme.mutedFor(parent)
             wrapMode: Text.Wrap
         }
         Basic.Label {
@@ -88,7 +88,7 @@ Basic.Popup {
             Layout.fillWidth: true
             text: qsTr("This extension can read cookies, including sign-in and session data, on the websites it is allowed to access. Only approve extensions you trust.")
             textFormat: Text.PlainText
-            color: Theme.text
+            color: Theme.textFor(parent)
             font.weight: Font.DemiBold
             wrapMode: Text.Wrap
             padding: 12
@@ -109,7 +109,7 @@ Basic.Popup {
                 text: panel.details.permissions && panel.details.permissions.length
                     ? panel.details.permissions.join("\n") : qsTr("No permissions or website access declared.")
                 textFormat: Text.PlainText
-                color: Theme.text
+                color: Theme.textFor(parent)
                 wrapMode: Text.WrapAnywhere
             }
         }
@@ -118,7 +118,7 @@ Basic.Popup {
             visible: panel.reviewOwner && panel.reviewOwner.review.id === panel.details.id && panel.reviewOwner.status.length > 0
             text: panel.reviewOwner ? panel.reviewOwner.status : ""
             textFormat: Text.PlainText
-            color: Theme.muted
+            color: Theme.mutedFor(parent)
             wrapMode: Text.Wrap
         }
         RowLayout {

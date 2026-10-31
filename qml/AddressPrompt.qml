@@ -103,7 +103,7 @@ FocusScope {
         anchors.leftMargin: 18; anchors.rightMargin: 18
         height: 64
         spacing: 12
-        UiIcon { name: "search"; color: Theme.text; Layout.preferredWidth: 20; Layout.preferredHeight: 20 }
+        UiIcon { name: "search"; color: Theme.textFor(parent); Layout.preferredWidth: 20; Layout.preferredHeight: 20 }
         UiTextField {
             id: field
             objectName: "addressPromptField"
@@ -155,7 +155,7 @@ FocusScope {
             contentItem: RowLayout {
                 spacing: 12
                 Rectangle {
-                    implicitWidth: 28; implicitHeight: 28; radius: 7; color: Theme.field
+                    implicitWidth: 28; implicitHeight: 28; radius: 7; color: Theme.fieldFor(parent)
                     id: iconTile
                     property url iconSource: ""
                     function refreshIcon() {
@@ -180,18 +180,18 @@ FocusScope {
                         cache: true
                         fillMode: Image.PreserveAspectFit
                     }
-                    Basic.Label { anchors.centerIn: parent; visible: siteIcon.status !== Image.Ready; text: suggestion.modelData.title.substring(0,1).toUpperCase(); color: Theme.text; font.pixelSize: 14; font.weight: Font.DemiBold }
+                    Basic.Label { anchors.centerIn: parent; visible: siteIcon.status !== Image.Ready; text: suggestion.modelData.title.substring(0,1).toUpperCase(); color: Theme.textFor(parent); font.pixelSize: 14; font.weight: Font.DemiBold }
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 2
-                    Basic.Label { Layout.fillWidth: true; text: suggestion.modelData.title; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.text; font.pixelSize: 14 }
-                    Basic.Label { Layout.fillWidth: true; text: suggestion.modelData.url.replace(/^https?:\/\//, ""); textFormat: Text.PlainText; elide: Text.ElideMiddle; color: Theme.muted; font.pixelSize: 11 }
+                    Basic.Label { Layout.fillWidth: true; text: suggestion.modelData.title; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.textFor(parent); font.pixelSize: 14 }
+                    Basic.Label { Layout.fillWidth: true; text: suggestion.modelData.url.replace(/^https?:\/\//, ""); textFormat: Text.PlainText; elide: Text.ElideMiddle; color: Theme.mutedFor(parent); font.pixelSize: 11 }
                 }
                 Basic.Label {
                     visible: prompt.width >= 420
                     text: suggestion.modelData.kind === "tab" ? qsTr("Switch to tab") : suggestion.modelData.kind === "history" ? qsTr("History") : qsTr("Popular")
-                    color: Theme.muted; font.pixelSize: 12
+                    color: Theme.mutedFor(parent); font.pixelSize: 12
                 }
             }
             onClicked: prompt.activate(index)
@@ -202,7 +202,7 @@ FocusScope {
         anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
         anchors.margins: 14
         height: 36
-        Basic.Label { Layout.fillWidth: true; text: prompt.entries.length === 0 ? qsTr("Search the web or enter a URL") : prompt.width < 400 ? qsTr("↑ ↓  Select") : qsTr("↑ ↓  Select     esc  Dismiss"); color: Theme.muted; font.pixelSize: 11 }
+        Basic.Label { Layout.fillWidth: true; text: prompt.entries.length === 0 ? qsTr("Search the web or enter a URL") : prompt.width < 400 ? qsTr("↑ ↓  Select") : qsTr("↑ ↓  Select     esc  Dismiss"); color: Theme.mutedFor(parent); font.pixelSize: 11 }
         UiButton { text: qsTr("Go  ↵"); primary: true; implicitHeight: 36; enabled: field.text.trim().length > 0 || suggestions.currentIndex >= 0; onClicked: prompt.submit() }
     }
 }

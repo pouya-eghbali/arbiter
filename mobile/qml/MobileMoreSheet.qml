@@ -6,8 +6,8 @@ import Arbiter
 
 Item {
     id: root
-    readonly property color menuText: nativeGlass.active ? nativeGlass.foregroundColor : Theme.text
-    readonly property color menuMuted: nativeGlass.active ? Qt.alpha(nativeGlass.foregroundColor, .65) : Theme.muted
+    readonly property color menuText: nativeGlass.active ? nativeGlass.foregroundColor : Theme.textFor(parent)
+    readonly property color menuMuted: nativeGlass.active ? Qt.alpha(nativeGlass.foregroundColor, .65) : Theme.mutedFor(parent)
     property real bottomInset: 0
     property bool blocking: true
     property bool hasPage: true
@@ -30,6 +30,7 @@ Item {
             anchors.fill: parent
             requested: browser.settings.liquidGlass === true
             radius: 29
+            onEscapeRequested: root.dismiss()
             content: menuContent
             WindowContainer {
                 anchors.fill: parent
@@ -123,7 +124,7 @@ Item {
                                     onClicked: root.action(modelData.action)
                                     background: Rectangle {
                                         radius: 24
-                                        color: nativeGlass.active ? Qt.alpha(root.menuText, .08) : Theme.field
+                                        color: nativeGlass.active ? Qt.alpha(root.menuText, .08) : Theme.fieldFor(parent)
                                     }
                                 }
                                 Text {
@@ -186,7 +187,7 @@ Item {
                                 onClicked: root.action(modelData.action)
                                 background: Rectangle {
                                     radius: 12
-                                    color: row.down ? (nativeGlass.active ? Qt.alpha(root.menuText, .08) : Theme.hover) : "transparent"
+                                    color: row.down ? (nativeGlass.active ? Qt.alpha(root.menuText, .08) : Theme.hoverFor(parent)) : "transparent"
                                 }
                                 contentItem: RowLayout {
                                     spacing: 13

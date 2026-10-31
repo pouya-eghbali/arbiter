@@ -16,7 +16,7 @@ Item {
         input.text = address;
         query = "";
         Qt.callLater(() => {
-            input.forceActiveFocus();
+            sheet.focusControl(input);
             input.selectAll();
         });
     }
@@ -27,17 +27,14 @@ Item {
             onTapped: root.dismiss()
         }
     }
-    Item {
+    NativeSheet {
         id: sheet
+        onEscapeRequested: root.dismiss()
         width: Math.min(parent.width - 24, 536)
         x: (parent.width - width) / 2
         height: Math.max(0, Math.min(440, parent.height - root.keyboardInset - 16))
         y: parent.height - root.keyboardInset - height - 8
-        GlassSurface {
-            anchors.fill: parent
-            radius: 27
-            dense: true
-        }
+        radius: 27
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: 16
@@ -47,7 +44,7 @@ Item {
                 width: 30
                 height: 4
                 radius: 2
-                color: Qt.alpha(Theme.muted, .4)
+                color: Qt.alpha(Theme.mutedFor(parent), .4)
             }
             RowLayout {
                 Layout.minimumHeight: 48
@@ -55,25 +52,26 @@ Item {
                 spacing: 9
                 UiIcon {
                     name: "search"
-                    color: Theme.muted
+                    color: Theme.mutedFor(parent)
                     Layout.preferredWidth: 20
                     Layout.preferredHeight: 20
                 }
                 Controls.TextField {
                     id: input
+                    objectName: "mobileAddressInput"
                     Layout.fillWidth: true
                     implicitHeight: 48
                     placeholderText: qsTr("Search or enter address")
                     font.pixelSize: 16
-                    color: Theme.text
-                    placeholderTextColor: Theme.muted
+                    color: Theme.textFor(parent)
+                    placeholderTextColor: Theme.mutedFor(parent)
                     selectionColor: Theme.selection
-                    selectedTextColor: Theme.text
+                    selectedTextColor: Theme.textFor(parent)
                     selectByMouse: true
                     inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
                     background: Rectangle {
                         radius: 16
-                        color: Theme.field
+                        color: Theme.fieldFor(parent)
                     }
                     leftPadding: 12
                     rightPadding: 12
@@ -81,6 +79,7 @@ Item {
                     onAccepted: root.navigate(text)
                 }
                 MobileIconButton {
+                    objectName: "mobileAddressCloseButton"
                     iconName: "x"
                     label: qsTr("Close")
                     implicitWidth: 44
@@ -115,14 +114,14 @@ Item {
                         root.navigate(modelData.url)
                     background: Rectangle {
                         radius: 14
-                        color: row.down || row.hovered ? Theme.hover : "transparent"
+                        color: row.down || row.hovered ? Theme.hoverFor(parent) : "transparent"
                     }
                     contentItem: RowLayout {
                         spacing: 11
                         UiIcon {
                             Layout.leftMargin: 8
                             name: row.modelData.search ? "search" : row.modelData.tab ? "copy" : "globe"
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.preferredWidth: 20
                             Layout.preferredHeight: 20
                         }
@@ -132,7 +131,7 @@ Item {
                             verticalAlignment: Text.AlignVCenter
                             textFormat: Text.PlainText
                             text: row.modelData.title || row.modelData.url
-                            color: Theme.text
+                            color: Theme.textFor(parent)
                             font.pixelSize: 14
                             elide: Text.ElideRight
                         }
@@ -141,18 +140,18 @@ Item {
                             implicitWidth: badge.implicitWidth + 14
                             implicitHeight: 25
                             radius: 12
-                            color: Theme.field
+                            color: Theme.fieldFor(parent)
                             Text {
                                 id: badge
                                 anchors.centerIn: parent
                                 text: row.badge
-                                color: Theme.muted
+                                color: Theme.mutedFor(parent)
                                 font.pixelSize: 10
                             }
                         }
                         UiIcon {
                             name: "chevron-right"
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.preferredWidth: 15
                             Layout.preferredHeight: 15
                             Layout.rightMargin: 6

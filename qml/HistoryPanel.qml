@@ -63,8 +63,8 @@ UiPopup {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 3
-                Basic.Label { Layout.fillWidth: true; text: qsTr("History"); font.pixelSize: 24; font.weight: Font.DemiBold; color: Theme.text }
-                Basic.Label { Layout.fillWidth: true; elide: Text.ElideRight; text: qsTr("Your browsing timeline, newest first."); color: Theme.muted; font.pixelSize: 12 }
+                Basic.Label { Layout.fillWidth: true; text: qsTr("History"); font.pixelSize: 24; font.weight: Font.DemiBold; color: Theme.textFor(parent) }
+                Basic.Label { Layout.fillWidth: true; elide: Text.ElideRight; text: qsTr("Your browsing timeline, newest first."); color: Theme.mutedFor(parent); font.pixelSize: 12 }
             }
             UiButton {
                 id: deleteButton
@@ -114,21 +114,21 @@ UiPopup {
             visible: dateRange.currentIndex === 5
             Layout.fillWidth: true
             spacing: 10
-            Basic.Label { text: qsTr("From"); color: Theme.muted }
+            Basic.Label { text: qsTr("From"); color: Theme.mutedFor(parent) }
             UiDateField { id: fromField; pickerTitle: qsTr("First date"); objectName: "historyFromDate"; Layout.fillWidth: true; placeholderText: "YYYY-MM-DD"; maximumLength: 10; Accessible.name: qsTr("First date, YYYY-MM-DD; blank for no lower limit"); onTextChanged: if (dateRange.currentIndex === 5) panel.applyCustomDates() }
-            Basic.Label { text: qsTr("Through"); color: Theme.muted }
+            Basic.Label { text: qsTr("Through"); color: Theme.mutedFor(parent) }
             UiDateField { id: throughField; pickerTitle: qsTr("Last date"); objectName: "historyThroughDate"; Layout.fillWidth: true; placeholderText: "YYYY-MM-DD"; maximumLength: 10; Accessible.name: qsTr("Last date, YYYY-MM-DD; blank for no upper limit"); onTextChanged: if (dateRange.currentIndex === 5) panel.applyCustomDates() }
         }
         Basic.Label {
             visible: !panel.dateValid
             text: qsTr("Use YYYY-MM-DD, with the first date before or equal to the last. Either date can be left blank.")
-            color: Theme.muted; font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.Wrap
+            color: Theme.mutedFor(parent); font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.Wrap
         }
         Basic.Label {
             visible: panel.privateMode || panel.manager.error.length > 0
             text: panel.manager.error || qsTr("Private browsing history is never saved.")
             textFormat: Text.PlainText
-            color: Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap
+            color: Theme.mutedFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap
         }
         ListView {
             id: visits
@@ -151,8 +151,8 @@ UiPopup {
                 width: visits.width - 14
                 height: 46
                 spacing: 12
-                Basic.Label { text: dayHeading.section; textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 13; font.weight: Font.DemiBold }
-                Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.border }
+                Basic.Label { text: dayHeading.section; textFormat: Text.PlainText; color: Theme.textFor(parent); font.pixelSize: 13; font.weight: Font.DemiBold }
+                Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.borderFor(parent) }
             }
             delegate: HistoryEntry { }
             component HistoryEntry: RowLayout {
@@ -169,14 +169,14 @@ UiPopup {
                 Basic.Label {
                     Layout.preferredWidth: 44
                     text: Qt.formatTime(entry.visitedAt, "hh:mm")
-                    color: Theme.muted; font.pixelSize: 11
+                    color: Theme.mutedFor(parent); font.pixelSize: 11
                     horizontalAlignment: Text.AlignRight
                     elide: Text.ElideRight
                 }
                 Item {
                     Layout.preferredWidth: 12; Layout.fillHeight: true
-                    Rectangle { anchors.horizontalCenter: parent.horizontalCenter; width: 1; height: parent.height; color: Theme.border }
-                    Rectangle { anchors.centerIn: parent; width: 5; height: 5; radius: 2.5; color: Theme.muted }
+                    Rectangle { anchors.horizontalCenter: parent.horizontalCenter; width: 1; height: parent.height; color: Theme.borderFor(parent) }
+                    Rectangle { anchors.centerIn: parent; width: 5; height: 5; radius: 2.5; color: Theme.mutedFor(parent) }
                 }
                 UiButton {
                     Layout.fillWidth: true; Layout.fillHeight: true
@@ -187,7 +187,7 @@ UiPopup {
                         spacing: 10
                         Rectangle {
                             Layout.preferredWidth: 30; Layout.preferredHeight: 30
-                            radius: 8; color: Theme.field
+                            radius: 8; color: Theme.fieldFor(parent)
                             Image {
                                 id: favicon
                                 anchors.centerIn: parent; width: 18; height: 18
@@ -196,13 +196,13 @@ UiPopup {
                                 source: panel.browserPreferences && !panel.privateMode ? panel.browserPreferences.favicon(entry.pageUrl, false) : ""
                                 asynchronous: true; cache: true
                             }
-                            Basic.Label { anchors.centerIn: parent; visible: favicon.status !== Image.Ready; text: entry.website.charAt(0).toUpperCase(); color: Theme.muted; font.pixelSize: 13; Accessible.ignored: true }
+                            Basic.Label { anchors.centerIn: parent; visible: favicon.status !== Image.Ready; text: entry.website.charAt(0).toUpperCase(); color: Theme.mutedFor(parent); font.pixelSize: 13; Accessible.ignored: true }
                         }
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 4
-                            Basic.Label { text: entry.pageTitle; textFormat: Text.PlainText; color: Theme.text; elide: Text.ElideRight; Layout.fillWidth: true; font.pixelSize: 13; font.weight: Font.Medium }
-                            Basic.Label { text: entry.pageUrl; textFormat: Text.PlainText; color: Theme.muted; elide: Text.ElideMiddle; Layout.fillWidth: true; font.pixelSize: 11 }
+                            Basic.Label { text: entry.pageTitle; textFormat: Text.PlainText; color: Theme.textFor(parent); elide: Text.ElideRight; Layout.fillWidth: true; font.pixelSize: 13; font.weight: Font.Medium }
+                            Basic.Label { text: entry.pageUrl; textFormat: Text.PlainText; color: Theme.mutedFor(parent); elide: Text.ElideMiddle; Layout.fillWidth: true; font.pixelSize: 11 }
                         }
                     }
                     onClicked: panel.visitRequested(entry.pageUrl, false)
@@ -224,7 +224,7 @@ UiPopup {
                 horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap
                 visible: visits.count === 0
                 text: panel.manager.totalCount === 0 ? qsTr("Your browsing timeline starts here.") : qsTr("No visits match these filters. Try another date or website.")
-                color: Theme.muted
+                color: Theme.mutedFor(parent)
             }
         }
         Item { visible: !panel.dateValid; Layout.fillWidth: true; Layout.fillHeight: true }
@@ -232,7 +232,7 @@ UiPopup {
             Layout.fillWidth: true
             Basic.Label {
                 text: panel.dateValid ? qsTr("%1 of %2 visits · Up to 10,000 saved locally").arg(panel.manager.count).arg(panel.manager.totalCount) : qsTr("Enter a valid date range to see matching visits.")
-                color: Theme.muted; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.Wrap
+                color: Theme.mutedFor(parent); font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.Wrap
             }
             UiCheckBox {
                 visible: !panel.privateMode
@@ -260,15 +260,15 @@ UiPopup {
             spacing: 14
             Basic.Label {
                 text: panel.deleteScope === "matching" ? qsTr("Delete %1 matching visits?").arg(panel.deleteIds.length) : qsTr("Delete all browsing history?")
-                color: Theme.text; font.weight: Font.DemiBold; Layout.fillWidth: true; wrapMode: Text.Wrap
+                color: Theme.textFor(parent); font.weight: Font.DemiBold; Layout.fillWidth: true; wrapMode: Text.Wrap
             }
             Basic.Label {
                 text: (panel.deleteScope === "matching" ? qsTr("Only the results selected by your filters will be removed. Other visits are kept.")
                     : qsTr("Every saved visit will be removed, including visits hidden by your filters."))
                     + " " + qsTr("This cannot be undone. Open tabs and their Back/Forward lists stay intact.")
-                color: Theme.muted; font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.Wrap
+                color: Theme.mutedFor(parent); font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.Wrap
             }
-            Basic.Label { visible: panel.manager.error.length > 0; text: panel.manager.error; textFormat: Text.PlainText; color: Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
+            Basic.Label { visible: panel.manager.error.length > 0; text: panel.manager.error; textFormat: Text.PlainText; color: Theme.textFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap }
             RowLayout {
                 Layout.fillWidth: true
                 Item { Layout.fillWidth: true }

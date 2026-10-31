@@ -5,7 +5,7 @@ import QtQuick.Controls.Basic as Basic
 
 FocusScope {
     readonly property bool nativeActive: nativeGlass.active
-    readonly property color pillText: nativeActive ? nativeGlass.foregroundColor : Theme.text
+    readonly property color pillText: nativeActive ? nativeGlass.foregroundColor : Theme.textFor(parent)
     property bool siteMuted: false
     property bool siteMuteAvailable: false
     signal muteSiteRequested()
@@ -109,6 +109,11 @@ FocusScope {
         requested: pill.appearance.liquidGlass && !more.visible
         radius: height / 2
         content: pillForeground
+        onEscapeRequested: {
+            if (pill.extensionsMode) { pill.extensionsMode = false; extensionsButton.forceActiveFocus(); return }
+            pill.revealed = false; pillForeground.focus = false; pill.focus = false
+            if (pill.view) pill.view.forceActiveFocus()
+        }
         WindowContainer {
             anchors.fill: parent
             window: nativeGlass.containerWindow
@@ -187,7 +192,7 @@ FocusScope {
             enabled: pill.view !== null
             onClicked: { if (pill.view.loading) pill.view.stop(); else pill.view.reload(); pill.view.forceActiveFocus() }
         }
-        Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 20; color: Theme.border }
+        Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 20; color: Theme.borderFor(parent) }
         UiButton {
             id: addressButton
             objectName: "navigationAddressButton"
@@ -204,7 +209,7 @@ FocusScope {
             flat: true
             onClicked: pill.addressRequested()
         }
-        Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 20; color: Theme.border }
+        Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 20; color: Theme.borderFor(parent) }
         NavButton {
             iconName: "layers"
             iconColor: pill.workspaceColor
@@ -218,7 +223,7 @@ FocusScope {
             enabled: pill.adBlockEnabled
             Accessible.name: pill.adBlockActive ? qsTr("Pause ad blocking in this view (%1 blocked)").arg(pill.adBlockBlocked) : qsTr("Resume ad blocking in this view")
             iconName: pill.adBlockActive ? "shield-check" : "shield"
-            iconColor: pill.adBlockActive ? Theme.accent : Theme.muted
+            iconColor: pill.adBlockActive ? Theme.accent : Theme.mutedFor(parent)
             onClicked: pill.adBlockRequested()
         }
         NavButton {
@@ -331,11 +336,11 @@ FocusScope {
         objectName: "navigationMoreMenu"
         y: -height - 8
         x: Math.max(0, pill.width - width)
-        palette.text: Theme.text
-        palette.windowText: Theme.text
+        palette.text: Theme.textFor(parent)
+        palette.windowText: Theme.textFor(parent)
         palette.base: Theme.window
         palette.highlight: Theme.selection
-        palette.highlightedText: Theme.text
+        palette.highlightedText: Theme.textFor(parent)
         onOpened: pill.revealed = true
         onClosed: collapse.restart()
         UiMenuItem { text: qsTr("Split left / right"); onTriggered: pill.splitHorizontalRequested() }

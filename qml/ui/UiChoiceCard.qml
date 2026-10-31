@@ -16,19 +16,19 @@ Basic.Button {
     Accessible.name: text + ". " + subtitle
     background: Rectangle {
         radius: 18
-        color: card.prominent || card.down ? Theme.selection : card.hovered || card.activeFocus ? Theme.hover : "transparent"
+        color: card.prominent || card.down ? Theme.selection : card.hovered || card.activeFocus ? Theme.hoverFor(parent) : "transparent"
         border.width: card.activeFocus ? 1 : 0
         border.color: Theme.accent
     }
     contentItem: RowLayout {
         spacing: 18
-        UiIcon { name: card.iconName; color: card.prominent ? Theme.accent : Theme.text; Layout.preferredWidth: 28; Layout.preferredHeight: 28 }
+        UiIcon { name: card.iconName; color: card.prominent ? Theme.accent : Theme.textFor(parent); Layout.preferredWidth: 28; Layout.preferredHeight: 28 }
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 5
-            Text { text: card.text; textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 18; Layout.fillWidth: true; elide: Text.ElideRight }
-            Text { text: card.subtitle; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 14; Layout.fillWidth: true; wrapMode: Text.Wrap }
+            Text { text: card.text; textFormat: Text.PlainText; color: Theme.textFor(parent); font.pixelSize: 18; Layout.fillWidth: true; elide: Text.ElideRight }
+            Text { text: card.subtitle; textFormat: Text.PlainText; color: Theme.mutedFor(parent); font.pixelSize: 14; Layout.fillWidth: true; wrapMode: Text.Wrap }
         }
-        UiIcon { name: "chevron-right"; color: card.prominent ? Theme.accent : Theme.muted; Layout.preferredWidth: 22; Layout.preferredHeight: 22 }
+        UiIcon { name: "chevron-right"; color: card.prominent ? Theme.accent : Theme.mutedFor(parent); Layout.preferredWidth: 22; Layout.preferredHeight: 22 }
     }
 }

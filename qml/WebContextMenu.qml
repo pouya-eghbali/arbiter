@@ -69,7 +69,7 @@ UiMenu {
             Keys.onReturnPressed: activate(selectedAction)
             Keys.onEnterPressed: activate(selectedAction)
             Keys.onSpacePressed: activate(selectedAction)
-            background: Rectangle { radius: 12; color: Theme.field }
+            background: Rectangle { radius: 12; color: Theme.fieldFor(parent) }
             contentItem: RowLayout {
                 spacing: 4
                 Item { Layout.fillWidth: true }
@@ -93,8 +93,8 @@ UiMenu {
                         onClicked: strip.activate(index)
                         contentItem: ColumnLayout {
                             spacing: 4
-                            UiIcon { name: quickButton.modelData.icon; color: Theme.text; Layout.preferredWidth: 19; Layout.preferredHeight: 19; Layout.alignment: Qt.AlignHCenter }
-                            Controls.Label { id: quickCaption; text: quickButton.modelData.label; textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 11; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight }
+                            UiIcon { name: quickButton.modelData.icon; color: Theme.textFor(parent); Layout.preferredWidth: 19; Layout.preferredHeight: 19; Layout.alignment: Qt.AlignHCenter }
+                            Controls.Label { id: quickCaption; text: quickButton.modelData.label; textFormat: Text.PlainText; color: Theme.textFor(parent); font.pixelSize: 11; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight }
                         }
                         UiToolTip { visible: quickButton.hovered; text: quickButton.modelData.action.text + (quickButton.modelData.hint ? " (" + quickButton.modelData.hint + ")" : "") }
                     }
@@ -128,7 +128,7 @@ UiMenu {
             objectName: "contextSeparator"
             topPadding: 5; bottomPadding: 5
             leftPadding: 8; rightPadding: 8
-            contentItem: Rectangle { implicitHeight: 1; color: Theme.border }
+            contentItem: Rectangle { implicitHeight: 1; color: Theme.borderFor(parent) }
         }
     }
     Component {

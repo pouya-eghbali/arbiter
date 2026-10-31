@@ -152,6 +152,7 @@ Basic.ApplicationWindow {
     readonly property color mutedText: Theme.muted
     readonly property color fieldFill: Theme.field
     readonly property color accent: Theme.accent
+    Binding { target: Theme; property: "liquidGlass"; value: window.appearance.liquidGlass }
     Binding { target: Theme; property: "dark"; value: window.appearance.dark }
     Binding { target: Theme; property: "lightAccent"; value: window.appearance.lightAccent }
     Binding { target: Theme; property: "darkAccent"; value: window.appearance.darkAccent }
@@ -732,6 +733,36 @@ Basic.ApplicationWindow {
         })
     }
 
+    property var tabPreviewGrabs: ({})
+    Timer { id: tabPreviewRefresh; interval: 80; onTriggered: window.captureTabPreviews() }
+    function captureTabPreviews() {
+        if (!tabsPopup.visible || !tabsPopup.separateViewWindow) return
+        const first = Math.max(0, Math.floor(tabList.contentY / tabList.cellHeight) * tabList.columns - tabList.columns)
+        const last = Math.min(tabChoices.count, Math.ceil((tabList.contentY + tabList.height) / tabList.cellHeight) * tabList.columns + tabList.columns)
+        for (let row = first; row < last; ++row) {
+            if (!tabList.itemAtIndex(row)) continue
+            const i = tabChoices.get(row).sourceIndex
+            const view = tabViews.itemAt(i)
+            if (!view || view.url.toString() === "about:blank" || view.width < 1 || view.height < 1) continue
+            const id = "tab-" + window.tabs.idAt(i)
+            if (tabPreviewGrabs[id]) continue
+            view.grabToImage(result => {
+                if (!tabsPopup.visible || window.privateCovered) return
+                const images = Object.assign({}, window.tabPreviewGrabs)
+                images[id] = result
+                const visible = ({})
+                const firstRow = Math.max(0, Math.floor(tabList.contentY / tabList.cellHeight) * tabList.columns)
+                const lastRow = Math.min(tabChoices.count, Math.ceil((tabList.contentY + tabList.height) / tabList.cellHeight) * tabList.columns)
+                for (let row = firstRow; row < lastRow; ++row) visible["tab-" + window.tabs.idAt(tabChoices.get(row).sourceIndex)] = true
+                const keys = Object.keys(images)
+                for (const key of keys) {
+                    if (Object.keys(images).length <= 64) break
+                    if (!visible[key]) delete images[key]
+                }
+                window.tabPreviewGrabs = images
+            }, Qt.size(480, Math.max(1, Math.round(view.height * 480 / view.width))))
+        }
+    }
     function moveTabSelection(delta: int) {
         tabList.currentIndex = Math.max(0, Math.min(tabChoices.count - 1, tabList.currentIndex + delta))
         tabList.positionViewAtIndex(tabList.currentIndex, GridView.Contain)
@@ -1270,7 +1301,7 @@ Basic.ApplicationWindow {
                     text: qsTr("Settings")
                     font.pixelSize: 26
                     font.weight: Font.DemiBold
-                    color: Theme.text
+                    color: Theme.textFor(parent)
                     Layout.leftMargin: 16
                     Layout.bottomMargin: 24
                 }
@@ -1308,14 +1339,14 @@ Basic.ApplicationWindow {
                                 onActiveFocusChanged: if (activeFocus) categoryScroll.revealCategory(index)
                                 contentItem: Basic.Label {
                                     text: categoryButton.text
-                                    color: categoryButton.highlighted ? Theme.text : Theme.muted
+                                    color: categoryButton.highlighted ? Theme.textFor(parent) : Theme.mutedFor(parent)
                                     font.pixelSize: 14
                                     font.weight: categoryButton.highlighted ? Font.DemiBold : Font.Normal
                                     verticalAlignment: Text.AlignVCenter
                                 }
                                 background: Rectangle {
                                     radius: height / 2
-                                    color: categoryButton.highlighted ? Theme.selection : categoryButton.hovered || categoryButton.activeFocus ? Theme.hover : "transparent"
+                                    color: categoryButton.highlighted ? Theme.selection : categoryButton.hovered || categoryButton.activeFocus ? Theme.hoverFor(parent) : "transparent"
                                 }
                                 onClicked: {
                                     window.recordingIndex = -1
@@ -1330,7 +1361,7 @@ Basic.ApplicationWindow {
                 }
                 UiButton { text: qsTr("Done"); Layout.fillWidth: true; onClicked: window.toggleSettings() }
             }
-            Rectangle { Layout.preferredWidth: 1; Layout.fillHeight: true; color: Theme.border }
+            Rectangle { Layout.preferredWidth: 1; Layout.fillHeight: true; color: Theme.borderFor(parent) }
             Basic.ScrollView {
                 id: settingsScroll
                 Layout.fillWidth: true
@@ -1344,7 +1375,7 @@ Basic.ApplicationWindow {
                         text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads"), qsTr("About"), qsTr("Sync")][window.settingsCategory]
                         font.pixelSize: 28
                         font.weight: Font.DemiBold
-                        color: Theme.text
+                        color: Theme.textFor(parent)
                         Layout.bottomMargin: 4
                     }
                     ColumnLayout {
@@ -1353,7 +1384,7 @@ Basic.ApplicationWindow {
                         spacing: 20
                         RowLayout {
                             Layout.fillWidth: true
-                            Basic.Label { text: qsTr("Color theme"); Layout.fillWidth: true; color: Theme.text }
+                            Basic.Label { text: qsTr("Color theme"); Layout.fillWidth: true; color: Theme.textFor(parent) }
                             UiComboBox {
                                 id: themeChoice
                                 objectName: "themeChoice"
@@ -1374,15 +1405,15 @@ Basic.ApplicationWindow {
                             visible: desktopGlassCapability.available
                             Layout.fillWidth: true
                             text: qsTr("Liquid Glass uses the system appearance. Custom colors apply to Glacier when Liquid Glass is off.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             wrapMode: Text.WordWrap
                         }
-                        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; Layout.topMargin: 4; Layout.bottomMargin: 4; color: Theme.border }
-                        Basic.Label { text: qsTr("Colors & background"); color: Theme.text; font.pixelSize: 18; font.weight: Font.DemiBold }
+                        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; Layout.topMargin: 4; Layout.bottomMargin: 4; color: Theme.borderFor(parent) }
+                        Basic.Label { text: qsTr("Colors & background"); color: Theme.textFor(parent); font.pixelSize: 18; font.weight: Font.DemiBold }
                         Basic.Label {
                             Layout.fillWidth: true
                             text: qsTr("Customize each mode independently.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             wrapMode: Text.Wrap
                             Layout.topMargin: -12
                         }
@@ -1493,8 +1524,8 @@ Basic.ApplicationWindow {
                                 onRemoveRequested: window.appearance.clearBackgroundImage(true)
                             }
                         }
-                        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; Layout.topMargin: 4; Layout.bottomMargin: 4; color: Theme.border }
-                        Basic.Label { text: qsTr("Window & navigation"); color: Theme.text; font.pixelSize: 18; font.weight: Font.DemiBold }
+                        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; Layout.topMargin: 4; Layout.bottomMargin: 4; color: Theme.borderFor(parent) }
+                        Basic.Label { text: qsTr("Window & navigation"); color: Theme.textFor(parent); font.pixelSize: 18; font.weight: Font.DemiBold }
                         UiCheckBox {
                             objectName: "windowDecorationsToggle"
                             text: qsTr("Show native window decorations")
@@ -1505,11 +1536,11 @@ Basic.ApplicationWindow {
                             text: window.appearance.windowDecorations !== window.windowDecorations
                                 ? qsTr("Restart Arbiter to apply this change.")
                                 : qsTr("Use the system title bar and window buttons. Changes apply after restarting Arbiter.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
-                        Basic.Label { text: qsTr("Navigation pill"); color: Theme.text }
+                        Basic.Label { text: qsTr("Navigation pill"); color: Theme.textFor(parent) }
                         UiComboBox {
                             objectName: "navigationPillModeChoice"
                             Layout.fillWidth: true
@@ -1523,7 +1554,7 @@ Basic.ApplicationWindow {
                         }
                         Basic.Label {
                             text: qsTr("In bottom-edge mode, pause near the center of the bottom edge to reveal navigation. Move away to hide it. The navigation shortcut works in every mode.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
@@ -1535,13 +1566,13 @@ Basic.ApplicationWindow {
                         Basic.Label {
                             Layout.fillWidth: true
                             text: qsTr("At a page’s horizontal boundary, start a new two-finger swipe. Keep swiping until the arrow fills, then release to navigate. Reverse direction or press Escape to cancel. Scrollable content gets priority, and ordinary mouse-wheel scrolling never navigates.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             wrapMode: Text.Wrap
                         }
                         Basic.Label {
                             visible: Qt.platform.os === "osx"
                             text: qsTr("Website navigation in the menu bar")
-                            color: Theme.text
+                            color: Theme.textFor(parent)
                             font.weight: Font.Medium
                         }
                         UiComboBox {
@@ -1556,7 +1587,7 @@ Basic.ApplicationWindow {
                         Basic.Label {
                             visible: Qt.platform.os === "osx"
                             text: qsTr("Show website navigation under the tab title or as separate menus in the macOS menu bar.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
@@ -1567,7 +1598,7 @@ Basic.ApplicationWindow {
                         spacing: 20
                         Basic.Label {
                             text: qsTr("Keep your saved logins on this computer, protected by your system credential store.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
@@ -1585,11 +1616,11 @@ Basic.ApplicationWindow {
                         }
                         Basic.Label {
                             text: qsTr("Uses fingerprint verification when available. Your operating system may separately ask for permission to access its credential store.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
-                        Basic.Label { text: qsTr("Ask me to verify again"); color: Theme.text }
+                        Basic.Label { text: qsTr("Ask me to verify again"); color: Theme.textFor(parent) }
                         UiComboBox {
                             objectName: "passwordVerificationCooldown"
                             readonly property var durations: [0, 60, 300, 900, 1800, 3600]
@@ -1603,7 +1634,7 @@ Basic.ApplicationWindow {
                         }
                         Basic.Label {
                             text: qsTr("Remember a successful fingerprint verification for this long. Locking, sleeping, or restarting clears it. Your operating system still controls access to its credential store.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
@@ -1618,7 +1649,7 @@ Basic.ApplicationWindow {
                             text: window.passkeys.enabled
                                 ? qsTr("Use a passkey saved in Arbiter, or scan a QR code with your phone when a website asks you to sign in.")
                                 : qsTr("Arbiter's passkey vault and phone QR flow require the patched WebEngine build.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
@@ -1631,7 +1662,7 @@ Basic.ApplicationWindow {
                         Basic.Label {
                             visible: window.passkeys.enabled && window.passkeys.configured
                             text: window.passkeys.biometricStatus
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
@@ -1647,7 +1678,7 @@ Basic.ApplicationWindow {
                         Basic.Label {
                             visible: window.passkeys.enabled && window.passkeys.configured
                             text: qsTr("Biometric unlocking lasts up to 15 minutes while Arbiter stays active. Enter your passphrase once after restarting or leaving the app; each later passkey use still asks for device verification.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
@@ -1662,7 +1693,7 @@ Basic.ApplicationWindow {
                             textFormat: Text.PlainText
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
-                            color: Theme.text
+                            color: Theme.textFor(parent)
                         }
                     }
                     ColumnLayout {
@@ -1673,7 +1704,7 @@ Basic.ApplicationWindow {
                     text: qsTr("Click a shortcut, then press the new combination. Changes save automatically. Escape cancels recording.")
                     wrapMode: Text.Wrap
                     Layout.fillWidth: true
-                    color: window.mutedText
+                    color: Theme.mutedFor(parent)
                 }
                 RowLayout {
                     Layout.fillWidth: true
@@ -1717,7 +1748,7 @@ Basic.ApplicationWindow {
                         visible: matchesQuery
                         Layout.fillWidth: true
                         Layout.minimumHeight: 36
-                        Basic.Label { text: bindingRow.actionLabel; Layout.fillWidth: true; Layout.minimumWidth: 0; wrapMode: Text.Wrap; font.pixelSize: 14; color: Theme.text }
+                        Basic.Label { text: bindingRow.actionLabel; Layout.fillWidth: true; Layout.minimumWidth: 0; wrapMode: Text.Wrap; font.pixelSize: 14; color: Theme.textFor(parent) }
                         UiButton {
                             id: recordButton
                             objectName: "recordShortcut_" + bindingRow.actionId
@@ -1757,7 +1788,7 @@ Basic.ApplicationWindow {
                     objectName: "noShortcutMatches"
                     text: qsTr("No matching shortcuts.")
                     visible: !shortcutRows.hasMatches
-                    color: window.mutedText
+                    color: Theme.mutedFor(parent)
                     Layout.fillWidth: true
                 }
                 Basic.Label {
@@ -1781,14 +1812,14 @@ Basic.ApplicationWindow {
                     text: Qt.platform.os === "osx"
                         ? qsTr("Move the window: drag its top edge, or hold Option and drag anywhere. Double-click the top edge to expand or restore.")
                         : qsTr("Move the window by dragging the empty start-page background.")
-                    color: window.mutedText
+                    color: Theme.mutedFor(parent)
                 }
                     }
                     ColumnLayout {
                         visible: window.settingsCategory === 4
                         Layout.fillWidth: true
                         spacing: 16
-                        Basic.Label { text: qsTr("Interface language"); color: Theme.text; Layout.fillWidth: true }
+                        Basic.Label { text: qsTr("Interface language"); color: Theme.textFor(parent); Layout.fillWidth: true }
                         UiComboBox {
                             objectName: "interfaceLanguage"
                             Layout.fillWidth: true
@@ -1801,11 +1832,11 @@ Basic.ApplicationWindow {
                         Basic.Label {
                             text: window.localization.restartRequired ? qsTr("Restart Arbiter to apply the new language.")
                                 : qsTr("Use your system language or choose a language for Arbiter. Websites keep their own content and language.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
-                        Basic.Label { text: qsTr("Default search engine"); color: Theme.text; Layout.fillWidth: true }
+                        Basic.Label { text: qsTr("Default search engine"); color: Theme.textFor(parent); Layout.fillWidth: true }
                         UiComboBox {
                             objectName: "defaultSearchEngine"
                             Layout.fillWidth: true
@@ -1822,13 +1853,13 @@ Basic.ApplicationWindow {
                         }
                         Basic.Label {
                             text: qsTr("Keep your preferences in your dotfiles.")
-                            color: Theme.text
+                            color: Theme.textFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
                         Basic.Label {
                             text: qsTr("Copy this TOML file to back up, restore, or share your settings. Changes made in Settings are saved here. Restart Arbiter after editing or replacing the file externally.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
@@ -1845,20 +1876,20 @@ Basic.ApplicationWindow {
                         }
                         Basic.Label {
                             text: qsTr("The location follows XDG_CONFIG_HOME, or ~/.config by default. Files under XDG_CONFIG_DIRS can provide shared defaults; your settings take precedence.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
                         Basic.Label {
                             text: qsTr("This file contains preferences and keyboard shortcuts. Passwords, passkey keys, browsing history, tabs, and site data are stored separately.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
                         Basic.Label {
                             text: window.settingsError
                             visible: text.length > 0
-                            color: Theme.text
+                            color: Theme.textFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
@@ -1897,7 +1928,7 @@ Basic.ApplicationWindow {
                         visible: window.settingsCategory === 6
                         Layout.fillWidth: true
                         spacing: 20
-                        Basic.Label { text: qsTr("Put inactive tabs to sleep after"); color: Theme.text }
+                        Basic.Label { text: qsTr("Put inactive tabs to sleep after"); color: Theme.textFor(parent) }
                         UiComboBox {
                             objectName: "tabSleepTimeout"
                             readonly property var durations: [0, 60, 300, 900, 1800, 3600]
@@ -1910,7 +1941,7 @@ Basic.ApplicationWindow {
                         }
                         Basic.Label {
                             text: qsTr("Sleeping tabs pause background activity and resume when you return. Visible split panes and tabs playing audio stay awake. Page contents are preserved without reloading. Turning this off wakes sleeping tabs.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
@@ -1920,7 +1951,7 @@ Basic.ApplicationWindow {
                         onVisibleChanged: if (visible && window.privacy) window.privacy.load()
                         spacing: 16
                         Layout.fillWidth: true
-                        Basic.Label { text: qsTr("Ad blocking"); font.pixelSize: 20; font.weight: Font.DemiBold; color: Theme.text; Layout.fillWidth: true }
+                        Basic.Label { text: qsTr("Ad blocking"); font.pixelSize: 20; font.weight: Font.DemiBold; color: Theme.textFor(parent); Layout.fillWidth: true }
                         UiCheckBox {
                             Layout.fillWidth: true
                             leftPadding: 0
@@ -1932,25 +1963,25 @@ Basic.ApplicationWindow {
                             Layout.fillWidth: true
                             text: qsTr("EasyList + EasyPrivacy, powered by Brave’s Rust engine. Pause only the focused view using the pill shield or %1. Pauses last until that tab closes. Reload pages after changing the global setting.").arg(window.keyBindings.nativeSequence(window.bindings.toggleAdBlock))
                             wrapMode: Text.Wrap
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                         }
                         RowLayout {
                             Layout.fillWidth: true
-                            Basic.Label { Layout.fillWidth: true; text: window.adblocker.status; color: Theme.muted; wrapMode: Text.Wrap }
+                            Basic.Label { Layout.fillWidth: true; text: window.adblocker.status; color: Theme.mutedFor(parent); wrapMode: Text.Wrap }
                             UiButton { text: window.adblocker.updating ? qsTr("Updating…") : qsTr("Update lists"); enabled: !window.adblocker.updating; onClicked: window.adblocker.updateLists() }
                         }
-                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.border }
+                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.borderFor(parent) }
                         SitePermissionsSettings { Layout.fillWidth: true; settings: window.sitePermissionSettings; workspaceChoices: window.workspaces.choices }
-                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.border }
-                        Basic.Label { text: qsTr("Private browsing"); font.pixelSize: 20; font.weight: Font.DemiBold; color: Theme.text }
+                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.borderFor(parent) }
+                        Basic.Label { text: qsTr("Private browsing"); font.pixelSize: 20; font.weight: Font.DemiBold; color: Theme.textFor(parent) }
                         Basic.Label {
                             Layout.fillWidth: true
                             text: qsTr("Private windows keep cookies and site storage in memory and do not save browsing history or restore tabs. Each private window has its own session. Downloads you save and credentials you explicitly create remain on your device.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             wrapMode: Text.Wrap
                         }
                         UiButton { text: qsTr("New private window"); onClicked: window.newPrivateWindow() }
-                        Basic.Label { text: qsTr("Lock after no activity for"); color: Theme.text }
+                        Basic.Label { text: qsTr("Lock after no activity for"); color: Theme.textFor(parent) }
                         UiComboBox {
                             objectName: "privateLockTimeout"
                             implicitWidth: 240
@@ -1964,19 +1995,19 @@ Basic.ApplicationWindow {
                         Basic.Label {
                             Layout.fillWidth: true
                             text: qsTr("Private windows also lock immediately when switched to the background, minimized, or when your computer locks or sleeps. Use biometrics (or a Windows Hello PIN), or the global private-browsing PIN/password to unlock. Change your PIN/password below by entering its current value.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             wrapMode: Text.Wrap
                         }
                         Basic.Label {
                             Layout.fillWidth: true
                             text: window.privacy && window.privacy.configured ? qsTr("Change private-browsing PIN/password") : qsTr("Set private-browsing PIN/password")
-                            color: Theme.text
+                            color: Theme.textFor(parent)
                             font.weight: Font.DemiBold
                         }
                         Basic.Label {
                             Layout.fillWidth: true
                             text: qsTr("One PIN (6+ digits) or password (8+ characters) protects all private windows, including after restarting Arbiter. It is stored securely through your operating system. Changing it locks all open private windows.")
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             wrapMode: Text.Wrap
                         }
                         UiTextField {
@@ -2020,7 +2051,7 @@ Basic.ApplicationWindow {
                             }
                         }
                         Basic.BusyIndicator { visible: window.privacy && window.privacy.busy; running: visible }
-                        Basic.Label { Layout.fillWidth: true; text: window.privacy ? window.privacy.status : ""; color: Theme.muted; wrapMode: Text.Wrap }
+                        Basic.Label { Layout.fillWidth: true; text: window.privacy ? window.privacy.status : ""; color: Theme.mutedFor(parent); wrapMode: Text.Wrap }
                         UiButton { visible: window.privacy && !window.privacy.ready && !window.privacy.busy; text: qsTr("Retry credential store"); onClicked: window.privacy.load() }
                     }
                 }
@@ -2046,8 +2077,8 @@ Basic.ApplicationWindow {
             anchors.fill: parent
             anchors.margins: 12
             spacing: 8
-            Basic.Label { Layout.fillWidth: true; text: qsTr("Chrome Web Store extension"); color: Theme.text; font.weight: Font.DemiBold }
-            Basic.Label { Layout.fillWidth: true; text: qsTr("Install in Arbiter, then review its permissions. Some extensions require Chrome APIs we don’t support yet."); color: Theme.muted; wrapMode: Text.Wrap }
+            Basic.Label { Layout.fillWidth: true; text: qsTr("Chrome Web Store extension"); color: Theme.textFor(parent); font.weight: Font.DemiBold }
+            Basic.Label { Layout.fillWidth: true; text: qsTr("Install in Arbiter, then review its permissions. Some extensions require Chrome APIs we don’t support yet."); color: Theme.mutedFor(parent); wrapMode: Text.Wrap }
             UiButton {
                 objectName: "addStoreExtensionButton"
                 Layout.fillWidth: true
@@ -2209,7 +2240,7 @@ Basic.ApplicationWindow {
         text: pagePrinter.error
         textFormat: Text.PlainText
         wrapMode: Text.Wrap
-        color: Theme.text
+        color: Theme.textFor(parent)
         background: GlassSurface { radius: Theme.tooltipRadius; dense: true }
     }
     Connections {
@@ -2232,7 +2263,7 @@ Basic.ApplicationWindow {
         text: nativeShare.error
         textFormat: Text.PlainText
         wrapMode: Text.Wrap
-        color: Theme.text
+        color: Theme.textFor(parent)
         background: GlassSurface { radius: 12; dense: true }
     }
     WorkspacePanel {
@@ -2352,10 +2383,11 @@ Basic.ApplicationWindow {
         onTriggered: tutorial.open()
     }
 
-    Basic.Popup {
-        popupType: Basic.Popup.Item
+    UiPopup {
+        popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
         id: tabsPopup
         objectName: "tabsPopup"
+        readonly property bool separateViewWindow: tabsContent.Window.window !== null && tabsContent.Window.window !== window
         parent: Basic.Overlay.overlay
         anchors.centerIn: parent
         width: Math.min(1080, window.width - 48)
@@ -2389,7 +2421,7 @@ Basic.ApplicationWindow {
                     Layout.fillWidth: true
                     spacing: 3
                     Basic.Label { Layout.fillWidth: true; elide: Text.ElideRight; text: window.focusedWorkspace.name; textFormat: Text.PlainText; font.pixelSize: 22; font.weight: Font.DemiBold }
-                    Basic.Label { Layout.fillWidth: true; elide: Text.ElideRight; text: qsTr("%1 open · Pick up where you left off").arg(window.focusedWorkspace.tabs); color: window.mutedText; font.pixelSize: 12 }
+                    Basic.Label { Layout.fillWidth: true; elide: Text.ElideRight; text: qsTr("%1 open · Pick up where you left off").arg(window.focusedWorkspace.tabs); color: Theme.mutedFor(parent); font.pixelSize: 12 }
                 }
                 RowLayout {
                     spacing: 4
@@ -2397,7 +2429,7 @@ Basic.ApplicationWindow {
                     UiIconButton { objectName: "tabsSplitVerticalButton"; label: qsTr("Split top / bottom"); iconName: "rows-2"; onClicked: window.splitVertical() }
                     UiIconButton { objectName: "tabsSplitWithButton"; label: qsTr("Split with…"); iconName: "panels-top-left"; onClicked: window.openSplitWith() }
                     UiIconButton { visible: window.splits.multiple; label: qsTr("Single pane"); iconName: "maximize-2"; onClicked: { tabsPopup.close(); window.singlePane() } }
-                    Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 20; Layout.leftMargin: 6; Layout.rightMargin: 6; color: Theme.border }
+                    Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 20; Layout.leftMargin: 6; Layout.rightMargin: 6; color: Theme.borderFor(parent) }
                     UiIconButton { objectName: "tabsWorkspacesButton"; label: qsTr("Workspaces…"); iconName: "layers"; onClicked: window.openWorkspaces() }
                     UiIconButton { objectName: "tabsNewTabButton"; label: qsTr("New tab"); iconName: "plus"; onClicked: window.newTab() }
                 }
@@ -2427,6 +2459,8 @@ Basic.ApplicationWindow {
             GridView {
                 id: tabList
                 objectName: "tabsGrid"
+                onContentYChanged: tabPreviewRefresh.restart()
+                onCountChanged: tabPreviewRefresh.restart()
                 readonly property int columns: Math.max(1, Math.ceil(width / 220))
                 readonly property real gutter: 12
                 Layout.fillWidth: true
@@ -2460,7 +2494,7 @@ Basic.ApplicationWindow {
                     background: Rectangle {
                         radius: 10
                         color: tabChoice.highlighted ? Theme.selection
-                            : tabChoice.hovered ? Theme.hover : "transparent"
+                            : tabChoice.hovered ? Theme.hoverFor(parent) : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
                     }
                     contentItem: ColumnLayout {
@@ -2484,10 +2518,18 @@ Basic.ApplicationWindow {
                                 layer.enabled: true
                                 visible: false
                             }
+                            Image {
+                                anchors.fill: parent
+                                visible: tabsPopup.separateViewWindow && tabChoice.pageUrl !== qsTr("Start page")
+                                source: (window.tabPreviewGrabs["tab-" + window.tabs.idAt(tabChoice.sourceIndex)] || {}).url || ""
+                                fillMode: Image.PreserveAspectCrop
+                                verticalAlignment: Image.AlignTop
+                                cache: false
+                            }
                             ShaderEffectSource {
                                 anchors.fill: parent
-                                visible: tabChoice.pageUrl !== qsTr("Start page")
-                                sourceItem: tabViews.itemAt(tabChoice.sourceIndex)
+                                visible: !tabsPopup.separateViewWindow && tabChoice.pageUrl !== qsTr("Start page")
+                                sourceItem: tabsPopup.separateViewWindow ? null : tabViews.itemAt(tabChoice.sourceIndex)
                                 // Keep the current page behind the overview, just as
                                 // it remains behind the address editor.
                                 hideSource: tabsPopup.visible && sourceItem !== window.webView
@@ -2505,6 +2547,7 @@ Basic.ApplicationWindow {
                                 spacing: 12
                                 Basic.Label {
                                     text: qsTr("Arbiter")
+                                    color: Theme.contrastingText(preview.color)
                                     font.pixelSize: 20
                                     font.weight: Font.Medium
                                     anchors.horizontalCenter: parent.horizontalCenter
@@ -2518,7 +2561,7 @@ Basic.ApplicationWindow {
                                         anchors.centerIn: parent
                                         text: qsTr("Search or enter address")
                                         font.pixelSize: 9
-                                        color: window.mutedText
+                                        color: Qt.alpha(Theme.contrastingText(window.palette.base), .65)
                                     }
                                 }
                             }
@@ -2568,7 +2611,7 @@ Basic.ApplicationWindow {
                             text: tabChoice.pageUrl
                             Layout.fillWidth: true
                             elide: Text.ElideMiddle
-                            color: window.mutedText
+                            color: Theme.mutedFor(parent)
                             font.pixelSize: 12
                         }
                     }
@@ -2579,15 +2622,16 @@ Basic.ApplicationWindow {
                 visible: tabChoices.count === 0
                 text: qsTr("No matching tabs")
                 Layout.alignment: Qt.AlignHCenter
-                color: window.mutedText
+                color: Theme.mutedFor(parent)
             }
             Basic.Label {
                 id: tabsHelp
                 text: qsTr("↑ ↓ ← →  Navigate     ↵  Open     esc  Dismiss")
-                color: window.mutedText
+                color: Theme.mutedFor(parent)
                 font.pixelSize: 12
             }
         }
+        onOpened: Qt.callLater(window.captureTabPreviews)
         onAboutToShow: {
             tabSearch.text = ""
             Qt.callLater(function() {
@@ -2595,7 +2639,7 @@ Basic.ApplicationWindow {
                 tabSearch.forceActiveFocus()
             })
         }
-        onClosed: Qt.callLater(window.focusPage)
+        onClosed: { window.tabPreviewGrabs = ({}); Qt.callLater(window.focusPage) }
     }
 
     ListModel { id: tabChoices }
@@ -2689,7 +2733,7 @@ Basic.ApplicationWindow {
         anchors.margins: 12
         z: 22
         text: qsTr("Private")
-        color: Theme.muted
+        color: Theme.mutedFor(parent)
         font.pixelSize: 11
         background: GlassSurface { radius: 10; dense: true; shadowEnabled: false }
         padding: 6

@@ -3,8 +3,8 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 
-Basic.Popup {
-    popupType: Basic.Popup.Item
+UiPopup {
+    popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
     id: setup
     required property var controller
     parent: Basic.Overlay.overlay

@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
     // This diagnostic entry point is never compiled into physical-device builds.
     if (qEnvironmentVariableIsSet("ARBITER_UI_SMOKE")) {
         auto window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
-        QTimer::singleShot(1500, window, [window] {
+        QTimer::singleShot(1500, window, [window, &browser] {
             auto device = QTest::createTouchDevice();
             auto tap = [&](QPointF point) {
                 QPoint local;
@@ -143,6 +143,36 @@ int main(int argc, char **argv) {
                 qInfo() << "Control" << name << "visible" << item->isVisible() << "size" << item->size() << "window" << item->window() << item->window()->geometry();
                 tap(window->mapFromGlobal(global));
             };
+            tapControl("mobileAddressButton");
+            if (window->property("panel") != "address") qFatal("Address sheet touch failed");
+            QTest::qWait(400);
+            auto address = window->findChild<QQuickItem *>("mobileAddressInput");
+            if (!address || !address->hasActiveFocus()) {
+                qInfo() << "Focus window" << qGuiApp->focusWindow() << "address window" << (address ? address->window() : nullptr);
+                for (auto item = address; item; item = item->parentItem()) qInfo() << item << "focus" << item->hasFocus() << "active" << item->hasActiveFocus() << "enabled" << item->isEnabled() << "visible" << item->isVisible();
+                qFatal("Native search lost input focus");
+            }
+            QTest::keyClick(address->window(), Qt::Key_A);
+            if (address->property("text") != "a") qFatal("Native search typing failed");
+            tapControl("mobileAddressCloseButton");
+            if (window->property("panel") != "") qFatal("Address sheet close failed");
+            QTest::qWait(300);
+            tapControl("mobileTabsButton");
+            tapControl("mobileWorkspaceSelectorButton");
+            if (window->property("panel") != "workspaces") qFatal("Workspace selector touch failed");
+            tapControl("mobileWorkspaceNewButton");
+            auto editor = window->findChild<QObject *>("workspaceEditor");
+            if (!editor || !editor->property("visible").toBool()) qFatal("Workspace editor failed to open");
+            tapControl("mobileWorkspaceNameInput");
+            QTest::qWait(400);
+            auto field = window->findChild<QQuickItem *>("mobileWorkspaceNameInput");
+            if (!field || !field->hasActiveFocus()) qFatal("Native editor lost input focus");
+            QTest::keyClick(field->window(), Qt::Key_A);
+            if (field->property("text") != "a") qFatal("Native editor typing failed");
+            tapControl("mobileWorkspaceCancelButton");
+            if (editor->property("visible").toBool()) qFatal("Native editor Cancel failed");
+            QMetaObject::invokeMethod(window, "dismiss");
+            QTest::qWait(300);
             for (int i = 0; i < 12; ++i) {
                 qInfo("Native touch cycle %d: menu", i);
                 tapControl("mobileMoreButton");
@@ -156,7 +186,17 @@ int main(int argc, char **argv) {
                 tapControl("mobileTabsDoneButton");
                 if (window->property("panel") != "") qFatal("Tabs Done touch failed");
             }
-            qInfo("Native menu dismissal and tab-overview touch smoke test passed");
+            browser.newPrivateTab();
+            auto confirmation = window->findChild<QObject *>("mobileHistoryConfirmation");
+            QMetaObject::invokeMethod(confirmation, "open");
+            QTest::qWait(350);
+            auto content = qobject_cast<QQuickItem *>(confirmation->property("contentItem").value<QObject *>());
+            QPointer<QQuickWindow> foreground = content ? content->window() : nullptr;
+            if (!foreground || foreground == window || !foreground->isVisible()) qFatal("Native private dialog did not activate");
+            qGuiApp->applicationStateChanged(Qt::ApplicationInactive);
+            if (foreground && foreground->isVisible()) qFatal("Private cover did not immediately conceal the native dialog");
+            QTest::qWait(200);
+            qInfo("Native search, workspace editor, menu dismissal, tabs and private-dialog concealment checks passed");
             qApp->quit();
         });
     }

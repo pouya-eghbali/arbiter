@@ -1,61 +1,76 @@
 # Native Liquid Glass
 
-Arbiter uses Apple's untinted Regular material for the floating navigation pill
-on macOS 26+ and iOS 26+, and for the mobile More sheet. Enable or disable it in
-Appearance → Liquid Glass (`appearance.liquidGlass` in desktop TOML;
-`liquidGlass` in the mobile settings). It defaults on where the OS and SDK support
-it. User-selected colors continue to control Glacier when native glass is off;
-they are not applied as a native glass tint. Other surfaces retain Glacier.
+Arbiter uses Apple's untinted Regular material for floating browser UI on macOS
+26+ and iOS 26+. Appearance → Liquid Glass controls the entire rollout
+(`appearance.liquidGlass` in desktop TOML; `liquidGlass` in mobile settings).
+Custom colors continue to control Glacier when native material is disabled.
+Settings pages, web pages, and ordinary content surfaces remain solid.
+
+On macOS, the shared popup layer covers menus and tooltips, dropdowns, address
+search, tab and workspace selectors, permission and authentication dialogs,
+download/history/extension panels, and other floating dialogs. The navigation
+pill uses the same material. On iOS, the pill, More, search and find sheets,
+tab/workspace selectors, workspace editor, and shared popup controls use native
+material. Native sheets inherit semantic foreground colors instead of applying
+user background colors as a glass tint.
 
 ## Integration
 
-`NativeGlassHost` hosts the existing QML controls in a transparent child
-QQuickWindow, placed in NSGlassEffectView.contentView or
-UIVisualEffectView.contentView. This keeps the actual native glass between the
-page and its controls. The native effect samples the composited view hierarchy;
-no screenshot is supplied to the native material. On iOS the WKWebView pill
-cutout is removed while native glass is active, so the actual page remains
-behind the material. Existing in-memory previews remain useful for tab thumbnails
-and non-native overlays.
-
 The bridge uses public APIs only: NSGlassEffectView on macOS and UIGlassEffect
-with UIVisualEffectView on iOS. macOS interactive glass is enabled on macOS 27+.
-The [qt-liquid-glass project](https://github.com/fsalinas26/qt-liquid-glass) was reviewed as a reference; it is not vendored or
-linked. Its QWidget integration and private extended variants do not directly
-fit this Qt Quick/iOS bridge.
+with UIVisualEffectView on iOS. macOS interactive pill glass is enabled on macOS
+27+. The [qt-liquid-glass project](https://github.com/fsalinas26/qt-liquid-glass)
+was reviewed as a reference; it is not vendored or linked.
 
-Native colors come from the effect's effective system appearance. The bridge
-tracks geometry, visibility, and accessibility changes, and restores controls to
-their original QML parent when disabled. Hidden or disabled hosts immediately
-hide their native content, including private-window covers. Reduce Transparency
-uses an opaque Glacier fallback. Older Apple systems, builds with older SDKs,
-non-Apple platforms, and the offscreen renderer use Glacier.
+Desktop floating popups use Qt's Popup.Window implementation. A native glass
+view sits behind the existing Qt content view in that window. Qt retains its
+original native view hierarchy, keyboard focus, nested menu routing, and mouse
+grab handling. No individual popup controls are moved to another window.
 
-On Apple platforms, a plain UIView/NSView wrapped by a foreign QWindow carries
-the scene offset; the Qt foreground stays at local (0,0) inside the material's contentView. A QML
-WindowContainer registers the material with Qt Quick's native stacking, so a
-returning WKWebView cannot cover it. Native windows are retained while panels
-are hidden, avoiding render/touch teardown during ordinary menu and tab changes.
+For the pill and mobile sheets, NativeGlassHost places a transparent child
+QQuickWindow inside the native material's contentView. A foreign QWindow wraps
+a plain UIView/NSView carrying the scene offset, while the foreground uses local
+(0,0) geometry. A QML WindowContainer registers it with Qt Quick's native
+stacking so a returning web view cannot cover it. Native input windows survive
+ordinary panel transitions. Inactive hosts restore focus only if their own
+window actually held it; hidden surfaces do not poll or reclaim focus.
+
+SurfacePalette records the actual native foreground color per window. Shared
+controls resolve text, secondary text, fields and hover states against that
+material. This leaves ordinary settings/content colors unchanged. Mobile input
+geometry maps the keyboard from the focused window into the main layout before
+adjusting sheet positions.
+
+UiPopup, UiMenu and UiToolTip close when their owning private window is covered,
+including native windows outside the main Qt overlay. Hidden or disabled child
+hosts immediately hide their native content. Reduce Transparency uses opaque
+Glacier. Older Apple systems, older SDKs, non-Apple platforms, and the offscreen
+renderer use Glacier. The native material samples the composited hierarchy;
+no screenshot is supplied to it.
+
+Tab preview textures cannot cross QQuickWindows. Desktop native tab overview
+therefore retains bounded grab results in memory for the visible workspace,
+and clears them on dismissal/private covering. Glacier keeps its existing live
+scene-graph previews. No preview images are written to disk.
 
 ## Validation
 
-- `arbiter --native-glass-smoke-test`: isolated desktop pill, native/Glacier
-  toggles, private-cover visibility, address focus, and More button input;
-  checks the actual native glass and foreground bounds to catch displaced
-  controls. Does not open user profiles.
-- Desktop mobile fixture `--design-screen=nativechecks`: real native child-window
-  pointer events, pill swipes, More → Settings actions, repeated teardown,
-  preference toggling, and the opaque accessibility fallback. Run with the
-  default Cocoa/Metal platform, not `QT_QPA_PLATFORM=offscreen`.
-- iOS simulator `SIMCTL_CHILD_ARBITER_UI_SMOKE=1`: repeated touch-driven menu
-  and tab-overview transitions over a local WKWebView page. Touch targets are
-  resolved through UIKit hit testing before Qt injection; checks cover outside
-  taps, the menu close button, and tab-overview dismissal. This catches geometry
-  and stacking faults that invoking QML actions directly misses. Test support is
-  excluded from physical-device builds. See mobile-interface.md for launch commands.
-- Existing software screen matrix continues checking the Glacier path.
+- `arbiter --native-glass-smoke-test`: isolated pill lifecycle, actual native
+  foreground bounds, address focus, and More input. No user profiles are opened.
+- `arbiter --native-overlays-smoke-test`: repeated popup input, nested menus,
+  Escape/outside dismissal, private covering and native/Glacier toggling.
+  Mouse checks use Qt's platform input pipeline; macOS activation uses public
+  AppKit APIs. Native runs need uninterrupted foreground access; switching to
+  another application correctly dismisses the popups. With the offscreen
+  platform, the same fixture exercises Glacier without activating any windows.
+- Mobile desktop fixture `--design-screen=nativechecks`: swipe/menu actions,
+  repeated transitions, accessibility fallback and private locking. Run with
+  Cocoa/Metal rather than `QT_QPA_PLATFORM=offscreen` for native checks.
+- iOS simulator `SIMCTL_CHILD_ARBITER_UI_SMOKE=1`: UIKit hit testing before Qt
+  touch injection, including search typing, workspace editing/cancellation,
+  menu dismissal and tab overview cycles. This support is excluded from device
+  builds. See mobile-interface.md for launch commands.
+- The software screen matrix checks Glacier across phone sizes and themes.
 
-`ARBITER_GLASS_FORCE_OPAQUE=1` exercises the reduced-transparency branch in an
-isolated test process without changing system preferences. Native surfaces need
-OS/simulator screenshots for visual verification: QQuickWindow.grabWindow only
-captures that window's scene graph, not native child views.
+`ARBITER_GLASS_FORCE_OPAQUE=1` exercises reduced transparency without changing
+system preferences. Native surfaces require OS/simulator screenshots for visual
+verification: QQuickWindow.grabWindow captures the scene graph, not native views.

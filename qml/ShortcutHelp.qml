@@ -32,8 +32,8 @@ UiPopup {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 4
-                Basic.Label { text: qsTr("Keyboard shortcuts"); font.pixelSize: 24; font.weight: Font.DemiBold; color: Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
-                Basic.Label { text: qsTr("Your current bindings. Customize them in Settings."); color: Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                Basic.Label { text: qsTr("Keyboard shortcuts"); font.pixelSize: 24; font.weight: Font.DemiBold; color: Theme.textFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap }
+                Basic.Label { text: qsTr("Your current bindings. Customize them in Settings."); color: Theme.mutedFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap }
             }
             UiIconButton { id: closeButton; label: qsTr("Close"); iconName: "x"; onClicked: sheet.close() }
         }
@@ -62,7 +62,7 @@ UiPopup {
                         Basic.Label {
                             text: shortcutRow.modelData.actionLabel
                             textFormat: Text.PlainText
-                            color: Theme.text
+                            color: Theme.textFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
@@ -70,7 +70,7 @@ UiPopup {
                             implicitWidth: keyLabel.implicitWidth + 16
                             implicitHeight: 28
                             radius: 7
-                            color: Theme.field
+                            color: Theme.fieldFor(parent)
                             Basic.Label {
                                 id: keyLabel
                                 objectName: "shortcutHelpKey_" + shortcutRow.modelData.actionId
@@ -79,7 +79,7 @@ UiPopup {
                                 textFormat: Text.PlainText
                                 font.pixelSize: 12
                                 font.weight: Font.Medium
-                                color: Theme.text
+                                color: Theme.textFor(parent)
                             }
                         }
                     }

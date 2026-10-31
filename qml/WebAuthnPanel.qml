@@ -41,8 +41,8 @@ Item {
         function onVerificationSubmitted() { vaultPhrase.text = "" }
         function onChanged() { if (!panel.passkeys.verifying) vaultPhrase.text = "" }
     }
-    Basic.Popup {
-        popupType: Basic.Popup.Item
+    UiPopup {
+        popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
         id: authPopup
         parent: Basic.Overlay.overlay
         anchors.centerIn: parent
@@ -69,19 +69,19 @@ Item {
                 Basic.Label {
                     text: panel.passkeys.verifying && panel.passkeys.registration && !panel.passkeys.configured ? qsTr("Set up passkeys")
                         : panel.passkeys.registration ? qsTr("Create a passkey") : qsTr("Sign in")
-                    font.pixelSize: 26; font.weight: Font.DemiBold; color: Theme.text; Layout.fillWidth: true
+                    font.pixelSize: 26; font.weight: Font.DemiBold; color: Theme.textFor(parent); Layout.fillWidth: true
                 }
                 UiButton { iconName: "x"; flat: true; font.pixelSize: 24; Accessible.name: qsTr("Cancel sign-in"); onClicked: panel.controller.cancel() }
             }
             Basic.Label {
                 text: qsTr("Continue to %1").arg(panel.controller.relyingParty)
-                textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 16
+                textFormat: Text.PlainText; color: Theme.mutedFor(parent); font.pixelSize: 16
                 Layout.fillWidth: true; wrapMode: Text.WrapAnywhere
             }
             Basic.Label {
                 visible: !panel.passkeys.active || (panel.passkeys.verifying && panel.passkeys.configured)
                 text: panel.passkeys.verifying ? panel.passkeys.registration ? qsTr("Verify to create your Arbiter passkey.") : qsTr("Verify to use your Arbiter passkey.") : panel.controller.description
-                textFormat: Text.PlainText; color: Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap
+                textFormat: Text.PlainText; color: Theme.mutedFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap
             }
             ColumnLayout {
                 visible: panel.passkeys.active && !panel.passkeys.verifying && panel.passkeys.qrImage.toString().length === 0
@@ -115,7 +115,7 @@ Item {
                 spacing: 12
                 Basic.Label {
                     text: qsTr("Choose a passphrase of at least 12 characters to protect passkeys on this computer. There is no sync or passphrase recovery. Keep another sign-in method for your accounts.")
-                    textFormat: Text.PlainText; color: Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap
+                    textFormat: Text.PlainText; color: Theme.mutedFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap
                 }
                 UiTextField { id: setupPhrase; objectName: "inlinePasskeyPhrase"; Layout.fillWidth: true; echoMode: TextInput.Password; placeholderText: qsTr("Vault passphrase"); enabled: !panel.passkeys.busy }
                 UiTextField { id: setupConfirmation; objectName: "inlinePasskeyConfirmation"; Layout.fillWidth: true; echoMode: TextInput.Password; placeholderText: qsTr("Confirm passphrase"); enabled: !panel.passkeys.busy }
@@ -183,7 +183,7 @@ Item {
                     : qsTr("Use your passphrase once to enable biometric unlocking for this session.")
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
-                color: Theme.muted
+                color: Theme.mutedFor(parent)
             }
             UiTextField {
                 id: vaultPhrase

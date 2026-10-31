@@ -1,7 +1,7 @@
 include_guard(GLOBAL)
 function(arbiter_add_native_glass target)
     set(root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/..")
-    target_sources(${target} PRIVATE "${root}/src/nativeglass/nativeglasshost.cpp" "${root}/src/nativeglass/nativeglasshost.h")
+    target_sources(${target} PRIVATE "${root}/src/nativeglass/nativeglasshost.cpp" "${root}/src/nativeglass/nativeglasshost.h" "${root}/src/nativeglass/surfacepalette.cpp" "${root}/src/nativeglass/surfacepalette.h")
     target_include_directories(${target} PRIVATE "${root}/src/nativeglass")
     if(APPLE)
         enable_language(OBJCXX)

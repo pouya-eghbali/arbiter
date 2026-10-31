@@ -9,8 +9,8 @@ Item {
     objectName: "mobilePill"
     required property var current
     readonly property bool nativeActive: nativeGlass.active
-    readonly property color pillText: nativeActive ? nativeGlass.foregroundColor : Theme.text
-    readonly property color pillMuted: nativeActive ? Qt.alpha(nativeGlass.foregroundColor, .72) : Theme.muted
+    readonly property color pillText: nativeActive ? nativeGlass.foregroundColor : Theme.textFor(parent)
+    readonly property color pillMuted: nativeActive ? Qt.alpha(nativeGlass.foregroundColor, .72) : Theme.mutedFor(parent)
     property int tabCount: 1
     property bool suggestions: false
     property point lastDrag: Qt.point(0, 0)
@@ -109,6 +109,7 @@ Item {
                 }
                 Controls.AbstractButton {
                     id: address
+                    objectName: "mobileAddressButton"
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Accessible.name: qsTr("Search or enter address")

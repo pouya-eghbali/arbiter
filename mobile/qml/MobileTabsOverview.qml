@@ -11,6 +11,10 @@ Item {
     signal dismiss
     signal workspacesRequested
     property string query: ""
+    NativeSheet {
+        anchors.fill: parent
+        anchors.margins: 12
+        onEscapeRequested: root.dismiss()
     ColumnLayout {
         width: Math.min(parent.width - 40, 560)
         anchors.horizontalCenter: parent.horizontalCenter
@@ -24,6 +28,7 @@ Item {
             Controls.AbstractButton {
                 Layout.fillWidth: true
                 implicitHeight: 48
+                objectName: "mobileWorkspaceSelectorButton"
                 Accessible.name: root.workspaceName
                 onClicked: root.workspacesRequested()
                 contentItem: RowLayout {
@@ -33,13 +38,13 @@ Item {
                         text: root.workspaceName
                         textFormat: Text.PlainText
                         font.pixelSize: 22
-                        color: Theme.text
+                        color: Theme.textFor(parent)
                         font.weight: Font.DemiBold
                         elide: Text.ElideRight
                     }
                     UiIcon {
                         name: "chevron-down"
-                        color: Theme.muted
+                        color: Theme.mutedFor(parent)
                         Layout.preferredWidth: 18
                         Layout.preferredHeight: 18
                     }
@@ -83,7 +88,7 @@ Item {
                     anchors.fill: parent
                     anchors.margins: 5
                     radius: 16
-                    color: cell.modelData.id === browser.activeId ? Qt.alpha(Theme.accent, .18) : Theme.field
+                    color: cell.modelData.id === browser.activeId ? Qt.alpha(Theme.accent, .18) : Theme.fieldFor(parent)
                     border.width: cell.modelData.id === browser.activeId ? 2 : 0
                     border.color: Theme.accent
                     UiButton {
@@ -111,7 +116,7 @@ Item {
                             Layout.fillWidth: true
                             textFormat: Text.PlainText
                             text: cell.modelData.title || qsTr("New tab")
-                            color: Theme.text
+                            color: Theme.textFor(parent)
                             font.pixelSize: 12
                             elide: Text.ElideRight
                         }
@@ -119,7 +124,7 @@ Item {
                             Layout.fillWidth: true
                             textFormat: Text.PlainText
                             text: (cell.modelData.url || "").replace(/^https?:\/\//, "").split("/")[0]
-                            color: Theme.muted
+                            color: Theme.mutedFor(parent)
                             font.pixelSize: 10
                             elide: Text.ElideRight
                         }
@@ -159,7 +164,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     iconName: "venetian-mask"
                     label: qsTr("Private browsing")
-                    iconColor: browser.privateMode ? Theme.accent : Theme.text
+                    iconColor: browser.privateMode ? Theme.accent : Theme.textFor(parent)
                     onClicked: browser.togglePrivate()
                 }
                 MobileIconButton {
@@ -188,5 +193,6 @@ Item {
                 }
             }
         }
-    }
+    }    }
+
 }

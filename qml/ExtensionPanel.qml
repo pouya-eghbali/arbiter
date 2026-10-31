@@ -7,7 +7,7 @@ import QtWebEngine
 import Arbiter
 
 UiPopup {
-    popupType: Basic.Popup.Item
+    popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
     id: panel
     required property var controller
     required property var browserProfile
@@ -89,7 +89,7 @@ UiPopup {
         RowLayout {
             visible: !panel.extensionId.length
             Layout.fillWidth: true
-            Basic.Label { Layout.fillWidth: true; text: qsTr("Extensions"); textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 20; elide: Text.ElideRight }
+            Basic.Label { Layout.fillWidth: true; text: qsTr("Extensions"); textFormat: Text.PlainText; color: Theme.textFor(parent); font.pixelSize: 20; elide: Text.ElideRight }
             UiIconButton { label: qsTr("Close"); iconName: "x"; onClicked: panel.close() }
         }
         Basic.ScrollView {
@@ -105,7 +105,7 @@ UiPopup {
                     Layout.fillWidth: true
                     visible: !panel.controller || !panel.controller.items.length
                     text: qsTr("Install extensions in Settings to get started.")
-                    color: Theme.muted
+                    color: Theme.mutedFor(parent)
                     wrapMode: Text.Wrap
                 }
                 Repeater {
@@ -119,7 +119,7 @@ UiPopup {
                         onClicked: panel.showExtension(modelData.id, !modelData.hasPopup)
                     }
                 }
-                Basic.Label { Layout.fillWidth: true; text: qsTr("Background extensions run without a popup. Toolbar actions without a popup are not supported yet."); color: Theme.muted; wrapMode: Text.Wrap }
+                Basic.Label { Layout.fillWidth: true; text: qsTr("Background extensions run without a popup. Toolbar actions without a popup are not supported yet."); color: Theme.mutedFor(parent); wrapMode: Text.Wrap }
             }
         }
         Loader {
@@ -185,7 +185,7 @@ UiPopup {
                 Rectangle {
                     anchors.centerIn: parent
                     width: 36; height: 4; radius: 2
-                    color: dragHandler.active ? Theme.text : Theme.muted
+                    color: dragHandler.active ? Theme.textFor(parent) : Theme.mutedFor(parent)
                     opacity: 0.6
                 }
                 HoverHandler { cursorShape: dragHandler.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor }

@@ -20,11 +20,11 @@ Basic.Pane {
     background: Rectangle {
         visible: picker.framed
         radius: 16
-        color: Theme.field
+        color: Theme.fieldFor(parent)
     }
     contentItem: ColumnLayout {
         spacing: 10
-        Basic.Label { text: picker.title; color: Theme.text; font.weight: Font.Medium }
+        Basic.Label { text: picker.title; color: Theme.textFor(parent); font.weight: Font.Medium }
         Flow {
             Layout.fillWidth: true
             spacing: 8
@@ -52,7 +52,7 @@ Basic.Pane {
                             radius: width / 2
                             color: "transparent"
                             border.width: 2
-                            border.color: swatch.activeFocus || picker.value.toString() === swatch.modelData.toLowerCase() ? Theme.text : "transparent"
+                            border.color: swatch.activeFocus || picker.value.toString() === swatch.modelData.toLowerCase() ? Theme.textFor(parent) : "transparent"
                         }
                     }
                     onClicked: picker.choose(swatchColor)
@@ -66,8 +66,8 @@ Basic.Pane {
                 Accessible.name: qsTr("Choose %1 color").arg(picker.title)
                 contentItem: RowLayout {
                     spacing: 10
-                    Rectangle { implicitWidth: 18; implicitHeight: 18; radius: 6; color: picker.value; border.color: Theme.border }
-                    Basic.Label { text: qsTr("Choose color…"); color: Theme.text; font: chooseButton.font }
+                    Rectangle { implicitWidth: 18; implicitHeight: 18; radius: 6; color: picker.value; border.color: Theme.borderFor(parent) }
+                    Basic.Label { text: qsTr("Choose color…"); color: Theme.textFor(parent); font: chooseButton.font }
                 }
                 onClicked: { dialog.selectedColor = picker.value; dialog.open() }
             }
@@ -84,7 +84,7 @@ Basic.Pane {
         title: qsTr("Choose %1 color").arg(picker.title)
         parentWindow: picker.Window.window
         options: ColorDialog.DontUseNativeDialog
-        popupType: Basic.Popup.Item
+        popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
         onAccepted: picker.choose(Qt.rgba(selectedColor.r, selectedColor.g, selectedColor.b, 1))
     }
 }

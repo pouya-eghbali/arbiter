@@ -8,6 +8,8 @@
 class NativeGlassHost : public QQuickItem {
     Q_OBJECT
     QML_ELEMENT
+    Q_PROPERTY(QRectF contentRect READ contentRect WRITE setContentRect NOTIFY contentRectChanged)
+    Q_PROPERTY(bool windowSurface READ windowSurface WRITE setWindowSurface NOTIFY windowSurfaceChanged)
     Q_PROPERTY(bool requested READ requested WRITE setRequested NOTIFY requestedChanged)
     Q_PROPERTY(bool available READ available CONSTANT)
     Q_PROPERTY(bool reducedTransparency READ reducedTransparency NOTIFY accessibilityChanged)
@@ -19,6 +21,10 @@ class NativeGlassHost : public QQuickItem {
 public:
     explicit NativeGlassHost(QQuickItem *parent = nullptr);
     ~NativeGlassHost() override;
+    QRectF contentRect() const { return m_contentRect; }
+    void setContentRect(const QRectF &value) { if (m_contentRect == value) return; m_contentRect = value; emit contentRectChanged(); schedule(); }
+    bool windowSurface() const { return m_windowSurface; }
+    void setWindowSurface(bool);
     bool requested() const { return m_requested; }
     bool available() const;
     bool reducedTransparency() const { return m_reduced; }
@@ -33,6 +39,9 @@ public:
     Q_INVOKABLE void focusControl(QQuickItem *);
     Q_INVOKABLE bool geometryAligned() const;
 signals:
+    void windowSurfaceChanged();
+    void contentRectChanged();
+    void escapeRequested();
     void requestedChanged();
     void accessibilityChanged();
     void activeChanged();
@@ -41,6 +50,7 @@ signals:
     void radiusChanged();
     void contentChanged();
 protected:
+    bool eventFilter(QObject *, QEvent *) override;
     void itemChange(ItemChange, const ItemChangeData &) override;
 private:
     void schedule();
@@ -48,12 +58,15 @@ private:
     void detach();
     void release();
     void watchGeometry();
+    bool m_windowSurface = false;
     bool m_requested = false, m_active = false, m_queued = false, m_reduced = false;
     qreal m_radius = 28;
+    QRectF m_contentRect;
+    QPointF m_originalPosition;
     QColor m_color = Qt::black;
     QPointer<QQuickItem> m_content, m_originalParent;
     QPointer<QQuickWindow> m_foreground;
-    QPointer<QWindow> m_container;
+    QPointer<QWindow> m_container, m_surfaceWindow;
     void *m_native = nullptr;
     QList<QMetaObject::Connection> m_connections;
     QTimer m_accessibilityPoll;
@@ -63,10 +76,13 @@ namespace NativeGlass {
 bool supported();
 bool reducedTransparency();
 void *create(QQuickWindow *owner, QQuickWindow *foreground);
+void *createWindow(QQuickWindow *);
 QWindow *container(void *);
 void update(void *, const QRectF &, qreal radius);
 void destroy(void *);
 void setVisible(void *, bool);
 bool geometryAligned(void *);
+// Manual native UI diagnostic; never called by page content.
+void activateForTest(QQuickWindow *);
 QColor foregroundColor(void *);
 }

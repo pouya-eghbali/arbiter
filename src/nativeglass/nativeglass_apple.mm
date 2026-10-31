@@ -15,6 +15,8 @@
 @property(nonatomic, strong) UIVisualEffectView *effect;
 @property(nonatomic, strong) UIView *containerView;
 #else
+@property(nonatomic) BOOL windowSurface;
+@property(nonatomic, weak) NSWindow *hostWindow;
 @property(nonatomic, weak) NSView *owner;
 @property(nonatomic, weak) NSView *foreground;
 @property(nonatomic, strong) NSView *containerView;
@@ -84,6 +86,31 @@ void *create(QQuickWindow *owner, QQuickWindow *foreground) {
 #endif
     return (__bridge_retained void *)context;
 }
+void *createWindow(QQuickWindow *owner) {
+#if !TARGET_OS_IPHONE
+    if (@available(macOS 26.0, *)) {
+        if (!supported() || (owner->type() != Qt::Popup && owner->type() != Qt::ToolTip)) return nullptr;
+        auto context = [ArbiterNativeGlassContext new];
+        context.windowSurface = YES;
+        context.foreground = (__bridge NSView *)(void *)owner->winId();
+        context.owner = context.foreground.superview;
+        context.hostWindow = context.foreground.window;
+        if (!context.hostWindow) return nullptr;
+        context.effect = [NSGlassEffectView new];
+        context.effect.style = NSGlassEffectViewStyleRegular;
+        context.effect.tintColor = nil;
+        context.hostWindow.opaque = NO;
+        context.hostWindow.backgroundColor = NSColor.clearColor;
+        context.hostWindow.hasShadow = YES;
+        [context.owner addSubview:context.effect positioned:NSWindowBelow relativeTo:context.foreground];
+        context.effect.frame = context.foreground.frame;
+        return (__bridge_retained void *)context;
+    }
+#else
+    Q_UNUSED(owner);
+#endif
+    return nullptr;
+}
 QWindow *container(void *value) {
     return ((__bridge ArbiterNativeGlassContext *)value).container;
 }
@@ -101,6 +128,17 @@ void update(void *value, const QRectF &rect, qreal radius) {
     }
 #else
     if (@available(macOS 26.0, *)) {
+        if (context.windowSurface) {
+            // Leave Qt's content view at the NSWindow root. Reparenting it
+            // changes Cocoa geometry notifications and breaks nested popups.
+            if (context.effect.superview != context.foreground.superview) {
+                context.owner = context.foreground.superview;
+                [context.owner addSubview:context.effect positioned:NSWindowBelow relativeTo:context.foreground];
+            }
+            context.effect.frame = context.foreground.frame;
+            context.effect.cornerRadius = radius;
+            return;
+        }
         const auto y = context.owner.isFlipped ? rect.y() : context.owner.bounds.size.height - rect.bottom();
         context.containerView.frame = NSMakeRect(rect.x(), y, rect.width(), rect.height());
         context.effect.frame = context.containerView.bounds;
@@ -119,6 +157,15 @@ void update(void *value, const QRectF &rect, qreal radius) {
 void setVisible(void *value, bool visible) {
     auto context = (__bridge ArbiterNativeGlassContext *)value;
     context.effect.hidden = !visible;
+}
+void activateForTest(QQuickWindow *window) {
+    if (!supported()) { window->requestActivate(); return; }
+#if !TARGET_OS_IPHONE
+    NSView *view = (__bridge NSView *)(void *)window->winId();
+    [NSApp activateIgnoringOtherApps:YES];
+    [view.window makeKeyAndOrderFront:nil];
+#endif
+    window->requestActivate();
 }
 bool geometryAligned(void *value) {
     auto context = (__bridge ArbiterNativeGlassContext *)value;
@@ -148,6 +195,12 @@ QColor foregroundColor(void *value) {
 }
 void destroy(void *value) {
     auto context = (__bridge_transfer ArbiterNativeGlassContext *)value;
+#if !TARGET_OS_IPHONE
+    if (context.windowSurface) {
+        [context.effect removeFromSuperview];
+        return;
+    }
+#endif
     [context.foreground removeFromSuperview];
     if (context.owner && context.foreground) [context.owner addSubview:context.foreground];
     [context.effect removeFromSuperview];
@@ -160,11 +213,13 @@ namespace NativeGlass {
 bool supported() { return false; }
 bool reducedTransparency() { return false; }
 void *create(QQuickWindow *, QQuickWindow *) { return nullptr; }
+void *createWindow(QQuickWindow *) { return nullptr; }
 QWindow *container(void *) { return nullptr; }
 void update(void *, const QRectF &, qreal) {}
 void destroy(void *) {}
 void setVisible(void *, bool) {}
 bool geometryAligned(void *) { return false; }
+void activateForTest(QQuickWindow *window) { window->requestActivate(); }
 QColor foregroundColor(void *) { return Qt::black; }
 }
 #endif

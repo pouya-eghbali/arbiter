@@ -8,7 +8,7 @@ Rectangle {
     property string fallback: ""
     readonly property bool effectsAvailable: GraphicsInfo.api !== GraphicsInfo.Software && GraphicsInfo.api !== GraphicsInfo.Unknown
     radius: 11
-    color: Theme.field
+    color: Theme.fieldFor(parent)
     Image {
         id: image
         anchors.fill: parent
@@ -43,7 +43,7 @@ Rectangle {
         visible: !image.source.toString().length
         anchors.centerIn: parent
         text: root.fallback || "Arbiter"
-        color: Theme.muted
+        color: Theme.mutedFor(parent)
         font.pixelSize: 17
         elide: Text.ElideRight
         width: parent.width - 20

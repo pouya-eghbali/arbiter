@@ -3,8 +3,8 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 
-Basic.Popup {
-    popupType: Basic.Popup.Item
+UiPopup {
+    popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
     id: setup
     required property var controller
     property bool submitted: false
@@ -44,7 +44,7 @@ Basic.Popup {
             enabled: !setup.controller.busy
             onAccepted: enableButton.clicked()
         }
-        Basic.Label { text: setup.controller.biometricStatus; Layout.fillWidth: true; wrapMode: Text.Wrap; color: Theme.muted }
+        Basic.Label { text: setup.controller.biometricStatus; Layout.fillWidth: true; wrapMode: Text.Wrap; color: Theme.mutedFor(parent) }
         Basic.Label { text: setup.controller.error; visible: text.length > 0; textFormat: Text.PlainText; Layout.fillWidth: true; wrapMode: Text.Wrap }
         RowLayout {
             UiButton { text: qsTr("Cancel"); onClicked: { setup.controller.cancelBiometric(); setup.close() } }

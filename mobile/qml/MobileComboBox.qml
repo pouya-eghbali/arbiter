@@ -17,13 +17,13 @@ UiComboBox {
             text: option.model.modelData
             font: control.font
             textFormat: Text.PlainText
-            color: Theme.text
+            color: Theme.textFor(parent)
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
         background: Rectangle {
             radius: 9
-            color: option.highlighted ? Theme.selection : option.down ? Theme.hover : "transparent"
+            color: option.highlighted ? Theme.selection : option.down ? Theme.hoverFor(parent) : "transparent"
         }
     }
 }

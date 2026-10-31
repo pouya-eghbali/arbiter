@@ -83,11 +83,11 @@ UiTextField {
         }
         contentItem: ColumnLayout {
             spacing: 10
-            Basic.Label { Layout.fillWidth: true; text: field.pickerTitle; color: Theme.muted; font.pixelSize: 12; elide: Text.ElideRight }
+            Basic.Label { Layout.fillWidth: true; text: field.pickerTitle; color: Theme.mutedFor(parent); font.pixelSize: 12; elide: Text.ElideRight }
             RowLayout {
                 Layout.fillWidth: true
                 UiIconButton { objectName: field.objectName + "PreviousMonth"; label: qsTr("Previous month"); iconName: "arrow-left"; onClicked: calendarPopup.moveMonths(-1) }
-                Basic.Label { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: Qt.formatDate(calendarPopup.viewDate, "MMMM yyyy"); color: Theme.text; font.weight: Font.DemiBold; Accessible.role: Accessible.StaticText }
+                Basic.Label { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: Qt.formatDate(calendarPopup.viewDate, "MMMM yyyy"); color: Theme.textFor(parent); font.weight: Font.DemiBold; Accessible.role: Accessible.StaticText }
                 UiIconButton { objectName: field.objectName + "NextMonth"; label: qsTr("Next month"); iconName: "arrow-right"; onClicked: calendarPopup.moveMonths(1) }
             }
             Basic.DayOfWeekRow {
@@ -97,7 +97,7 @@ UiTextField {
                 spacing: 2
                 delegate: Basic.Label {
                     required property string narrowName
-                    text: narrowName; color: Theme.muted; font.pixelSize: 11
+                    text: narrowName; color: Theme.mutedFor(parent); font.pixelSize: 11
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                 }
             }
@@ -139,7 +139,7 @@ UiTextField {
                     Accessible.selected: selected
                     background: Rectangle {
                         radius: 9
-                        color: day.selected ? Theme.accent : day.down ? Theme.pressed : day.hovered ? Theme.hover : "transparent"
+                        color: day.selected ? Theme.accent : day.down ? Theme.pressedFor(parent) : day.hovered ? Theme.hoverFor(parent) : "transparent"
                         border.width: day.cursor && days.activeFocus || day.activeFocus ? 1 : 0
                         border.color: Theme.accent
                     }
@@ -147,7 +147,7 @@ UiTextField {
                         text: day.model.day
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                         font.pixelSize: 12
-                        color: day.selected ? Theme.contrastingText(Theme.accent) : day.model.month === days.month ? Theme.text : Theme.muted
+                        color: day.selected ? Theme.contrastingText(Theme.accent) : day.model.month === days.month ? Theme.textFor(parent) : Theme.mutedFor(parent)
                         font.weight: day.model.today ? Font.DemiBold : Font.Normal
                     }
                     onClicked: calendarPopup.choose(model.date)

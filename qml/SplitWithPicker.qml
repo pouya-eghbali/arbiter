@@ -4,7 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 
 UiPopup {
-    popupType: Basic.Popup.Item
+    popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
     id: picker
     objectName: "splitWithPicker"
     required property var tabs
@@ -90,7 +90,7 @@ UiPopup {
     contentItem: ColumnLayout {
         spacing: 12
         RowLayout {
-            Basic.Label { text: qsTr("Split with…"); color: Theme.text; font.pixelSize: 24; Layout.fillWidth: true }
+            Basic.Label { text: qsTr("Split with…"); color: Theme.textFor(parent); font.pixelSize: 24; Layout.fillWidth: true }
             UiComboBox {
                 id: placement
                 objectName: "splitWithPlacement"
@@ -129,7 +129,7 @@ UiPopup {
                     visible: entry.modelData.heading
                     text: entry.modelData.workspace
                     textFormat: Text.PlainText
-                    color: Theme.muted
+                    color: Theme.mutedFor(parent)
                     font.pixelSize: 12
                     leftPadding: 10
                     height: 24
@@ -151,8 +151,8 @@ UiPopup {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 3
-                            Basic.Label { text: entry.modelData.title; textFormat: Text.PlainText; color: Theme.text; Layout.fillWidth: true; elide: Text.ElideRight }
-                            Basic.Label { text: entry.modelData.url; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 12; Layout.fillWidth: true; elide: Text.ElideMiddle }
+                            Basic.Label { text: entry.modelData.title; textFormat: Text.PlainText; color: Theme.textFor(parent); Layout.fillWidth: true; elide: Text.ElideRight }
+                            Basic.Label { text: entry.modelData.url; textFormat: Text.PlainText; color: Theme.mutedFor(parent); font.pixelSize: 12; Layout.fillWidth: true; elide: Text.ElideMiddle }
                         }
                     }
                     background: Rectangle { radius: 10; color: list.currentIndex === entry.index ? Theme.selection : "transparent" }
@@ -163,9 +163,9 @@ UiPopup {
                 anchors.centerIn: parent
                 visible: picker.entries.length === 0
                 text: qsTr("No other matching tabs")
-                color: Theme.muted
+                color: Theme.mutedFor(parent)
             }
         }
-        Basic.Label { text: qsTr("↑ ↓ Choose a tab    ↵ Split    Esc Cancel"); font.pixelSize: 12; color: Theme.muted }
+        Basic.Label { text: qsTr("↑ ↓ Choose a tab    ↵ Split    Esc Cancel"); font.pixelSize: 12; color: Theme.mutedFor(parent) }
     }
 }

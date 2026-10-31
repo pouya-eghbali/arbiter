@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
+import QtQuick.Controls.Basic as Basic
 import Arbiter
 
 Rectangle {
@@ -9,14 +10,30 @@ Rectangle {
     antialiasing: true
     color: "transparent"
     border.width: 0
-    property bool forceOpaque: false
+    property var popup: null
+    readonly property bool nativeActive: nativeWindow.active
+    NativeGlassHost {
+        id: nativeWindow
+        anchors.fill: parent
+        windowSurface: Theme.nativePopups
+        content: glass.popup ? glass.popup.contentItem : null
+        contentRect: glass.popup ? Qt.rect(glass.popup.leftPadding, glass.popup.topPadding,
+            Math.max(1, glass.popup.availableWidth), Math.max(1, glass.popup.availableHeight)) : Qt.rect(0, 0, 0, 0)
+        requested: Theme.liquidGlass && (Theme.nativePopups
+            ? SurfacePalette.popupWindow(glass.ownerWindow) && glass.width >= glass.ownerWindow.width - 1 && glass.height >= glass.ownerWindow.height - 1
+            : glass.popup !== null)
+        onEscapeRequested: if (glass.popup && (glass.popup.closePolicy & Basic.Popup.CloseOnEscape)) glass.popup.close()
+        WindowContainer { anchors.fill: parent; window: nativeWindow.containerWindow; visible: nativeWindow.active && !nativeWindow.windowSurface }
+        radius: glass.radius
+    }
+    property bool forceOpaque: nativeWindow.reducedTransparency
     property bool dense: false
     property bool shadowEnabled: true
     readonly property var ownerWindow: Window.window
     property Item sourceItem: ownerWindow && ownerWindow["glassBackdrop"] !== undefined
         ? ownerWindow["glassBackdrop"] : Theme.backdrop
     readonly property bool effectsAvailable: GraphicsInfo.api !== GraphicsInfo.Software && GraphicsInfo.api !== GraphicsInfo.Unknown
-    readonly property bool samplesBackdrop: !forceOpaque && visible && effectsAvailable && sourceItem !== null
+    readonly property bool samplesBackdrop: !nativeActive && !forceOpaque && visible && effectsAvailable && sourceItem !== null
         && ownerWindow !== null && sourceItem.Window.window === ownerWindow
     readonly property point samplePosition: {
         // mapToItem doesn't notify bindings about ancestor motion. Track both
@@ -39,7 +56,7 @@ Rectangle {
     RectangularShadow {
         anchors.fill: parent
         z: -2
-        visible: glass.shadowEnabled && glass.effectsAvailable
+        visible: !glass.nativeActive && glass.shadowEnabled && glass.effectsAvailable
         radius: glass.radius
         blur: 32
         spread: 2
@@ -50,7 +67,7 @@ Rectangle {
     RectangularShadow {
         anchors.fill: parent
         z: -1
-        visible: glass.shadowEnabled && glass.effectsAvailable
+        visible: !glass.nativeActive && glass.shadowEnabled && glass.effectsAvailable
         radius: glass.radius
         blur: 10
         offset: Qt.vector2d(0, 2)
@@ -86,6 +103,7 @@ Rectangle {
     }
     Item {
         anchors.fill: parent
+        visible: !glass.nativeActive
         // Composite blur, tint and sheen first. Masking each separately leaves
         // a bright fringe where their partially covered corner pixels overlap.
         layer.enabled: glass.samplesBackdrop

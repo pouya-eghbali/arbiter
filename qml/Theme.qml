@@ -1,7 +1,17 @@
 pragma Singleton
 import QtQuick
+import Arbiter
 
 QtObject {
+    property bool liquidGlass: true
+    readonly property bool nativePopups: liquidGlass && SurfacePalette.windowSupported
+    function nativeFor(item): bool { const version = SurfacePalette.revision; return SurfacePalette.active(item) }
+    function textFor(item): color { const version = SurfacePalette.revision; return SurfacePalette.active(item) ? SurfacePalette.foreground(item) : text }
+    function mutedFor(item): color { return nativeFor(item) ? Qt.alpha(textFor(item), .65) : muted }
+    function fieldFor(item): color { return nativeFor(item) ? Qt.alpha(textFor(item), .07) : field }
+    function hoverFor(item): color { return nativeFor(item) ? Qt.alpha(textFor(item), .10) : hover }
+    function pressedFor(item): color { return nativeFor(item) ? Qt.alpha(textFor(item), .16) : pressed }
+    function borderFor(item): color { return nativeFor(item) ? Qt.alpha(textFor(item), .10) : border }
     property bool dark: false
     property bool reducedMotion: Application.styleHints.accessibility.motionPreference === Qt.ReducedMotion
     readonly property int enterDuration: reducedMotion ? 0 : 160

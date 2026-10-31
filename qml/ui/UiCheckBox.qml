@@ -15,9 +15,9 @@ Basic.CheckBox {
         width: 22
         height: 22
         radius: 7
-        color: control.checked ? Theme.accent : control.hovered ? Theme.hover : Theme.field
+        color: control.checked ? Theme.accent : control.hovered ? Theme.hoverFor(parent) : Theme.fieldFor(parent)
         border.width: 1
-        border.color: control.activeFocus ? Theme.accent : Theme.border
+        border.color: control.activeFocus ? Theme.accent : Theme.borderFor(parent)
         UiIcon {
             anchors.centerIn: parent
             width: 16; height: 16
@@ -30,7 +30,7 @@ Basic.CheckBox {
         text: control.text
         textFormat: Text.PlainText
         font: control.font
-        color: control.enabled ? Theme.text : Theme.muted
+        color: control.enabled ? Theme.textFor(parent) : Theme.mutedFor(parent)
         leftPadding: control.indicator.width + control.spacing
         verticalAlignment: Text.AlignVCenter
         wrapMode: Text.Wrap

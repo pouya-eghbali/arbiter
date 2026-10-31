@@ -125,7 +125,7 @@ UiPopup {
                 spacing: 3
                 Basic.Label {
                     text: panel.editing ? (panel.editingId ? qsTr("Edit workspace") : qsTr("New workspace")) : qsTr("Workspaces")
-                    color: Theme.text
+                    color: Theme.textFor(parent)
                     font.pixelSize: panel.editing ? 22 : 15
                     font.weight: Font.DemiBold
                     Layout.fillWidth: true
@@ -133,7 +133,7 @@ UiPopup {
                 }
                 Basic.Label {
                     text: panel.editing ? qsTr("Make a space your own.") : qsTr("Switch between your spaces.")
-                    color: Theme.muted
+                    color: Theme.mutedFor(parent)
                     font.pixelSize: 12
                     Layout.fillWidth: true
                     elide: Text.ElideRight
@@ -148,7 +148,7 @@ UiPopup {
             text: panel.manager.error
             textFormat: Text.PlainText
             wrapMode: Text.Wrap
-            color: Theme.text
+            color: Theme.textFor(parent)
         }
         Basic.ScrollView {
             id: editor
@@ -160,7 +160,7 @@ UiPopup {
             ColumnLayout {
                 width: editor.availableWidth
                 spacing: 12
-                Basic.Label { text: qsTr("Name"); color: Theme.text; font.weight: Font.Medium }
+                Basic.Label { text: qsTr("Name"); color: Theme.textFor(parent); font.weight: Font.Medium }
                 UiTextField { id: nameField; objectName: "workspaceName"; Layout.fillWidth: true; maximumLength: 48; placeholderText: qsTr("e.g. Work, Personal, Research"); Accessible.name: qsTr("Workspace name") }
                 UiColorPicker {
                     Layout.fillWidth: true
@@ -174,7 +174,7 @@ UiPopup {
                     text: panel.editingId
                         ? qsTr("Session type is fixed when a workspace is created. Saved passwords, passkeys, and history are shared across workspaces.")
                         : qsTr("Separate sessions have their own cookies and website accounts. Leave this off to share sign-ins with your other shared workspaces. Saved passwords, passkeys, and history stay shared.")
-                    color: Theme.muted
+                    color: Theme.mutedFor(parent)
                     font.pixelSize: 12
                     Layout.fillWidth: true
                     wrapMode: Text.Wrap
@@ -186,7 +186,7 @@ UiPopup {
             Layout.fillWidth: true
             implicitHeight: confirmation.implicitHeight + 24
             radius: 14
-            color: Theme.field
+            color: Theme.fieldFor(parent)
             ColumnLayout {
                 id: confirmation
                 anchors.fill: parent
@@ -198,14 +198,14 @@ UiPopup {
                     Layout.fillWidth: true
                     wrapMode: Text.Wrap
                     font.weight: Font.DemiBold
-                    color: Theme.text
+                    color: Theme.textFor(parent)
                 }
                 Basic.Label {
                     text: qsTr("All its tabs will close and unsaved changes will be lost. Website sign-in data stays on this device.")
                     Layout.fillWidth: true
                     wrapMode: Text.Wrap
                     font.pixelSize: 12
-                    color: Theme.muted
+                    color: Theme.mutedFor(parent)
                 }
                 RowLayout {
                     Layout.fillWidth: true
@@ -263,7 +263,7 @@ UiPopup {
                     anchors.bottom: parent.bottom
                     anchors.topMargin: 8
                     anchors.bottomMargin: 8
-                    color: Theme.field
+                    color: Theme.fieldFor(parent)
                 }
                 ColumnLayout {
                     anchors.fill: parent
@@ -290,15 +290,15 @@ UiPopup {
                             onActiveFocusChanged: if (activeFocus) choices.currentIndex = choice.index
                             background: Rectangle {
                                 radius: 9
-                                color: workspaceHeading.down ? Theme.pressed : workspaceHeading.hovered || choices.activeFocus && choices.currentIndex === choice.index ? Theme.hover : "transparent"
+                                color: workspaceHeading.down ? Theme.pressedFor(parent) : workspaceHeading.hovered || choices.activeFocus && choices.currentIndex === choice.index ? Theme.hoverFor(parent) : "transparent"
                                 border.width: workspaceHeading.activeFocus ? 1 : 0
                                 border.color: Theme.accent
                             }
                             contentItem: RowLayout {
                                 spacing: 9
                                 Rectangle { Layout.preferredWidth: 10; Layout.preferredHeight: 10; radius: 5; color: choice.workspaceColor }
-                                Basic.Label { Layout.fillWidth: true; text: choice.modelData.name; textFormat: Text.PlainText; elide: Text.ElideRight; font.pixelSize: 14; font.weight: Font.Medium; color: Theme.text }
-                                UiIcon { name: choice.current ? "check" : "chevron-right"; color: choice.current ? Theme.text : Theme.muted; Layout.preferredWidth: 15; Layout.preferredHeight: 15 }
+                                Basic.Label { Layout.fillWidth: true; text: choice.modelData.name; textFormat: Text.PlainText; elide: Text.ElideRight; font.pixelSize: 14; font.weight: Font.Medium; color: Theme.textFor(parent) }
+                                UiIcon { name: choice.current ? "check" : "chevron-right"; color: choice.current ? Theme.textFor(parent) : Theme.mutedFor(parent); Layout.preferredWidth: 15; Layout.preferredHeight: 15 }
                             }
                         }
                         UiIconButton {
@@ -314,7 +314,7 @@ UiPopup {
                         Layout.leftMargin: 6
                         text: choice.tabSummary + " · " + (choice.modelData.isolated ? qsTr("Separate session") : qsTr("Shared session"))
                         font.pixelSize: 11
-                        color: Theme.muted
+                        color: Theme.mutedFor(parent)
                         elide: Text.ElideRight
                     }
                     ListView {
@@ -366,7 +366,7 @@ UiPopup {
                             }
                             background: Rectangle {
                                 radius: 10
-                                color: tabChoice.down ? Theme.pressed : tabChoice.hovered || tabChoice.activeFocus ? Theme.hover : tabChoice.current ? Theme.field : "transparent"
+                                color: tabChoice.down ? Theme.pressedFor(parent) : tabChoice.hovered || tabChoice.activeFocus ? Theme.hoverFor(parent) : tabChoice.current ? Theme.fieldFor(parent) : "transparent"
                                 border.width: tabChoice.current || tabChoice.activeFocus ? 1 : 0
                                 border.color: tabChoice.activeFocus ? Theme.accent : Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.6)
                             }
@@ -376,7 +376,7 @@ UiPopup {
                                     Layout.preferredWidth: 34
                                     Layout.preferredHeight: 34
                                     radius: 7
-                                    color: Theme.field
+                                    color: Theme.fieldFor(parent)
                                     Image {
                                         id: favicon
                                         anchors.centerIn: parent
@@ -391,7 +391,7 @@ UiPopup {
                                         anchors.centerIn: parent
                                         visible: !favicon.visible
                                         text: (Array.from(tabChoice.title.trim())[0] || "A").toUpperCase()
-                                        color: Theme.text
+                                        color: Theme.textFor(parent)
                                         font.pixelSize: 19
                                         font.weight: Font.Medium
                                     }
@@ -399,10 +399,10 @@ UiPopup {
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     spacing: 3
-                                    Basic.Label { Layout.fillWidth: true; text: tabChoice.title; textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 12; elide: Text.ElideRight }
-                                    Basic.Label { Layout.fillWidth: true; text: tabChoice.site; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 10; elide: Text.ElideMiddle }
+                                    Basic.Label { Layout.fillWidth: true; text: tabChoice.title; textFormat: Text.PlainText; color: Theme.textFor(parent); font.pixelSize: 12; elide: Text.ElideRight }
+                                    Basic.Label { Layout.fillWidth: true; text: tabChoice.site; textFormat: Text.PlainText; color: Theme.mutedFor(parent); font.pixelSize: 10; elide: Text.ElideMiddle }
                                 }
-                                UiIcon { visible: tabChoice.modelData.pinned; name: "pin"; color: Theme.muted; Layout.preferredWidth: 12; Layout.preferredHeight: 12 }
+                                UiIcon { visible: tabChoice.modelData.pinned; name: "pin"; color: Theme.mutedFor(parent); Layout.preferredWidth: 12; Layout.preferredHeight: 12 }
                             }
                         }
                     }
@@ -448,8 +448,8 @@ UiPopup {
             Layout.fillWidth: true
             spacing: 8
             Rectangle { width: 6; height: 6; radius: 3; color: panel.manager.currentColor }
-            Basic.Label { text: panel.manager.currentName; textFormat: Text.PlainText; elide: Text.ElideRight; Layout.fillWidth: true; color: Theme.muted; font.pixelSize: 11 }
-            Basic.Label { text: "← → " + qsTr("↑ ↓ Navigate    ↵ Switch    Esc Close"); color: Theme.muted; font.pixelSize: 10; elide: Text.ElideRight; Layout.maximumWidth: panel.availableWidth * 0.72 }
+            Basic.Label { text: panel.manager.currentName; textFormat: Text.PlainText; elide: Text.ElideRight; Layout.fillWidth: true; color: Theme.mutedFor(parent); font.pixelSize: 11 }
+            Basic.Label { text: "← → " + qsTr("↑ ↓ Navigate    ↵ Switch    Esc Close"); color: Theme.mutedFor(parent); font.pixelSize: 10; elide: Text.ElideRight; Layout.maximumWidth: panel.availableWidth * 0.72 }
         }
     }
     UiMenu {

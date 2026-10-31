@@ -9,10 +9,10 @@ Basic.Button {
     property string iconName: ""
     property int iconSize: 20
     readonly property color primaryFill: enabled ? Theme.accent : Theme.mix(Theme.popupSolid, Theme.accent, 0.45)
-    readonly property color foregroundColor: primary ? Theme.contrastingText(primaryFill) : Theme.text
+    readonly property color foregroundColor: primary ? Theme.contrastingText(primaryFill) : Theme.textFor(parent)
     property color iconColor: foregroundColor
     property color textColor: foregroundColor
-    property bool nativeMaterial: false
+    property bool nativeMaterial: Theme.nativeFor(control)
     property bool primary: false
     property int textAlignment: Text.AlignHCenter
     implicitWidth: Math.max(40, implicitContentWidth + leftPadding + rightPadding)
@@ -49,10 +49,9 @@ Basic.Button {
     }
     background: Rectangle {
         radius: 12
-        color: control.nativeMaterial ? (control.down ? Qt.alpha(control.iconColor, .16) : control.hovered || control.activeFocus || control.checked ? Qt.alpha(control.iconColor, .08) : "transparent")
-            : control.primary ? control.primaryFill
-            : control.down ? Theme.pressed : control.checked || control.highlighted ? Theme.selection
-            : control.hovered || control.activeFocus ? Theme.hover : control.flat ? "transparent" : Theme.field
+        color: control.primary ? control.primaryFill : control.nativeMaterial ? (control.down ? Qt.alpha(control.iconColor, .16) : control.hovered || control.activeFocus || control.checked ? Qt.alpha(control.iconColor, .08) : "transparent")
+            : control.down ? Theme.pressedFor(parent) : control.checked || control.highlighted ? Theme.selection
+            : control.hovered || control.activeFocus ? Theme.hoverFor(parent) : control.flat ? "transparent" : Theme.fieldFor(parent)
         border.width: control.activeFocus || control.primary && (control.hovered || control.down) ? 1 : 0
         border.color: control.primary ? control.foregroundColor : Theme.accent
         Behavior on color { enabled: !control.primary; ColorAnimation { duration: 100 } }
