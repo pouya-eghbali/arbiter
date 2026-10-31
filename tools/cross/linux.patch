@@ -17,3 +17,13 @@
          list(APPEND gnArgArg
              custom_toolchain="${buildDir}/target_toolchain:target"
              host_toolchain="${buildDir}/host_toolchain:host"
+--- a/src/host/BUILD.arbiter-apple.toolchain.gn.in
++++ b/src/host/BUILD.arbiter-apple.toolchain.gn.in
+@@ -13,5 +13,7 @@
+     is_mingw = false
+     is_msvc = false
+     use_lld = false
++    use_ozone = false
++    use_udev = false
+   }
+ }
