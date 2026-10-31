@@ -813,3 +813,23 @@ void evaluate(NativePage *page, const QString &script, std::function<void(QVaria
          }];
 }
 } // namespace MobilePlatform
+
+#if TARGET_OS_SIMULATOR
+// Resolve the actual UIKit hit target before injecting a test touch into Qt.
+// This catches native views that cover controls or disagree with Qt geometry.
+QWindow *arbiter_ios_test_window_at(QWindow *owner, QPointF point, QPoint *local) {
+    UIView *view = (__bridge UIView *)(void *)owner->winId();
+    UIView *hit = [view hitTest:CGPointMake(point.x(), point.y()) withEvent:nil];
+    while (hit) {
+        for (auto candidate : QGuiApplication::allWindows()) {
+            if (candidate->handle() && (__bridge UIView *)(void *)candidate->winId() == hit) {
+                CGPoint p = [hit convertPoint:CGPointMake(point.x(), point.y()) fromView:view];
+                *local = QPoint(qRound(p.x), qRound(p.y));
+                return candidate;
+            }
+        }
+        hit = hit.superview;
+    }
+    return nullptr;
+}
+#endif

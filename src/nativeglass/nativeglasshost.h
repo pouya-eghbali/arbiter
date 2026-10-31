@@ -12,6 +12,7 @@ class NativeGlassHost : public QQuickItem {
     Q_PROPERTY(bool available READ available CONSTANT)
     Q_PROPERTY(bool reducedTransparency READ reducedTransparency NOTIFY accessibilityChanged)
     Q_PROPERTY(bool active READ active NOTIFY activeChanged)
+    Q_PROPERTY(QWindow *containerWindow READ containerWindow NOTIFY containerWindowChanged)
     Q_PROPERTY(QColor foregroundColor READ foregroundColor NOTIFY foregroundColorChanged)
     Q_PROPERTY(qreal radius READ radius WRITE setRadius NOTIFY radiusChanged)
     Q_PROPERTY(QQuickItem *content READ content WRITE setContent NOTIFY contentChanged)
@@ -22,6 +23,7 @@ public:
     bool available() const;
     bool reducedTransparency() const { return m_reduced; }
     bool active() const { return m_active; }
+    QWindow *containerWindow() const { return m_container; }
     QColor foregroundColor() const { return m_color; }
     qreal radius() const { return m_radius; }
     QQuickItem *content() const { return m_content; }
@@ -33,6 +35,7 @@ signals:
     void requestedChanged();
     void accessibilityChanged();
     void activeChanged();
+    void containerWindowChanged();
     void foregroundColorChanged();
     void radiusChanged();
     void contentChanged();
@@ -42,12 +45,14 @@ private:
     void schedule();
     void synchronize();
     void detach();
+    void release();
     void watchGeometry();
     bool m_requested = false, m_active = false, m_queued = false, m_reduced = false;
     qreal m_radius = 28;
     QColor m_color = Qt::black;
     QPointer<QQuickItem> m_content, m_originalParent;
     QPointer<QQuickWindow> m_foreground;
+    QPointer<QWindow> m_container;
     void *m_native = nullptr;
     QList<QMetaObject::Connection> m_connections;
     QTimer m_accessibilityPoll;
@@ -57,6 +62,7 @@ namespace NativeGlass {
 bool supported();
 bool reducedTransparency();
 void *create(QQuickWindow *owner, QQuickWindow *foreground);
+QWindow *container(void *);
 void update(void *, const QRectF &, qreal radius);
 void destroy(void *);
 void setVisible(void *, bool);

@@ -47,6 +47,7 @@ Item {
             }
             MobileIconButton {
                 iconName: "x"
+                objectName: "mobileTabsDoneButton"
                 label: qsTr("Done")
                 onClicked: root.dismiss()
             }

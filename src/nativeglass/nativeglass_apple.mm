@@ -13,6 +13,8 @@
 @property(nonatomic, weak) UIView *owner;
 @property(nonatomic, weak) UIView *foreground;
 @property(nonatomic, strong) UIVisualEffectView *effect;
+@property(nonatomic) QWindow *container;
+@property(nonatomic, strong) UIView *containerView;
 #else
 @property(nonatomic, weak) NSView *owner;
 @property(nonatomic, weak) NSView *foreground;
@@ -52,7 +54,12 @@ void *create(QQuickWindow *owner, QQuickWindow *foreground) {
         context.effect = [[UIVisualEffectView alloc] initWithEffect:effect];
         context.foreground.opaque = NO;
         context.foreground.backgroundColor = UIColor.clearColor;
-        [context.owner addSubview:context.effect];
+        context.containerView = [UIView new];
+        [context.containerView addSubview:context.effect];
+        [context.owner addSubview:context.containerView];
+        context.container = QWindow::fromWinId(WId((__bridge void *)context.containerView));
+        context.container->setParent(owner);
+        foreground->setParent(context.container);
         [context.effect.contentView addSubview:context.foreground];
     }
 #else
@@ -71,16 +78,25 @@ void *create(QQuickWindow *owner, QQuickWindow *foreground) {
 #endif
     return (__bridge_retained void *)context;
 }
+QWindow *container(void *value) {
+#if TARGET_OS_IPHONE
+    return ((__bridge ArbiterNativeGlassContext *)value).container;
+#else
+    Q_UNUSED(value);
+    return nullptr;
+#endif
+}
 void update(void *value, const QRectF &rect, qreal radius) {
     auto context = (__bridge ArbiterNativeGlassContext *)value;
 #if TARGET_OS_IPHONE
     if (@available(iOS 26.0, *)) {
-        context.effect.frame = CGRectMake(rect.x(), rect.y(), rect.width(), rect.height());
+        context.containerView.frame = CGRectMake(rect.x(), rect.y(), rect.width(), rect.height());
+        context.effect.frame = context.containerView.bounds;
         context.effect.layer.cornerRadius = radius;
         context.effect.layer.cornerCurve = kCACornerCurveContinuous;
         context.effect.cornerConfiguration = [UICornerConfiguration configurationWithRadius:[UICornerRadius fixedRadius:radius]];
         context.foreground.frame = context.effect.contentView.bounds;
-        [context.owner bringSubviewToFront:context.effect];
+        [context.owner bringSubviewToFront:context.containerView];
     }
 #else
     if (@available(macOS 26.0, *)) {
@@ -118,6 +134,9 @@ void destroy(void *value) {
     [context.foreground removeFromSuperview];
     if (context.owner && context.foreground) [context.owner addSubview:context.foreground];
     [context.effect removeFromSuperview];
+#if TARGET_OS_IPHONE
+    [context.containerView removeFromSuperview];
+#endif
 }
 }
 
@@ -126,6 +145,7 @@ namespace NativeGlass {
 bool supported() { return false; }
 bool reducedTransparency() { return false; }
 void *create(QQuickWindow *, QQuickWindow *) { return nullptr; }
+QWindow *container(void *) { return nullptr; }
 void update(void *, const QRectF &, qreal) {}
 void destroy(void *) {}
 void setVisible(void *, bool) {}

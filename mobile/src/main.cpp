@@ -18,6 +18,13 @@
 #ifdef Q_OS_IOS
 #include <TargetConditionals.h>
 #include <QTimer>
+#if TARGET_OS_SIMULATOR
+#include <QtTest/QTest>
+#include <QQuickItem>
+#include <QQuickWindow>
+#include "nativeglasshost.h"
+extern QWindow *arbiter_ios_test_window_at(QWindow *, QPointF, QPoint *);
+#endif
 #endif
 #ifdef ARBITER_MOBILE_WEBENGINE
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
@@ -116,22 +123,42 @@ int main(int argc, char **argv) {
     // Native-view visibility and snapshot transitions need a real iOS/Metal test.
     // This diagnostic entry point is never compiled into physical-device builds.
     if (qEnvironmentVariableIsSet("ARBITER_UI_SMOKE")) {
-        auto window = engine.rootObjects().first();
-        auto timer = new QTimer(window);
-        timer->setInterval(200);
-        QObject::connect(timer, &QTimer::timeout, window, [window, timer, step = 0]() mutable {
-            if (step++ >= 40) {
-                qInfo("Native menu transition smoke test passed");
-                timer->stop();
-                qApp->quit();
-                return;
+        auto window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
+        QTimer::singleShot(1500, window, [window] {
+            auto device = QTest::createTouchDevice();
+            auto tap = [&](QPointF point) {
+                QPoint local;
+                auto target = arbiter_ios_test_window_at(window, point, &local);
+                if (!target) qFatal("No UIKit hit target at %f,%f", point.x(), point.y());
+                qInfo() << "UIKit touch" << point << "local" << local << "target" << target << target->geometry();
+                QTest::touchEvent(target, device).press(0, local, target).commit();
+                QTest::qWait(30);
+                QTest::touchEvent(target, device).release(0, local, target).commit();
+                QTest::qWait(150);
+            };
+            auto tapControl = [&](const char *name) {
+                auto item = window->findChild<QQuickItem *>(name);
+                if (!item || !item->window()) qFatal("Missing control: %s", name);
+                const auto global = item->mapToGlobal(QPointF(item->width()/2, item->height()/2));
+                qInfo() << "Control" << name << "visible" << item->isVisible() << "size" << item->size() << "window" << item->window() << item->window()->geometry();
+                tap(window->mapFromGlobal(global));
+            };
+            for (int i = 0; i < 12; ++i) {
+                qInfo("Native touch cycle %d: menu", i);
+                tapControl("mobileMoreButton");
+                if (window->property("panel") != "more") qFatal("Menu touch failed");
+                if (i % 2) tapControl("mobileMenuCloseButton");
+                else tap(QPointF(window->width()/2, 80));
+                if (window->property("panel") != "") qFatal("Outside touch failed to dismiss menu");
+                qInfo("Native touch cycle %d: tabs", i);
+                tapControl("mobileTabsButton");
+                if (window->property("panel") != "tabs") qFatal("Tabs touch failed");
+                tapControl("mobileTabsDoneButton");
+                if (window->property("panel") != "") qFatal("Tabs Done touch failed");
             }
-            if (step % 2) {
-                qInfo("Opening native menu, iteration %d", step / 2);
-                QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, QVariant("more")));
-            } else window->setProperty("panel", "");
+            qInfo("Native menu dismissal and tab-overview touch smoke test passed");
+            qApp->quit();
         });
-        QTimer::singleShot(1200, timer, [timer] { timer->start(); });
     }
 #endif
     const auto result = app.exec();

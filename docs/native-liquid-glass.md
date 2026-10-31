@@ -31,6 +31,12 @@ hide their native content, including private-window covers. Reduce Transparency
 uses an opaque Glacier fallback. Older Apple systems, builds with older SDKs,
 non-Apple platforms, and the offscreen renderer use Glacier.
 
+On iOS, a plain UIView wrapped by a foreign QWindow carries the scene offset;
+the Qt foreground stays at local (0,0) inside the material's contentView. A QML
+WindowContainer registers the material with Qt Quick's native stacking, so a
+returning WKWebView cannot cover it. Native windows are retained while panels
+are hidden, avoiding render/touch teardown during ordinary menu and tab changes.
+
 ## Validation
 
 - `arbiter --native-glass-smoke-test`: isolated desktop pill, native/Glacier
@@ -40,8 +46,12 @@ non-Apple platforms, and the offscreen renderer use Glacier.
   pointer events, pill swipes, More → Settings actions, repeated teardown,
   preference toggling, and the opaque accessibility fallback. Run with the
   default Cocoa/Metal platform, not `QT_QPA_PLATFORM=offscreen`.
-- iOS simulator `SIMCTL_CHILD_ARBITER_UI_SMOKE=1`: repeated menu transitions
-  over a local WKWebView page. See mobile-interface.md for the launch command.
+- iOS simulator `SIMCTL_CHILD_ARBITER_UI_SMOKE=1`: repeated touch-driven menu
+  and tab-overview transitions over a local WKWebView page. Touch targets are
+  resolved through UIKit hit testing before Qt injection; checks cover outside
+  taps, the menu close button, and tab-overview dismissal. This catches geometry
+  and stacking faults that invoking QML actions directly misses. Test support is
+  excluded from physical-device builds. See mobile-interface.md for launch commands.
 - Existing software screen matrix continues checking the Glacier path.
 
 `ARBITER_GLASS_FORCE_OPAQUE=1` exercises the reduced-transparency branch in an

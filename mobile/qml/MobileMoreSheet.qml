@@ -31,10 +31,15 @@ Item {
             requested: browser.settings.liquidGlass === true
             radius: 29
             content: menuContent
+            WindowContainer {
+                anchors.fill: parent
+                window: nativeGlass.containerWindow
+                visible: nativeGlass.active
+            }
         }
         GlassSurface {
             visible: !nativeGlass.active
-        forceOpaque: nativeGlass.reducedTransparency
+            forceOpaque: nativeGlass.reducedTransparency
             anchors.fill: parent
             radius: 29
             dense: true
@@ -54,12 +59,29 @@ Item {
                     id: body
                     width: menuScroll.availableWidth
                     spacing: 12
-                    Rectangle {
-                        Layout.alignment: Qt.AlignHCenter
-                        width: 32
-                        height: 4
-                        radius: 2
-                        color: Qt.alpha(Theme.muted, .42)
+                    Item {
+                        Layout.fillWidth: true
+                        implicitHeight: 32
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 32
+                            height: 4
+                            radius: 2
+                            color: Qt.alpha(root.menuText, .3)
+                        }
+                        MobileIconButton {
+                            objectName: "mobileMenuCloseButton"
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            iconName: "x"
+                            label: qsTr("Close")
+                            nativeMaterial: nativeGlass.active
+                            iconColor: root.menuText
+                            implicitWidth: 32
+                            implicitHeight: 32
+                            iconSize: 18
+                            onClicked: root.dismiss()
+                        }
                     }
                     RowLayout {
                         Layout.fillWidth: true

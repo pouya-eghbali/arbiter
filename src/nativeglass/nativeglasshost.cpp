@@ -2,13 +2,13 @@
 #include <QGuiApplication>
 
 NativeGlassHost::NativeGlassHost(QQuickItem *parent) : QQuickItem(parent) {
-    connect(this, &QQuickItem::windowChanged, this, [this] { detach(); watchGeometry(); schedule(); });
+    connect(this, &QQuickItem::windowChanged, this, [this] { release(); watchGeometry(); schedule(); });
     connect(this, &QQuickItem::parentChanged, this, [this] { watchGeometry(); schedule(); });
     m_accessibilityPoll.setInterval(250);
     connect(&m_accessibilityPoll, &QTimer::timeout, this, &NativeGlassHost::schedule);
     connect(qGuiApp, &QGuiApplication::applicationStateChanged, this, &NativeGlassHost::schedule);
 }
-NativeGlassHost::~NativeGlassHost() { detach(); }
+NativeGlassHost::~NativeGlassHost() { release(); }
 bool NativeGlassHost::available() const { return NativeGlass::supported(); }
 void NativeGlassHost::setRequested(bool value) {
     if (m_requested == value) return;
@@ -22,7 +22,7 @@ void NativeGlassHost::setRadius(qreal value) {
 }
 void NativeGlassHost::setContent(QQuickItem *value) {
     if (m_content == value) return;
-    detach(); m_content = value; m_originalParent = value ? value->parentItem() : nullptr;
+    release(); m_content = value; m_originalParent = value ? value->parentItem() : nullptr;
     emit contentChanged(); schedule();
 }
 void NativeGlassHost::focusControl(QQuickItem *item) {
@@ -77,15 +77,25 @@ void NativeGlassHost::synchronize() {
         m_foreground->create();
         m_native = NativeGlass::create(window(), m_foreground);
         if (!m_native) { delete m_foreground.data(); m_foreground = nullptr; return; }
+        m_container = NativeGlass::container(m_native);
+        emit containerWindowChanged();
+    }
+    if (!m_active) {
         m_originalParent = m_content->parentItem();
         m_content->setParentItem(m_foreground->contentItem());
+        if (m_container) m_container->show();
         m_foreground->show();
         m_active = true;
         if (qEnvironmentVariableIsSet("ARBITER_DIAGNOSTICS")) qInfo("Native Liquid Glass attached");
         emit activeChanged();
     }
     const auto rect = mapRectToScene(boundingRect());
-    m_foreground->setGeometry(rect.toAlignedRect());
+    if (m_container) {
+        // Qt and UIKit must agree: the material carries the scene offset,
+        // while its foreground has local (0,0) geometry inside contentView.
+        m_container->setGeometry(rect.toAlignedRect());
+        m_foreground->setGeometry(QRect(QPoint(), rect.size().toSize()));
+    } else m_foreground->setGeometry(rect.toAlignedRect());
     m_content->setPosition(QPointF(0, 0));
     m_content->setSize(size());
     NativeGlass::update(m_native, rect, m_radius);
@@ -94,25 +104,36 @@ void NativeGlassHost::synchronize() {
     if (m_color != color) { m_color = color; emit foregroundColorChanged(); }
 }
 void NativeGlassHost::detach() {
-    const QPointer<QWindow> owner = m_foreground ? m_foreground->parent() : nullptr;
+    const QPointer<QWindow> owner = window();
     const bool refocus = m_foreground && m_foreground->isActive() && qGuiApp->applicationState() == Qt::ApplicationActive;
     if (m_content && m_active && (!m_foreground || m_content->parentItem() == m_foreground->contentItem())) {
         m_content->setParentItem(m_originalParent);
         m_content->setPosition(QPointF(0, 0));
     }
     if (m_foreground) m_foreground->hide();
-    if (m_native) NativeGlass::destroy(m_native);
-    m_native = nullptr;
-    delete m_foreground.data();
-    m_foreground = nullptr;
+    if (m_container) m_container->hide();
+    if (m_native) NativeGlass::setVisible(m_native, false);
     if (refocus && owner && owner->isVisible()) owner->requestActivate();
     if (m_active) { m_active = false; emit activeChanged(); }
+}
+void NativeGlassHost::release() {
+    detach();
+    // Keep native windows alive across ordinary panel transitions. Destroying
+    // the input window after a tap races UIKit's remaining touch callbacks.
+    if (m_native) NativeGlass::destroy(m_native);
+    m_native = nullptr;
+    if (m_foreground) { m_foreground->setParent(nullptr); m_foreground->deleteLater(); }
+    m_foreground = nullptr;
+    if (m_container) { m_container->setParent(nullptr); m_container->deleteLater(); }
+    m_container = nullptr;
+    emit containerWindowChanged();
 }
 #ifndef Q_OS_DARWIN
 namespace NativeGlass {
 bool supported() { return false; }
 bool reducedTransparency() { return false; }
 void *create(QQuickWindow *, QQuickWindow *) { return nullptr; }
+QWindow *container(void *) { return nullptr; }
 void update(void *, const QRectF &, qreal) {}
 void destroy(void *) {}
 void setVisible(void *, bool) {}

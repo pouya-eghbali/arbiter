@@ -25,6 +25,11 @@ Item {
         requested: browser.settings.liquidGlass === true
         radius: 29
         content: pillContent
+        WindowContainer {
+            anchors.fill: parent
+            window: nativeGlass.containerWindow
+            visible: nativeGlass.active
+        }
     }
     GlassSurface {
         visible: !nativeGlass.active
@@ -131,6 +136,7 @@ Item {
                 Controls.AbstractButton {
                     Layout.preferredWidth: 44
                     Layout.fillHeight: true
+                    objectName: "mobileTabsButton"
                     Accessible.name: qsTr("Tabs")
                     onClicked: root.tabsRequested()
                     contentItem: Item {
