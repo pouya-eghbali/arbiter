@@ -2682,8 +2682,8 @@
         <translation>Privé</translation>
     </message>
     <message>
-        <source>Liquid Glass</source>
-        <translation>Liquid Glass</translation>
+        <source>Liquid Glass (experimental)</source>
+        <translation>Liquid Glass (expérimental)</translation>
     </message>
     <message>
         <source>Liquid Glass uses the system appearance. Custom colors apply to Glacier when Liquid Glass is off.</source>

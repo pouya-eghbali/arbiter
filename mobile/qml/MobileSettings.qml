@@ -92,7 +92,7 @@ ColumnLayout {
         MobileToggle {
             Layout.fillWidth: true
             visible: glassCapability.available
-            text: qsTr("Liquid Glass")
+            text: qsTr("Liquid Glass (experimental)")
             checked: browser.settings.liquidGlass === true
             onToggled: browser.setSetting("liquidGlass", checked)
         }

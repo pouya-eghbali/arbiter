@@ -1397,7 +1397,7 @@ Basic.ApplicationWindow {
                         NativeGlassHost { id: desktopGlassCapability; visible: false }
                         UiCheckBox {
                             visible: desktopGlassCapability.available
-                            text: qsTr("Liquid Glass")
+                            text: qsTr("Liquid Glass (experimental)")
                             checked: window.appearance.liquidGlass
                             onToggled: window.appearance.liquidGlass = checked
                         }
