@@ -109,6 +109,11 @@ FocusScope {
         requested: pill.appearance.liquidGlass && !more.visible
         radius: height / 2
         content: pillForeground
+        WindowContainer {
+            anchors.fill: parent
+            window: nativeGlass.containerWindow
+            visible: nativeGlass.active
+        }
     }
     GlassSurface {
         id: pillSurface

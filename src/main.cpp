@@ -42,6 +42,7 @@
 #include "browsericons.h"
 #include "sitenavigation.h"
 #include <QWindow>
+#include "nativeglasshost.h"
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QMouseEvent>
@@ -131,6 +132,9 @@ int main(int argc, char *argv[])
         if (smoke.rootObjects().isEmpty()) return 2;
         auto root = smoke.rootObjects().first();
         QTimer::singleShot(2700, root, [root] {
+            for (auto host : root->findChildren<NativeGlassHost *>()) {
+                if (host->active() && !host->geometryAligned()) { qCritical("Desktop native controls escaped the pill"); QCoreApplication::exit(14); return; }
+            }
             auto address = root->findChild<QQuickItem *>("navigationAddressButton");
             if (!address || !address->hasActiveFocus()) { qCritical("Native address keyboard focus was lost"); QCoreApplication::exit(9); return; }
             auto button = root->findChild<QQuickItem *>("navigationMoreButton");

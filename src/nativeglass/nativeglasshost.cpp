@@ -9,6 +9,7 @@ NativeGlassHost::NativeGlassHost(QQuickItem *parent) : QQuickItem(parent) {
     connect(qGuiApp, &QGuiApplication::applicationStateChanged, this, &NativeGlassHost::schedule);
 }
 NativeGlassHost::~NativeGlassHost() { release(); }
+bool NativeGlassHost::geometryAligned() const { return m_active && m_native && NativeGlass::geometryAligned(m_native); }
 bool NativeGlassHost::available() const { return NativeGlass::supported(); }
 void NativeGlassHost::setRequested(bool value) {
     if (m_requested == value) return;
@@ -137,6 +138,7 @@ QWindow *container(void *) { return nullptr; }
 void update(void *, const QRectF &, qreal) {}
 void destroy(void *) {}
 void setVisible(void *, bool) {}
+bool geometryAligned(void *) { return false; }
 QColor foregroundColor(void *) { return Qt::black; }
 }
 #endif

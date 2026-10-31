@@ -31,8 +31,8 @@ hide their native content, including private-window covers. Reduce Transparency
 uses an opaque Glacier fallback. Older Apple systems, builds with older SDKs,
 non-Apple platforms, and the offscreen renderer use Glacier.
 
-On iOS, a plain UIView wrapped by a foreign QWindow carries the scene offset;
-the Qt foreground stays at local (0,0) inside the material's contentView. A QML
+On Apple platforms, a plain UIView/NSView wrapped by a foreign QWindow carries
+the scene offset; the Qt foreground stays at local (0,0) inside the material's contentView. A QML
 WindowContainer registers the material with Qt Quick's native stacking, so a
 returning WKWebView cannot cover it. Native windows are retained while panels
 are hidden, avoiding render/touch teardown during ordinary menu and tab changes.
@@ -41,7 +41,8 @@ are hidden, avoiding render/touch teardown during ordinary menu and tab changes.
 
 - `arbiter --native-glass-smoke-test`: isolated desktop pill, native/Glacier
   toggles, private-cover visibility, address focus, and More button input;
-  does not open user profiles.
+  checks the actual native glass and foreground bounds to catch displaced
+  controls. Does not open user profiles.
 - Desktop mobile fixture `--design-screen=nativechecks`: real native child-window
   pointer events, pill swipes, More → Settings actions, repeated teardown,
   preference toggling, and the opaque accessibility fallback. Run with the

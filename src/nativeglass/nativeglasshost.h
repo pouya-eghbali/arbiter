@@ -31,6 +31,7 @@ public:
     void setRadius(qreal);
     void setContent(QQuickItem *);
     Q_INVOKABLE void focusControl(QQuickItem *);
+    Q_INVOKABLE bool geometryAligned() const;
 signals:
     void requestedChanged();
     void accessibilityChanged();
@@ -66,5 +67,6 @@ QWindow *container(void *);
 void update(void *, const QRectF &, qreal radius);
 void destroy(void *);
 void setVisible(void *, bool);
+bool geometryAligned(void *);
 QColor foregroundColor(void *);
 }

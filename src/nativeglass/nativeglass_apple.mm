@@ -13,13 +13,14 @@
 @property(nonatomic, weak) UIView *owner;
 @property(nonatomic, weak) UIView *foreground;
 @property(nonatomic, strong) UIVisualEffectView *effect;
-@property(nonatomic) QWindow *container;
 @property(nonatomic, strong) UIView *containerView;
 #else
 @property(nonatomic, weak) NSView *owner;
 @property(nonatomic, weak) NSView *foreground;
+@property(nonatomic, strong) NSView *containerView;
 @property(nonatomic, strong) NSGlassEffectView *effect API_AVAILABLE(macos(26.0));
 #endif
+@property(nonatomic) QWindow *container;
 @end
 @implementation ArbiterNativeGlassContext
 @end
@@ -72,19 +73,19 @@ void *create(QQuickWindow *owner, QQuickWindow *foreground) {
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= 270000
         if (@available(macOS 27.0, *)) context.effect.effectIsInteractive = YES;
 #endif
+        context.containerView = [NSView new];
+        [context.containerView addSubview:context.effect];
+        [context.owner addSubview:context.containerView positioned:NSWindowAbove relativeTo:nil];
+        context.container = QWindow::fromWinId(WId((__bridge void *)context.containerView));
+        context.container->setParent(owner);
+        foreground->setParent(context.container);
         context.effect.contentView = context.foreground;
-        [context.owner addSubview:context.effect positioned:NSWindowAbove relativeTo:nil];
     }
 #endif
     return (__bridge_retained void *)context;
 }
 QWindow *container(void *value) {
-#if TARGET_OS_IPHONE
     return ((__bridge ArbiterNativeGlassContext *)value).container;
-#else
-    Q_UNUSED(value);
-    return nullptr;
-#endif
 }
 void update(void *value, const QRectF &rect, qreal radius) {
     auto context = (__bridge ArbiterNativeGlassContext *)value;
@@ -101,9 +102,16 @@ void update(void *value, const QRectF &rect, qreal radius) {
 #else
     if (@available(macOS 26.0, *)) {
         const auto y = context.owner.isFlipped ? rect.y() : context.owner.bounds.size.height - rect.bottom();
-        context.effect.frame = NSMakeRect(rect.x(), y, rect.width(), rect.height());
+        context.containerView.frame = NSMakeRect(rect.x(), y, rect.width(), rect.height());
+        context.effect.frame = context.containerView.bounds;
         context.effect.cornerRadius = radius;
-
+        // Cocoa may restore the QWindow's native parent while showing it.
+        // Keep its Qt parent at the material container and its native content
+        // inside the effect, with the same local origin on both sides.
+        if (![context.foreground isDescendantOf:context.effect]) {
+            context.effect.contentView = nil;
+            context.effect.contentView = context.foreground;
+        }
         context.foreground.frame = context.effect.bounds;
     }
 #endif
@@ -111,6 +119,15 @@ void update(void *value, const QRectF &rect, qreal radius) {
 void setVisible(void *value, bool visible) {
     auto context = (__bridge ArbiterNativeGlassContext *)value;
     context.effect.hidden = !visible;
+}
+bool geometryAligned(void *value) {
+    auto context = (__bridge ArbiterNativeGlassContext *)value;
+    const auto glass = [context.effect convertRect:context.effect.bounds toView:context.owner];
+    const auto controls = [context.foreground convertRect:context.foreground.bounds toView:context.owner];
+    const bool aligned = qAbs(glass.origin.x - controls.origin.x) < 1 && qAbs(glass.origin.y - controls.origin.y) < 1
+        && qAbs(glass.size.width - controls.size.width) < 1 && qAbs(glass.size.height - controls.size.height) < 1;
+    if (!aligned) qWarning("Native glass and controls disagree: glass %.1f,%.1f %.1fx%.1f; controls %.1f,%.1f %.1fx%.1f", glass.origin.x, glass.origin.y, glass.size.width, glass.size.height, controls.origin.x, controls.origin.y, controls.size.width, controls.size.height);
+    return aligned;
 }
 QColor foregroundColor(void *value) {
     auto context = (__bridge ArbiterNativeGlassContext *)value;
@@ -134,9 +151,7 @@ void destroy(void *value) {
     [context.foreground removeFromSuperview];
     if (context.owner && context.foreground) [context.owner addSubview:context.foreground];
     [context.effect removeFromSuperview];
-#if TARGET_OS_IPHONE
     [context.containerView removeFromSuperview];
-#endif
 }
 }
 
@@ -149,6 +164,7 @@ QWindow *container(void *) { return nullptr; }
 void update(void *, const QRectF &, qreal) {}
 void destroy(void *) {}
 void setVisible(void *, bool) {}
+bool geometryAligned(void *) { return false; }
 QColor foregroundColor(void *) { return Qt::black; }
 }
 #endif
