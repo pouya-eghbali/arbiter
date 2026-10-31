@@ -1,0 +1,19 @@
+--- a/cmake/QtToolchainHelpers.cmake
++++ b/cmake/QtToolchainHelpers.cmake
+@@ -613,6 +613,16 @@
+         unset(target_cpu)
+     elseif(LINUX)
+         get_gn_arch(cpu ${TEST_architecture_arch})
++        list(APPEND gnArgArg target_os="linux")
++        if(CMAKE_HOST_APPLE AND CMAKE_CROSSCOMPILING)
++            get_gn_arch(arbiter_host_cpu ${CMAKE_HOST_SYSTEM_PROCESSOR})
++            execute_process(COMMAND xcrun --sdk macosx --show-sdk-version
++                OUTPUT_VARIABLE arbiter_mac_sdk OUTPUT_STRIP_TRAILING_WHITESPACE
++                COMMAND_ERROR_IS_FATAL ANY)
++            list(APPEND gnArgArg host_cpu="${arbiter_host_cpu}"
++                use_system_xcode=true enable_stripping=false
++                mac_sdk_min="${arbiter_mac_sdk}")
++        endif()
+         list(APPEND gnArgArg
+             custom_toolchain="${buildDir}/target_toolchain:target"
+             host_toolchain="${buildDir}/host_toolchain:host"

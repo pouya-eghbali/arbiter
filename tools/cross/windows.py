@@ -280,11 +280,11 @@ def engine(args):
     flags = common_flags(args) + [
         f"-DARBITER_WINDOWS_CLANG_PREFIX={clang_facade(args)}",
         f"-DCMAKE_INSTALL_PREFIX={sdk}", f"-DPython3_EXECUTABLE={python_path(args)}",
-        f"-DQWELibClang_LLVM_BIN_PATH={args.llvm / 'bin'}",
+        f"-DQWELibClang_BIN_PATH={args.llvm / 'bin'}",
         f"-DLibclang_LIBRARY={args.llvm / 'lib' / ('libclang.dylib' if sys.platform == 'darwin' else 'libclang.so')}",
         f"-DGn_EXECUTABLE={args.host_qt / 'libexec/gn'}",
         "-DQT_BUILD_EXAMPLES=OFF", "-DQT_BUILD_TESTS=OFF", "-DFEATURE_qtwebengine_build=ON",
-        "-DFEATURE_qtpdf_build=OFF", "-DQT_SHOW_EXTRA_IDE_SOURCES=OFF",
+        "-DFEATURE_qtpdf_build=ON", "-DQT_SHOW_EXTRA_IDE_SOURCES=OFF",
         "-DFEATURE_webengine_extensions=ON", "-DFEATURE_webengine_geolocation=ON",
         # Windows uses native decoders with codec-free FFmpeg, even on Linux hosts.
         "-DFEATURE_webengine_proprietary_codecs=ON", "-DFEATURE_webengine_system_ffmpeg=OFF"]

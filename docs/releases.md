@@ -2,8 +2,7 @@
 
 The main release path is **build locally, then upload to a GitHub draft**. No
 self-hosted runner or startup service is required. GitHub handles the small
-source-draft and dependency-check jobs; Chromium compilation happens on our Mac,
-Windows machine, and Linux Docker container. Nothing publishes a public release automatically.
+source-draft and dependency-check jobs; Chromium compilation happens locally. Native Mac builds and experimental Windows/Linux x64 cross-builds are available; Linux Docker builds remain an alternative. Nothing publishes a public release automatically.
 This is release engineering, not an in-app auto-updater.
 
 ## Platform entry points
@@ -79,7 +78,13 @@ an interactive user task. The packaging tests also create symbolic links: enable
 Windows Developer Mode or use an elevated Developer PowerShell (an interactive
 task running with highest privileges is equivalent).
 
-### Linux: Docker build
+### Linux: direct cross-build or Docker
+
+On macOS, see [Linux x64 cross-build](linux-cross-build.md) for the native Clang/LLD
+path. Compilation uses no container or CPU emulation. Runtime tests still run on
+Linux x64.
+
+The Docker alternative follows.
 
 Run on the Windows x64 machine with Docker Desktop using Linux containers:
 
@@ -99,10 +104,9 @@ command above as a regular user with Docker access. Docker Desktop is not requir
 for this setup. Windows must have Virtual Machine Platform enabled and be restarted
 after enabling it before WSL 2 can run.
 
-The image provisions Ubuntu 24.04, Node 22, Qt from the engine manifest, pinned
-Python/Rust and build dependencies. QtPdf is built from the pinned WebEngine
-source against the base kit because it follows the separate WebEngine version
-series. Image creation includes this one-time compilation. No host Qt installation is required. The container builds
+The image provisions Ubuntu 24.04, Node 22, base Qt from the engine manifest, pinned
+Python/Rust and build dependencies. WebEngine and Qt PDF are built together from
+the same pinned source snapshot. No host Qt installation is required. The container builds
 a committed-source Git bundle, runs tests as a non-root user with the Chromium
 sandbox enabled, then copies the Linux archive/checksum to
 `build-release-artifacts/`. It never mounts `env.sh`, the host checkout, or Apple
@@ -331,9 +335,13 @@ must not be presented as signed official releases.
 
 ## Coordinated dependency updates
 
-**Dependency maintenance** checks upstream stable Qt/Qt WebEngine tags weekly or
-can be dispatched with explicit `qt` and `webengine_ref` inputs. It derives the
-Chromium gitlink/version from that exact WebEngine commit and opens a **draft PR**.
+**Dependency maintenance** checks upstream stable Qt tags and the pinned numeric
+WebEngine maintenance branch daily, including security commits published between
+version tags. It can also be dispatched with explicit `qt` and `webengine_ref` inputs. It derives the Chromium gitlink, base version and security patch level from that
+exact WebEngine commit and opens a **draft PR**. Network/API failures fail the
+check rather than reporting an up-to-date result. Security patch levels cannot
+move backwards. A prerelease marker on the same maintained numeric release line
+is accepted; development branches and newer feature prereleases are rejected.
 It does not rebase/drop patches, merge, update local kits or publish binaries.
 
 ```sh

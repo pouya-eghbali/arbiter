@@ -35,9 +35,10 @@ if(ARBITER_PATCHED_WEBENGINE)
     # Qt6Config normally searches its own sibling component packages before
     # other prefixes. Select every WebEngine component explicitly so headers,
     # libraries and the helper process come from the same patched SDK.
-    foreach(module WebEngineCore WebEngineQuick WebEngineWidgets WebEngineCoreTools)
+    foreach(module WebEngineCore WebEngineQuick WebEngineWidgets WebEngineCoreTools Pdf)
         unset(arbiter_module_path CACHE)
-        if(CMAKE_CROSSCOMPILING AND module STREQUAL "WebEngineCoreTools")
+        if(module STREQUAL "WebEngineCoreTools" AND (CMAKE_CROSSCOMPILING OR
+                NOT EXISTS "${ARBITER_WEBENGINE_PREFIX}/lib/cmake/Qt6WebEngineCoreTools/Qt6WebEngineCoreToolsConfig.cmake"))
             # convert_dict executes during the build. Cross SDK installs omit
             # host tools; select the matching native Qt kit, never target .exe files.
             find_path(arbiter_module_path "Qt6${module}Config.cmake"

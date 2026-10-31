@@ -113,7 +113,7 @@ def main():
             shutil.copyfile(file, destination)
     if args.prepare_only: return
     flags = ["-DCMAKE_BUILD_TYPE=Release", "-DQT_BUILD_EXAMPLES=OFF", "-DQT_BUILD_TESTS=OFF",
-             "-DFEATURE_qtwebengine_build=ON", "-DFEATURE_qtpdf_build=OFF",
+             "-DFEATURE_qtwebengine_build=ON", "-DFEATURE_qtpdf_build=ON",
              "-DFEATURE_webengine_proprietary_codecs=ON",
              "-DFEATURE_webengine_geolocation=ON",
              "-DFEATURE_webengine_extensions=ON",

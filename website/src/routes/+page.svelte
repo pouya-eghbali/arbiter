@@ -270,6 +270,15 @@
         </p>
       </details>
       <details use:accordion>
+        <summary>How do I keep Arbiter updated?<Icon name="plus" size={18} /></summary>
+        <p>
+          Arbiter checks for new desktop releases automatically. Settings → About shows the
+          latest version and release notes; automatic checks can be turned off there. Updates
+          are downloaded and installed by you. Desktop releases include security updates to
+          the browser engine and PDF renderer.
+        </p>
+      </details>
+      <details use:accordion>
         <summary>What about streaming and DRM?<Icon name="plus" size={18} /></summary>
         <p>
           Arbiter does not bundle or download Widevine. When available, it can use a compatible

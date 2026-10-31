@@ -88,6 +88,11 @@ def main():
                    '-DARBITER_CARGO=' + str(cargo)]
     if os.environ.get('ARBITER_OPENSSL_ROOT'):
         definitions += ['-DOPENSSL_ROOT_DIR=' + os.environ['ARBITER_OPENSSL_ROOT']]
+        openssl_receipt = Path(os.environ['ARBITER_OPENSSL_ROOT']) / 'arbiter-openssl-build.json'
+        if openssl_receipt.exists() and json.loads(openssl_receipt.read_text()).get('linkage') == 'static':
+            definitions += ['-DOPENSSL_USE_STATIC_LIBS=TRUE', '-DOPENSSL_MSVC_STATIC_RT=FALSE']
+    if (sdk / 'arbiter-cross-build.json').exists():
+        definitions += ['-DQT_HOST_PATH=' + str(qt)]
     if os.environ.get('ARBITER_CMAKE_TOOLCHAIN'):
         definitions += ['-DCMAKE_TOOLCHAIN_FILE=' + os.environ['ARBITER_CMAKE_TOOLCHAIN']]
     if sys.platform == 'darwin': definitions += ['-DCMAKE_OSX_ARCHITECTURES=' + platform.machine(), '-DCMAKE_OSX_DEPLOYMENT_TARGET=' + macos_target]

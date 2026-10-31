@@ -153,3 +153,7 @@ installation. Request tests block requests before network access.
 - [Password manager](password-manager.md)
 - [Media integration](media-integration.md)
 - [Settings example](settings.example.toml)
+
+Linux x64 can also be compiled directly on macOS with native Clang/LLD and a
+verified target sysroot; see [Linux cross-build](linux-cross-build.md). Native
+Linux runtime validation remains required before release.

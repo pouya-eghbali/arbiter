@@ -10,6 +10,7 @@ foreach(panel_file IN LISTS panel_qml)
     set_source_files_properties("${panel_file}" PROPERTIES QT_RESOURCE_ALIAS "${panel_name}")
 endforeach()
 set_source_files_properties(../../qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+arbiter_add_native_glass(extensionpanel_test)
 qt_add_qml_module(extensionpanel_test URI Arbiter VERSION 1.0 NO_IMPORT_SCAN
     RESOURCE_PREFIX /extension-panel-test QML_FILES ${panel_qml})
 arbiter_configure_webengine_runtime(extensionpanel_test)

@@ -50,6 +50,7 @@ class DependencyTests(unittest.TestCase):
             return {'sha': 'c' * 40}
         def content(repo, path, ref):
             if path == '.cmake.conf': return 'set(QT_REPO_MODULE_VERSION "6.141.1")'
+            if path == 'CHROMIUM_VERSION': return 'Patched with security patches up to Chromium version: 156.0.8078.74'
             self.assertEqual(repo, 'qtwebengine-chromium')
             self.assertEqual(ref, 'c' * 40)
             return 'MAJOR=141\nMINOR=0\nBUILD=1\nPATCH=2\n'
@@ -67,7 +68,7 @@ class DependencyTests(unittest.TestCase):
 
 
 class ReleaseTests(unittest.TestCase):
-    def test_package_engine_fingerprint_uses_build_platform_path_order(self):
+    def test_package_engine_fingerprint_is_portable_across_build_platforms(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / 'engine').mkdir()
@@ -79,12 +80,11 @@ class ReleaseTests(unittest.TestCase):
             upper = b'engine/Z.txt\0Z\n\0'
             lower = b'engine/a.txt\0a\n\0'
             posix = hashlib.sha256(prefix + upper + lower).hexdigest()
-            windows = hashlib.sha256(prefix + lower + upper).hexdigest()
             self.assertEqual(publish.package_engine_fingerprint('macos', root), posix)
             self.assertEqual(publish.package_engine_fingerprint('linux', root), posix)
-            self.assertEqual(publish.package_engine_fingerprint('windows', root), windows)
+            self.assertEqual(publish.package_engine_fingerprint('windows', root), posix)
             (root / 'engine/a.txt').write_bytes(b'changed\n')
-            self.assertNotEqual(publish.package_engine_fingerprint('windows', root), windows)
+            self.assertNotEqual(publish.package_engine_fingerprint('windows', root), posix)
             self.assertNotEqual(publish.package_engine_fingerprint('linux', root), posix)
 
     def test_macos_package_refuses_newer_dependency_before_signing(self):

@@ -7,9 +7,9 @@ Qt WebEngine and are not used.
 
 This is an experimental build path, separate from the native release scripts.
 Windows PE/Qt compile-and-link probes have passed on Apple Silicon, including
-native `moc`/`rcc`, Windows resources, STL, C++/WinRT and static OpenSSL linkage. The patched
-WebEngine configures and generates its GN build graph; a complete browser
-package and Windows runtime validation are still required before release.
+native `moc`/`rcc`, Windows resources, STL, C++/WinRT and static OpenSSL linkage. The complete patched WebEngine and browser executable have also compiled on
+Apple Silicon. Windows runtime validation and packaging are still required
+before release.
 An executable compiling successfully does not establish that it runs correctly.
 
 ## Prerequisites

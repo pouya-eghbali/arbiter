@@ -1,5 +1,5 @@
 diff --git a/configure.cmake b/configure.cmake
-index 496b271..2c37553 100644
+index 4fa77bb..2c37553 100644
 --- a/configure.cmake
 +++ b/configure.cmake
 @@ -258,7 +258,8 @@ int main(void) {
@@ -25,17 +25,20 @@ index 496b271..2c37553 100644
      return 0;
  }"
  )
-@@ -889,7 +888,7 @@ qt_configure_add_report_entry(
+@@ -887,6 +886,11 @@ qt_configure_add_report_entry(
+     MESSAGE "Building fat libray with device and simulator architectures will disable NEON."
+     CONDITION IOS AND simulator AND device AND QT_FEATURE_qtpdf_build
  )
- qt_configure_add_report_entry(
-     TYPE ERROR
--    MESSAGE "QtWebEngine/Chromium is only compatible with specially patched versions of FFMPEG's libavformat"
++qt_configure_add_report_entry(
++    TYPE ERROR
 +    MESSAGE "System FFmpeg public libavformat interface is unavailable"
-     CONDITION QT_FEATURE_webengine_system_ffmpeg AND NOT TEST_libavformat
- )
++    CONDITION QT_FEATURE_webengine_system_ffmpeg AND NOT TEST_libavformat
++)
  if(PRINT_BFD_LINKER_WARNING)
+     qt_configure_add_report_entry(
+         TYPE WARNING
 diff --git a/src/core/CMakeLists.txt b/src/core/CMakeLists.txt
-index e24c961..e0b182d 100644
+index 37e1cd4..eb4bf9a 100644
 --- a/src/core/CMakeLists.txt
 +++ b/src/core/CMakeLists.txt
 @@ -200,6 +200,8 @@ foreach(arch ${archs})
@@ -47,7 +50,7 @@ index e24c961..e0b182d 100644
                  authenticator_request_client_delegate_qt.cpp authenticator_request_client_delegate_qt.h
                  authenticator_request_dialog_controller.cpp authenticator_request_dialog_controller.h authenticator_request_dialog_controller_p.h
                  content_settings_manager_qt.cpp content_settings_manager_qt.h
-@@ -428,11 +430,20 @@ foreach(arch ${archs})
+@@ -429,11 +431,20 @@ foreach(arch ${archs})
              CONDITION QT_FEATURE_webengine_kerberos
          )
          extend_gn_list(gnArgArg
@@ -70,7 +73,7 @@ index e24c961..e0b182d 100644
          endif()
          extend_gn_list(gnArgArg
              ARGS use_browser_spellchecker
-@@ -458,7 +469,7 @@ foreach(arch ${archs})
+@@ -459,7 +470,7 @@ foreach(arch ${archs})
                  use_gio=false
                  use_bundled_fontconfig=false
                  use_glib=false
@@ -338,10 +341,10 @@ index 84101d4..ca49604 100644
        "//chrome/renderer/media/webrtc_logging_agent_impl.h",
      ]
 diff --git a/src/core/content_browser_client_qt.cpp b/src/core/content_browser_client_qt.cpp
-index c207a79..3efe7bd 100644
+index e597c6e..6c057ae 100644
 --- a/src/core/content_browser_client_qt.cpp
 +++ b/src/core/content_browser_client_qt.cpp
-@@ -282,6 +282,17 @@ content::MediaObserver *ContentBrowserClientQt::GetMediaObserver()
+@@ -281,6 +281,17 @@ content::MediaObserver *ContentBrowserClientQt::GetMediaObserver()
      return MediaCaptureDevicesDispatcher::GetInstance();
  }
  
@@ -359,18 +362,32 @@ index c207a79..3efe7bd 100644
  void ContentBrowserClientQt::OverrideWebPreferences(content::WebContents *webContents,
                                                      content::SiteInstance &mainFrameSite,
                                                      blink::web_pref::WebPreferences *webPrefs)
-@@ -291,6 +302,7 @@ void ContentBrowserClientQt::OverrideWebPreferences(content::WebContents *webCon
+@@ -290,6 +301,29 @@ void ContentBrowserClientQt::OverrideWebPreferences(content::WebContents *webCon
      if (guest_view::GuestViewBase::IsGuest(webContents))
          return;
  
 +
-     // A page is not allowed to close a window it did not open, and Blink counts
-     // a hash route as history, so an extension popup that routes by hash cannot
-     // close itself after it has done its work. Chrome exempts extension
-@@ -312,6 +324,7 @@ void ContentBrowserClientQt::OverrideWebPreferences(content::WebContents *webCon
-             webPrefs->allow_scripts_to_close_windows = true;
-     }
- 
++    // A page is not allowed to close a window it did not open, and Blink counts
++    // a hash route as history, so an extension popup that routes by hash cannot
++    // close itself after it has done its work. Chrome exempts extension
++    // documents in extensions/browser/extension_webkit_preferences.cc, with
++    // "Tabs aren't typically allowed to close windows. But extensions shouldn't
++    // be subject to that." That file is not part of the extensions sources
++    // QtWebEngine builds, so the rule is applied here, for the same documents
++    // and no others.
++    const GURL &documentUrl = webContents->GetPrimaryMainFrame()->GetLastCommittedURL();
++    if (documentUrl.SchemeIs(extensions::kExtensionScheme)) {
++        extensions::ExtensionRegistry *registry =
++                extensions::ExtensionRegistry::Get(webContents->GetBrowserContext());
++        const extensions::Extension *extension =
++                registry ? registry->enabled_extensions().GetExtensionOrAppByURL(documentUrl)
++                         : nullptr;
++        // A hosted app is an ordinary web page wearing an extension's name, and
++        // Chrome leaves it under the ordinary rule.
++        if (extension && !extension->is_hosted_app())
++            webPrefs->allow_scripts_to_close_windows = true;
++    }
++
 +
      WebContentsViewQt *view = WebContentsViewQt::from(static_cast<content::WebContentsImpl *>(webContents)->GetView());
      if (!view->client())
@@ -622,7 +639,7 @@ index 838fa3b..4962aa3 100644
              if (subscription->permission != permissionTypeBlink)
                  continue;
 diff --git a/src/core/render_widget_host_view_qt.cpp b/src/core/render_widget_host_view_qt.cpp
-index cb77820..8536e8f 100644
+index ee59f53..352388f 100644
 --- a/src/core/render_widget_host_view_qt.cpp
 +++ b/src/core/render_widget_host_view_qt.cpp
 @@ -351,7 +351,9 @@ void RenderWidgetHostViewQt::Focus()
@@ -636,7 +653,7 @@ index cb77820..8536e8f 100644
  }
  
  bool RenderWidgetHostViewQt::IsPointerLocked()
-@@ -1019,12 +1021,55 @@ void RenderWidgetHostViewQt::WheelEventAck(const blink::WebMouseWheelEvent &even
+@@ -1016,12 +1018,55 @@ void RenderWidgetHostViewQt::WheelEventAck(const blink::WebMouseWheelEvent &even
      }
  }
  
@@ -830,10 +847,10 @@ index f23afaa..d9844ca 100644
  };
  
 diff --git a/src/core/web_engine_context.cpp b/src/core/web_engine_context.cpp
-index 76ea59c..33951ce 100644
+index 03ca19a..c1d8856 100644
 --- a/src/core/web_engine_context.cpp
 +++ b/src/core/web_engine_context.cpp
-@@ -1025,6 +1025,9 @@ const char *qWebEngineProcessName() noexcept
+@@ -1026,6 +1026,9 @@ const char *qWebEngineProcessName() noexcept
      return STRINGIFY_EXPANDED(QTWEBENGINEPROCESS_NAME);
  }
  

@@ -3,10 +3,14 @@
   "qt": "6.12.0",
   "webengine_version": "6.140.0",
   "webengine_repository": "https://github.com/qt/qtwebengine.git",
-  "webengine_commit": "e4d8df13c71ea53ac2de3c75d47585bcc0da815d",
-  "chromium_commit": "bcc09a68b50a40c60d8dc83f0e6b6dc872614812",
+  "webengine_commit": "030168d9fc13b103d2d9edc7f9d756af67c6cea3",
+  "chromium_commit": "b4ef8f7138121ca0d4a1ff788a273ebc75c2c3f7",
   "chromium_version": "140.0.7339.264",
   "view_request_interceptor": true,
   "history_overscroll": true,
-  "extension_api_bridge": 2
+  "extension_api_bridge": 2,
+  "qtpdf_same_snapshot": true,
+  "webengine_ref": "6.140.0",
+  "chromium_security_version": "156.0.8078.74",
+  "webengine_prerelease": "alpha1"
 }

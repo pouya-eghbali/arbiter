@@ -91,10 +91,10 @@ def machos(root):
 def macos_engine(app, sdk):
     # macdeployqt resolves @rpath frameworks using the base kit first, even with
     # -libpath. Replace the engine, helper, resources and QML as one unit AFTER it.
-    for module in ('QtWebEngineCore', 'QtWebEngineQuick', 'QtWebEngineWidgets'):
+    for module in ('QtWebEngineCore', 'QtWebEngineQuick', 'QtWebEngineWidgets', 'QtPdf', 'QtPdfQuick', 'QtPdfWidgets'):
         source = sdk / 'lib' / (module + '.framework')
         destination = app / 'Contents/Frameworks' / source.name
-        if source.exists() and (destination.exists() or module != 'QtWebEngineWidgets'):
+        if source.exists() and (destination.exists() or module in ('QtWebEngineCore', 'QtWebEngineQuick', 'QtPdf')):
             if destination.exists(): shutil.rmtree(destination)
             shutil.copytree(source, destination, symlinks=True,
                             ignore=shutil.ignore_patterns('Headers', '*.dSYM', '*.pdb', '*.debug'))
@@ -295,17 +295,27 @@ def windows(stage, sdk, qt):
     run(qt / 'bin/windeployqt.exe', '--release', '--qmldir', ROOT / 'qml',
         '--qmlimport', sdk / 'qml', '--dir', stage / 'bin', executable)
     # windeployqt queries the base kit; overwrite ALL engine pieces together.
-    for library in ('Qt6WebEngineCore.dll', 'Qt6WebEngineQuick.dll', 'Qt6WebEngineWidgets.dll', 'QtWebEngineProcess.exe'):
+    for library in ('Qt6WebEngineCore.dll', 'Qt6WebEngineQuick.dll', 'Qt6WebEngineWidgets.dll', 'QtWebEngineProcess.exe', 'Qt6Pdf.dll'):
         copy(sdk / 'bin' / library, stage / 'bin' / library)
     module = stage / 'bin/qml/QtWebEngine'
     if module.exists(): shutil.rmtree(module)
     copy(sdk / 'qml/QtWebEngine', module)
     copy(sdk / 'resources', stage / 'bin/resources')
     copy(sdk / 'translations/qtwebengine_locales', stage / 'bin/translations/qtwebengine_locales')
-    openssl = Path(os.environ['ARBITER_OPENSSL_BIN'])
-    libraries = list(openssl.glob('libcrypto-3*.dll'))
-    if not libraries: raise RuntimeError('ARBITER_OPENSSL_BIN has no OpenSSL 3 runtime DLL')
-    for library in libraries: copy(library, stage / 'bin' / library.name)
+    openssl_root = Path(os.environ.get('ARBITER_OPENSSL_ROOT', '__not_configured__'))
+    stamp = openssl_root / 'arbiter-openssl-build.json'
+    static = stamp.is_file() and json.loads(stamp.read_text()).get('linkage') == 'static'
+    if static:
+        imports = run('dumpbin', '/imports', executable, capture=True).lower()
+        if re.search(r'lib(?:crypto|ssl)[^\s]*\.dll', imports):
+            raise RuntimeError('Static OpenSSL package unexpectedly imports an OpenSSL DLL')
+        copy(openssl_root / 'OpenSSL-LICENSE.txt', stage / 'OpenSSL-LICENSE.txt')
+        copy(stamp, stage / 'arbiter-openssl-build.json')
+    else:
+        openssl = Path(os.environ['ARBITER_OPENSSL_BIN'])
+        libraries = list(openssl.glob('libcrypto-3*.dll'))
+        if not libraries: raise RuntimeError('ARBITER_OPENSSL_BIN has no OpenSSL 3 runtime DLL')
+        for library in libraries: copy(library, stage / 'bin' / library.name)
 
 
 def main():

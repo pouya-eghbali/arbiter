@@ -12,7 +12,7 @@ def fingerprint(root=ROOT):
               and '__pycache__' not in p.parts and p.suffix != '.pyc'
               and not p.name.startswith('test_') and p.name != '.gitignore']
     digest = hashlib.sha256()
-    for path in sorted(paths):
+    for path in sorted(paths, key=lambda path: path.relative_to(root).as_posix()):
         digest.update(path.relative_to(root).as_posix().encode() + b'\0')
         data = path.read_bytes()
         if b'\0' not in data:
@@ -28,6 +28,8 @@ def verify_sdk(sdk, root=ROOT):
     receipt = json.loads((sdk / 'arbiter-engine-build.json').read_text())
     if receipt['inputs_sha256'] != fingerprint(root):
         raise RuntimeError('SDK patch/overlay/build inputs differ; rebuild this SDK')
+    if expected.get('qtpdf_same_snapshot') and not (sdk / 'lib/cmake/Qt6Pdf/Qt6PdfConfig.cmake').is_file():
+        raise RuntimeError('SDK is missing Qt PDF built from the matching engine snapshot')
     return receipt
 
 

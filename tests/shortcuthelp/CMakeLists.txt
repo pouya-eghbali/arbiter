@@ -9,6 +9,7 @@ foreach(help_file IN LISTS help_qml)
     set_source_files_properties("${help_file}" PROPERTIES QT_RESOURCE_ALIAS "${help_name}")
 endforeach()
 set_source_files_properties(../../qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+arbiter_add_native_glass(shortcuthelp_test)
 qt_add_qml_module(shortcuthelp_test URI Arbiter VERSION 1.0 NO_IMPORT_SCAN
     RESOURCE_PREFIX /shortcut-help-test QML_FILES ${help_qml})
 qt_add_resources(shortcuthelp_test icon_script PREFIX / BASE ../..

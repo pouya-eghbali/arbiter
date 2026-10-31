@@ -51,20 +51,15 @@ def package_metadata(asset):
 
 
 def package_engine_fingerprint(platform_name, root=ROOT):
-    """Reproduce identity.py using the build platform's pathlib ordering.
-
-    Windows compares paths without case sensitivity. Keep the actual path bytes
-    in the digest, but do not let the uploader host change their ordering.
-    """
+    """Reproduce identity.py's portable, case-sensitive POSIX path ordering."""
     if platform_name not in ('macos', 'windows', 'linux'):
         raise RuntimeError('Unknown package platform: ' + platform_name)
-    path_type = PureWindowsPath if platform_name == 'windows' else PurePosixPath
     paths = [root / 'dependencies.json']
     paths += [p for p in (root / 'engine').rglob('*') if p.is_file()
               and '__pycache__' not in p.parts and p.suffix != '.pyc'
               and not p.name.startswith('test_') and p.name != '.gitignore']
     digest = hashlib.sha256()
-    for path in sorted(paths, key=lambda p: path_type(p.relative_to(root).as_posix())):
+    for path in sorted(paths, key=lambda p: p.relative_to(root).as_posix()):
         digest.update(path.relative_to(root).as_posix().encode() + b'\0')
         data = path.read_bytes()
         if b'\0' not in data:

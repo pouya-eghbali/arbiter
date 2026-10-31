@@ -1,14 +1,14 @@
 name: Dependency maintenance
 on:
   schedule:
-    - cron: '27 7 * * 1'
+    - cron: '27 7 * * *'
   workflow_dispatch:
     inputs:
       qt:
         description: Base Qt version (empty checks latest stable)
         type: string
       webengine_ref:
-        description: Stable Qt WebEngine tag (empty checks latest stable)
+        description: Qt WebEngine stable tag or maintenance branch (empty tracks the pinned release line)
         type: string
   pull_request:
     paths: ['engine/**', 'dependencies.json', 'tools/dependencies.py', 'tools/release/**', 'tools/cross/**', 'cmake/**', 'VERSION.txt', '.github/**']

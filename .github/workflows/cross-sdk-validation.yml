@@ -1,0 +1,96 @@
+name: Validate cross-built desktop SDK
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Draft release containing the private build-input archive
+        required: true
+        type: string
+      platform:
+        description: Platform to validate and package (no Chromium compilation)
+        required: true
+        type: choice
+        options: [windows, linux]
+      input_sha256:
+        description: SHA-256 of build-inputs-PLATFORM.zip
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ${{ inputs.platform == 'windows' && 'windows-2025' || 'ubuntu-24.04' }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - name: Read pins and validate request
+        id: pins
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          INPUT_SHA256: ${{ inputs.input_sha256 }}
+        run: |
+          python - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          assert re.fullmatch(r'v\d+\.\d+\.\d+', os.environ['RELEASE_TAG'])
+          assert re.fullmatch(r'[0-9a-f]{64}', os.environ['INPUT_SHA256'])
+          assert Path('VERSION.txt').read_text().strip() == os.environ['RELEASE_TAG'][1:]
+          deps = json.loads(Path('dependencies.json').read_text())
+          engine = json.loads(Path('engine/manifest.json').read_text())
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              for key, value in dict(python=deps['python'], rust=deps['rust'], qt=engine['qt']).items():
+                  print(f'{key}={value}', file=out)
+          PY
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ steps.pins.outputs.python }}
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - name: Install Linux runtime and packaging tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build patchelf pkg-config libssl-dev libsecret-1-dev gnome-keyring dbus-x11 xvfb libavcodec-dev libavformat-dev libavutil-dev libopus-dev libnss3 libegl1 libopengl0 libxcb-cursor0 libxkbcommon-x11-0 libasound2t64
+      - uses: jurplel/install-qt-action@v4
+        with:
+          aqtsource: git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7
+          version: ${{ steps.pins.outputs.qt }}
+          arch: ${{ inputs.platform == 'windows' && 'win64_msvc2022_64' || 'linux_gcc_64' }}
+          modules: 'qtwebchannel qtpositioning qtshadertools qtwebengine qtpdf'
+          setup-python: false
+          cache: true
+          cache-key-prefix: arbiter-qt-cross-validation-v1
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.pins.outputs.rust }}
+      - name: Download verified SDK inputs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          INPUT_PLATFORM: ${{ inputs.platform }}
+          INPUT_SHA256: ${{ inputs.input_sha256 }}
+        run: |
+          python tools/release/cross_inputs.py download
+      - name: Validate and package against prebuilt engine
+        shell: bash
+        env:
+          INPUT_PLATFORM: ${{ inputs.platform }}
+          ARBITER_QT_PREFIX: ${{ env.QT_ROOT_DIR }}
+          ARBITER_TEST_KEYCHAIN: '1'
+          QT_ASSUME_STDERR_HAS_CONSOLE: '1'
+          QT_FORCE_STDERR_LOGGING: '1'
+          QT_QUICK_BACKEND: software
+          QT_OPENGL: software
+        run: |
+          python tools/release/cross_inputs.py build
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cross-validated-${{ inputs.platform }}
+          path: |
+            build-release-artifacts/
+            build-release-tests-*/Testing/Temporary/LastTest.log
+          if-no-files-found: error
+          retention-days: 14

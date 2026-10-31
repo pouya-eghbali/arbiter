@@ -79,7 +79,9 @@ def main():
               'MSVC Developer PowerShell, not a service or SSH/background session')
         for name in ('cl', 'dumpbin'): tool(name)
         directory = Path(os.environ.get('ARBITER_OPENSSL_BIN', '__not_configured__'))
-        check(any(directory.glob('libcrypto-3*.dll')), 'OpenSSL runtime DLL is available via ARBITER_OPENSSL_BIN')
+        receipt_path = Path(os.environ.get('ARBITER_OPENSSL_ROOT', '__not_configured__')) / 'arbiter-openssl-build.json'
+        static = receipt_path.is_file() and json.loads(receipt_path.read_text()).get('linkage') == 'static'
+        check(static or any(directory.glob('libcrypto-3*.dll')), 'OpenSSL shared runtime or verified static SDK is available')
         if a.signing:
             tool('signtool')
             check(bool(os.environ.get('ARBITER_WINDOWS_CERT_SHA1')), 'Windows signing certificate selector is configured (value hidden)')

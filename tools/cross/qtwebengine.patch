@@ -44,7 +44,7 @@
              )
          endif()
          list(APPEND gnArgArg
--            clang_base_path="${QWELibClang_LLVM_BASE_PATH}"
+-            clang_base_path="${QWELibClang_BASE_PATH}"
 +            clang_base_path="${ARBITER_WINDOWS_CLANG_PREFIX}"
              clang_version="${clang_runtime_path_version}"
              clang_use_chrome_plugins=false
@@ -53,7 +53,7 @@
          endif()
      else()
          if(QT_FEATURE_use_lld_linker OR QT_FEATURE_webengine_rust_build)
--            list(APPEND gnArgArg clang_base_path="${QWELibClang_LLVM_BASE_PATH}")
+-            list(APPEND gnArgArg clang_base_path="${QWELibClang_BASE_PATH}")
 +            list(APPEND gnArgArg clang_base_path="${ARBITER_WINDOWS_CLANG_PREFIX}")
              if (QT_FEATURE_webengine_rust_build)
                  get_clang_runtime_path_version(clang_runtime_path_version)

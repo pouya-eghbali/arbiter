@@ -10,12 +10,14 @@
 #include <QQuickWindow>
 #include "../src/onboarding.h"
 #include "../src/appearance.h"
+#include "../src/nativeglass/surfacepalette.h"
 
 class OnboardingTest : public QObject {
     Q_OBJECT
     QTemporaryDir config;
 private slots:
     void initTestCase() {
+        qmlRegisterSingletonType<SurfacePalette>("Arbiter",1,0,"SurfacePalette", [](QQmlEngine *, QJSEngine *) -> QObject * { return new SurfacePalette; });
         qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(ARBITER_THEME_FILE)),"Arbiter",1,0,"Theme");
         QVERIFY(config.isValid());
         qputenv("XDG_CONFIG_HOME",config.path().toUtf8());
