@@ -18,6 +18,12 @@ WKWebView and Android System WebView only supply the page surface.
 Swipe the pill horizontally to cycle tabs in the current workspace/mode; swipe
 up for tab overview. Standard buttons remain usable without gestures.
 
+On iOS, the expanded client area paints behind the status bar and home indicator.
+The native page reaches the bottom edge; only interactive controls are inset above
+the home indicator. The status-bar surface follows WKWebView's observed page
+background while browsing, and the configured UI background on the start screen
+or overlays. UIKit chooses contrasting status-bar text from that surface.
+
 ## Native compositing
 
 A foreign native view normally covers overlapping Qt Quick items. The adapters

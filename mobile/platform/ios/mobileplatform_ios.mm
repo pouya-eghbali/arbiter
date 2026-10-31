@@ -296,6 +296,8 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
     self.view.navigationDelegate = self;
     self.view.UIDelegate = self;
     self.view.allowsBackForwardNavigationGestures = YES;
+    self.view.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
+    [self.view addObserver:self forKeyPath:@"underPageBackgroundColor" options:NSKeyValueObservingOptionNew context:nil];
     [self.view addObserver:self forKeyPath:@"title" options:NSKeyValueObservingOptionNew context:nil];
     [self.view addObserver:self
                 forKeyPath:@"estimatedProgress"
@@ -318,6 +320,7 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
     [NSObject cancelPreviousPerformRequestsWithTarget:self];
     [self.view removeObserver:self forKeyPath:@"scrollView.contentOffset"];
     [self.view stopLoading];
+    [self.view removeObserver:self forKeyPath:@"underPageBackgroundColor"];
     [self.view removeObserver:self forKeyPath:@"title"];
     [self.view removeObserver:self forKeyPath:@"estimatedProgress"];
     [self.view.configuration.userContentController
@@ -395,6 +398,12 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
 
     if (!page)
         return;
+    if ([key isEqualToString:@"underPageBackgroundColor"]) {
+        CGFloat r = 1, g = 1, b = 1, a = 1;
+        [self.view.underPageBackgroundColor getRed:&r green:&g blue:&b alpha:&a];
+        page->event("background", {{"color", QColor::fromRgbF(r, g, b).name()}});
+        return;
+    }
     if ([key isEqualToString:@"title"])
         page->event("title", {{"title", QString::fromNSString(self.view.title ?: @"")}});
     else
@@ -674,6 +683,14 @@ void verify(const QString &reason, std::function<void(bool)> callback) {
 }
 void refreshIdentities() {
     arbiter_ios_refresh_identities();
+}
+void setSystemAppearance(const QColor &color) {
+    // ExpandedClientAreaHint uses UIKit's automatic status-bar style. Override
+    // the host appearance to keep its text legible over this actual surface.
+    auto controller = presenter().view.window.rootViewController;
+    const auto style = color.lightnessF() < .5 ? UIUserInterfaceStyleDark : UIUserInterfaceStyleLight;
+    controller.overrideUserInterfaceStyle = style;
+    [controller setNeedsStatusBarAppearanceUpdate];
 }
 void setLanguage(const QString &code) {
     arbiter_ios_language(code.toUtf8().constData());

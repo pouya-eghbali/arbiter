@@ -1,5 +1,6 @@
 #pragma once
 #include <QByteArray>
+#include <QColor>
 #include <QJsonObject>
 #include <QRectF>
 #include <QUrl>
@@ -18,6 +19,7 @@ void refreshIdentities();
 void share(const QUrl &);
 void secureScreen(bool);
 void configureBackgroundSync(bool);
+void setSystemAppearance(const QColor &);
 void setLanguage(const QString &);
 QString legacySession();
 QWindow *createWebView(NativePage *, const QString &profile, bool privateMode);

@@ -12,7 +12,14 @@ Controls.ApplicationWindow {
     height: 880
     visible: true
     title: "Arbiter"
-    color: Theme.window
+    flags: Qt.Window | (Qt.platform.os === "ios" ? Qt.ExpandedClientAreaHint : 0)
+    // Let the page reach the home indicator; keep controls in the safe area.
+    bottomPadding: 0
+    readonly property real bottomInset: window.SafeArea.margins.bottom
+    readonly property color surfaceColor: browsingSurface && current.url && !browser.privateLocked ? (current.background || "white") : Theme.window
+    color: surfaceColor
+    onSurfaceColorChanged: browser.setSystemAppearance(surfaceColor)
+
     property string panel: browser.onboardingDone ? "" : "onboarding"
     property var current: ({})
     property var visibleTabs: []
@@ -100,7 +107,7 @@ Controls.ApplicationWindow {
                 browser.pageAction(browser.activeId, "back", "");
         }
     }
-    Component.onCompleted: refresh()
+    Component.onCompleted: { refresh(); browser.setSystemAppearance(surfaceColor); }
     Connections {
         target: browser
         function onChanged() {
@@ -310,7 +317,7 @@ Controls.ApplicationWindow {
             id: pill
             x: 16
             width: parent.width - 32
-            y: parent.height - height - 14 - window.keyboardInset
+            y: parent.height - height - Math.max(14, window.bottomInset + 8) - window.keyboardInset
             height: implicitHeight
             current: window.current
             enabled: !browser.privateLocked
@@ -330,7 +337,7 @@ Controls.ApplicationWindow {
             x: 12
             width: parent.width - 24
             height: 120
-            y: parent.height - height - 12 - window.keyboardInset
+            y: parent.height - height - Math.max(12, window.bottomInset + 8) - window.keyboardInset
             visible: window.panel === "find"
             GlassSurface {
                 anchors.fill: parent
@@ -392,6 +399,7 @@ Controls.ApplicationWindow {
         }
         MobileTabsOverview {
             anchors.fill: parent
+            anchors.bottomMargin: window.bottomInset
             visible: window.panel === "tabs"
             tabs: window.visibleTabs
             workspaceName: window.workspaceName
@@ -400,6 +408,7 @@ Controls.ApplicationWindow {
         }
         MobileWorkspaces {
             anchors.fill: parent
+            anchors.bottomMargin: window.bottomInset
             visible: window.panel === "workspaces"
             onDismiss: window.dismiss()
         }
@@ -407,7 +416,7 @@ Controls.ApplicationWindow {
             anchors.fill: parent
             visible: window.panel === "address"
             address: window.current.url || ""
-            keyboardInset: window.keyboardInset
+            keyboardInset: Math.max(window.keyboardInset, window.bottomInset)
             onDismiss: window.dismiss()
             onNavigate: value => window.go(value)
             onTabSelected: id => {
@@ -417,6 +426,7 @@ Controls.ApplicationWindow {
         }
         MobileMoreSheet {
             anchors.fill: parent
+            bottomInset: window.bottomInset
             visible: window.panel === "more"
             hasPage: Boolean(window.current.url)
             blocking: browser.blockingFor(window.current.url || "")

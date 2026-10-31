@@ -148,6 +148,7 @@ void secureScreen(bool value) {
 void configureBackgroundSync(bool value) {
     QJniObject::callStaticMethod<void>(bridge, "background", "(Z)V", jboolean(value));
 }
+void setSystemAppearance(const QColor &) {}
 void setLanguage(const QString &code) {
     QJniObject::callStaticMethod<void>(bridge, "language", "(Ljava/lang/String;)V",
                                        QJniObject::fromString(code).object<jstring>());

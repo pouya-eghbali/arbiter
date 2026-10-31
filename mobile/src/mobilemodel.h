@@ -100,6 +100,7 @@ class MobileModel : public QObject {
     Q_INVOKABLE void downloadEvent(const QString &type, const QVariantMap &data,
                                    bool privateDownload = false);
     Q_INVOKABLE void share();
+    Q_INVOKABLE void setSystemAppearance(const QColor &color);
     Q_INVOKABLE void openDownload(const QString &id);
     Q_INVOKABLE void saveLogin(const QString &username);
     Q_INVOKABLE void dismissLogin();

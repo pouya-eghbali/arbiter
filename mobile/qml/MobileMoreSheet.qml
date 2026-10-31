@@ -6,6 +6,7 @@ import Arbiter
 
 Item {
     id: root
+    property real bottomInset: 0
     property bool blocking: true
     property bool hasPage: true
     signal dismiss
@@ -21,7 +22,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: Math.min(parent.height - 32, body.implicitHeight + 40)
+        height: Math.min(parent.height - 32, body.implicitHeight + 40 + root.bottomInset)
         GlassSurface {
             anchors.fill: parent
             radius: 29

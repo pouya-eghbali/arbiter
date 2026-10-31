@@ -31,6 +31,7 @@ void refreshIdentities() {}
 void share(const QUrl &) {}
 void secureScreen(bool) {}
 void configureBackgroundSync(bool) {}
+void setSystemAppearance(const QColor &) {}
 void setLanguage(const QString &) {}
 QString legacySession() {
     return {};

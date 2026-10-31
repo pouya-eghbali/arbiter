@@ -243,7 +243,7 @@ void MobileModel::persist() {
         auto t = v.toObject();
         if (t.value("private").toBool())
             continue;
-        for (auto k : {"loading", "audio", "dirty", "progress", "back", "forward"})
+        for (auto k : {"loading", "audio", "dirty", "progress", "back", "forward", "background"})
             t.remove(k);
         normal.append(t);
     }
@@ -447,6 +447,8 @@ void MobileModel::updatePage(const QString &key, const QString &type, const QVar
         t["forward"] = data.value("forward");
         t["dirty"] = false;
     }
+    if (type == "background")
+        t["background"] = data.value("color");
     if (type == "title")
         t["title"] = data.value("title");
     if (type == "progress")
@@ -793,6 +795,9 @@ void MobileModel::downloadEvent(const QString &type, const QVariantMap &data, bo
     }
     m_saveTimer.start();
     emit changed();
+}
+void MobileModel::setSystemAppearance(const QColor &color) {
+    MobilePlatform::setSystemAppearance(color);
 }
 void MobileModel::share() {
     auto url = QUrl(page(m_active).value("url").toString());

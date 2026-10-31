@@ -54,6 +54,7 @@ void share(const QUrl &url) {
 }
 void secureScreen(bool) {}
 void configureBackgroundSync(bool) {}
+void setSystemAppearance(const QColor &) {}
 void setLanguage(const QString &) {}
 QString legacySession() {
     return {};
