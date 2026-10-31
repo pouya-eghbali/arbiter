@@ -1,6 +1,8 @@
 #include "nativeglasshost.h"
 #include <TargetConditionals.h>
 #include <QGuiApplication>
+#include <QAbstractNativeEventFilter>
+namespace NativeGlass { class PopupEventFilter; }
 #if TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
 #else
@@ -16,6 +18,7 @@
 @property(nonatomic, strong) UIView *containerView;
 #else
 @property(nonatomic) BOOL windowSurface;
+@property(nonatomic) NativeGlass::PopupEventFilter *outsideFilter;
 @property(nonatomic, weak) NSWindow *hostWindow;
 @property(nonatomic, weak) NSView *owner;
 @property(nonatomic, weak) NSView *foreground;
@@ -28,6 +31,32 @@
 @end
 
 namespace NativeGlass {
+#if !TARGET_OS_IPHONE
+class PopupEventFilter final : public QAbstractNativeEventFilter {
+public:
+    PopupEventFilter(NSWindow *nativeWindow, NSView *view, QWindow *window, NativeGlassHost *host)
+        : m_nativeWindow(nativeWindow), m_view(view), m_window(window), m_host(host) {}
+    bool nativeEventFilter(const QByteArray &type, void *message, qintptr *) override {
+        if (type != "mac_generic_NSEvent" || !m_host || !m_window || !m_nativeWindow || !m_view) return false;
+        NSEvent *event = (__bridge NSEvent *)message;
+        const bool pressed = event.type == NSEventTypeLeftMouseDown || event.type == NSEventTypeRightMouseDown || event.type == NSEventTypeOtherMouseDown;
+        const bool released = event.type == NSEventTypeLeftMouseUp || event.type == NSEventTypeRightMouseUp || event.type == NSEventTypeOtherMouseUp;
+        if ((!pressed && !released) || !event.window) return false;
+        // The backing popup is modeless at the Cocoa level, so native events
+        // aimed at its parent reach this public filter before view delivery.
+        const auto screen = [event.window convertPointToScreen:event.locationInWindow];
+        const auto native = [m_nativeWindow convertPointFromScreen:screen];
+        const auto point = [m_view convertPoint:native fromView:nil];
+        const auto y = m_view.isFlipped ? point.y : m_view.bounds.size.height - point.y;
+        return m_host->handleOutsidePointer(m_window->mapToGlobal(QPointF(point.x, y)), pressed);
+    }
+private:
+    __weak NSWindow *m_nativeWindow;
+    __weak NSView *m_view;
+    QPointer<QWindow> m_window;
+    QPointer<NativeGlassHost> m_host;
+};
+#endif
 bool supported() {
     if (!qGuiApp || (qGuiApp->platformName() != "cocoa" && qGuiApp->platformName() != "ios")) return false;
 #if TARGET_OS_IPHONE
@@ -86,7 +115,7 @@ void *create(QQuickWindow *owner, QQuickWindow *foreground) {
 #endif
     return (__bridge_retained void *)context;
 }
-void *createWindow(QQuickWindow *owner) {
+void *createWindow(QQuickWindow *owner, NativeGlassHost *host) {
 #if !TARGET_OS_IPHONE
     if (@available(macOS 26.0, *)) {
         if (!supported() || (owner->type() != Qt::Popup && owner->type() != Qt::ToolTip)) return nullptr;
@@ -104,10 +133,13 @@ void *createWindow(QQuickWindow *owner) {
         context.hostWindow.hasShadow = YES;
         [context.owner addSubview:context.effect positioned:NSWindowBelow relativeTo:context.foreground];
         context.effect.frame = context.foreground.frame;
+        context.outsideFilter = new PopupEventFilter(context.hostWindow, context.foreground, owner, host);
+        qGuiApp->installNativeEventFilter(context.outsideFilter);
         return (__bridge_retained void *)context;
     }
 #else
     Q_UNUSED(owner);
+    Q_UNUSED(host);
 #endif
     return nullptr;
 }
@@ -176,6 +208,24 @@ void activateForTest(QQuickWindow *window) {
 #endif
     window->requestActivate();
 }
+bool clickForTest(QWindow *target, const QPointF &global) {
+#if !TARGET_OS_IPHONE
+    if (!supported()) return false;
+    NSView *view = (__bridge NSView *)(void *)target->winId();
+    const auto local = target->mapFromGlobal(global);
+    const auto y = view.isFlipped ? local.y() : view.bounds.size.height - local.y();
+    const auto location = [view convertPoint:NSMakePoint(local.x(), y) toView:nil];
+    for (auto type : {NSEventTypeLeftMouseDown, NSEventTypeLeftMouseUp}) {
+        auto event = [NSEvent mouseEventWithType:type location:location modifierFlags:0
+            timestamp:NSProcessInfo.processInfo.systemUptime windowNumber:view.window.windowNumber
+            context:nil eventNumber:0 clickCount:1 pressure:type == NSEventTypeLeftMouseDown ? 1 : 0];
+        [NSApp postEvent:event atStart:NO];
+    }
+    return true;
+#else
+    Q_UNUSED(target); Q_UNUSED(global); return false;
+#endif
+}
 bool geometryAligned(void *value) {
     auto context = (__bridge ArbiterNativeGlassContext *)value;
     const auto glass = [context.effect convertRect:context.effect.bounds toView:context.owner];
@@ -206,6 +256,8 @@ void destroy(void *value) {
     auto context = (__bridge_transfer ArbiterNativeGlassContext *)value;
 #if !TARGET_OS_IPHONE
     if (context.windowSurface) {
+        delete context.outsideFilter;
+        context.outsideFilter = nullptr;
         [context.effect removeFromSuperview];
         return;
     }
@@ -222,7 +274,7 @@ namespace NativeGlass {
 bool supported() { return false; }
 bool reducedTransparency() { return false; }
 void *create(QQuickWindow *, QQuickWindow *) { return nullptr; }
-void *createWindow(QQuickWindow *) { return nullptr; }
+void *createWindow(QQuickWindow *, NativeGlassHost *) { return nullptr; }
 QWindow *container(void *) { return nullptr; }
 void update(void *, const QRectF &, qreal) {}
 void destroy(void *) {}
@@ -230,6 +282,7 @@ void setVisible(void *, bool) {}
 void setOpacity(void *, qreal) {}
 bool geometryAligned(void *) { return false; }
 void activateForTest(QQuickWindow *window) { window->requestActivate(); }
+bool clickForTest(QWindow *, const QPointF &) { return false; }
 QColor foregroundColor(void *) { return Qt::black; }
 }
 #endif

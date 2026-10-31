@@ -94,6 +94,20 @@ int main(int argc, char *argv[])
             ApplicationWindow {
                 id: root; width: 900; height: 650; visible: true; color: "#324943"
                 property alias surface: surface
+                readonly property bool surfaceWired: surface.popup === panel
+                property alias workspace: workspace
+                component ModalPanel: GlassSurface {}
+                QtObject { id: testTabs; property int count: 0; property int currentIndex: -1; signal sessionChanged(); function choices() { return [] } }
+                QtObject {
+                    id: testWorkspaces
+                    property int count: 1
+                    property string currentId: "personal"
+                    property string currentName: "Personal"
+                    property color currentColor: "#8dbbff"
+                    property string error: ""
+                    property var choices: [{id: "personal", name: "Personal", color: "#8dbbff", tabs: 0, isolated: false, profile: "shared"}]
+                }
+                WorkspacePanel { id: workspace; manager: testWorkspaces; tabs: testTabs }
                 property bool privateCovered: false
                 property bool nativeEnabled: true
                 property bool dismissOutside: true
@@ -110,7 +124,7 @@ int main(int argc, char *argv[])
                     id: panel; x: 100; y: 100; width: 420; height: 240
                     padding: 20; modal: true; focus: true
                     closePolicy: root.dismissOutside ? Popup.CloseOnEscape | Popup.CloseOnPressOutside : Popup.CloseOnEscape
-                    background: GlassSurface { id: surface }
+                    background: ModalPanel { id: surface }
                     contentItem: ColumnLayout {
                         TextField { id: input; objectName: "overlayInput"; Layout.fillWidth: true }
                         UiButton { text: "Close"; onClicked: panel.close() }
@@ -149,12 +163,14 @@ int main(int argc, char *argv[])
                 auto local = item->mapToScene(point);
                 auto global = item->mapToGlobal(point);
                 item->window()->requestActivate();
+                if (NativeGlass::clickForTest(item->window(), global)) return;
                 QWindowSystemInterface::handleMouseEvent<QWindowSystemInterface::SynchronousDelivery>(item->window(), local, global, Qt::LeftButton, Qt::LeftButton, QEvent::MouseButtonPress);
                 QWindowSystemInterface::handleMouseEvent<QWindowSystemInterface::SynchronousDelivery>(item->window(), local, global, Qt::NoButton, Qt::LeftButton, QEvent::MouseButtonRelease);
             };
             qInfo() << "Popup cycle" << cycle << "phase" << phase << "visible" << panel->property("visible") << "focused" << (input && input->hasActiveFocus()) << "application" << qGuiApp->applicationState();
             if (phase == 0) {
                 auto surface = root->property("surface").value<QObject *>();
+                if (!root->property("surfaceWired").toBool()) { qCritical("Dialog background was not wired to the popup"); qApp->exit(16); return; }
                 if (!surface || surface->property("nativeActive").toBool() != expectedNative || !input || !input->hasActiveFocus()) { qCritical("Native popup activation or focus failed"); qApp->exit(3); return; }
                 for (auto host : surface->findChildren<NativeGlassHost *>()) {
                     if (!host->active()) continue;
@@ -176,7 +192,9 @@ int main(int argc, char *argv[])
                     auto main = qobject_cast<QQuickWindow *>(root);
                     const QPointF point(20, 20);
                     const auto global = main->mapToGlobal(point);
-                    if (expectedNative && (cycle == 1 || cycle == 3)) {
+                    if (expectedNative && cycle == 5) {
+                        NativeGlass::clickForTest(main, global);
+                    } else if (expectedNative && (cycle == 1 || cycle == 3)) {
                         // Reproduce clicks delivered directly to the browser or
                         // an embedded native page view, rather than injecting
                         // out-of-bounds coordinates into the popup itself.
@@ -225,8 +243,29 @@ int main(int argc, char *argv[])
                         QCoreApplication::sendEvent(main, &press);
                         QTimer::singleShot(300, root, [root, expectedNative] {
                             if (!root->property("panel").value<QObject *>()->property("visible").toBool()) { qCritical("Outside click dismissed a protected dialog"); qApp->exit(15); return; }
-                            qInfo("Overlay bounds, opening fade, input, nested menus, outside dismissal, protected dialogs, private cover and Glacier toggles passed (8 cycles; native=%s)", expectedNative ? "true" : "false");
-                            qApp->quit();
+                            QMetaObject::invokeMethod(root->property("panel").value<QObject *>(), "close");
+                            QTimer::singleShot(250, root, [root, expectedNative] {
+                                NativeGlass::activateForTest(qobject_cast<QQuickWindow *>(root));
+                                auto workspace = root->property("workspace").value<QObject *>();
+                                QMetaObject::invokeMethod(workspace, "open");
+                                QTimer::singleShot(400, root, [root, workspace, expectedNative] {
+                                    if (!workspace->property("visible").toBool()) { qApp->exit(17); return; }
+                                    auto main = qobject_cast<QQuickWindow *>(root);
+                                    const QPointF local(15, 15);
+                                    if (!NativeGlass::clickForTest(main, main->mapToGlobal(local))) {
+                                        auto content = qobject_cast<QQuickItem *>(workspace->property("contentItem").value<QObject *>());
+                                        const auto global = main->mapToGlobal(local);
+                                        const auto point = content->window()->mapFromGlobal(global);
+                                        QMouseEvent event(QEvent::MouseButtonPress, point, global, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                                        QCoreApplication::sendEvent(content->window(), &event);
+                                    }
+                                    QTimer::singleShot(300, root, [workspace, expectedNative] {
+                                        if (workspace->property("visible").toBool()) { qCritical("Workspace selector ignored the native outside click"); qApp->exit(18); return; }
+                                        qInfo("Native menu input, workspace outside dismissal, protected dialogs, private cover and material transitions passed (8 cycles; native=%s)", expectedNative ? "true" : "false");
+                                        qApp->quit();
+                                    });
+                                });
+                            });
                         });
                     });
                     return;
@@ -260,7 +299,7 @@ int main(int argc, char *argv[])
                     function displayAddress(url) { return "example.com" }
                 }
                 NavigationPill {
-                    id: pill; anchors.horizontalCenter: parent.horizontalCenter
+                    id: pill; objectName: "fixturePill"; anchors.horizontalCenter: parent.horizontalCenter
                     anchors.bottom: parent.bottom; anchors.bottomMargin: 20
                     view: null; appearance: preferences; workspaceName: "Test"
                     workspaceColor: "#8dbbff"; tabCount: 2; revealed: true
@@ -280,7 +319,7 @@ int main(int argc, char *argv[])
                         if (step === 2) pill.forceHidden = true
                         if (step === 3) { pill.forceHidden = false; pill.revealed = true }
                         if (step === 4) pill.reveal()
-                        if (step === 5 && pill.nativeActive) { Qt.exit(10); return }
+                        if (step === 5 && !pill.nativeActive) { Qt.exit(10); return }
                         if (step === 6) { if (!pill.nativeActive) { Qt.exit(11); return }; console.info("Desktop native glass lifecycle and menu-input smoke test passed"); Qt.exit(0) }
                         step++
                     }
@@ -304,9 +343,20 @@ int main(int argc, char *argv[])
             QCoreApplication::sendEvent(button->window(), &press);
             QCoreApplication::sendEvent(button->window(), &release);
         });
+        QTimer::singleShot(2850, root, [root] {
+            auto menu = root->findChild<QObject *>("navigationMoreMenu");
+            auto content = menu ? qobject_cast<QQuickItem *>(menu->property("contentItem").value<QObject *>()) : nullptr;
+            auto pill = root->findChild<QObject *>("fixturePill");
+            if (!content || !pill || !pill->property("nativeActive").toBool()) { qCritical("More menu replaced native pill material"); qApp->exit(15); return; }
+            root->setProperty("morePosition", content->mapToGlobal(QPointF()));
+        });
         QTimer::singleShot(3200, root, [root] {
             auto menu = root->findChild<QObject *>("navigationMoreMenu");
             if (!menu || !menu->property("visible").toBool()) { qCritical("Native More button did not open the menu"); QCoreApplication::exit(13); return; }
+            auto content = qobject_cast<QQuickItem *>(menu->property("contentItem").value<QObject *>());
+            const auto at = content->mapToGlobal(QPointF());
+            const auto previous = root->property("morePosition").toPointF();
+            if (QLineF(at, previous).length() > 1) { qCritical() << "More menu moved after opening" << previous << "to" << at << "window" << content->window()->geometry(); qApp->exit(16); return; }
             QMetaObject::invokeMethod(menu, "close");
         });
         return app.exec();

@@ -41,6 +41,7 @@ public:
     void setContent(QQuickItem *);
     Q_INVOKABLE void focusControl(QQuickItem *);
     Q_INVOKABLE bool geometryAligned() const;
+    bool handleOutsidePointer(const QPointF &, bool pressed);
 signals:
     void windowSurfaceChanged();
     void contentRectChanged();
@@ -82,7 +83,7 @@ namespace NativeGlass {
 bool supported();
 bool reducedTransparency();
 void *create(QQuickWindow *owner, QQuickWindow *foreground);
-void *createWindow(QQuickWindow *);
+void *createWindow(QQuickWindow *, NativeGlassHost *);
 QWindow *container(void *);
 void update(void *, const QRectF &, qreal radius);
 void destroy(void *);
@@ -91,5 +92,7 @@ void setOpacity(void *, qreal);
 bool geometryAligned(void *);
 // Manual native UI diagnostic; never called by page content.
 void activateForTest(QQuickWindow *);
+// Posts an AppKit mouse sequence, exercising native event monitors too.
+bool clickForTest(QWindow *, const QPointF &globalPosition);
 QColor foregroundColor(void *);
 }

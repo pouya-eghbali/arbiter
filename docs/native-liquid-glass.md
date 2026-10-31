@@ -35,8 +35,14 @@ ordinary panel transitions. Inactive hosts restore focus only if their own
 window actually held it; hidden surfaces do not poll or reclaim focus.
 Materials attach during the opening transition and follow its opacity; Glacier
 is reserved for the fallback path rather than painted while native glass starts.
-Native popup hosts observe outside presses delivered to browser/page windows,
-respect close policies and child menus, and block click-through for modal dialogs.
+Native popup hosts use Qt’s public native event filter to observe AppKit mouse
+events before normal view delivery. The backing window stays modeless to avoid
+Cocoa dropping parent-window clicks inside runModalSession; the QML popup keeps
+its modal overlay, close policy, and outside-input guard. Qt event delivery
+remains available for other backends and tests.
+They respect close policies and child menus, and block modal click-through. The
+pill stays in its native host while More is open, keeping material and anchors
+stable.
 
 SurfacePalette records the actual native foreground color per window. Shared
 controls resolve text, secondary text, fields and hover states against that
@@ -63,8 +69,8 @@ scene-graph previews. No preview images are written to disk.
 - `arbiter --native-overlays-smoke-test`: repeated popup input, nested menus,
   Escape/outside dismissal (including native page windows), protected dialogs,
   glass during the opening fade, private covering and native/Glacier toggling.
-  Mouse checks use Qt's platform input pipeline; macOS activation uses public
-  AppKit APIs. Native runs need uninterrupted foreground access; switching to
+  Native mouse checks post AppKit events and include the real workspace selector
+  and pill menu; fallback checks use Qt input. Activation uses public AppKit APIs. Native runs need uninterrupted foreground access; switching to
   another application correctly dismisses the popups. With the offscreen
   platform, the same fixture exercises Glacier without activating any windows.
 - Mobile desktop fixture `--design-screen=nativechecks`: swipe/menu actions,

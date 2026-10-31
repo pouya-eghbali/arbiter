@@ -38,34 +38,31 @@ void NativeGlassHost::focusControl(QQuickItem *item) {
     if (m_foreground && m_active) m_foreground->requestActivate();
     if (item) item->forceActiveFocus(Qt::ShortcutFocusReason);
 }
-bool NativeGlassHost::eventFilter(QObject *object, QEvent *event) {
-    // Native page/child windows can receive clicks without Qt forwarding them
-    // to Popup.Window. The popup still decides whether its close policy
-    // allows dismissal; modal surfaces also prevent click-through to the page.
-    if (m_windowSurface && m_active && m_surfaceWindow && m_surfaceWindow->isVisible()
-        && qobject_cast<QWindow *>(object)
-        && (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonRelease
-            || event->type() == QEvent::TouchBegin || event->type() == QEvent::TouchEnd)) {
-        const auto pointer = static_cast<QPointerEvent *>(event);
-        if (!pointer->points().isEmpty()) {
-            const auto global = pointer->points().first().globalPosition();
-            bool inside = QRectF(QPointF(), m_surfaceWindow->size()).contains(m_surfaceWindow->mapFromGlobal(global));
-            // Interacting with a child menu must not dismiss its parent dialog.
-            for (auto candidate : qGuiApp->allWindows()) {
-                if (inside || !candidate->isVisible() || (candidate->type() != Qt::Popup && candidate->type() != Qt::ToolTip)) continue;
-                for (auto ancestor = candidate->transientParent(); ancestor; ancestor = ancestor->transientParent()) {
-                    if (ancestor == m_surfaceWindow) {
-                        inside = QRectF(QPointF(), candidate->size()).contains(candidate->mapFromGlobal(global));
-                        break;
-                    }
-                }
-            }
-            if (!inside) {
-                const bool pressed = event->type() == QEvent::MouseButtonPress || event->type() == QEvent::TouchBegin;
-                QMetaObject::invokeMethod(this, [this, global, pressed] { if (m_active) emit outsidePointer(global, pressed); }, Qt::QueuedConnection);
-                if (m_blockOutsideInput) return true;
-            }
+bool NativeGlassHost::handleOutsidePointer(const QPointF &global, bool pressed) {
+    if (!m_windowSurface || !m_active || !m_surfaceWindow || !m_surfaceWindow->isVisible()) return false;
+    if (QRectF(QPointF(), m_surfaceWindow->size()).contains(m_surfaceWindow->mapFromGlobal(global))) return false;
+    // A child menu belongs to the dialog's interactive region, even if its
+    // native window extends past the dialog's own bounds.
+    for (auto candidate : qGuiApp->allWindows()) {
+        if (!candidate->isVisible() || (candidate->type() != Qt::Popup && candidate->type() != Qt::ToolTip)) continue;
+        for (auto ancestor = candidate->transientParent(); ancestor; ancestor = ancestor->transientParent()) {
+            if (ancestor != m_surfaceWindow) continue;
+            if (QRectF(QPointF(), candidate->size()).contains(candidate->mapFromGlobal(global))) return false;
+            break;
         }
+    }
+    QMetaObject::invokeMethod(this, [this, global, pressed] { if (m_active) emit outsidePointer(global, pressed); }, Qt::QueuedConnection);
+    return m_blockOutsideInput;
+}
+bool NativeGlassHost::eventFilter(QObject *object, QEvent *event) {
+    // Retain Qt delivery for synthetic events and other platform backends.
+    // On Cocoa a native event filter also catches clicks consumed by native
+    // views before Qt constructs a QWindow mouse event.
+    if (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonRelease
+        || event->type() == QEvent::TouchBegin || event->type() == QEvent::TouchEnd) {
+        const auto pointer = static_cast<QPointerEvent *>(event);
+        const bool pressed = event->type() == QEvent::MouseButtonPress || event->type() == QEvent::TouchBegin;
+        if (!pointer->points().isEmpty() && handleOutsidePointer(pointer->points().first().globalPosition(), pressed)) return true;
     }
     if (object == m_foreground && (event->type() == QEvent::TouchBegin || event->type() == QEvent::MouseButtonPress)) m_foreground->requestActivate();
     if (object == m_foreground && event->type() == QEvent::KeyPress && static_cast<QKeyEvent *>(event)->key() == Qt::Key_Escape) { emit escapeRequested(); return true; }
@@ -92,6 +89,16 @@ void NativeGlassHost::watchGeometry() {
             m_connections.append(connect(item, signal, this, &NativeGlassHost::schedule));
     }
     if (window()) {
+        // Popup.modal still owns Qt's dimmer and input policy. An AppKit modal
+        // session, however, drops clicks on the parent before sendEvent/native
+        // filters run. Keep only the backing window modeless, before it shows,
+        // so our outside-click guard can dismiss (and consume) those clicks.
+        auto keepPopupInteractive = [this] {
+            if (m_windowSurface && available() && window() && window()->type() == Qt::Popup
+                && window()->modality() != Qt::NonModal) window()->setModality(Qt::NonModal);
+        };
+        m_connections.append(connect(window(), &QWindow::modalityChanged, this, keepPopupInteractive));
+        keepPopupInteractive();
         m_connections.append(connect(window(), &QWindow::visibleChanged, this, &NativeGlassHost::schedule));
         m_connections.append(connect(window(), &QWindow::widthChanged, this, &NativeGlassHost::schedule));
         m_connections.append(connect(window(), &QWindow::heightChanged, this, &NativeGlassHost::schedule));
@@ -113,7 +120,7 @@ void NativeGlassHost::synchronize() {
         detach(); return;
     }
     if (m_windowSurface) {
-        if (!m_native) { m_native = NativeGlass::createWindow(window()); if (m_native) { m_surfaceWindow = window(); qGuiApp->installEventFilter(this); } }
+        if (!m_native) { m_native = NativeGlass::createWindow(window(), this); if (m_native) { m_surfaceWindow = window(); qGuiApp->installEventFilter(this); } }
         if (!m_native) return;
         NativeGlass::update(m_native, QRectF(QPointF(), window()->size()), m_radius);
         NativeGlass::setOpacity(m_native, opacity);
@@ -205,7 +212,7 @@ namespace NativeGlass {
 bool supported() { return false; }
 bool reducedTransparency() { return false; }
 void *create(QQuickWindow *, QQuickWindow *) { return nullptr; }
-void *createWindow(QQuickWindow *) { return nullptr; }
+void *createWindow(QQuickWindow *, NativeGlassHost *) { return nullptr; }
 QWindow *container(void *) { return nullptr; }
 void update(void *, const QRectF &, qreal) {}
 void destroy(void *) {}
@@ -213,6 +220,7 @@ void setVisible(void *, bool) {}
 void setOpacity(void *, qreal) {}
 bool geometryAligned(void *) { return false; }
 void activateForTest(QQuickWindow *window) { window->requestActivate(); }
+bool clickForTest(QWindow *, const QPointF &) { return false; }
 QColor foregroundColor(void *) { return Qt::black; }
 }
 #endif

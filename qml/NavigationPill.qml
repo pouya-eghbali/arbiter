@@ -21,6 +21,15 @@ FocusScope {
     property int adBlockBlocked: 0
     signal adBlockRequested()
     function dismissMenu() { more.close() }
+    function openMoreMenu() {
+        // Keep popup coordinates in the owning overlay, outside the native
+        // pill's content hierarchy. Capture once instead of chasing a moving
+        // parent while Qt fits the popup to the screen.
+        const anchor = pill.mapToItem(more.parent, pill.width, 0)
+        more.x = Math.max(12, Math.min(more.parent.width - more.width - 12, anchor.x - more.width))
+        more.y = Math.max(12, anchor.y - more.height - 8)
+        more.open()
+    }
     function shareAnchor() { if (!shareButton.visible) return Qt.point(pill.x + pill.width / 2, pill.y); const global = shareButton.mapToGlobal(shareButton.width / 2, shareButton.height / 2); const local = pill.mapFromGlobal(global.x, global.y); return pill.mapToItem(null, local.x, local.y) }
     function reveal() {
         extensionsMode = false
@@ -106,7 +115,7 @@ FocusScope {
     NativeGlassHost {
         id: nativeGlass
         anchors.fill: pillSurface
-        requested: pill.appearance.liquidGlass && !more.visible
+        requested: pill.appearance.liquidGlass
         radius: height / 2
         content: pillForeground
         onEscapeRequested: {
@@ -254,7 +263,7 @@ FocusScope {
             onClicked: { pill.extensionsMode = true; pill.revealed = true; extensionsBackButton.forceActiveFocus() }
         }
         NavButton { objectName: "navigationTabsButton"; text: String(pill.tabCount); font.pixelSize: 13; Accessible.name: pill.tabCount === 1 ? qsTr("Show 1 tab") : qsTr("Show %1 tabs").arg(pill.tabCount); onClicked: pill.tabsRequested() }
-        NavButton { objectName: "navigationMoreButton"; iconName: "ellipsis"; Accessible.name: qsTr("More browser controls"); onClicked: more.open() }
+        NavButton { objectName: "navigationMoreButton"; iconName: "ellipsis"; Accessible.name: qsTr("More browser controls"); onClicked: pill.openMoreMenu() }
     }
     Item {
         anchors.fill: parent
@@ -333,9 +342,8 @@ FocusScope {
     UiMenu {
         preferredWidth: 320
         id: more
+        parent: Basic.Overlay.overlay
         objectName: "navigationMoreMenu"
-        y: -height - 8
-        x: Math.max(0, pill.width - width)
         palette.text: Theme.textFor(parent)
         palette.windowText: Theme.textFor(parent)
         palette.base: Theme.window
