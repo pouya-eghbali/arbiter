@@ -300,6 +300,25 @@
  }
 --- a/src/core/configure/BUILD.root.gn.in
 +++ b/src/core/configure/BUILD.root.gn.in
+@@ -20,14 +20,14 @@
+   [ "-f", rebase_path("//chrome/VERSION"), "-t", chromium_version_template], "list lines")
+ 
+ moc_source_h_files = exec_script("@WEBENGINE_ROOT_SOURCE_DIR@/tools/scripts/gn_find_mocables.py",
+-  [
++  rebase_path([
+   @GN_HEADERS@
+-  ], "list lines", ["@WEBENGINE_ROOT_SOURCE_DIR@/src/core/CMakeLists.txt"]
++  ], root_build_dir), "list lines", ["@WEBENGINE_ROOT_SOURCE_DIR@/src/core/CMakeLists.txt"]
+ )
+ moc_source_cpp_files = exec_script("@WEBENGINE_ROOT_SOURCE_DIR@/tools/scripts/gn_find_mocables.py",
+-  [
++  rebase_path([
+   @GN_SOURCES@
+-  ], "list lines", ["@WEBENGINE_ROOT_SOURCE_DIR@/src/core/CMakeLists.txt"]
++  ], root_build_dir), "list lines", ["@WEBENGINE_ROOT_SOURCE_DIR@/src/core/CMakeLists.txt"]
+ )
+ if (moc_source_h_files != []) {
+   action_foreach("generate_h_mocs") {
 @@ -602,7 +602,7 @@
      ]
      output_dir = "$root_out_dir"
