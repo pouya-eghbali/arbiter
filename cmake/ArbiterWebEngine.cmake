@@ -94,6 +94,29 @@ function(arbiter_verify_qt_version)
     endif()
 endfunction()
 
+# PDF-only tools/tests must use the SDK's headers and renderer too, even
+# when they do not instantiate WebEngine or its runtime initializer.
+function(arbiter_configure_pdf_runtime target)
+    if(ARBITER_PATCHED_WEBENGINE)
+        if(APPLE)
+            target_include_directories(${target} BEFORE PRIVATE "${ARBITER_ENGINE_LIBDIR}/QtPdf.framework")
+            target_link_options(${target} BEFORE PRIVATE "-F${ARBITER_ENGINE_LIBDIR}")
+        else()
+            get_target_property(arbiter_pdf_includes Qt6::Pdf INTERFACE_INCLUDE_DIRECTORIES)
+            target_include_directories(${target} BEFORE PRIVATE ${arbiter_pdf_includes})
+        endif()
+        if(ARBITER_WEBENGINE_SDK_RUNTIME)
+            if(WIN32)
+                add_custom_command(TARGET ${target} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "$<TARGET_FILE:Qt6::Pdf>" "$<TARGET_FILE_DIR:${target}>" VERBATIM)
+            else()
+                set_property(TARGET ${target} APPEND PROPERTY BUILD_RPATH "${ARBITER_ENGINE_LIBDIR}")
+            endif()
+        endif()
+    endif()
+endfunction()
+
 function(arbiter_configure_webengine_runtime target)
     if(ARBITER_PATCHED_WEBENGINE)
         target_compile_definitions(${target} PRIVATE ARBITER_PATCHED_WEBENGINE=1)

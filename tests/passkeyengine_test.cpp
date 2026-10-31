@@ -48,6 +48,28 @@ class PasskeyEngineTest : public QObject {
         timer.start(5000); loop.exec(); return result;
     }
 private slots:
+    void javascriptAndWebAssembly() {
+        QWebEngineView view;
+        view.resize(640,480); view.show();
+        QSignalSpy loaded(&view,&QWebEngineView::loadFinished);
+        view.setHtml(QStringLiteral("<title>Engine execution fixture</title>"));
+        QTRY_VERIFY_WITH_TIMEOUT(!loaded.isEmpty(),20000);
+        QVERIFY(loaded.first().first().toBool());
+        // Exercise target machine code and memory growth, including snapshots
+        // generated on a different host architecture during cross-builds.
+        QVERIFY(js(view.page(),QStringLiteral(R"JS(
+            (() => {
+                const bytes = new Uint8Array([0,97,115,109,1,0,0,0,
+                    1,5,1,96,0,1,127,3,2,1,0,
+                    7,10,1,6,97,110,115,119,101,114,0,0,
+                    10,6,1,4,0,65,42,11]);
+                const instance = new WebAssembly.Instance(new WebAssembly.Module(bytes));
+                const memory = new WebAssembly.Memory({initial:1,maximum:2});
+                return instance.exports.answer() === 42 && memory.grow(1) === 1
+                    && memory.buffer.byteLength === 131072;
+            })()
+        )JS")).toBool());
+    }
     void answer() {
         if (!bridge || handledPayload) return;
         if (!selectedLocal && bridge->property("localAvailable").toBool()) {

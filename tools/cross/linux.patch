@@ -27,3 +27,61 @@
 +    use_udev = false
    }
  }
+--- a/src/3rdparty/chromium/v8/src/wasm/wasm-objects.cc
++++ b/src/3rdparty/chromium/v8/src/wasm/wasm-objects.cc
+@@ -4,14 +4,14 @@
+ 
+ #include "src/wasm/wasm-objects.h"
+ 
+-#if V8_TARGET_OS_LINUX
++#if V8_OS_LINUX
+ #include <sys/mman.h>
+ #include <sys/stat.h>
+ // `sys/mman.h defines `MAP_TYPE`, but `MAP_TYPE` also gets defined within V8.
+ // Since we don't need `sys/mman.h`'s `MAP_TYPE`, we undefine it immediately
+ // after the `#include`.
+ #undef MAP_TYPE
+-#endif  // V8_TARGET_OS_LINUX
++#endif  // V8_OS_LINUX
+ 
+ #include <optional>
+ 
+@@ -1296,7 +1296,7 @@
+ 
+ MaybeDirectHandle<WasmMemoryMapDescriptor>
+ WasmMemoryMapDescriptor::NewFromAnonymous(Isolate* isolate, size_t length) {
+-#if V8_TARGET_OS_LINUX
++#if V8_OS_LINUX
+   CHECK(v8_flags.experimental_wasm_memory_control);
+   DirectHandle<JSFunction> descriptor_ctor(
+       isolate->native_context()->wasm_memory_map_descriptor_constructor(),
+@@ -1312,9 +1312,9 @@
+   }
+ 
+   return NewFromFileDescriptor(isolate, file_descriptor);
+-#else   // V8_TARGET_OS_LINUX
++#else   // V8_OS_LINUX
+   return {};
+-#endif  // V8_TARGET_OS_LINUX
++#endif  // V8_OS_LINUX
+ }
+ 
+ DirectHandle<WasmMemoryMapDescriptor>
+@@ -1338,7 +1338,7 @@
+ 
+ size_t WasmMemoryMapDescriptor::MapDescriptor(
+     DirectHandle<WasmMemoryObject> memory, size_t offset) {
+-#if V8_TARGET_OS_LINUX
++#if V8_OS_LINUX
+   CHECK(v8_flags.experimental_wasm_memory_control);
+   if (memory->array_buffer()->is_shared()) {
+     // TODO(ahaas): Handle concurrent calls to `MapDescriptor`. To prevent
+@@ -1384,7 +1384,7 @@
+ }
+ 
+ bool WasmMemoryMapDescriptor::UnmapDescriptor() {
+-#if V8_TARGET_OS_LINUX
++#if V8_OS_LINUX
+   CHECK(v8_flags.experimental_wasm_memory_control);
+   DisallowGarbageCollection no_gc;
+ 
