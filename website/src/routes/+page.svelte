@@ -3,6 +3,7 @@
   import NavigationPill from '#lib/NavigationPill.svelte';
   import SplitDemo from '#lib/SplitDemo.svelte';
   import WorkspaceDemo from '#lib/WorkspaceDemo.svelte';
+  import ProductArtwork from '#lib/ProductArtwork.svelte';
   import Icon from '#lib/Icon.svelte';
   import { reveal, accordion } from '#lib/motion.ts';
   const repo = 'https://github.com/pouya-eghbali/arbiter';
@@ -64,9 +65,9 @@
     >Arbiter</a
   >
   <nav aria-label="Main navigation">
-    <a href="#features">Features</a><a href="#get-arbiter">Get Arbiter</a><a href={repo}
-      >GitHub <Icon name="external-link" size={12} /></a
-    >
+    <a class="desktop-nav-link" href="#features">Features</a><a href="#mobile">Mobile</a><a
+      href="#sync">Sync</a
+    ><a class="desktop-nav-link" href={repo}>GitHub <Icon name="external-link" size={12} /></a>
   </nav>
   <a href="#get-arbiter" class="button button-small"
     ><Icon name="download" size={16} /><span>Get Arbiter</span></a
@@ -162,6 +163,62 @@
     </div>
   </section>
 
+  <section class="feature-row wrap mobile-section" id="mobile" aria-labelledby="mobile-title">
+    <div class="feature-copy" use:reveal>
+      <p class="eyebrow">04 / ARBITER, ON THE GO</p>
+      <h2 id="mobile-title">
+        Your browser. <br />Pocket-sized<span class="feature-period">.</span>
+      </h2>
+      <p>
+        More room for the web.<br />The floating pill, workspaces and private browsing — now on your
+        phone.
+      </p>
+      <p class="mobile-availability">iOS + Android · Developer preview</p>
+      <div class="mobile-build-links">
+        <a
+          class="text-link"
+          href={repo + '/blob/master/mobile/README.md#ios-build-and-install-on-your-own-device'}
+          >Build for iOS <Icon name="external-link" size={14} /></a
+        >
+        <a
+          class="text-link"
+          href={repo + '/blob/master/mobile/README.md#android-build-sign-and-install-your-own-apk'}
+          >Build for Android <Icon name="external-link" size={14} /></a
+        >
+      </div>
+    </div>
+    <div class="product-visual" use:reveal><ProductArtwork kind="mobile" /></div>
+  </section>
+
+  <section class="sync-section" id="sync" aria-labelledby="sync-title">
+    <div class="feature-row wrap">
+      <div class="feature-copy" use:reveal>
+        <p class="eyebrow">05 / KEEP YOUR KEYS CLOSE</p>
+        <h2 id="sync-title">
+          Your passwords. <br />On your devices<span class="feature-period">.</span>
+        </h2>
+        <p>
+          Pair your computers and phone.<br />Sync passwords and Arbiter passkeys, encrypted over
+          the same Wi-Fi.
+        </p>
+        <ul class="sync-benefits">
+          <li><Icon name="lock" size={22} />Encrypted device to device</li>
+          <li><Icon name="key-round" size={22} />No cloud account</li>
+          <li><Icon name="smartphone" size={22} />Multiple paired devices</li>
+        </ul>
+        <a class="text-link sync-guide" href={repo + '/blob/master/docs/credential-sync.md'}
+          >Explore local sync <Icon name="external-link" size={14} /></a
+        >
+      </div>
+      <div class="product-visual" use:reveal>
+        <ProductArtwork kind="sync" />
+        <p class="sync-art-caption">
+          <span class="tiny-dot"></span>SAME WI-FI. YOUR DEVICES. YOUR KEYS.
+        </p>
+      </div>
+    </div>
+  </section>
+
   <section class="more-section wrap" aria-labelledby="more-title">
     <div class="section-heading" use:reveal>
       <p class="eyebrow">THE DETAILS MAKE THE DIFFERENCE</p>
@@ -236,6 +293,11 @@
       >
       <p class="build-note">
         <a href={repo + `/releases/tag/v${version}`}>Release notes & other downloads</a>.
+        <span class="mobile-download-note"
+          >On your phone? <a href="#mobile"
+            >Explore the iOS and Android developer preview <Icon name="arrow-right" size={13} /></a
+          ></span
+        >
       </p>
     </div>
   </section>
@@ -249,6 +311,24 @@
           Yes. Setup and Settings include browser import for available passwords and history. What
           can be imported depends on the source browser, operating system, and permissions. Password
           files can also be imported in Settings.
+        </p>
+      </details>
+      <details use:accordion>
+        <summary>Can I use Arbiter on my phone?<Icon name="plus" size={18} /></summary>
+        <p>
+          Yes, as a developer preview for iOS and Android. Mobile apps are currently build-your-own,
+          with <a href={repo + '/blob/master/mobile/README.md#build-your-own'}
+            >build and installation instructions</a
+          > on GitHub. There are no App Store, Google Play, or prebuilt mobile downloads yet.
+        </p>
+      </details>
+      <details use:accordion>
+        <summary>Can I sync passwords between my devices?<Icon name="plus" size={18} /></summary>
+        <p>
+          Pair your computers and phones to sync passwords and Arbiter passkeys over the same local
+          Wi-Fi. Changes and deletions sync too; conflicting edits are kept for you to review. Keep
+          Arbiter open and desktop sync unlocked. Sync is encrypted device to device, with no cloud
+          account or internet relay.
         </p>
       </details>
       <details use:accordion>
@@ -272,10 +352,10 @@
       <details use:accordion>
         <summary>How do I keep Arbiter updated?<Icon name="plus" size={18} /></summary>
         <p>
-          Arbiter checks for new desktop releases automatically. Settings → About shows the
-          latest version and release notes; automatic checks can be turned off there. Updates
-          are downloaded and installed by you. Desktop releases include security updates to
-          the browser engine and PDF renderer.
+          Arbiter checks for new desktop releases automatically. Settings → About shows the latest
+          version and release notes; automatic checks can be turned off there. Updates are
+          downloaded and installed by you. Desktop releases include security updates to the browser
+          engine and PDF renderer.
         </p>
       </details>
       <details use:accordion>
@@ -290,8 +370,8 @@
       <details use:accordion>
         <summary>Is the preview the actual browser?<Icon name="plus" size={18} /></summary>
         <p>
-          The previews are interactive illustrations with sample pages and content. Download Arbiter
-          to browse your own pages and make it yours.
+          The product previews are illustrations with sample pages and content; some are
+          interactive. Download Arbiter to browse your own pages and make it yours.
         </p>
       </details>
     </div>
@@ -304,8 +384,8 @@
     >Arbiter</a
   ><span>A little more room for your web.</span>
   <nav aria-label="Project links">
-    <a href="/privacy">Privacy</a><a href={repo}>GitHub</a><a href={repo + '/issues'}>Report an issue</a><a
-      href={repo + '/blob/master/LICENSE'}>GPL v3</a
-    >
+    <a href="/privacy">Privacy</a><a href={repo}>GitHub</a><a href={repo + '/issues'}
+      >Report an issue</a
+    ><a href={repo + '/blob/master/LICENSE'}>GPL v3</a>
   </nav>
 </footer>

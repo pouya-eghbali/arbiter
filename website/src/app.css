@@ -1386,6 +1386,86 @@ button:disabled {
   gap: 26px;
   font-size: 11px;
 }
+.feature-period {
+  color: #b76644;
+}
+.product-visual {
+  min-width: 0;
+  width: 100%;
+}
+.mobile-section .feature-copy .mobile-availability {
+  margin-top: 30px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.7;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.mobile-build-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 26px;
+  margin-top: 22px;
+}
+.mobile-section .mobile-build-links .text-link {
+  margin-top: 0;
+  min-height: 44px;
+  border-bottom: 1px solid var(--line);
+  gap: 10px;
+}
+.sync-section {
+  background: var(--lilac);
+}
+.sync-section .feature-row {
+  padding-block: 76px;
+}
+.sync-benefits {
+  display: grid;
+  gap: 18px;
+  list-style: none;
+  padding: 0;
+  margin: 28px 0 0;
+}
+.sync-benefits li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 26px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.sync-art-caption {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 9px;
+  margin-top: 18px;
+  color: #5f597b;
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 1.7;
+  letter-spacing: 1.3px;
+}
+.sync-art-caption .tiny-dot {
+  background: #7768bb;
+}
+.mobile-download-note {
+  display: block;
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.mobile-download-note a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.faq-items p a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 @media (min-width: 1600px) {
   .wrap {
     width: min(1360px, calc(100% - 160px));
@@ -1544,7 +1624,7 @@ button:disabled {
     gap: 20px;
     font-size: 11px;
   }
-  .site-header nav a:nth-child(2) {
+  .site-header nav .desktop-nav-link {
     display: none;
   }
   .site-header > .button {
@@ -1743,6 +1823,18 @@ button:disabled {
   .split-section .feature-row {
     padding-block: 48px;
   }
+  .sync-section .feature-row {
+    padding-block: 48px;
+  }
+  .sync-benefits {
+    margin-top: 24px;
+    gap: 12px;
+  }
+  .sync-art-caption {
+    font-size: 7px;
+    letter-spacing: 1px;
+  }
+
   .split-demo {
     height: auto;
     aspect-ratio: 1.35;
@@ -1956,8 +2048,11 @@ button:disabled {
   .wrap {
     width: calc(100% - 36px);
   }
+  .site-header {
+    gap: 10px;
+  }
   .site-header nav {
-    gap: 14px;
+    gap: 12px;
   }
   .site-header nav a:last-child {
     display: none;

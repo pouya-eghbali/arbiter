@@ -93,3 +93,14 @@ Lucide SVGs are copied from the browser's existing subset, with notices bundled 
 the SIL Open Font License, with the full notice in **static/DM-Sans-LICENSE.txt**.
 The page uses system Georgia for serif sample content. No third-party website
 screenshots or generated UI images are shipped.
+
+## Mobile and sync sections
+
+Mobile links point to the iOS/Android self-build guides; they must not imply a
+store listing or public APK/IPA release. Sync copy describes encrypted local
+Wi-Fi pairing, not cloud or internet relay sync.
+
+`ProductArtwork.svelte` frames the two illustrations from the approved generated
+concept in `static/art/mobile-sync-preview.png`. The image is shared/cacheable
+and lazy-loaded; headings, feature copy and links remain accessible HTML. Keep
+replacement artwork close to the actual mobile and desktop Settings → Sync UI.
