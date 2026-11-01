@@ -2,9 +2,9 @@ name: Website
 
 on:
   push:
-    paths: ['website/**', '.github/workflows/website.yml']
+    paths: ['website/**', 'docs/privacy-policy.md', '.github/workflows/website.yml']
   pull_request:
-    paths: ['website/**', '.github/workflows/website.yml']
+    paths: ['website/**', 'docs/privacy-policy.md', '.github/workflows/website.yml']
 
 permissions:
   contents: read
@@ -22,6 +22,8 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: website/package-lock.json
+      - name: Check bundled privacy policy matches the app policy
+        run: cmp ../docs/privacy-policy.md src/lib/privacy-policy.md
       - run: npm ci
       - run: npm run check
       - run: npm run build

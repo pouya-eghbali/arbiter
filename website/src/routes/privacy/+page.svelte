@@ -1,6 +1,7 @@
 <script lang="ts">
-  import policy from '../../../../docs/privacy-policy.md?raw';
-  // Policy source is shared with the offline mobile copy. Plain paragraphs avoid
+  import policy from '#lib/privacy-policy.md?raw';
+  // CI keeps this deployment-local policy identical to the offline mobile source.
+  // Plain paragraphs avoid
   // introducing an HTML/Markdown parser into this static document.
   const sections = policy.trim().split(/\n\s*\n/);
 </script>
