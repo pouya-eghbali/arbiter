@@ -78,7 +78,8 @@ jobs:
         run: |
           python tools/release/cross_inputs.py download
       - name: Validate and package against prebuilt engine
-        shell: bash
+        # Git Bash prepends its POSIX link.exe ahead of the MSVC linker.
+        shell: ${{ runner.os == 'Windows' && 'pwsh' || 'bash' }}
         env:
           INPUT_PLATFORM: ${{ inputs.platform }}
           ARBITER_QT_PREFIX: ${{ env.QT_ROOT_DIR }}
