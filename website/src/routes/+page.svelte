@@ -6,7 +6,7 @@
   import Icon from '#lib/Icon.svelte';
   import { reveal, accordion } from '#lib/motion.ts';
   const repo = 'https://github.com/pouya-eghbali/arbiter';
-  const version = '0.2.1';
+  const version = '0.2.2';
   const downloads = repo + `/releases/download/v${version}/`;
   let tucked = $state(false);
   const extras = [
