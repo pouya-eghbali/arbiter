@@ -341,7 +341,7 @@ index 84101d4..ca49604 100644
        "//chrome/renderer/media/webrtc_logging_agent_impl.h",
      ]
 diff --git a/src/core/content_browser_client_qt.cpp b/src/core/content_browser_client_qt.cpp
-index e597c6e..a1c01a3 100644
+index e597c6e..b256bdd 100644
 --- a/src/core/content_browser_client_qt.cpp
 +++ b/src/core/content_browser_client_qt.cpp
 @@ -281,6 +281,17 @@ content::MediaObserver *ContentBrowserClientQt::GetMediaObserver()
@@ -392,7 +392,18 @@ index e597c6e..a1c01a3 100644
      WebContentsViewQt *view = WebContentsViewQt::from(static_cast<content::WebContentsImpl *>(webContents)->GetView());
      if (!view->client())
          return;
-@@ -593,6 +627,9 @@ void ContentBrowserClientQt::RegisterAssociatedInterfaceBindersForServiceWorker(
+@@ -548,6 +582,10 @@ void ContentBrowserClientQt::RegisterAssociatedInterfaceBindersForRenderFrameHos
+                     }, &rfh));
+ #endif
+ #if BUILDFLAG(ENABLE_EXTENSIONS)
++    // Extension pages register listeners through their frame's associated
++    // provider, independently of process and service-worker channels.
++    associated_registry.AddInterface<extensions::mojom::EventRouter>(base::BindRepeating(
++            &extensions::EventRouter::BindForRenderer, rfh.GetProcess()->GetDeprecatedID()));
+     associated_registry.AddInterface<extensions::mojom::LocalFrameHost>(
+                 base::BindRepeating(
+                     [](content::RenderFrameHost *render_frame_host,
+@@ -593,6 +631,9 @@ void ContentBrowserClientQt::RegisterAssociatedInterfaceBindersForServiceWorker(
  {
      associated_registry.AddInterface<extensions::mojom::ServiceWorkerHost>(base::BindRepeating(
              &extensions::ServiceWorkerHost::BindReceiver, service_worker_version_info.process_id));
@@ -783,6 +794,19 @@ index 395334f..a42a18d 100644
      void GestureEventAck(const blink::WebGestureEvent &event,
                           blink::mojom::InputEventResultSource ack_source,
                           blink::mojom::InputEventResultState ack_result) override;
+diff --git a/src/core/renderer/content_renderer_client_qt.cpp b/src/core/renderer/content_renderer_client_qt.cpp
+index 3c83765..586795c 100644
+--- a/src/core/renderer/content_renderer_client_qt.cpp
++++ b/src/core/renderer/content_renderer_client_qt.cpp
+@@ -537,7 +537,7 @@ void ContentRendererClientQt::WillSendRequest(blink::WebLocalFrame *frame,
+                                               GURL *new_url)
+ {
+ #if BUILDFLAG(ENABLE_EXTENSIONS)
+-    ExtensionsRendererClientQt::GetInstance()->WillSendRequest(frame, transition_type, target_url, site_for_cookies,
++    ExtensionsRendererClientQt::GetInstance()->WillSendRequest(frame, transition_type, upstream_url, target_url, site_for_cookies,
+                                                                initiator_origin, new_url);
+     if (!new_url->is_empty())
+         return;
 diff --git a/src/core/renderer/extensions/extensions_renderer_api_provider_qt.cpp b/src/core/renderer/extensions/extensions_renderer_api_provider_qt.cpp
 index 2ca1348..cb91669 100644
 --- a/src/core/renderer/extensions/extensions_renderer_api_provider_qt.cpp
@@ -820,6 +844,96 @@ index edb4397..7527a36 100644
      void EnableCustomElementAllowlist() const override { }
      void RequireWebViewModules(ScriptContext *context) const override { }
  };
+diff --git a/src/core/renderer/extensions/extensions_renderer_client_qt.cpp b/src/core/renderer/extensions/extensions_renderer_client_qt.cpp
+index 254ba25..be5fd4f 100644
+--- a/src/core/renderer/extensions/extensions_renderer_client_qt.cpp
++++ b/src/core/renderer/extensions/extensions_renderer_client_qt.cpp
+@@ -10,7 +10,6 @@
+ #include "extensions_renderer_client_qt.h"
+ 
+ #include "renderer/render_configuration.h"
+-#include "resource_request_policy_qt.h"
+ 
+ #include "base/command_line.h"
+ #include "base/lazy_instance.h"
+@@ -70,11 +69,6 @@ ExtensionsRendererClientQt *ExtensionsRendererClientQt::GetInstance()
+     return client.Pointer();
+ }
+ 
+-void ExtensionsRendererClientQt::FinishInitialization()
+-{
+-    resource_request_policy_.reset(new extensions::ResourceRequestPolicyQt(dispatcher()));
+-}
+-
+ void ExtensionsRendererClientQt::WebViewCreated(blink::WebView *web_view, const url::Origin *outermost_origin)
+ {
+     new extensions::ExtensionWebViewHelper(web_view, outermost_origin);
+@@ -89,21 +83,6 @@ bool ExtensionsRendererClientQt::OverrideCreatePlugin(content::RenderFrame *rend
+     return !guest_view_api_available;
+ }
+ 
+-void ExtensionsRendererClientQt::WillSendRequest(blink::WebLocalFrame *frame,
+-                                                 ui::PageTransition transition_type,
+-                                                 const blink::WebURL &url,
+-                                                 const net::SiteForCookies &site_for_cookies,
+-                                                 const url::Origin *initiator_origin,
+-                                                 GURL *new_url)
+-{
+-    if (url.ProtocolIs(extensions::kExtensionScheme) &&
+-            !resource_request_policy_->CanRequestResource(url, frame,
+-                                                          transition_type,
+-                                                          initiator_origin)) {
+-        *new_url = GURL(chrome::kExtensionInvalidRequestURL);
+-    }
+-}
+-
+ void ExtensionsRendererClientQt::RunScriptsAtDocumentStart(content::RenderFrame *render_frame)
+ {
+     dispatcher()->RunScriptsAtDocumentStart(render_frame);
+diff --git a/src/core/renderer/extensions/extensions_renderer_client_qt.h b/src/core/renderer/extensions/extensions_renderer_client_qt.h
+index b6711b0..faeef79 100644
+--- a/src/core/renderer/extensions/extensions_renderer_client_qt.h
++++ b/src/core/renderer/extensions/extensions_renderer_client_qt.h
+@@ -32,10 +32,6 @@ namespace url {
+ class Origin;
+ }
+ 
+-namespace extensions {
+-class ResourceRequestPolicyQt;
+-}
+-
+ namespace QtWebEngineCore {
+ 
+ class ExtensionsRendererClientQt : public extensions::ExtensionsRendererClient
+@@ -47,28 +43,18 @@ public:
+     // extensions::ExtensionsRendererClient implementation.
+     bool IsIncognitoProcess() const override;
+     int GetLowestIsolatedWorldId() const override;
+-    void FinishInitialization() override;
+ 
+     // Match ContentRendererClientQt's method names...
+     void WebViewCreated(blink::WebView *web_view,
+                         const url::Origin *outermost_origin);
+     bool OverrideCreatePlugin(content::RenderFrame *render_frame,
+                               const blink::WebPluginParams &params);
+-    void WillSendRequest(blink::WebLocalFrame *frame,
+-                         ui::PageTransition transition_type,
+-                         const blink::WebURL &url,
+-                         const net::SiteForCookies &site_for_cookies,
+-                         const url::Origin *initiator_origin,
+-                         GURL *new_url);
+ 
+     void RunScriptsAtDocumentStart(content::RenderFrame *render_frame);
+     void RunScriptsAtDocumentEnd(content::RenderFrame *render_frame);
+     void RunScriptsAtDocumentIdle(content::RenderFrame *render_frame);
+ 
+     static ExtensionsRendererClientQt *GetInstance();
+-
+-private:
+-    std::unique_ptr<extensions::ResourceRequestPolicyQt> resource_request_policy_;
+ };
+ 
+ } // namespace QtWebEngineCore
 diff --git a/src/core/web_contents_adapter.cpp b/src/core/web_contents_adapter.cpp
 index 5ea0939..9a35aec 100644
 --- a/src/core/web_contents_adapter.cpp

@@ -522,16 +522,17 @@ Window {
         write(manifest.fileName(), QJsonDocument(json).toJson());
         write(source + "/content.js", R"JS(
             document.body.dataset.ready='yes';
-            const frame=document.createElement('iframe');frame.src=chrome.runtime.getURL('blob.html');frame.onload=()=>document.body.dataset.blobFrameLoaded='yes';document.body.append(frame);
-            addEventListener('message',e=>{if(e.data?.blobStage)document.body.dataset.blobStage=e.data.blobStage;if(e.source===frame.contentWindow&&e.data?.blobProbe)document.body.dataset.blobProbe=e.data.blobProbe});
+            const frame=document.createElement('iframe');frame.src=chrome.runtime.getURL('blob.html');document.body.append(frame);
+            const privateFrame=document.createElement('iframe');privateFrame.src=chrome.runtime.getURL('private.html');privateFrame.onload=()=>document.body.dataset.privateFrameLoaded='yes';document.body.append(privateFrame);
+            addEventListener('message',e=>{if(e.source===frame.contentWindow&&e.data?.blobProbe)document.body.dataset.blobProbe=e.data.blobProbe;if(e.source===privateFrame.contentWindow&&e.data?.privateProbe)document.body.dataset.privateProbe='executed'});
             chrome.runtime.onMessage.addListener((message,sender,reply)=>{
                 if(message.probe){chrome.runtime.sendMessage({senderProbe:true},reply);return true;}
             });
         )JS");
         write(source + "/blob.html", "<!doctype html><script src='blob.js'></script>");
+        write(source + "/private.html", "<!doctype html><script src='private.js'></script>");
+        write(source + "/private.js", "parent.postMessage({privateProbe:true},'*');");
         write(source + "/blob.js", R"JS(
-            parent.postMessage({blobStage:'script started'},'*');
-            addEventListener('error',e=>parent.postMessage({blobProbe:'script error: '+e.message},'*'));
             const url=URL.createObjectURL(new Blob(['extension image transfer']));
             chrome.runtime.sendMessage({blobProbe:url},response=>{parent.postMessage({blobProbe:response?.text||'failed'},'*');URL.revokeObjectURL(url)});
         )JS");
@@ -584,8 +585,14 @@ Window {
                         await new Promise(resolve=>setTimeout(resolve,50));
                         blob=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>document.body.dataset.blobProbe});
                     }
-                    const blobState=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>({loaded:document.body.dataset.blobFrameLoaded,stage:document.body.dataset.blobStage,frame:document.querySelector('iframe')?.src})});
-                    assert(blob[0]?.result==='extension image transfer','embedded extension blob can be read by its own worker: '+JSON.stringify({blob,state:blobState}));
+                    assert(blob[0]?.result==='extension image transfer','embedded extension blob can be read by its own worker: '+JSON.stringify(blob));
+                    let privateFrame;
+                    for(let attempt=0;attempt<100;++attempt){
+                        [privateFrame]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>({loaded:document.body.dataset.privateFrameLoaded,executed:document.body.dataset.privateProbe})});
+                        if(privateFrame.result.loaded)break;
+                        await new Promise(resolve=>setTimeout(resolve,50));
+                    }
+                    assert(privateFrame.result.loaded==='yes'&&!privateFrame.result.executed,'undeclared extension resource remains blocked');
                     await chrome.action.setIcon({path:'icon.png'});
                     await chrome.action.setIcon({path:{16:'icon.png'}});
                     failed=false;try{await chrome.action.setIcon({path:'file:///tmp/foreign-icon.png'})}catch(e){failed=true}assert(failed,'unsafe icon resource rejected');
