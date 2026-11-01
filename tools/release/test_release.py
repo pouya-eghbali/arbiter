@@ -68,6 +68,20 @@ class DependencyTests(unittest.TestCase):
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_patched_abi_cannot_hide_an_old_engine_security_build(self):
+        import json
+        expected = json.loads((ROOT / 'engine/manifest.json').read_text())['chromium_security_version'].encode('ascii')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            library = root / 'Qt6WebEngineCore.dll'
+            with patch.object(package.sys, 'platform', 'win32'), \
+                 patch.object(package, 'run', return_value='qWebEngineArbiterExtensionApiAbi'):
+                library.write_bytes(b'previous-security-build\0')
+                with self.assertRaisesRegex(RuntimeError, 'stale security version'):
+                    package.engine_symbol(root)
+                library.write_bytes(expected + b'\0')
+                package.engine_symbol(root)
+
     def test_package_engine_fingerprint_is_portable_across_build_platforms(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

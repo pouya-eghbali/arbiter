@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import mmap
 import os
 from pathlib import Path
 import platform
@@ -72,10 +73,14 @@ def engine_symbol(root):
         command = ('nm', '-D')
     if not libraries:
         raise RuntimeError('Packaged WebEngine library is missing')
+    security_version = json.loads((ROOT / 'engine/manifest.json').read_text())['chromium_security_version'].encode('ascii')
     for library in libraries:
         output = run(*command, library, capture=True)
         if 'qWebEngineArbiterExtensionApiAbi' not in output:
             raise RuntimeError(f'Stock WebEngine was deployed: {library}')
+        with library.open('rb') as stream, mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ) as binary:
+            if binary.find(security_version) < 0:
+                raise RuntimeError(f'Packaged WebEngine has stale security version: {library}')
 
 
 def machos(root):
