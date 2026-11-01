@@ -15,6 +15,10 @@ on:
         description: SHA-256 of build-inputs-PLATFORM.zip
         required: true
         type: string
+      extension_probe:
+        description: Windows extension diagnostics only (never packages a release)
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -84,6 +88,7 @@ jobs:
         env:
           INPUT_PLATFORM: ${{ inputs.platform }}
           ARBITER_QT_PREFIX: ${{ env.QT_ROOT_DIR }}
+          ARBITER_CROSS_EXTENSION_PROBE: ${{ inputs.extension_probe && '1' || '' }}
           ARBITER_TEST_KEYCHAIN: '1'
           ARBITER_TEST_TLS_BACKEND: ${{ runner.os == 'Windows' && 'schannel' || '' }}
           QT_ASSUME_STDERR_HAS_CONSOLE: '1'
@@ -98,6 +103,7 @@ jobs:
         env:
           INPUT_PLATFORM: ${{ inputs.platform }}
           ARBITER_QT_PREFIX: ${{ env.QT_ROOT_DIR }}
+          ARBITER_CROSS_EXTENSION_PROBE: ${{ inputs.extension_probe && '1' || '' }}
           ARBITER_TEST_KEYCHAIN: '1'
           QT_ASSUME_STDERR_HAS_CONSOLE: '1'
           QT_FORCE_STDERR_LOGGING: '1'
@@ -108,9 +114,10 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: cross-validated-${{ inputs.platform }}
+          name: ${{ inputs.extension_probe && 'extension-probe' || 'cross-validated' }}-${{ inputs.platform }}
           path: |
             build-release-artifacts/
             build-release-tests-*/Testing/Temporary/LastTest.log
+            build-cross-validation/extension-probe/Testing/Temporary/LastTest.log
           if-no-files-found: error
           retention-days: 14

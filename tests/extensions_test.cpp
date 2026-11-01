@@ -535,6 +535,7 @@ Window {
         )JS");
         QImage icon(16,16,QImage::Format_ARGB32);icon.fill(Qt::blue);QVERIFY(icon.save(source+"/icon.png"));
         write(source + "/worker.js", R"JS(
+            chrome.storage.local.set({workerStarted:true,hasInstallEvent:!!chrome.runtime.onInstalled});
             chrome.runtime.onInstalled.addListener(async details=>{
                 const old=await chrome.storage.local.get('installCount');
                 await chrome.storage.local.set({installCount:(old.installCount||0)+1,installReason:details.reason});
@@ -546,12 +547,13 @@ Window {
             window.runProbe=async(capture)=>{
                 const assert=(ok,message)=>{if(!ok)throw Error(message)};
                 try{
-                    let initialization=await chrome.storage.local.get(['installCount','installReason']);
+                    const initializationKeys=['installCount','installReason','workerStarted','hasInstallEvent'];
+                    let initialization=await chrome.storage.local.get(initializationKeys);
                     // Approval starts the worker asynchronously; popup loading
                     // does not imply its onInstalled storage write has finished.
                     for(let attempt=0;attempt<100&&initialization.installCount===undefined;++attempt){
                         await new Promise(resolve=>setTimeout(resolve,50));
-                        initialization=await chrome.storage.local.get(['installCount','installReason']);
+                        initialization=await chrome.storage.local.get(initializationKeys);
                     }
                     assert(initialization.installCount===1&&initialization.installReason==='install','approved extension installation event: '+JSON.stringify(initialization));
                     const [tab]=await chrome.tabs.query({active:true,currentWindow:true});

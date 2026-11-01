@@ -56,6 +56,9 @@ def build():
     platform = os.environ['INPUT_PLATFORM']
     if (platform == 'windows') != (sys.platform == 'win32') or (platform == 'linux') != sys.platform.startswith('linux'):
         raise RuntimeError('Cross SDK validation must run on its target platform')
+    probe = os.environ.get('ARBITER_CROSS_EXTENSION_PROBE') == '1'
+    if probe and platform != 'windows':
+        raise RuntimeError('The focused extension probe currently requires Windows')
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     if (WORK / 'source-commit').read_text().strip() != head:
         raise RuntimeError('Cross inputs were downloaded for another source revision')
@@ -67,8 +70,34 @@ def build():
         # Do not let Windows loader errors open an unattended modal dialog.
         import ctypes
         ctypes.windll.kernel32.SetErrorMode(0x8003)
+    if probe:
+        extension_probe(env)
+        return
     subprocess.run([sys.executable, str(ROOT / 'tools/release/build.py'), '--package', '--unsigned',
                     '--jobs', '4', '--sdk-prefix', str(WORK / 'sdk')], check=True, env=env)
+
+
+def extension_probe(env):
+    # Diagnostic output cannot be mistaken for a validated release package.
+    build = WORK / 'extension-probe'
+    sdk = WORK / 'sdk'
+    qt = Path(env['ARBITER_QT_PREFIX']).resolve()
+    env = dict(env)
+    env['PATH'] = os.pathsep.join((str(sdk / 'bin'), str(qt / 'bin'), env.get('PATH', '')))
+    env['ARBITER_EXTENSION_DIAGNOSTICS'] = '1'
+    env['QTWEBENGINE_CHROMIUM_FLAGS'] = env.get('QTWEBENGINE_CHROMIUM_FLAGS', '') + ' --enable-logging=stderr --vmodule=service_worker_task_queue=2,event_router=2'
+    commands = [
+        ['cmake', '-S', str(ROOT / 'tests'), '-B', str(build), '-G', 'Ninja',
+         '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_PREFIX_PATH=' + str(qt),
+         '-DARBITER_PATCHED_WEBENGINE=ON', '-DARBITER_WEBENGINE_PREFIX=' + str(sdk),
+         '-DARBITER_STRICT_ENGINE_IDENTITY=ON', '-DARBITER_WEBENGINE_SDK_RUNTIME=ON',
+         '-DARBITER_BUNDLED_KEYCHAIN=ON', '-DQT_HOST_PATH=' + str(qt),
+         '-DOPENSSL_ROOT_DIR=' + str(WORK / 'openssl'), '-DOPENSSL_USE_STATIC_LIBS=TRUE',
+         '-DOPENSSL_MSVC_STATIC_RT=FALSE'],
+        ['cmake', '--build', str(build), '--target', 'extensions_test', '--parallel', '4'],
+        ['ctest', '--test-dir', str(build), '-R', '^extensions$', '--output-on-failure', '--timeout', '300']]
+    for command in commands:
+        subprocess.run(command, check=True, env=env)
 
 
 def pack():

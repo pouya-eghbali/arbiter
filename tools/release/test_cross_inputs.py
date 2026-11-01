@@ -17,6 +17,23 @@ SPEC.loader.exec_module(inputs)
 
 
 class CrossInputTests(unittest.TestCase):
+    def test_extension_probe_never_builds_a_release_package(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(inputs.subprocess, 'run') as run, \
+             patch.object(inputs, 'WORK', Path(directory)):
+            inputs.extension_probe({'ARBITER_QT_PREFIX': str(Path(directory) / 'qt')})
+            commands = [call.args[0] for call in run.call_args_list]
+            self.assertEqual(len(commands), 3)
+            self.assertIn('extensions_test', commands[1])
+            self.assertEqual(commands[2][0], 'ctest')
+            self.assertTrue(all('--package' not in command for command in commands))
+
+    def test_extension_probe_rejects_other_platform_before_any_build(self):
+        with patch.dict(os.environ, dict(INPUT_PLATFORM='linux', ARBITER_CROSS_EXTENSION_PROBE='1')), \
+             patch.object(inputs.sys, 'platform', 'linux'), patch.object(inputs.subprocess, 'run') as run:
+            with self.assertRaisesRegex(RuntimeError, 'requires Windows'):
+                inputs.build()
+            run.assert_not_called()
+
     def test_untrusted_sdk_archives_cannot_escape_validation_directory(self):
         for name in ('../outside', '/sdk/file', 'sdk/../../outside', 'sdk\\..\\..\\outside', 'C:/sdk/file', 'sdk/file:stream'):
             with self.subTest(name=name), tempfile.TemporaryDirectory() as folder:

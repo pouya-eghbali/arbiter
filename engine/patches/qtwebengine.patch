@@ -435,13 +435,14 @@ index ad1c5f9..485d358 100644
  
  content::PictureInPictureResult ExtensionHostDelegateQt::EnterPictureInPicture(content::WebContents *web_contents)
 diff --git a/src/core/extensions/extension_loader.cpp b/src/core/extensions/extension_loader.cpp
-index eafb641..47fea6b 100644
+index eafb641..f74572d 100644
 --- a/src/core/extensions/extension_loader.cpp
 +++ b/src/core/extensions/extension_loader.cpp
-@@ -3,6 +3,12 @@
+@@ -3,6 +3,13 @@
  // Qt-Security score:significant reason:default
  
  #include "extension_loader.h"
++#include <QtCore/QDebug>
 +#include "extensions/browser/api/runtime/runtime_api.h"
 +#include "extensions/browser/lazy_context_id.h"
 +#include "extensions/browser/lazy_context_task_queue.h"
@@ -451,7 +452,7 @@ index eafb641..47fea6b 100644
  
  #include "extension_manager.h"
  #include "type_conversion.h"
-@@ -123,6 +129,46 @@ void ExtensionLoader::disableExtension(const std::string &id)
+@@ -123,6 +130,50 @@ void ExtensionLoader::disableExtension(const std::string &id)
          m_extensionRegistrar->DisableExtension(id, {extensions::disable_reason::DISABLE_USER_ACTION});
  }
  
@@ -460,6 +461,7 @@ index eafb641..47fea6b 100644
 +    // Installation stays disabled until Arbiter's permission review is approved.
 +    if (extension->location() == extensions::mojom::ManifestLocation::kComponent
 +        || extension->location() == extensions::mojom::ManifestLocation::kExternalComponent) return;
++    if (qEnvironmentVariableIsSet("ARBITER_EXTENSION_DIAGNOSTICS")) qInfo("Arbiter extension activated: %s", extension->id().c_str());
 +    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(FROM_HERE,
 +        base::BindOnce([](base::WeakPtr<ExtensionLoader> loader, std::string id) {
 +            if (!loader || !loader->isExtensionEnabled(id)) return;
@@ -468,11 +470,13 @@ index eafb641..47fea6b 100644
 +            auto *prefs = extensions::ExtensionPrefs::Get(loader->m_browserContext);
 +            std::string previous;
 +            prefs->ReadPrefAsString(id, "arbiter_initialized_version", &previous);
++            if (qEnvironmentVariableIsSet("ARBITER_EXTENSION_DIAGNOSTICS")) qInfo("Arbiter extension install check: %s previous=%s", id.c_str(), previous.c_str());
 +            if (previous == extension->version().GetString()) return;
 +            const bool needsContext = extensions::BackgroundInfo::HasLazyContext(extension.get());
 +            auto notify = base::BindOnce([](base::WeakPtr<ExtensionLoader> loader, std::string id,
 +                                           std::string version, bool needsContext,
 +                                           std::unique_ptr<extensions::LazyContextTaskQueue::ContextInfo> context) {
++                if (qEnvironmentVariableIsSet("ARBITER_EXTENSION_DIAGNOSTICS")) qInfo("Arbiter extension context: %s ready=%d", id.c_str(), bool(context));
 +                // A failed worker startup must not consume its installation event.
 +                if ((needsContext && !context) || !loader || !loader->isExtensionEnabled(id)) return;
 +                auto extension = loader->getExtensionById(id);
@@ -482,6 +486,7 @@ index eafb641..47fea6b 100644
 +                prefs->ReadPrefAsString(id, "arbiter_initialized_version", &previous);
 +                if (previous == version) return;
 +                prefs->UpdateExtensionPref(id, "arbiter_initialized_version", base::Value(version));
++                if (qEnvironmentVariableIsSet("ARBITER_EXTENSION_DIAGNOSTICS")) qInfo("Arbiter extension install dispatch: %s", id.c_str());
 +                extensions::RuntimeEventRouter::DispatchOnInstalledEvent(loader->m_browserContext, id, base::Version(previous), false);
 +            }, loader, id, extension->version().GetString(), needsContext);
 +            if (needsContext) {
