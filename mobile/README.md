@@ -233,3 +233,27 @@ on both operating systems before publishing a mobile release.
 
 Native Swift crypto checks: `python3 tools/mobile/test_native_crypto.py`.
 Release-tool/manifest tests: `python3 tools/mobile/test_release_tools.py`.
+
+### iOS clipboard foreground regression
+
+After building and installing the simulator app, run:
+
+```sh
+SIMCTL_CHILD_ARBITER_CLIPBOARD_SMOKE=1 xcrun simctl launch --console-pty booted com.arbiter.mobile
+```
+
+This uses an isolated browser profile and dummy text in the simulator pasteboard.
+It changes the clipboard, posts the native foreground notification, and exercises
+Qt's clipboard-change signal with the real QML fields present. It requires zero
+automatic pasteboard data reads on return/focus, then checks that explicit Paste
+and Copy/Paste still work. The read counter and dummy fixture are compiled only
+for the simulator; they never inspect a phone's clipboard. This reproduces Qt's
+callback path, not cross-device Handoff itself: also check copying on a Mac while
+the iPhone is locked, then unlocking and returning to Arbiter on a physical phone.
+
+iOS intentionally suppresses Qt clipboard-change signals. In Qt 6.12.0, hidden
+text inputs [read the contents to update Paste availability](https://github.com/qt/qtdeclarative/blob/v6.12.0/src/quick/items/qquicktextinput.cpp#L3001)
+when [the iOS backend notices a change on activation](https://github.com/qt/qtbase/blob/v6.12.0/src/plugins/platforms/ios/qiosclipboard.mm#L58).
+The mobile UI does not bind Paste availability to clipboard contents: Qt's Paste
+menu action is enabled for writable fields. Explicit reads/writes and WKWebView's
+native clipboard handling remain available.

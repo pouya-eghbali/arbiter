@@ -3,6 +3,7 @@
 #include "nativepage.h"
 #import <AuthenticationServices/AuthenticationServices.h>
 #import <BackgroundTasks/BackgroundTasks.h>
+#include <QClipboard>
 #include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
@@ -640,6 +641,13 @@ void openSystemSettings() {
     [UIApplication.sharedApplication openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString] options:@{} completionHandler:nil];
 }
 void initialize() {
+    // Qt 6.12.0's QQuickTextInput::q_canPasteChanged() reads mimeData()->text()
+    // whenever the clipboard changes. The iOS backend emits that notification
+    // on activation after a Handoff copy, prompting before the user chooses Paste.
+    // Our iOS UI does not need reactive clipboard availability (Qt's PasteAction
+    // is enabled for writable fields). Suppress Qt notifications, not UIPasteboard
+    // or its data: explicit Paste/Copy and WKWebView's native handling still work.
+    QGuiApplication::clipboard()->blockSignals(true);
     QTimer::singleShot(0, qApp, [] {
         if (!MobileModel::instance)
             return;
@@ -920,5 +928,33 @@ QWindow *arbiter_ios_test_window_at(QWindow *owner, QPointF point, QPoint *local
         hit = hit.superview;
     }
     return nullptr;
+}
+#endif
+
+#if TARGET_OS_SIMULATOR
+#import <objc/runtime.h>
+#include <atomic>
+namespace {
+std::atomic_int clipboardReadCount{0};
+}
+// Count Qt's native data reads, never the clipboard contents. This hook and
+// its dummy pasteboard fixture are excluded from physical-device builds.
+void arbiter_ios_test_watch_clipboard() {
+    SEL selector = @selector(dataForPasteboardType:);
+    Method method = class_getInstanceMethod(UIPasteboard.generalPasteboard.class, selector);
+    IMP original = method_getImplementation(method);
+    IMP replacement = imp_implementationWithBlock(^NSData *(id receiver, NSString *type) {
+        ++clipboardReadCount;
+        return ((NSData *(*)(id, SEL, NSString *))original)(receiver, selector, type);
+    });
+    method_setImplementation(method, replacement);
+}
+int arbiter_ios_test_clipboard_reads() { return clipboardReadCount.load(); }
+void arbiter_ios_test_change_clipboard(const char *text) {
+    UIPasteboard.generalPasteboard.string = [NSString stringWithUTF8String:text];
+    // Qt's iOS clipboard backend checks changeCount on this notification when
+    // returning from the lock screen or another app (including Handoff changes).
+    [NSNotificationCenter.defaultCenter postNotificationName:UIApplicationDidBecomeActiveNotification
+                                                     object:UIApplication.sharedApplication];
 }
 #endif

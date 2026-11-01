@@ -22,6 +22,7 @@
 #include <QTimer>
 #if TARGET_OS_SIMULATOR
 #include <QtTest/QTest>
+#include <QClipboard>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include "nativeglasshost.h"
@@ -29,6 +30,9 @@
 #include "nativepage.h"
 extern QWindow *arbiter_ios_test_window_at(QWindow *, QPointF, QPoint *);
 extern void arbiter_ios_test_system_appearance(bool);
+extern void arbiter_ios_test_watch_clipboard();
+extern int arbiter_ios_test_clipboard_reads();
+extern void arbiter_ios_test_change_clipboard(const char *);
 #endif
 #endif
 #ifdef ARBITER_MOBILE_WEBENGINE
@@ -89,7 +93,7 @@ int main(int argc, char **argv) {
 #else
 #if defined(Q_OS_IOS) && TARGET_OS_SIMULATOR
     QTemporaryDir smokeProfile;
-    const bool uiSmoke = qEnvironmentVariableIsSet("ARBITER_UI_SMOKE") || qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE") || qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE") || qEnvironmentVariableIsSet("ARBITER_APPEARANCE_SMOKE") || qEnvironmentVariableIsSet("ARBITER_PANEL_PREVIEW");
+    const bool uiSmoke = qEnvironmentVariableIsSet("ARBITER_CLIPBOARD_SMOKE") || qEnvironmentVariableIsSet("ARBITER_UI_SMOKE") || qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE") || qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE") || qEnvironmentVariableIsSet("ARBITER_APPEARANCE_SMOKE") || qEnvironmentVariableIsSet("ARBITER_PANEL_PREVIEW");
     if (uiSmoke) {
         const QJsonObject profile{
             {"settings", QJsonObject{{"onboardingDone", true}, {"liquidGlass", true}, {"theme", "dark"}}},
@@ -146,9 +150,42 @@ int main(int argc, char **argv) {
 #if defined(Q_OS_IOS) && TARGET_OS_SIMULATOR
     // Native-view visibility and snapshot transitions need a real iOS/Metal test.
     // This diagnostic entry point is never compiled into physical-device builds.
-    if (qEnvironmentVariableIsSet("ARBITER_UI_SMOKE") || qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE") || qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE") || qEnvironmentVariableIsSet("ARBITER_APPEARANCE_SMOKE") || qEnvironmentVariableIsSet("ARBITER_PANEL_PREVIEW")) {
+    if (qEnvironmentVariableIsSet("ARBITER_CLIPBOARD_SMOKE") || qEnvironmentVariableIsSet("ARBITER_UI_SMOKE") || qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE") || qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE") || qEnvironmentVariableIsSet("ARBITER_APPEARANCE_SMOKE") || qEnvironmentVariableIsSet("ARBITER_PANEL_PREVIEW")) {
         auto window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
         QTimer::singleShot(1500, window, [window, &browser, &engine] {
+            if (qEnvironmentVariableIsSet("ARBITER_CLIPBOARD_SMOKE")) {
+                arbiter_ios_test_watch_clipboard();
+                for (const auto *fixture : {"Arbiter clipboard fixture one", "Arbiter clipboard fixture two"}) {
+                    qGuiApp->applicationStateChanged(Qt::ApplicationInactive);
+                    arbiter_ios_test_change_clipboard(fixture);
+                    qGuiApp->applicationStateChanged(Qt::ApplicationActive);
+                    // Exercise the exact signal Qt's iOS clipboard backend
+                    // emits after detecting a change while we were inactive.
+                    QGuiApplication::clipboard()->dataChanged();
+                    QTest::qWait(120);
+                    if (arbiter_ios_test_clipboard_reads() != 0)
+                        qFatal("Foreground clipboard change caused unsolicited pasteboard data reads: %d",
+                               arbiter_ios_test_clipboard_reads());
+                }
+                window->setProperty("panel", "address");
+                QTest::qWait(400);
+                auto address = window->findChild<QQuickItem *>("mobileAddressInput");
+                if (!address || !address->hasActiveFocus()) qFatal("Clipboard test address field did not focus");
+                if (arbiter_ios_test_clipboard_reads() != 0) qFatal("Focusing the address field read clipboard data");
+                if (!QMetaObject::invokeMethod(address, "paste") ||
+                    address->property("text") != "Arbiter clipboard fixture two" ||
+                    arbiter_ios_test_clipboard_reads() == 0)
+                    qFatal("Explicit Paste did not read and insert the clipboard text");
+                address->setProperty("text", "Arbiter copy fixture");
+                QMetaObject::invokeMethod(address, "selectAll");
+                QMetaObject::invokeMethod(address, "copy");
+                address->setProperty("text", "");
+                QMetaObject::invokeMethod(address, "paste");
+                if (address->property("text") != "Arbiter copy fixture") qFatal("Copy/Paste stopped working");
+                qInfo("Clipboard foreground-change, focus, explicit Paste and Copy/Paste checks passed");
+                QCoreApplication::quit();
+                return;
+            }
             if (qEnvironmentVariableIsSet("ARBITER_PANEL_PREVIEW")) {
                 browser.addTab();
                 browser.addTab();
