@@ -6,11 +6,11 @@
 	<true/>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.arbiter.mobile</string>
+		<string>@ARBITER_IOS_APP_GROUP@</string>
 	</array>
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)com.arbiter.mobile.credentials</string>
+		<string>$(AppIdentifierPrefix)@ARBITER_IOS_BUNDLE_ID@.credentials</string>
 	</array>
 </dict>
 </plist>

@@ -19,7 +19,7 @@ ColumnLayout {
         Layout.fillWidth: true
         text: root.title
         textFormat: Text.PlainText
-        font.pixelSize: 14
+        font.pixelSize: 14 * MobileMetrics.textScale
         font.weight: Font.DemiBold
         color: Theme.muted
         wrapMode: Text.WordWrap
@@ -43,7 +43,7 @@ ColumnLayout {
         Layout.fillWidth: true
         text: root.description
         textFormat: Text.PlainText
-        font.pixelSize: 13
+        font.pixelSize: 13 * MobileMetrics.textScale
         lineHeight: 1.2
         color: Theme.muted
         wrapMode: Text.WordWrap

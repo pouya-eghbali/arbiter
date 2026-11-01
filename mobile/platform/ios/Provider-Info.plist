@@ -2,8 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>ArbiterAppGroup</key>
+	<string>@ARBITER_IOS_APP_GROUP@</string>
 	<key>ArbiterKeychainGroup</key>
-	<string>$(AppIdentifierPrefix)com.arbiter.mobile.credentials</string>
+	<string>$(AppIdentifierPrefix)@ARBITER_IOS_BUNDLE_ID@.credentials</string>
 	<key>CFBundleDisplayName</key>
 	<string>Arbiter</string>
 	<key>CFBundleExecutable</key>
@@ -28,9 +30,9 @@
 	<key>CFBundlePackageType</key>
 	<string>XPC!</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.2.0</string>
+	<string>@ARBITER_VERSION@</string>
 	<key>CFBundleVersion</key>
-	<string>2</string>
+	<string>@ARBITER_MOBILE_BUILD_NUMBER@</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionAttributes</key>

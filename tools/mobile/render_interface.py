@@ -10,7 +10,7 @@ import subprocess
 
 SCREENS = [
     "start", "browsing", "search", "tabs", "workspaces", "more", "settings",
-    *[f"settings:{category}" for category in ("general", "appearance", "privacy", "passwords", "sync", "about")],
+    *[f"settings:{category}" for category in ("general", "appearance", "privacy", "passwords", "sync", "about", "privacy-policy", "licenses")],
     "settings:appearance:bottom", "settings:privacy:bottom", "settings:passwords:bottom", "settings:general:bottom", "history", "history:empty",
     "downloads", "downloads:empty", "vault", "pair", "pairReview", "scan", "save", "accounts",
     *[f"onboarding:{step}" for step in range(4)], "workspaces:editor", "private", "suggestions",

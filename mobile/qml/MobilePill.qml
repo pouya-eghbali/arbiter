@@ -18,7 +18,7 @@ MobilePresentation {
     signal tabsRequested
     signal moreRequested
     signal cycleRequested(int direction)
-    implicitHeight: suggestions ? 106 : 58
+    implicitHeight: (suggestions ? 106 : 58) + Math.max(0, 18 * (MobileMetrics.textScale - 1))
     NativeGlassHost {
         id: nativeGlass
         anchors.fill: parent
@@ -129,17 +129,17 @@ MobilePresentation {
                             textFormat: Text.PlainText
                             text: root.current.url ? root.current.url.replace(/^https?:\/\//, "").split("/")[0] : qsTr("Search or enter address")
                             color: root.current.url ? root.pillText : root.pillMuted
-                            font.pixelSize: 14
+                            font.pixelSize: 14 * MobileMetrics.textScale
                             elide: Text.ElideRight
                             verticalAlignment: Text.AlignVCenter
                         }
                     }
                 }
                 Controls.AbstractButton {
-                    Layout.preferredWidth: 44
+                    Layout.preferredWidth: MobileMetrics.touchTarget
                     Layout.fillHeight: true
                     objectName: "mobileTabsButton"
-                    Accessible.name: qsTr("Tabs")
+                    Accessible.name: qsTr("Tabs") + ": " + root.tabCount
                     onClicked: root.tabsRequested()
                     contentItem: Item {
                         UiIcon {
@@ -160,6 +160,7 @@ MobilePresentation {
                             Text {
                                 anchors.centerIn: parent
                                 text: Math.min(root.tabCount, 99)
+                                // Keep the count inside its icon; expose the value to assistive technology.
                                 font.pixelSize: 9
                                 font.weight: Font.DemiBold
                                 color: root.pillText

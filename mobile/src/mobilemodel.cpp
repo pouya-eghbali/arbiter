@@ -1004,3 +1004,19 @@ void MobileModel::backgroundSync(std::function<void(bool)> done) {
             done(success);
     });
 }
+
+QString MobileModel::privacyPolicy() const {
+    QFile file(":/privacy/privacy-policy.md");
+    return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()) : QString();
+}
+
+QString MobileModel::thirdPartyNotices() const {
+    QString text;
+    for (const auto &name : {"licenses/MobileThirdParty.txt", "LICENSE", "licenses/LGPL-3.0.txt",
+             "licenses/Lucide.txt", "licenses/ZXingCpp.txt", "licenses/AdBlock.txt",
+             "licenses/AdBlockDependencies.txt", "licenses/EasyList.txt"}) {
+        QFile file(":/licenses/" + QString::fromLatin1(name));
+        if (file.open(QIODevice::ReadOnly)) text += QString::fromUtf8(file.readAll()) + "\n\n";
+    }
+    return text;
+}

@@ -3,6 +3,11 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/../VERSION.txt" ARBITER_VERSION LIMIT_COUNT 1)
     project(ArbiterMobile VERSION ${ARBITER_VERSION} LANGUAGES CXX)
 endif()
+# A release may override this monotonically increasing Android/iOS build number.
+set(ARBITER_MOBILE_BUILD_NUMBER 3 CACHE STRING "Mobile build number (increase for every distributed build)")
+if(NOT ARBITER_MOBILE_BUILD_NUMBER MATCHES "^[1-9][0-9]*$" OR ARBITER_MOBILE_BUILD_NUMBER GREATER 2100000000)
+    message(FATAL_ERROR "ARBITER_MOBILE_BUILD_NUMBER must be 1..2100000000")
+endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 get_filename_component(ARBITER_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
@@ -22,7 +27,7 @@ else()
     endif()
 endif()
 qt_add_executable(arbiter_mobile MANUAL_FINALIZATION
-    src/main.cpp src/qrscanner.cpp src/qrscanner.h src/mobilemodel.cpp src/mobilemodel.h src/mobiletabs.h
+    src/main.cpp src/mobilemetrics.cpp src/mobilemetrics.h src/qrscanner.cpp src/qrscanner.h src/mobilemodel.cpp src/mobilemodel.h src/mobiletabs.h
     src/mobilevault.cpp src/mobilevault.h src/nativepage.cpp src/nativepage.h src/mobileplatform.h
     "${ARBITER_ROOT}/src/credentialsyncstate.cpp" "${ARBITER_ROOT}/src/credentialsyncpeer.cpp" "${ARBITER_ROOT}/src/credentialsyncstate.h")
 include("${ARBITER_ROOT}/cmake/QRCodeScanner.cmake")
@@ -53,33 +58,84 @@ if(IOS)
         set_property(TARGET Qt6::Platform PROPERTY INTERFACE_COMPILE_OPTIONS "${platform_options}")
     endif()
     set_target_properties(arbiter_mobile PROPERTIES Swift_LANGUAGE_VERSION 5)
-    option(ARBITER_IOS_DEVICE_TESTING "Omit the unapproved default-browser entitlement for local testing" OFF)
+    option(ARBITER_IOS_DEVICE_TESTING "Omit the unapproved default-browser entitlement for local testing" ON)
+    set(ARBITER_IOS_BUNDLE_ID com.arbiter.mobile CACHE STRING "Unique reverse-DNS identifier for your own build")
+    set(ARBITER_IOS_APP_GROUP "group.${ARBITER_IOS_BUNDLE_ID}" CACHE STRING "Registered App Group shared with the credential provider")
+    foreach(template App-Info.plist Provider-Info.plist App.entitlements Provider.entitlements DeviceTesting.entitlements)
+        configure_file("platform/ios/${template}" "ios/${template}" @ONLY)
+    endforeach()
+    # Static Qt frameworks do not copy their resources into the app. Merge the
+    # manifests supplied by the discovered Qt modules into the executable's manifest.
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    set(qt_privacy)
+    get_target_property(qt_queue arbiter_mobile LINK_LIBRARIES)
+    set(qt_imports)
+    while(qt_queue)
+        list(POP_FRONT qt_queue module)
+        if(TARGET "${module}" AND NOT module IN_LIST qt_imports)
+            list(APPEND qt_imports "${module}")
+            get_target_property(dependencies "${module}" INTERFACE_LINK_LIBRARIES)
+            if(dependencies)
+                string(REGEX MATCHALL "Qt6::[A-Za-z0-9_]+" qt_dependencies "${dependencies}")
+                list(APPEND qt_queue ${qt_dependencies})
+            endif()
+        endif()
+    endwhile()
+    foreach(module ${qt_imports})
+        if(module MATCHES "^Qt6::")
+            foreach(configuration RELEASE DEBUG)
+                get_target_property(location ${module} IMPORTED_LOCATION_${configuration})
+                if(location MATCHES "[.]framework/")
+                    get_filename_component(framework "${location}" DIRECTORY)
+                    if(EXISTS "${framework}/PrivacyInfo.xcprivacy")
+                        list(APPEND qt_privacy "${framework}/PrivacyInfo.xcprivacy")
+                    endif()
+                endif()
+            endforeach()
+        endif()
+    endforeach()
+    list(REMOVE_DUPLICATES qt_privacy)
+    if(NOT qt_privacy)
+        message(FATAL_ERROR "Qt iOS privacy manifests were not found; inspect this SDK before distribution")
+    endif()
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${qt_privacy}
+        "${CMAKE_CURRENT_SOURCE_DIR}/platform/ios/AppPrivacy/PrivacyInfo.xcprivacy"
+        "${ARBITER_ROOT}/tools/mobile/merge_privacy.py")
+    execute_process(COMMAND "${Python3_EXECUTABLE}" "${ARBITER_ROOT}/tools/mobile/merge_privacy.py"
+        "${CMAKE_CURRENT_BINARY_DIR}/ios/app/PrivacyInfo.xcprivacy"
+        "${CMAKE_CURRENT_SOURCE_DIR}/platform/ios/AppPrivacy/PrivacyInfo.xcprivacy" ${qt_privacy}
+        COMMAND_ERROR_IS_FATAL ANY)
+    set(app_privacy "${CMAKE_CURRENT_BINARY_DIR}/ios/app/PrivacyInfo.xcprivacy")
+    set(provider_privacy "${CMAKE_CURRENT_SOURCE_DIR}/platform/ios/ProviderPrivacy/PrivacyInfo.xcprivacy")
+    set_source_files_properties("${app_privacy}" "${provider_privacy}" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    target_sources(arbiter_mobile PRIVATE "${app_privacy}")
     set(ARBITER_APPLE_TEAM "" CACHE STRING "Apple development team for device provisioning")
     add_library(arbiter_mobile_native STATIC platform/ios/NativeVault.swift platform/ios/CredentialVaultShared.swift)
     target_link_libraries(arbiter_mobile_native PRIVATE "-framework CryptoKit" "-framework Security" "-framework AuthenticationServices" "-framework LocalAuthentication")
     set_target_properties(arbiter_mobile_native PROPERTIES Swift_LANGUAGE_VERSION 5 XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 18.0)
-    target_sources(arbiter_mobile PRIVATE src/mobilecrypto.cpp platform/ios/mobileplatform_ios.mm)
+    target_sources(arbiter_mobile PRIVATE src/mobilecrypto.cpp platform/ios/mobileplatform_ios.mm platform/ios/mobilemetrics_ios.mm)
     set_source_files_properties(platform/ios/mobileplatform_ios.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
     target_link_libraries(arbiter_mobile PRIVATE arbiter_mobile_native "-framework UIKit" "-framework WebKit" "-framework BackgroundTasks")
     add_executable(arbiter_credentials MACOSX_BUNDLE platform/ios/CredentialProviderViewController.swift platform/ios/CredentialVaultShared.swift)
     target_link_libraries(arbiter_credentials PRIVATE "-framework UIKit" "-framework AuthenticationServices" "-framework CryptoKit" "-framework Security" "-framework LocalAuthentication")
     set_target_properties(arbiter_credentials PROPERTIES
-        OUTPUT_NAME ArbiterCredentials MACOSX_BUNDLE_GUI_IDENTIFIER com.arbiter.mobile.CredentialProvider
-        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/platform/ios/Provider-Info.plist"
+        OUTPUT_NAME ArbiterCredentials MACOSX_BUNDLE_GUI_IDENTIFIER "${ARBITER_IOS_BUNDLE_ID}.CredentialProvider"
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_BINARY_DIR}/ios/Provider-Info.plist"
         BUNDLE_EXTENSION appex XCODE_PRODUCT_TYPE com.apple.product-type.app-extension
-        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER com.arbiter.mobile.CredentialProvider
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${ARBITER_IOS_BUNDLE_ID}.CredentialProvider"
         XCODE_ATTRIBUTE_APPLICATION_EXTENSION_API_ONLY YES Swift_LANGUAGE_VERSION 5
-        XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/platform/ios/Provider.entitlements"
+        XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_BINARY_DIR}/ios/Provider.entitlements"
         XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 18.0)
-    set(entitlements "${CMAKE_CURRENT_SOURCE_DIR}/platform/ios/App.entitlements")
+    target_sources(arbiter_credentials PRIVATE "${provider_privacy}")
+    set(entitlements "${CMAKE_CURRENT_BINARY_DIR}/ios/App.entitlements")
     if(ARBITER_IOS_DEVICE_TESTING)
-        set(entitlements "${CMAKE_CURRENT_SOURCE_DIR}/platform/ios/DeviceTesting.entitlements")
+        set(entitlements "${CMAKE_CURRENT_BINARY_DIR}/ios/DeviceTesting.entitlements")
         target_compile_definitions(arbiter_mobile PRIVATE ARBITER_IOS_DEVICE_TESTING)
     endif()
     set_target_properties(arbiter_mobile PROPERTIES
-        MACOSX_BUNDLE TRUE MACOSX_BUNDLE_GUI_IDENTIFIER com.arbiter.mobile
-        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/platform/ios/App-Info.plist"
-        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER com.arbiter.mobile
+        MACOSX_BUNDLE TRUE MACOSX_BUNDLE_GUI_IDENTIFIER "${ARBITER_IOS_BUNDLE_ID}"
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_BINARY_DIR}/ios/App-Info.plist"
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${ARBITER_IOS_BUNDLE_ID}"
         XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${entitlements}"
         XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 18.0
         XCODE_EMBED_APP_EXTENSIONS arbiter_credentials
@@ -128,7 +184,7 @@ elseif(ANDROID)
     foreach(code en de fr it es pt ja zh)
         configure_file("assets/i18n/${code}.json" "${android_package}/assets/i18n/${code}.json" COPYONLY)
     endforeach()
-    set_target_properties(arbiter_mobile PROPERTIES QT_ANDROID_PACKAGE_SOURCE_DIR "${android_package}" QT_ANDROID_APP_NAME Arbiter QT_ANDROID_APP_VERSION_CODE 2 QT_ANDROID_APP_VERSION_NAME "${ARBITER_VERSION}" QT_ANDROID_PACKAGE_NAME com.arbiter.mobile QT_ANDROID_MIN_SDK_VERSION 28 QT_ANDROID_TARGET_SDK_VERSION 37)
+    set_target_properties(arbiter_mobile PROPERTIES QT_ANDROID_PACKAGE_SOURCE_DIR "${android_package}" QT_ANDROID_APP_NAME Arbiter QT_ANDROID_VERSION_CODE "${ARBITER_MOBILE_BUILD_NUMBER}" QT_ANDROID_VERSION_NAME "${ARBITER_VERSION}" QT_ANDROID_PACKAGE_NAME com.arbiter.mobile QT_ANDROID_MIN_SDK_VERSION 28 QT_ANDROID_TARGET_SDK_VERSION 37)
 else()
     include("${ARBITER_ROOT}/cmake/QtKeychain.cmake")
     find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
@@ -155,7 +211,8 @@ qt_add_resources(arbiter_mobile mobile_form_script PREFIX /browser BASE assets/b
 qt_add_resources(arbiter_mobile mobile_lists PREFIX /adblock BASE "${ARBITER_ROOT}/assets/adblock" FILES "${ARBITER_ROOT}/assets/adblock/easylist.txt" "${ARBITER_ROOT}/assets/adblock/easyprivacy.txt")
 qt_add_resources(arbiter_mobile mobile_webkit PREFIX /adblock BASE assets/adblock FILES assets/adblock/webkit.json)
 qt_add_resources(arbiter_mobile mobile_brand PREFIX /brand BASE "${ARBITER_ROOT}/assets/icon/Arbiter.icon/Assets" FILES "${ARBITER_ROOT}/assets/icon/Arbiter.icon/Assets/valkyrie-source.png")
-qt_add_resources(arbiter_mobile mobile_licenses PREFIX /licenses BASE "${ARBITER_ROOT}" FILES "${ARBITER_ROOT}/LICENSE" "${ARBITER_ROOT}/licenses/Lucide.txt" "${ARBITER_ROOT}/licenses/ZXingCpp.txt" "${ARBITER_ROOT}/licenses/AdBlock.txt" "${ARBITER_ROOT}/licenses/AdBlockDependencies.txt" "${ARBITER_ROOT}/licenses/EasyList.txt")
+qt_add_resources(arbiter_mobile mobile_privacy PREFIX /privacy BASE "${ARBITER_ROOT}/docs" FILES "${ARBITER_ROOT}/docs/privacy-policy.md")
+qt_add_resources(arbiter_mobile mobile_licenses PREFIX /licenses BASE "${ARBITER_ROOT}" FILES "${ARBITER_ROOT}/LICENSE" "${ARBITER_ROOT}/licenses/LGPL-3.0.txt" "${ARBITER_ROOT}/licenses/MobileThirdParty.txt" "${ARBITER_ROOT}/licenses/Lucide.txt" "${ARBITER_ROOT}/licenses/ZXingCpp.txt" "${ARBITER_ROOT}/licenses/AdBlock.txt" "${ARBITER_ROOT}/licenses/AdBlockDependencies.txt" "${ARBITER_ROOT}/licenses/EasyList.txt")
 option(ARBITER_MOBILE_DESIGN_PREVIEW "Enable isolated desktop design-fixture rendering" OFF)
 if(ARBITER_MOBILE_DESIGN_PREVIEW)
     if(IOS OR ANDROID)

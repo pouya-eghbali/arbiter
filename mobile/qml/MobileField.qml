@@ -4,8 +4,8 @@ import Arbiter
 UiTextField {
     id: control
     readonly property bool nativeMaterial: Theme.nativeFor(control)
-    implicitHeight: 48
-    font.pixelSize: 16
+    implicitHeight: Math.max(48, contentHeight + topPadding + bottomPadding)
+    font.pixelSize: 16 * MobileMetrics.textScale
     inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
     selectionColor: nativeMaterial ? Qt.alpha(Theme.textFor(control), .2) : Theme.selection
     background: Rectangle {

@@ -12,7 +12,7 @@ Controls.ApplicationWindow {
     height: 880
     visible: true
     title: "Arbiter"
-    font.pixelSize: 15
+    font.pixelSize: 15 * MobileMetrics.textScale
     palette.highlight: Theme.accent
     palette.highlightedText: Theme.accentText
     palette.window: Theme.window
@@ -351,8 +351,10 @@ Controls.ApplicationWindow {
                     }
                     active = true;
                 }
-                onRecordChanged: configure()
-                Component.onCompleted: configure()
+                // Creating a native page can synchronously publish its first state.
+                // Defer until the tab-record binding has finished evaluating.
+                onRecordChanged: Qt.callLater(configure)
+                Component.onCompleted: Qt.callLater(configure)
                 Connections {
                     target: engineProfiles
                     function onLoaded() {
@@ -391,15 +393,15 @@ Controls.ApplicationWindow {
             spacing: 22
             UiIcon {
                 name: "lock"
-                Layout.preferredWidth: 44
-                Layout.preferredHeight: 44
+                Layout.preferredWidth: MobileMetrics.touchTarget
+                Layout.preferredHeight: MobileMetrics.touchTarget
                 Layout.alignment: Qt.AlignHCenter
                 color: Theme.accent
             }
             Text {
                 textFormat: Text.PlainText
                 text: qsTr("Private browsing is locked")
-                font.pixelSize: 25
+                font.pixelSize: 25 * MobileMetrics.textScale
                 color: Theme.textFor(parent)
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
@@ -499,7 +501,7 @@ Controls.ApplicationWindow {
                         Text {
                             text: qsTr("Find in page")
                             color: Theme.mutedFor(parent)
-                            font.pixelSize: 12
+                            font.pixelSize: 12 * MobileMetrics.textScale
                             Layout.fillWidth: true
                         }
                         MobileIconButton {
@@ -598,7 +600,7 @@ Controls.ApplicationWindow {
                     textFormat: Text.PlainText
                     Layout.fillWidth: true
                     text: window.panel === "onboarding" ? "Arbiter" : window.panel === "settings" ? (settingsLoader.item ? settingsLoader.item.pageTitle : qsTr("Settings")) : window.panel === "history" ? qsTr("History") : window.panel === "downloads" ? qsTr("Downloads") : window.panel === "vault" ? qsTr("Passwords & passkeys") : window.panel === "save" ? qsTr("Save password?") : window.panel === "accounts" ? qsTr("Passwords") : qsTr("Pair with your desktop")
-                    font.pixelSize: 24
+                    font.pixelSize: 24 * MobileMetrics.textScale
                     wrapMode: Text.WordWrap
                     font.weight: Font.DemiBold
                     color: Theme.textFor(parent)
@@ -671,7 +673,7 @@ Controls.ApplicationWindow {
                                         text: modelData.title || modelData.url
                                         textFormat: Text.PlainText
                                         color: Theme.textFor(parent)
-                                        font.pixelSize: 15
+                                        font.pixelSize: 15 * MobileMetrics.textScale
                                         elide: Text.ElideRight
                                         Layout.fillWidth: true
                                     }
@@ -679,14 +681,14 @@ Controls.ApplicationWindow {
                                         text: modelData.url.replace(/^https?:\/\//, "")
                                         textFormat: Text.PlainText
                                         color: Theme.mutedFor(parent)
-                                        font.pixelSize: 12
+                                        font.pixelSize: 12 * MobileMetrics.textScale
                                         elide: Text.ElideRight
                                         Layout.fillWidth: true
                                     }
                                     Text {
                                         text: new Date(modelData.time).toLocaleDateString(Qt.locale(), Locale.ShortFormat)
                                         color: Theme.mutedFor(parent)
-                                        font.pixelSize: 11
+                                        font.pixelSize: 11 * MobileMetrics.textScale
                                         Layout.fillWidth: true
                                     }
                                 }
@@ -733,7 +735,7 @@ Controls.ApplicationWindow {
                                         text: modelData.name || modelData.url
                                         textFormat: Text.PlainText
                                         color: Theme.textFor(parent)
-                                        font.pixelSize: 15
+                                        font.pixelSize: 15 * MobileMetrics.textScale
                                         elide: Text.ElideMiddle
                                         Layout.fillWidth: true
                                     }
@@ -741,7 +743,7 @@ Controls.ApplicationWindow {
                                         text: modelData.status || qsTr("Downloading…")
                                         textFormat: Text.PlainText
                                         color: Theme.mutedFor(parent)
-                                        font.pixelSize: 13
+                                        font.pixelSize: 13 * MobileMetrics.textScale
                                         wrapMode: Text.WordWrap
                                         Layout.fillWidth: true
                                     }
@@ -936,7 +938,7 @@ Controls.ApplicationWindow {
                         textFormat: Text.PlainText
                         visible: window.panel === "pairReview"
                         text: window.pairDesktop
-                        font.pixelSize: 18
+                        font.pixelSize: 18 * MobileMetrics.textScale
                         font.weight: Font.Medium
                         color: Theme.textFor(parent)
                         wrapMode: Text.WordWrap
@@ -945,7 +947,7 @@ Controls.ApplicationWindow {
                     Text {
                         visible: window.panel === "pairReview"
                         text: window.pairPin
-                        font.pixelSize: 32
+                        font.pixelSize: 32 * MobileMetrics.textScale
                         font.family: "monospace"
                         font.letterSpacing: 2
                         color: Theme.accent
@@ -1056,7 +1058,7 @@ Controls.ApplicationWindow {
                             textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: window.onboardingStep === 0 ? qsTr("Welcome to Arbiter") : window.onboardingStep === 1 ? qsTr("Make yourself at home") : window.onboardingStep === 2 ? qsTr("Bring your vault along") : qsTr("You’re ready")
-                            font.pixelSize: 30
+                            font.pixelSize: 30 * MobileMetrics.textScale
                             font.weight: Font.DemiBold
                             color: Theme.textFor(parent)
                             wrapMode: Text.WordWrap
@@ -1109,7 +1111,7 @@ Controls.ApplicationWindow {
                         }
                         MobileButton {
                             Layout.fillWidth: true
-                            visible: window.onboardingStep === 2
+                            visible: window.onboardingStep === 2 && browser.defaultBrowserAvailable
                             text: qsTr("Set as default browser")
                             onClicked: browser.setDefaultBrowser()
                         }
@@ -1194,7 +1196,7 @@ Controls.ApplicationWindow {
             spacing: 20
             Text {
                 text: qsTr("Delete history?")
-                font.pixelSize: 22
+                font.pixelSize: 22 * MobileMetrics.textScale
                 font.weight: Font.DemiBold
                 color: Theme.textFor(parent)
                 wrapMode: Text.WordWrap

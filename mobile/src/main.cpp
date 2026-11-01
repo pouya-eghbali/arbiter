@@ -413,8 +413,12 @@ int main(int argc, char **argv) {
                         if (field->property("text") != "a") qFatal("Native editor typing failed");
                     } else if (step == 4) {
                         tapControl("mobileWorkspaceCancelButton");
-                        if (window->findChild<QObject *>("workspaceEditor")->property("visible").toBool()) qFatal("Native editor Cancel failed");
-                    } else if (step == 5) QMetaObject::invokeMethod(window, "dismiss");
+                        // UiPopup dismissal completes on UIKit's display-link run
+                        // loop. Check on the next bounded timer tick, not in qWait.
+                    } else if (step == 5) {
+                        if (window->findChild<QObject *>("workspaceEditor")->property("visible").toBool()) qFatal("Native editor Cancel failed to settle within one second");
+                        QMetaObject::invokeMethod(window, "dismiss");
+                    }
                     else if (step < 54) {
                         const int cycle = (step - 6) / 4;
                         switch ((step - 6) % 4) {

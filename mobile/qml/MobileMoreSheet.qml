@@ -130,7 +130,7 @@ MobilePresentation {
                                     Layout.alignment: Qt.AlignHCenter
                                     text: modelData.label
                                     color: root.menuText
-                                    font.pixelSize: 12
+                                    font.pixelSize: 12 * MobileMetrics.textScale
                                 }
                             }
                         }
@@ -202,7 +202,7 @@ MobilePresentation {
                                         verticalAlignment: Text.AlignVCenter
                                         text: row.modelData.label
                                         color: root.menuText
-                                        font.pixelSize: 14
+                                        font.pixelSize: 14 * MobileMetrics.textScale
                                         elide: Text.ElideRight
                                     }
                                     UiIcon {

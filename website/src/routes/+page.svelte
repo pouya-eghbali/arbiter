@@ -304,7 +304,7 @@
     >Arbiter</a
   ><span>A little more room for your web.</span>
   <nav aria-label="Project links">
-    <a href={repo}>GitHub</a><a href={repo + '/issues'}>Report an issue</a><a
+    <a href="/privacy">Privacy</a><a href={repo}>GitHub</a><a href={repo + '/issues'}>Report an issue</a><a
       href={repo + '/blob/master/LICENSE'}>GPL v3</a
     >
   </nav>

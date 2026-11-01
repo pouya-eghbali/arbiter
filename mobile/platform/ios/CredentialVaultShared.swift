@@ -9,7 +9,7 @@ enum VaultFailure: Error { case locked, invalid, unsupported }
 // Shared by the app and its credential-provider extension. The secret stays in
 // their explicitly shared Keychain access group; the database contains AES-GCM.
 enum AppleCredentialVault {
-  static let group = "group.com.arbiter.mobile"
+  static let group = Bundle.main.object(forInfoDictionaryKey: "ArbiterAppGroup") as? String ?? "group.com.arbiter.mobile"
   // Preserve the installed vault key account; this identifier is a data compatibility contract.
   static let service = "flutter_secure_storage_service"
   static let account = "arbiter-vault-key-v1"

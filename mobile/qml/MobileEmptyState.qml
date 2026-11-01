@@ -21,7 +21,7 @@ ColumnLayout {
     Text {
         Layout.fillWidth: true
         text: root.title
-        font.pixelSize: 19
+        font.pixelSize: 19 * MobileMetrics.textScale
         font.weight: Font.Medium
         textFormat: Text.PlainText
         color: Theme.textFor(parent)
@@ -32,7 +32,7 @@ ColumnLayout {
         visible: root.description.length > 0
         Layout.fillWidth: true
         text: root.description
-        font.pixelSize: 14
+        font.pixelSize: 14 * MobileMetrics.textScale
         lineHeight: 1.25
         textFormat: Text.PlainText
         color: Theme.mutedFor(parent)

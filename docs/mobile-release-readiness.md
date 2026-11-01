@@ -1,5 +1,57 @@
 # Mobile release-readiness audit
 
+## Remediation and current distribution scope — 1 November 2026
+
+The project now targets **self-built Android and iOS installations only**, as
+requested. No mobile APK or IPA is to be published in releases. App Store/Play submission, managed default-browser
+approval and store-console requirements are deferred. No GPL exception or
+commercial Qt purchase has been made. The original audit below is retained as
+historical evidence; its original blocker descriptions are not a claim that the
+same bugs remain after these changes.
+
+| Finding | Current status |
+| --- | --- |
+| R1 privacy manifests | App and credential-provider manifests packaged; app declarations merge the linked static Qt framework manifests. App-only/app-group preferences and file access are declared. SDK collection/tracking changes fail configuration for review. Verified generated bundles; this is not an Apple privacy-report certification. |
+| R2 privacy policy | One policy source is bundled offline in mobile Settings → Privacy/About and rendered by the website `/privacy` route. Website source/build validated; deployment is separate and has not been performed in this change. |
+| R3 Android media permissions | Only supported, consented and OS-approved resources are granted. Origin checks, request identity, cancellation, navigation/destruction and overlapping requests are handled. Unsupported resources are denied. |
+| R4 location | Coarse/fine declared and requested together; approximate-only approval succeeds. Grants are not persisted by our WebView prompt. |
+| R5 builds/versioning | Qt property names corrected. Both platforms use `VERSION.txt` plus a configurable build number (currently 3). App/provider versions match. Android local-build APK alignment/signature/checksum helper added. iOS custom identifiers/groups generate matching plists/entitlements; the managed browser entitlement and its unavailable UI are off by default. |
+| R6 accessibility | QML fonts follow iOS Dynamic Type / Android font scale. Android icon hit areas are 48 dp; iOS keeps 44-point targets with small visible close icons. Text fields/buttons grow with text; the tab grid becomes one column for larger text. Largest iOS accessibility size + Increase Contrast inspected. Full VoiceOver/TalkBack/device matrix remains unverified. |
+| R7 native smoke | Workspace-editor dismissal is checked on the next bounded normal UIKit tick rather than inside a nested wait. The full native interaction smoke passes. Runtime diagnostics also exposed and fixed a text-field sizing reference and reentrant native-event/page-record updates. |
+
+Validation for this remediation:
+
+- iOS simulator build and signed device build succeed. No physical phone install
+  or App Store submission was performed.
+- Android Debug/Release APK builds succeed. Twelve Android 15 emulator
+  instrumentation tests pass, including eight permission-coordinator regressions.
+- APK signing helper tested end to end with a disposable key, with signature,
+  16 KB ZIP alignment and checksum verification. The test key/APK were deleted;
+  this does not establish a production signing identity or publish a release.
+- Host mobile core passes; 55 mobile page renders pass without QML runtime errors,
+  including offline privacy/license pages and small/landscape layouts.
+- Native iOS interaction, keyboard/Reduce Motion and initial website appearance
+  checks run with temporary profiles; no real credentials are used.
+- Native Swift crypto vectors and three manifest/release-tool tests pass.
+- Website type checking/build pass. The policy page has no analytics integration.
+
+Remaining acceptance work includes physical-device credential-provider/biometric
+flows, real OS permission dialogs/revocation (the coordinator tests use injected
+OS responses), VoiceOver/TalkBack and Switch Control focus across native windows,
+iPad/foldable behavior, IPv6-only networking, API 37 and a real 16 KB Android
+runtime. The existing ELF/ZIP alignment checks do not replace runtime tests.
+Unused Qt-injected Bluetooth and legacy external-storage permissions are removed
+from the merged manifest; audio-settings permission is retained for media routing.
+Review the merged permission list when dependencies change. Never call these
+checks store approval.
+
+The [mobile build guide](../mobile/README.md#build-your-own) documents signing,
+installation, stable identifiers and source/relink distribution requirements.
+Self-built full-feature iOS apps need an Apple team able to provision App Groups
+and the credential provider; free Personal Team support is not promised.
+
+## Original audit (before remediation)
+
 Reviewed 2026-11-01 against repository commit `052477c`, the existing Android APK,
 the iOS device bundle, and a freshly rebuilt iOS simulator app.
 

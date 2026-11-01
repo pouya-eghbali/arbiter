@@ -29,7 +29,9 @@ android {
     sourceSets.androidTest.java.srcDirs = ['tests']
     sourceSets.androidTest.kotlin.srcDirs = ['tests']
     compileOptions {sourceCompatibility JavaVersion.VERSION_17;targetCompatibility JavaVersion.VERSION_17}
-    kotlin {jvmToolchain(17)}
+    // Use the supported JDK running Gradle; keep Java/Kotlin bytecode at 17.
+    // Requiring an additional exact JDK 17 breaks otherwise supported newer JDKs.
+    kotlin {compilerOptions {jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17}}
     defaultConfig {
         applicationId 'com.arbiter.mobile'
         minSdkVersion qtMinSdkVersion

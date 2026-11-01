@@ -74,7 +74,7 @@ Item {
                 Text {
                     text: "Arbiter"
                     color: Theme.text
-                    font.pixelSize: 27
+                    font.pixelSize: 27 * MobileMetrics.textScale
                     font.weight: Font.Medium
                 }
             }
@@ -115,6 +115,7 @@ Item {
                                         anchors.centerIn: parent
                                         text: tile.modelData.glyph
                                         color: tile.modelData.ink
+                                        // A logo glyph is an icon; the accessible site name scales below.
                                         font.pixelSize: tile.modelData.name === "Wikipedia" ? 29 : 23
                                         font.family: tile.modelData.name === "Wikipedia" ? "serif" : Qt.application.font.family
                                         font.weight: Font.Medium
@@ -125,7 +126,7 @@ Item {
                                 Layout.fillWidth: true
                                 text: tile.modelData.name
                                 color: Theme.text
-                                font.pixelSize: 11
+                                font.pixelSize: 11 * MobileMetrics.textScale
                                 horizontalAlignment: Text.AlignHCenter
                                 elide: Text.ElideRight
                             }
@@ -137,7 +138,7 @@ Item {
                 visible: browser.privateMode
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("Private browsing")
-                font.pixelSize: 12
+                font.pixelSize: 12 * MobileMetrics.textScale
                 color: Theme.muted
             }
         }

@@ -8,7 +8,7 @@ ColumnLayout {
     id: root
     property string category: ""
     property string query: ""
-    readonly property string pageTitle: categories.find(c => c.id === category)?.title || qsTr("Settings")
+    readonly property string pageTitle: category === "privacy-policy" ? qsTr("Privacy policy") : category === "licenses" ? qsTr("License") : categories.find(c => c.id === category)?.title || qsTr("Settings")
     readonly property var categories: [
         { id: "general", icon: "settings", title: qsTr("General"), detail: qsTr("Search, language, default browser and tab sleeping") },
         { id: "appearance", icon: "sparkles", title: qsTr("Appearance"), detail: qsTr("Theme, Liquid Glass, colors and backgrounds") },
@@ -26,7 +26,7 @@ ColumnLayout {
     component Caption: Text {
         Layout.fillWidth: true
         color: Theme.mutedFor(parent)
-        font.pixelSize: 13
+        font.pixelSize: 13 * MobileMetrics.textScale
         textFormat: Text.PlainText
         wrapMode: Text.WordWrap
         lineHeight: 1.2
@@ -79,7 +79,7 @@ ColumnLayout {
         MobileLanguagePicker { Layout.fillWidth: true; Accessible.name: qsTr("Language") }
     }
     MobileSection {
-        visible: root.category === "general"
+        visible: root.category === "general" && browser.defaultBrowserAvailable
         Layout.fillWidth: true
         title: qsTr("Default browser")
         MobileButton { Layout.fillWidth: true; text: qsTr("Set as default browser"); onClicked: browser.setDefaultBrowser() }
@@ -200,7 +200,7 @@ ColumnLayout {
     MobileSection {
         visible: root.category === "passwords"
         Layout.fillWidth: true
-        description: qsTr("Use Arbiter passwords and passkeys in other apps.")
+        description: Qt.platform.os === "android" ? qsTr("Use Arbiter passkeys in other apps.") : qsTr("Use Arbiter passwords and passkeys in other apps.")
         MobileButton { Layout.fillWidth: true; text: qsTr("Enable credential provider"); onClicked: browser.enableCredentialProvider() }
     }
     MobileButton { visible: root.category === "passwords" && browser.vault.unlocked; Layout.fillWidth: true; text: qsTr("Lock vault"); iconName: "lock"; onClicked: browser.vault.lock() }
@@ -235,19 +235,46 @@ ColumnLayout {
     }
     MobileSettingsRow { visible: root.category === "sync" && browser.vault.conflicts > 0; Layout.fillWidth: true; text: qsTr("Resolve sync conflicts"); iconName: "refresh-cw"; onClicked: root.vaultRequested() }
 
+    Text {
+        visible: root.category === "privacy-policy"
+        Layout.fillWidth: true
+        text: browser.privacyPolicy
+        textFormat: Text.MarkdownText
+        wrapMode: Text.WordWrap
+        color: Theme.text
+        linkColor: Theme.readable(Theme.accent)
+        font.pixelSize: 15 * MobileMetrics.textScale
+        onLinkActivated: link => Qt.openUrlExternally(link)
+    }
+    Text {
+        visible: root.category === "licenses"
+        Layout.fillWidth: true
+        text: root.category === "licenses" ? browser.thirdPartyNotices : ""
+        textFormat: Text.PlainText
+        wrapMode: Text.WrapAnywhere
+        color: Theme.text
+        font.pixelSize: 13 * MobileMetrics.textScale
+    }
+    MobileSettingsRow {
+        visible: root.category === "privacy" || root.category === "about"
+        Layout.fillWidth: true
+        text: qsTr("Privacy policy")
+        iconName: "shield-check"
+        onClicked: root.category = "privacy-policy"
+    }
     ColumnLayout {
         visible: root.category === "about"
         Layout.fillWidth: true
         spacing: 16
         MobileLogo { Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 64; Layout.preferredHeight: 64 }
-        Text { text: "Arbiter"; color: Theme.text; font.pixelSize: 26; font.weight: Font.DemiBold; Layout.alignment: Qt.AlignHCenter }
+        Text { text: "Arbiter"; color: Theme.text; font.pixelSize: 26 * MobileMetrics.textScale; font.weight: Font.DemiBold; Layout.alignment: Qt.AlignHCenter }
         Caption { text: qsTr("Version %1").arg(browser.version); horizontalAlignment: Text.AlignHCenter }
         Caption { text: qsTr("An open-source browser for power users. Zero telemetry or data collection. Everyone is welcome to contribute.") }
         Caption { text: "GNU GPL v3 · Qt/QML · Qt WebEngine / native WebView · Brave adblock-rust · Lucide" }
         MobileSettingsRow { Layout.fillWidth: true; text: "GitHub"; iconName: "external-link"; onClicked: Qt.openUrlExternally("https://github.com/pouya-eghbali/arbiter") }
         MobileSettingsRow { Layout.fillWidth: true; text: qsTr("Report a bug"); iconName: "bug"; onClicked: Qt.openUrlExternally("https://github.com/pouya-eghbali/arbiter/issues/new?template=bug_report.yml") }
         MobileSettingsRow { Layout.fillWidth: true; text: qsTr("Request a feature"); iconName: "sparkles"; onClicked: Qt.openUrlExternally("https://github.com/pouya-eghbali/arbiter/issues/new?template=feature_request.yml") }
-        MobileSettingsRow { Layout.fillWidth: true; text: qsTr("License"); detail: "GNU GPL v3"; iconName: "code-xml"; onClicked: Qt.openUrlExternally("https://github.com/pouya-eghbali/arbiter/blob/master/LICENSE") }
+        MobileSettingsRow { Layout.fillWidth: true; text: qsTr("License"); detail: "GNU GPL v3"; iconName: "code-xml"; onClicked: root.category = "licenses" }
     }
     UiPopup {
         id: disconnect

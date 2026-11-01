@@ -7,7 +7,7 @@ UiButton {
     id: control
     implicitHeight: Math.max(48, implicitContentHeight + 24)
     horizontalPadding: 16
-    font.pixelSize: 15
+    font.pixelSize: 15 * MobileMetrics.textScale
     opacity: nativeMaterial ? (enabled ? 1 : .45) : (enabled || primary ? 1 : .45)
     textColor: nativeMaterial ? Theme.textFor(control) : foregroundColor
     iconColor: textColor
@@ -43,7 +43,7 @@ UiButton {
                 font: control.font
                 color: control.textColor
                 verticalAlignment: Text.AlignVCenter
-                elide: Text.ElideRight
+                wrapMode: Text.WordWrap
             }
         }
     }

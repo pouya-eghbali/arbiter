@@ -68,7 +68,7 @@ MobilePresentation {
                     Layout.fillWidth: true
                     implicitHeight: 48
                     placeholderText: qsTr("Search or enter address")
-                    font.pixelSize: 16
+                    font.pixelSize: 16 * MobileMetrics.textScale
                     color: Theme.textFor(parent)
                     placeholderTextColor: Theme.mutedFor(parent)
                     selectByMouse: true
@@ -82,7 +82,7 @@ MobilePresentation {
                     objectName: "mobileAddressCloseButton"
 
                     label: qsTr("Close")
-                    implicitWidth: 44
+                    implicitWidth: MobileMetrics.touchTarget
                     onClicked: root.dismiss()
                 }
             }
@@ -107,7 +107,7 @@ MobilePresentation {
                     objectName: "mobileAddressSuggestion"
                     required property var modelData
                     width: ListView.view.width
-                    height: 51
+                    height: Math.max(51, 22 + 29 * MobileMetrics.textScale)
                     // Keep the editor and keyboard stable until selection is
                     // committed. Hardware keyboard tab focus remains available.
                     focusPolicy: Qt.TabFocus
@@ -137,7 +137,7 @@ MobilePresentation {
                             textFormat: Text.PlainText
                             text: row.modelData.title || row.modelData.url
                             color: Theme.textFor(parent)
-                            font.pixelSize: 14
+                            font.pixelSize: 14 * MobileMetrics.textScale
                             elide: Text.ElideRight
                         }
                         Rectangle {
@@ -151,7 +151,7 @@ MobilePresentation {
                                 anchors.centerIn: parent
                                 text: row.badge
                                 color: Theme.mutedFor(parent)
-                                font.pixelSize: 10
+                                font.pixelSize: 10 * MobileMetrics.textScale
                             }
                         }
                         UiIcon {

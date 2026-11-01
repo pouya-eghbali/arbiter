@@ -28,6 +28,9 @@ class MobileModel : public QObject {
     Q_PROPERTY(bool onboardingDone READ onboardingDone NOTIFY settingsChanged)
     Q_PROPERTY(QString backend READ backend CONSTANT)
     Q_PROPERTY(QString version READ version CONSTANT)
+    Q_PROPERTY(bool defaultBrowserAvailable READ defaultBrowserAvailable CONSTANT)
+    Q_PROPERTY(QString privacyPolicy READ privacyPolicy CONSTANT)
+    Q_PROPERTY(QString thirdPartyNotices READ thirdPartyNotices CONSTANT)
     Q_PROPERTY(MobileVault *vault READ vault CONSTANT)
   public:
     explicit MobileModel(QObject *parent = nullptr, const QString &directory = QString());
@@ -73,6 +76,15 @@ class MobileModel : public QObject {
     }
     QString backend() const;
     QString version() const;
+    bool defaultBrowserAvailable() const {
+#if defined(Q_OS_IOS) && defined(ARBITER_IOS_DEVICE_TESTING)
+        return false;
+#else
+        return true;
+#endif
+    }
+    QString privacyPolicy() const;
+    QString thirdPartyNotices() const;
     MobileVault *vault() {
         return &m_vault;
     }

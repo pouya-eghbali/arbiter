@@ -44,7 +44,7 @@ Rectangle {
         anchors.centerIn: parent
         text: root.fallback || "Arbiter"
         color: Theme.mutedFor(parent)
-        font.pixelSize: 17
+        font.pixelSize: 17 * MobileMetrics.textScale
         elide: Text.ElideRight
         width: parent.width - 20
         horizontalAlignment: Text.AlignHCenter

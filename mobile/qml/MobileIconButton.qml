@@ -3,7 +3,7 @@ import Arbiter
 
 UiIconButton {
     toolTipEnabled: false
-    implicitWidth: 44
-    implicitHeight: 44
+    implicitWidth: MobileMetrics.touchTarget
+    implicitHeight: MobileMetrics.touchTarget
     iconSize: 21
 }

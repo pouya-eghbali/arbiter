@@ -1,0 +1,26 @@
+Arbiter mobile — third-party notices
+
+Qt 6.12.0
+Copyright (C) The Qt Company Ltd. and other contributors.
+Qt modules are used under their applicable LGPLv3/GPLv3 open-source licenses.
+Sources and license information: https://download.qt.io/official_releases/qt/6.12/
+https://doc.qt.io/qt-6/licensing.html
+Our source/build instructions: https://github.com/pouya-eghbali/arbiter/tree/master/mobile
+An exact source package must accompany each public binary release as described in
+mobile/README.md; this list is not a substitute for corresponding source.
+
+AndroidX (Android builds)
+Copyright The Android Open Source Project.
+Licensed under the Apache License, Version 2.0.
+https://www.apache.org/licenses/LICENSE-2.0
+Source: https://android.googlesource.com/platform/frameworks/support/
+Includes Core, WebKit and Credentials libraries and their dependencies.
+The generated Gradle dependency graph records the versions in each APK build.
+
+zxing-cpp — Apache License 2.0 (included below)
+Brave adblock-rust — Mozilla Public License 2.0 (Android/WebEngine only)
+Filter lists — licenses in EasyList.txt
+Lucide icons — ISC License
+These projects and their copyright/license notices follow in this document.
+Apple WebKit, Android System WebView and system frameworks are supplied by their
+respective platforms rather than bundled Chromium engines in our phone apps.

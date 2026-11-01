@@ -19,8 +19,8 @@ Controls.AbstractButton {
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 3
-            Text { text: control.text; textFormat: Text.PlainText; Layout.fillWidth: true; color: Theme.text; font.pixelSize: 15; wrapMode: Text.WordWrap }
-            Text { visible: control.detail.length > 0; text: control.detail; textFormat: Text.PlainText; Layout.fillWidth: true; color: Theme.muted; font.pixelSize: 12; wrapMode: Text.WordWrap }
+            Text { text: control.text; textFormat: Text.PlainText; Layout.fillWidth: true; color: Theme.text; font.pixelSize: 15 * MobileMetrics.textScale; wrapMode: Text.WordWrap }
+            Text { visible: control.detail.length > 0; text: control.detail; textFormat: Text.PlainText; Layout.fillWidth: true; color: Theme.muted; font.pixelSize: 12 * MobileMetrics.textScale; wrapMode: Text.WordWrap }
         }
         UiIcon { name: "chevron-right"; color: Theme.muted; Layout.preferredWidth: 17; Layout.preferredHeight: 17 }
     }

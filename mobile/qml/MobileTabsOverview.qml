@@ -40,7 +40,7 @@ MobilePresentation {
                         Layout.fillWidth: true
                         text: root.workspaceName
                         textFormat: Text.PlainText
-                        font.pixelSize: 20
+                        font.pixelSize: 20 * MobileMetrics.textScale
                         color: Theme.textFor(parent)
                         font.weight: Font.DemiBold
                         elide: Text.ElideRight
@@ -70,8 +70,8 @@ MobilePresentation {
             Layout.fillHeight: true
             Layout.minimumHeight: 0
             clip: true
-            cellWidth: width / 2
-            cellHeight: Math.max(152, Math.min(180, cellWidth * .96))
+            cellWidth: width / (MobileMetrics.textScale >= 1.6 ? 1 : 2)
+            cellHeight: Math.max(152, Math.min(180, cellWidth * .96)) + 42 * (MobileMetrics.textScale - 1)
             boundsBehavior: Flickable.StopAtBounds
             model: root.tabs.filter(t => !root.query || (t.title || "").toLowerCase().includes(root.query.toLowerCase()) || (t.url || "").toLowerCase().includes(root.query.toLowerCase()))
             Controls.ScrollBar.vertical: Controls.ScrollBar {}
@@ -123,7 +123,7 @@ MobilePresentation {
                             textFormat: Text.PlainText
                             text: cell.modelData.title || qsTr("New tab")
                             color: Theme.textFor(parent)
-                            font.pixelSize: 12
+                            font.pixelSize: 12 * MobileMetrics.textScale
                             elide: Text.ElideRight
                         }
                         Text {
@@ -131,7 +131,7 @@ MobilePresentation {
                             textFormat: Text.PlainText
                             text: (cell.modelData.url || "").replace(/^https?:\/\//, "").split("/")[0]
                             color: Theme.mutedFor(parent)
-                            font.pixelSize: 10
+                            font.pixelSize: 10 * MobileMetrics.textScale
                             elide: Text.ElideRight
                         }
                     }
@@ -149,7 +149,7 @@ MobilePresentation {
         }
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 61
+            Layout.preferredHeight: Math.max(61, doneButton.implicitHeight + 10)
             Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -188,7 +188,7 @@ MobilePresentation {
                     }
                 }
                 MobileButton {
-                    implicitHeight: 44
+                    id: doneButton
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     flat: true

@@ -3,6 +3,13 @@
 `build.py` configures and builds the Qt/QML app. See `mobile/README.md` for kit,
 signing and platform instructions. It does not upload or install artifacts.
 
+`package_apk.py` aligns and signs a Release APK with your own keystore, verifies
+the signature and 16 KB ZIP alignment, and writes its SHA-256. Passwords are read
+from environment variables, never command arguments.
+
+`merge_privacy.py` merges the application and linked static Qt SDK privacy
+declarations for iOS; collection/tracking changes require an explicit review.
+
 `sync_localizations.py` extracts Qt/QML and native interface strings, reuses
 existing bundled translations, and checks the offline JSON catalogs. Missing
 translations fall back to English; no translation service is contacted.

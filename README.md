@@ -97,3 +97,9 @@ a change or tell us what could be better.
 Arbiter is licensed under [GPL-3.0-only](LICENSE). Third-party components retain
 their own licenses; see [third-party notices](licenses/). UI icons are from
 [Lucide](https://lucide.dev/).
+
+## Build the mobile apps
+
+Both Android and iOS currently use builds you compile, sign and install yourself;
+we are not publishing mobile binaries yet. See the [mobile build guide](mobile/README.md#build-your-own)
+for prerequisites, signing, installation and source-distribution instructions.

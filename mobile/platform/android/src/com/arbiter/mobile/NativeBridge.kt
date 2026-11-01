@@ -46,8 +46,20 @@ object NativeBridge {
  private val privateProfiles=ConcurrentHashMap<String,String>()
  private val views=ConcurrentHashMap<String,WebView>()
  private var fileCallback:ValueCallback<Array<Uri>>?=null
- private var permission:PermissionRequest?=null
- private var geolocation:Pair<String,GeolocationPermissions.Callback>?=null
+ private val permissions by lazy { WebPermissions(
+  current = { id, origin -> views[id]?.url?.let { WebPermissions.sameOrigin(it, origin) } == true },
+  granted = { activity().checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED },
+  request = { names, code -> activity().requestPermissions(names, code) },
+  prompt = { origin, location, reply ->
+   val dialog=AlertDialog.Builder(activity()).setTitle(Uri.parse(origin).host)
+    .setMessage(MobileStrings.text(activity(),if(location)"Allow location access?" else "Allow camera or microphone access?"))
+    .setNegativeButton(MobileStrings.text(activity(),"Deny")){_,_->reply(false)}
+    .setPositiveButton(MobileStrings.text(activity(),"Allow")){_,_->reply(true)}
+    .setOnCancelListener{reply(false)}.create()
+   dialog.show()
+   val close:()->Unit = { dialog.dismiss() }
+   close
+  }) }
  @JvmStatic external fun event(id:String,type:String,json:String)
  @JvmStatic external fun verified(approved:Boolean)
  @JvmStatic external fun openUrl(url:String)
@@ -140,19 +152,19 @@ object NativeBridge {
      val kind=when{path.endsWith(".js")->"script";path.endsWith(".css")->"stylesheet";path.matches(Regex(".*\\.(png|jpg|jpeg|gif|webp|svg|ico)$"))->"image";else->"other"}
      return if(blocked(url,sources[id] ?: "",kind,request.method))WebResourceResponse("text/plain","UTF-8",ByteArrayInputStream(ByteArray(0)))else null
     }
-    override fun onPageStarted(view:WebView,url:String,icon:android.graphics.Bitmap?){event(id,"start","{}");location(id,view)}
+    override fun onPageStarted(view:WebView,url:String,icon:android.graphics.Bitmap?){permissions.cancel(id);event(id,"start","{}");location(id,view)}
     override fun onPageFinished(view:WebView,url:String){location(id,view);view.evaluateJavascript(scripts[id] ?: script,null);event(id,"finish","{\"success\":true}")}
     override fun onReceivedError(view:WebView,request:WebResourceRequest,error:WebResourceError){if(request.isForMainFrame)event(id,"error",JSONObject(mapOf("message" to error.description.toString())).toString())}
     override fun onReceivedSslError(view:WebView,handler:SslErrorHandler,error:android.net.http.SslError){handler.cancel()}
-    override fun onRenderProcessGone(view:WebView,detail:RenderProcessGoneDetail):Boolean {if(views[id]===view){views.remove(id);view.destroy();event(id,"error",JSONObject(mapOf("message" to MobileStrings.text(activity(),"The page stopped responding. Reload to try again."),"crashed" to true)).toString())};return true}
+    override fun onRenderProcessGone(view:WebView,detail:RenderProcessGoneDetail):Boolean {if(views[id]===view){permissions.cancel(id);views.remove(id);view.destroy();event(id,"error",JSONObject(mapOf("message" to MobileStrings.text(activity(),"The page stopped responding. Reload to try again."),"crashed" to true)).toString())};return true}
    }
    web.webChromeClient=object:WebChromeClient(){
     override fun onProgressChanged(view:WebView,value:Int){event(id,"progress","{\"progress\":$value}")}
     override fun onReceivedTitle(view:WebView,title:String){event(id,"title",JSONObject(mapOf("title" to title)).toString())}
-    override fun onPermissionRequest(request:PermissionRequest){activity().runOnUiThread{AlertDialog.Builder(activity()).setTitle(request.origin.host).setMessage(MobileStrings.text(activity(),"Allow camera or microphone access?"))
-     .setNegativeButton(MobileStrings.text(activity(),"Deny")){_,_->request.deny()}.setPositiveButton(MobileStrings.text(activity(),"Allow")){_,_->permission=request;activity().requestPermissions(request.resources.mapNotNull{when(it){PermissionRequest.RESOURCE_VIDEO_CAPTURE->android.Manifest.permission.CAMERA;PermissionRequest.RESOURCE_AUDIO_CAPTURE->android.Manifest.permission.RECORD_AUDIO;else->null}}.toTypedArray(),71003)}.setOnCancelListener{request.deny()}.show()}}
-    override fun onGeolocationPermissionsShowPrompt(origin:String,callback:GeolocationPermissions.Callback){AlertDialog.Builder(activity()).setTitle(Uri.parse(origin).host).setMessage(MobileStrings.text(activity(),"Allow location access?"))
-     .setNegativeButton(MobileStrings.text(activity(),"Deny")){_,_->callback.invoke(origin,false,false)}.setPositiveButton(MobileStrings.text(activity(),"Allow")){_,_->geolocation=Pair(origin,callback);activity().requestPermissions(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),71004)}.setOnCancelListener{callback.invoke(origin,false,false)}.show()}
+    override fun onPermissionRequest(request:PermissionRequest){permissions.media(id,request)}
+    override fun onPermissionRequestCanceled(request:PermissionRequest){permissions.cancel(request)}
+    override fun onGeolocationPermissionsShowPrompt(origin:String,callback:GeolocationPermissions.Callback){permissions.location(id,origin,callback)}
+    override fun onGeolocationPermissionsHidePrompt(){permissions.cancel(id)}
     override fun onShowFileChooser(view:WebView,callback:ValueCallback<Array<Uri>>,params:FileChooserParams):Boolean {fileCallback?.onReceiveValue(null);fileCallback=callback;return try{activity().startActivityForResult(params.createIntent(),71002);true}catch(_:Exception){fileCallback=null;false}}
    }
    web.setDownloadListener{url,userAgent,disposition,mime,_->if(!privateMode){val name=URLUtil.guessFileName(url,disposition,mime).replace(Regex("[^A-Za-z0-9._ -]"),"_");val request=DownloadManager.Request(Uri.parse(url)).setTitle(name).setMimeType(mime).setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED).setDestinationInExternalFilesDir(activity(),Environment.DIRECTORY_DOWNLOADS,name).addRequestHeader("User-Agent",userAgent)
@@ -168,7 +180,7 @@ object NativeBridge {
  @JvmStatic fun action(id:String,name:String){activity().runOnUiThread{views[id]?.let{when(name){"back"->it.goBack();"forward"->it.goForward();"reload"->it.reload()}}}}
  @JvmStatic fun evaluate(id:String,script:String){activity().runOnUiThread{views[id]?.evaluateJavascript(script,null)}}
  @JvmStatic fun inspect(id:String){activity().runOnUiThread{views[id]?.evaluateJavascript("globalThis.__arbiterHasPassword?.()??true"){value->event(id,"loginInspection",JSONObject(mapOf("hasPassword" to (value!="false"))).toString())}}}
- @JvmStatic fun destroy(id:String){activity().runOnUiThread{views.remove(id)?.let{it.stopLoading();it.destroy()};sources.remove(id);scripts.remove(id);findQueries.remove(id);privateProfiles.remove(id)?.let{profile->if(!privateProfiles.containsValue(profile))clearPrivateProfile(profile)}}}
+ @JvmStatic fun destroy(id:String){activity().runOnUiThread{permissions.cancel(id);views.remove(id)?.let{it.stopLoading();it.destroy()};sources.remove(id);scripts.remove(id);findQueries.remove(id);privateProfiles.remove(id)?.let{profile->if(!privateProfiles.containsValue(profile))clearPrivateProfile(profile)}}}
  @JvmStatic fun configure(id:String,script:String,prefs:String){scripts[id]=script;evaluate(id,"globalThis.__arbiterUpdatePreferences?.($prefs)")}
  @JvmStatic fun overlay(id:String,x:Float,y:Float,width:Float,height:Float){activity().runOnUiThread{(views[id] as? ArbiterPageView)?.let{it.overlay=android.graphics.RectF(x,y,x+width,y+height);it.invalidate()}}}
  @JvmStatic fun capture(id:String){activity().runOnUiThread{val view=views[id] as? ArbiterPageView ?: return@runOnUiThread;if(view.width<=0||view.height<=0)return@runOnUiThread;try{val scale=minOf(1f,640f/view.width);val bitmap=android.graphics.Bitmap.createBitmap(maxOf(1,(view.width*scale).toInt()),maxOf(1,(view.height*scale).toInt()),android.graphics.Bitmap.Config.ARGB_8888);val canvas=android.graphics.Canvas(bitmap);canvas.scale(scale,scale);view.drawPreview(canvas);val stream=java.io.ByteArrayOutputStream();bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,90,stream);bitmap.recycle();event(id,"preview",JSONObject(mapOf("image" to "data:image/png;base64,"+android.util.Base64.encodeToString(stream.toByteArray(),android.util.Base64.NO_WRAP),"sourceUrl" to (view.url ?: ""))).toString())}catch(_:Exception){}}}
@@ -176,5 +188,5 @@ object NativeBridge {
  @JvmStatic fun find(id:String,query:String,backwards:Boolean){activity().runOnUiThread{views[id]?.let{if(query.isEmpty()){it.clearMatches();findQueries.remove(id)}else if(findQueries[id]==query)it.findNext(!backwards)else{findQueries[id]=query;it.findAllAsync(query)}}}}
  @JvmStatic fun canSleep():Boolean = !activity().getSystemService(AudioManager::class.java).isMusicActive
  fun activityResult(request:Int,result:Int,data:Intent?){when(request){71001->verified(result==Activity.RESULT_OK);71002->{fileCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result,data));fileCallback=null}}}
- fun permissionsResult(request:Int,results:IntArray){val approved=results.isNotEmpty()&&results.all{it==PackageManager.PERMISSION_GRANTED};if(request==71003){val p=permission;permission=null;if(approved)p?.grant(p.resources)else p?.deny()};if(request==71004){geolocation?.let{it.second.invoke(it.first,approved,false)};geolocation=null}}
+ fun permissionsResult(request:Int,names:Array<out String>,results:IntArray){permissions.result(request,names,results)}
 }

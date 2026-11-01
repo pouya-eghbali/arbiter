@@ -4,14 +4,14 @@ import Arbiter
 
 UiComboBox {
     id: control
-    implicitHeight: 48
-    font.pixelSize: 15
+    implicitHeight: Math.max(48, implicitContentHeight + 24)
+    font.pixelSize: 15 * MobileMetrics.textScale
     delegate: Controls.ItemDelegate {
         id: option
         required property int index
         required property var model
         width: control.width - 12
-        implicitHeight: 48
+        implicitHeight: Math.max(48, implicitContentHeight + 24)
         highlighted: control.highlightedIndex === index
         contentItem: Text {
             text: option.model.modelData

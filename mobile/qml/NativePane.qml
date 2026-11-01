@@ -15,7 +15,10 @@ Item {
         privateMode: root.record.private || false
         url: root.record.url
         overlayRect: root.overlayRect
-        onBrowserEvent: (tabId, type, data) => browser.updatePage(tabId, type, data)
+        // UIKit can emit a first URL/title during a record binding update.
+        // Deliver each event separately after that binding finishes (do not
+        // coalesce events by passing the same method directly to callLater).
+        onBrowserEvent: (tabId, type, data) => Qt.callLater(() => browser.updatePage(tabId, type, data))
         Component.onCompleted: start()
     }
     WindowContainer {

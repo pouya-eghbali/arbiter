@@ -6,8 +6,8 @@ MobileIconButton {
     id: control
     property bool overPreview: false
     iconName: "x"
-    implicitWidth: 44
-    implicitHeight: 44
+    implicitWidth: MobileMetrics.touchTarget
+    implicitHeight: MobileMetrics.touchTarget
     iconSize: 14
     iconColor: overPreview ? "white" : Theme.textFor(control)
     background: Rectangle {

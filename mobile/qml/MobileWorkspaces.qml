@@ -43,7 +43,7 @@ MobilePresentation {
             Text {
                 text: qsTr("Workspaces")
                 color: Theme.textFor(parent)
-                font.pixelSize: 24
+                font.pixelSize: 24 * MobileMetrics.textScale
                 elide: Text.ElideRight
                 font.weight: Font.DemiBold
                 Layout.fillWidth: true
@@ -115,7 +115,7 @@ MobilePresentation {
                                     textFormat: Text.PlainText
                                     text: card.modelData.name
                                     color: Theme.textFor(parent)
-                                    font.pixelSize: 16
+                                    font.pixelSize: 16 * MobileMetrics.textScale
                                     font.weight: Font.Medium
                                     Layout.fillWidth: true
                                     elide: Text.ElideRight
@@ -123,8 +123,8 @@ MobilePresentation {
                                 MobileIconButton {
                                     iconName: "ellipsis"
                                     label: qsTr("Edit workspace")
-                                    implicitWidth: 44
-                                    implicitHeight: 44
+                                    implicitWidth: MobileMetrics.touchTarget
+                                    implicitHeight: MobileMetrics.touchTarget
                                     iconSize: 18
                                     onClicked: root.edit(card.modelData.id, card.modelData.name)
                                 }
@@ -162,7 +162,7 @@ MobilePresentation {
                                         textFormat: Text.PlainText
                                         text: (modelData.title || qsTr("New tab")) + (modelData.url ? " — " + modelData.url.replace(/^https?:\/\//, "").split("/")[0] : "")
                                         color: Theme.mutedFor(parent)
-                                        font.pixelSize: 12
+                                        font.pixelSize: 12 * MobileMetrics.textScale
                                         elide: Text.ElideRight
                                     }
                                 }
@@ -171,14 +171,14 @@ MobilePresentation {
                                 visible: card.previews.length > 3
                                 text: "+ " + (card.previews.length === 4 ? qsTr("1 other tab") : qsTr("%1 other tabs").arg(card.previews.length - 3))
                                 color: Theme.mutedFor(parent)
-                                font.pixelSize: 12
+                                font.pixelSize: 12 * MobileMetrics.textScale
                                 Layout.topMargin: 2
                             }
                             Text {
                                 visible: card.previews.length === 0
                                 text: qsTr("No open tabs")
                                 color: Theme.mutedFor(parent)
-                                font.pixelSize: 12
+                                font.pixelSize: 12 * MobileMetrics.textScale
                             }
                         }
                     }
@@ -211,7 +211,7 @@ MobilePresentation {
                 spacing: 16
                 Text {
                     text: root.editingId ? qsTr("Edit workspace") : qsTr("New workspace")
-                    font.pixelSize: 22
+                    font.pixelSize: 22 * MobileMetrics.textScale
                     font.weight: Font.DemiBold
                     color: Theme.textFor(parent)
                     wrapMode: Text.WordWrap
