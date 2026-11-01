@@ -23,7 +23,11 @@ class CrossInputTests(unittest.TestCase):
                 root = Path(folder)
                 archive = root / 'build-inputs-linux.zip'
                 with zipfile.ZipFile(archive, 'w') as bundle:
-                    bundle.writestr(name, 'untrusted')
+                    # ZipInfo's constructor normalizes host separators on
+                    # Windows; preserve the deliberately malicious raw name.
+                    member = zipfile.ZipInfo('fixture')
+                    member.filename = name
+                    bundle.writestr(member, 'untrusted')
                 env = dict(INPUT_PLATFORM='linux', RELEASE_TAG='v0.2.1',
                            INPUT_SHA256=hashlib.sha256(archive.read_bytes()).hexdigest(), GITHUB_REPOSITORY='owner/repo')
                 with patch.object(inputs, 'WORK', root), patch.dict(os.environ, env), \
@@ -32,6 +36,7 @@ class CrossInputTests(unittest.TestCase):
                     with self.assertRaisesRegex(RuntimeError, 'Unsafe'):
                         inputs.download()
 
+    @unittest.skipUnless(os.name == 'posix', 'POSIX executable modes require a POSIX filesystem')
     def test_linux_helper_retains_executable_permissions(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
