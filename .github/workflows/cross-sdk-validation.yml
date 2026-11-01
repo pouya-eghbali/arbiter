@@ -19,6 +19,10 @@ permissions:
   contents: read
 jobs:
   validate:
+    # GitHub hides draft releases from read-only tokens. This trusted manual
+    # workflow needs push access to download its private, checksum-pinned SDK.
+    permissions:
+      contents: write
     runs-on: ${{ inputs.platform == 'windows' && 'windows-2025' || 'ubuntu-24.04' }}
     timeout-minutes: 45
     steps:
