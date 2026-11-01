@@ -540,7 +540,7 @@ Window {
                 const old=await chrome.storage.local.get('installCount');
                 await chrome.storage.local.set({installCount:(old.installCount||0)+1,installReason:details.reason});
             });
-            chrome.runtime.onMessage.addListener((message,sender,reply)=>{if(message.senderProbe) reply({tab:sender.tab?.id,window:sender.tab?.windowId});if(message.blobProbe){fetch(message.blobProbe).then(r=>r.text()).then(text=>reply({text})).catch(()=>reply({text:'failed'}));return true;}});
+            chrome.runtime.onMessage.addListener((message,sender,reply)=>{if(message.senderProbe) reply({tab:sender.tab?.id,window:sender.tab?.windowId});if(message.blobProbe){fetch(message.blobProbe).then(r=>r.text()).then(text=>reply({text})).catch(error=>reply({text:'failed: '+error.name+': '+error.message}));return true;}});
         )JS");
         write(source + "/injected.js", "document.body.dataset.injectedFile='yes';'file-result';");
         write(source + "/popup.js", R"JS(
@@ -574,8 +574,15 @@ Window {
                     await chrome.tabs.update(tab.id,{pinned:false});
                     const message=await chrome.tabs.sendMessage(tab.id,{probe:true});
                     assert(message?.tab===tab.id && message.window===w.id,'content messaging and sender.tab');
-                    const blob=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>document.body.dataset.blobProbe});
-                    assert(blob[0]?.result==='extension image transfer','embedded extension blob can be read by its own worker');
+                    let blob=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>document.body.dataset.blobProbe});
+                    // The content-script marker precedes iframe loading and its
+                    // async worker reply. Wait only for an absent result; an
+                    // explicit fetch failure still fails immediately.
+                    for(let attempt=0;attempt<100&&blob[0]?.result==null;++attempt){
+                        await new Promise(resolve=>setTimeout(resolve,50));
+                        blob=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>document.body.dataset.blobProbe});
+                    }
+                    assert(blob[0]?.result==='extension image transfer','embedded extension blob can be read by its own worker: '+JSON.stringify(blob));
                     await chrome.action.setIcon({path:'icon.png'});
                     await chrome.action.setIcon({path:{16:'icon.png'}});
                     failed=false;try{await chrome.action.setIcon({path:'file:///tmp/foreign-icon.png'})}catch(e){failed=true}assert(failed,'unsafe icon resource rejected');
