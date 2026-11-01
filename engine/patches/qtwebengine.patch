@@ -341,7 +341,7 @@ index 84101d4..ca49604 100644
        "//chrome/renderer/media/webrtc_logging_agent_impl.h",
      ]
 diff --git a/src/core/content_browser_client_qt.cpp b/src/core/content_browser_client_qt.cpp
-index e597c6e..6c057ae 100644
+index e597c6e..a1c01a3 100644
 --- a/src/core/content_browser_client_qt.cpp
 +++ b/src/core/content_browser_client_qt.cpp
 @@ -281,6 +281,17 @@ content::MediaObserver *ContentBrowserClientQt::GetMediaObserver()
@@ -392,6 +392,16 @@ index e597c6e..6c057ae 100644
      WebContentsViewQt *view = WebContentsViewQt::from(static_cast<content::WebContentsImpl *>(webContents)->GetView());
      if (!view->client())
          return;
+@@ -593,6 +627,9 @@ void ContentBrowserClientQt::RegisterAssociatedInterfaceBindersForServiceWorker(
+ {
+     associated_registry.AddInterface<extensions::mojom::ServiceWorkerHost>(base::BindRepeating(
+             &extensions::ServiceWorkerHost::BindReceiver, service_worker_version_info.process_id));
++    // Worker event listeners use this scoped channel, not the renderer channel.
++    associated_registry.AddInterface<extensions::mojom::EventRouter>(base::BindRepeating(
++            &extensions::EventRouter::BindForRenderer, service_worker_version_info.process_id));
+ }
+ #endif
+ 
 diff --git a/src/core/content_browser_client_qt.h b/src/core/content_browser_client_qt.h
 index adc2ec8..1df6fe1 100644
 --- a/src/core/content_browser_client_qt.h
