@@ -43,7 +43,7 @@ def require_clean_source():
     status = run('git', '-C', ROOT, 'status', '--porcelain', '--untracked-files=all',
                  '--', '.', ':(exclude)output/**', capture=True)
     if status.strip():
-        raise RuntimeError('Commit source changes before packaging; release metadata must identify the exact source')
+        raise RuntimeError('Commit source changes before packaging; release metadata must identify the exact source:\n' + status)
 
 
 def audit(root):
