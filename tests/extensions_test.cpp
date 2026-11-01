@@ -740,7 +740,7 @@ Window {
         QTest::qWait(300);
         QVERIFY(QMetaObject::invokeMethod(root,"run"));
         QTRY_VERIFY_WITH_TIMEOUT((QMetaObject::invokeMethod(root,"inspectProbe"), !root->property("probe").toString().isEmpty()),30000);
-        QCOMPARE(root->property("probe").toString(), QString("passed"));
+        QVERIFY2(root->property("probe").toString() == QString("passed"), qPrintable(root->property("probe").toString()));
         QVERIFY(QMetaObject::invokeMethod(root,"clickMenu"));
         QCOMPARE(root->property("menuCount").toInt(), 1);
         QTRY_VERIFY_WITH_TIMEOUT((QMetaObject::invokeMethod(root,"inspectEvents"), root->property("menuResult").toString().startsWith("true:")), 5000);
