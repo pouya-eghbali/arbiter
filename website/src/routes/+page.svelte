@@ -3,7 +3,8 @@
   import NavigationPill from '#lib/NavigationPill.svelte';
   import SplitDemo from '#lib/SplitDemo.svelte';
   import WorkspaceDemo from '#lib/WorkspaceDemo.svelte';
-  import ProductArtwork from '#lib/ProductArtwork.svelte';
+  import MobileDemo from '#lib/MobileDemo.svelte';
+  import SyncDemo from '#lib/SyncDemo.svelte';
   import Icon from '#lib/Icon.svelte';
   import { reveal, accordion } from '#lib/motion.ts';
   const repo = 'https://github.com/pouya-eghbali/arbiter';
@@ -187,7 +188,7 @@
         >
       </div>
     </div>
-    <div class="product-visual" use:reveal><ProductArtwork kind="mobile" /></div>
+    <div class="product-visual" use:reveal><MobileDemo /></div>
   </section>
 
   <section class="sync-section" id="sync" aria-labelledby="sync-title">
@@ -211,7 +212,7 @@
         >
       </div>
       <div class="product-visual" use:reveal>
-        <ProductArtwork kind="sync" />
+        <SyncDemo />
         <p class="sync-art-caption">
           <span class="tiny-dot"></span>SAME WI-FI. YOUR DEVICES. YOUR KEYS.
         </p>

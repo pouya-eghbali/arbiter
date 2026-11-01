@@ -100,7 +100,9 @@ Mobile links point to the iOS/Android self-build guides; they must not imply a
 store listing or public APK/IPA release. Sync copy describes encrypted local
 Wi-Fi pairing, not cloud or internet relay sync.
 
-`ProductArtwork.svelte` frames the two illustrations from the approved generated
-concept in `static/art/mobile-sync-preview.png`. The image is shared/cacheable
-and lazy-loaded; headings, feature copy and links remain accessible HTML. Keep
-replacement artwork close to the actual mobile and desktop Settings → Sync UI.
+`MobileDemo.svelte` and `SyncDemo.svelte` draw the previews with Svelte, CSS,
+Lucide icons and the existing vector illustrations. App text stays selectable.
+The mobile preview supports sample tabs, page scrolling, address filtering and
+workspace selection. Sync locking, pairing and status updates affect synthetic
+in-memory devices only: these demos never request credentials or biometrics,
+read the clipboard, or discover/contact real devices.
