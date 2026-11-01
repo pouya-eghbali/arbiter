@@ -22,6 +22,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "engine"))
 from identity import fingerprint, verify_sdk
 from media_policy import verify as verify_media
+from build import require_enabled_modules
 
 PINS = json.loads((HERE / "versions.json").read_text())
 ENGINE = json.loads((ROOT / "engine/manifest.json").read_text())
@@ -289,6 +290,7 @@ def engine(args):
         # Windows uses native decoders with codec-free FFmpeg, even on Linux hosts.
         "-DFEATURE_webengine_proprietary_codecs=ON", "-DFEATURE_webengine_system_ffmpeg=OFF"]
     configure(args, source, build, flags, env=env)
+    require_enabled_modules(build)
     if args.configure_only:
         return
     run("cmake", "--build", build, "--parallel", args.jobs, env=env)

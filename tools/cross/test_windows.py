@@ -85,6 +85,9 @@ class CrossBuildTests(unittest.TestCase):
     def test_linux_host_still_uses_windows_media_policy(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
+            (root / "engine").mkdir()
+            (root / "engine/CMakeCache.txt").write_text(
+                "QT_FEATURE_qtwebengine_build:INTERNAL=ON\nQT_FEATURE_qtpdf_build:INTERNAL=ON\n")
             args = argparse.Namespace(work=root, llvm=root / "llvm", host_qt=root / "hostqt",
                                       jobs=20, configure_only=True)
             with patch.object(cross, "toolchain_identity", return_value={}), \
@@ -102,6 +105,9 @@ class CrossBuildTests(unittest.TestCase):
     def test_failed_compile_does_not_leave_successful_receipt(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
+            (root / "engine").mkdir()
+            (root / "engine/CMakeCache.txt").write_text(
+                "QT_FEATURE_qtwebengine_build:INTERNAL=ON\nQT_FEATURE_qtpdf_build:INTERNAL=ON\n")
             (root / "sdk").mkdir()
             receipt = root / "sdk/arbiter-engine-build.json"
             receipt.write_text("stale")

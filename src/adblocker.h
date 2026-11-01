@@ -36,6 +36,7 @@ private:
     std::atomic_bool m_enabled{true};
     QNetworkAccessManager m_network;
     bool m_updating=false;
+    bool m_usesSuppliedRules=false;
     QString m_status;
     QString cacheFile() const;
 };

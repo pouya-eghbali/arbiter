@@ -234,6 +234,7 @@ def engine(args):
         '-DFEATURE_webengine_rust_build=OFF']
     env = environment(args)
     configure(args, code, build, options, env)
+    common.require_enabled_modules(build)
     if args.configure_only:
         return
     run('cmake', '--build', build, '--parallel', args.jobs, env=env)

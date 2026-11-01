@@ -25,6 +25,7 @@ QString AdBlocker::cacheFile() const { return QStandardPaths::writableLocation(Q
 AdBlocker::AdBlocker(QObject *parent) : AdBlocker(QByteArray(),parent) {}
 AdBlocker::AdBlocker(const QByteArray &customRules,QObject *parent) : QObject(parent) {
     if (!customRules.isEmpty()) {
+        m_usesSuppliedRules=true;
         m_engine=std::make_shared<AdBlockEngine>(customRules);
         m_status=tr("Using supplied filter rules.");
         return;
@@ -43,7 +44,7 @@ std::shared_ptr<AdBlockEngine> AdBlocker::engine() const { QMutexLocker lock(&m_
 void AdBlocker::setEnabled(bool value) {
     if (m_enabled.exchange(value)==value) return;
     Settings().setValue("AdBlock/enabled",value); emit enabledChanged();
-    if (value && !m_updating && !QFileInfo::exists(cacheFile())) updateLists();
+    if (value && !m_usesSuppliedRules && !m_updating && !QFileInfo::exists(cacheFile())) updateLists();
 }
 void AdBlocker::updateLists() {
     if (m_updating) return;

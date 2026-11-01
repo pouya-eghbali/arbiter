@@ -31,6 +31,14 @@ def patch(root, file):
     run("git", "apply", "--check", file, cwd=root)
     run("git", "apply", file, cwd=root)
 
+def require_enabled_modules(build):
+    # Qt may warn and silently turn requested modules OFF after a failed
+    # prerequisite check. Never install old outputs or stamp them as rebuilt.
+    cache = (build / "CMakeCache.txt").read_text()
+    for module in ("qtwebengine", "qtpdf"):
+        if not re.search(rf"^QT_FEATURE_{module}_build:[^=]+=ON$", cache, re.MULTILINE):
+            raise RuntimeError(f"Qt disabled {module}; fix the configure errors before building this SDK")
+
 def configure_macos_helper(sdk, qt_prefix):
     # CMake's install_name_tool optimization preserves existing RPATH order.
     # A base-Qt path retained from the build can therefore precede the SDK and
@@ -138,6 +146,7 @@ def main():
     # Qt launches its own nested Ninja; the outer --parallel flag does not limit it.
     os.environ["NINJAFLAGS"] = f"-j{args.jobs}"
     run("cmake", "-G", "Ninja", "-S", source, "-B", build, *flags)
+    require_enabled_modules(build)
     if args.configure_only: return
     run("cmake", "--build", build, "--parallel", args.jobs)
     if fingerprint() != build_identity:

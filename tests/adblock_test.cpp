@@ -31,6 +31,7 @@ private slots:
         ViewAdBlock state; state.setManager(&manager); QVERIFY(state.enabled());
         state.setPaused(true); QVERIFY(!state.enabled()); state.setPaused(false);
         manager.setEnabled(false); QVERIFY(!state.enabled()); manager.setEnabled(true); QVERIFY(state.enabled());
+        QVERIFY(!manager.updating()); // Supplied rules must not be replaced by an automatic list download.
         QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost)); int scripts=0;
         connect(&server,&QTcpServer::newConnection,this,[&] {
             auto *socket=server.nextPendingConnection();
