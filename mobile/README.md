@@ -1,5 +1,8 @@
 # Arbiter mobile — Qt/QML
 
+Store submission is not ready yet. See the [mobile release-readiness audit](../docs/mobile-release-readiness.md)
+for confirmed blockers, Liquid Glass findings, and the remaining validation work.
+
 The mobile interface uses Qt Quick and the same Glacier controls, Lucide icons,
 filter lists and credential sync format as desktop. Qt WebEngine is selected when
 it is available in the Qt kit. iOS uses WKWebView; Android uses Android System
