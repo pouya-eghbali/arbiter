@@ -4,6 +4,7 @@
 /output/
 /design/explorations/
 /CMakeUserPresets.json
+/aqtinstall.log*
 /.qt/
 /.cache/
 *.user
