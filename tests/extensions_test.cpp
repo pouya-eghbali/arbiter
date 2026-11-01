@@ -546,8 +546,14 @@ Window {
             window.runProbe=async(capture)=>{
                 const assert=(ok,message)=>{if(!ok)throw Error(message)};
                 try{
-                    const initialization=await chrome.storage.local.get(['installCount','installReason']);
-                    assert(initialization.installCount===1&&initialization.installReason==='install','approved extension installation event');
+                    let initialization=await chrome.storage.local.get(['installCount','installReason']);
+                    // Approval starts the worker asynchronously; popup loading
+                    // does not imply its onInstalled storage write has finished.
+                    for(let attempt=0;attempt<100&&initialization.installCount===undefined;++attempt){
+                        await new Promise(resolve=>setTimeout(resolve,50));
+                        initialization=await chrome.storage.local.get(['installCount','installReason']);
+                    }
+                    assert(initialization.installCount===1&&initialization.installReason==='install','approved extension installation event: '+JSON.stringify(initialization));
                     const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
                     assert(tab?.id>0 && tab.url.startsWith('http://127.0.0.1:'),'active browser tab');
                     assert((await chrome.tabs.query({})).length===1,'profile isolation and popup exclusion');
