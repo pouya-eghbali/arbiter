@@ -522,14 +522,16 @@ Window {
         write(manifest.fileName(), QJsonDocument(json).toJson());
         write(source + "/content.js", R"JS(
             document.body.dataset.ready='yes';
-            const frame=document.createElement('iframe');frame.src=chrome.runtime.getURL('blob.html');document.body.append(frame);
-            addEventListener('message',e=>{if(e.source===frame.contentWindow&&e.data?.blobProbe)document.body.dataset.blobProbe=e.data.blobProbe});
+            const frame=document.createElement('iframe');frame.src=chrome.runtime.getURL('blob.html');frame.onload=()=>document.body.dataset.blobFrameLoaded='yes';document.body.append(frame);
+            addEventListener('message',e=>{if(e.data?.blobStage)document.body.dataset.blobStage=e.data.blobStage;if(e.source===frame.contentWindow&&e.data?.blobProbe)document.body.dataset.blobProbe=e.data.blobProbe});
             chrome.runtime.onMessage.addListener((message,sender,reply)=>{
                 if(message.probe){chrome.runtime.sendMessage({senderProbe:true},reply);return true;}
             });
         )JS");
         write(source + "/blob.html", "<!doctype html><script src='blob.js'></script>");
         write(source + "/blob.js", R"JS(
+            parent.postMessage({blobStage:'script started'},'*');
+            addEventListener('error',e=>parent.postMessage({blobProbe:'script error: '+e.message},'*'));
             const url=URL.createObjectURL(new Blob(['extension image transfer']));
             chrome.runtime.sendMessage({blobProbe:url},response=>{parent.postMessage({blobProbe:response?.text||'failed'},'*');URL.revokeObjectURL(url)});
         )JS");
@@ -582,7 +584,8 @@ Window {
                         await new Promise(resolve=>setTimeout(resolve,50));
                         blob=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>document.body.dataset.blobProbe});
                     }
-                    assert(blob[0]?.result==='extension image transfer','embedded extension blob can be read by its own worker: '+JSON.stringify(blob));
+                    const blobState=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>({loaded:document.body.dataset.blobFrameLoaded,stage:document.body.dataset.blobStage,frame:document.querySelector('iframe')?.src})});
+                    assert(blob[0]?.result==='extension image transfer','embedded extension blob can be read by its own worker: '+JSON.stringify({blob,state:blobState}));
                     await chrome.action.setIcon({path:'icon.png'});
                     await chrome.action.setIcon({path:{16:'icon.png'}});
                     failed=false;try{await chrome.action.setIcon({path:'file:///tmp/foreign-icon.png'})}catch(e){failed=true}assert(failed,'unsafe icon resource rejected');
