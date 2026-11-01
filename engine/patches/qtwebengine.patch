@@ -435,40 +435,63 @@ index ad1c5f9..485d358 100644
  
  content::PictureInPictureResult ExtensionHostDelegateQt::EnterPictureInPicture(content::WebContents *web_contents)
 diff --git a/src/core/extensions/extension_loader.cpp b/src/core/extensions/extension_loader.cpp
-index eafb641..a11fa02 100644
+index eafb641..47fea6b 100644
 --- a/src/core/extensions/extension_loader.cpp
 +++ b/src/core/extensions/extension_loader.cpp
-@@ -3,6 +3,9 @@
+@@ -3,6 +3,12 @@
  // Qt-Security score:significant reason:default
  
  #include "extension_loader.h"
 +#include "extensions/browser/api/runtime/runtime_api.h"
++#include "extensions/browser/lazy_context_id.h"
++#include "extensions/browser/lazy_context_task_queue.h"
++#include "extensions/common/manifest_handlers/background_info.h"
 +#include "extensions/browser/extension_prefs.h"
 +#include "base/task/single_thread_task_runner.h"
  
  #include "extension_manager.h"
  #include "type_conversion.h"
-@@ -123,6 +126,26 @@ void ExtensionLoader::disableExtension(const std::string &id)
+@@ -123,6 +129,46 @@ void ExtensionLoader::disableExtension(const std::string &id)
          m_extensionRegistrar->DisableExtension(id, {extensions::disable_reason::DISABLE_USER_ACTION});
  }
  
 +void ExtensionLoader::PostActivateExtension(scoped_refptr<const Extension> extension)
 +{
 +    // Installation stays disabled until Arbiter's permission review is approved.
-+    // Deliver initialization once per version, only after activation, rather than
-+    // running extension code when its files are merely installed.
 +    if (extension->location() == extensions::mojom::ManifestLocation::kComponent
 +        || extension->location() == extensions::mojom::ManifestLocation::kExternalComponent) return;
 +    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(FROM_HERE,
 +        base::BindOnce([](base::WeakPtr<ExtensionLoader> loader, std::string id) {
 +            if (!loader || !loader->isExtensionEnabled(id)) return;
 +            auto extension = loader->getExtensionById(id);
++            if (!extension) return;
 +            auto *prefs = extensions::ExtensionPrefs::Get(loader->m_browserContext);
 +            std::string previous;
 +            prefs->ReadPrefAsString(id, "arbiter_initialized_version", &previous);
 +            if (previous == extension->version().GetString()) return;
-+            prefs->UpdateExtensionPref(id, "arbiter_initialized_version", base::Value(extension->version().GetString()));
-+            extensions::RuntimeEventRouter::DispatchOnInstalledEvent(loader->m_browserContext, id, base::Version(previous), false);
++            const bool needsContext = extensions::BackgroundInfo::HasLazyContext(extension.get());
++            auto notify = base::BindOnce([](base::WeakPtr<ExtensionLoader> loader, std::string id,
++                                           std::string version, bool needsContext,
++                                           std::unique_ptr<extensions::LazyContextTaskQueue::ContextInfo> context) {
++                // A failed worker startup must not consume its installation event.
++                if ((needsContext && !context) || !loader || !loader->isExtensionEnabled(id)) return;
++                auto extension = loader->getExtensionById(id);
++                if (!extension || extension->version().GetString() != version) return;
++                auto *prefs = extensions::ExtensionPrefs::Get(loader->m_browserContext);
++                std::string previous;
++                prefs->ReadPrefAsString(id, "arbiter_initialized_version", &previous);
++                if (previous == version) return;
++                prefs->UpdateExtensionPref(id, "arbiter_initialized_version", base::Value(version));
++                extensions::RuntimeEventRouter::DispatchOnInstalledEvent(loader->m_browserContext, id, base::Version(previous), false);
++            }, loader, id, extension->version().GetString(), needsContext);
++            if (needsContext) {
++                // Wait for global worker script execution, including listener
++                // registration, before dispatching the installation event.
++                auto context = extensions::LazyContextId::ForExtension(loader->m_browserContext, extension.get());
++                if (auto *queue = context.GetTaskQueue()) queue->AddPendingTask(context, std::move(notify));
++            } else {
++                std::move(notify).Run(nullptr);
++            }
 +        }, m_weakFactory.GetWeakPtr(), extension->id()));
 +}
 +
