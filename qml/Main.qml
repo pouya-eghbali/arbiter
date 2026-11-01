@@ -80,6 +80,7 @@ Basic.ApplicationWindow {
     required property var history
     required property var downloads
     required property var onboarding
+    required property var systemIntegration
     required property var adblocker
     required property var siteAudio
     required property var browserPreferences
@@ -113,13 +114,22 @@ Basic.ApplicationWindow {
     property bool editingDarkAppearance: appearance.dark
     property int settingsCategory: 0
     function clearPrivacyFields() { currentPrivacyPassword.clear(); newPrivacyPassword.clear(); confirmPrivacyPassword.clear() }
-    onActiveChanged: if (!active && uiReady) clearPrivacyFields()
+    function refreshDefaultBrowser() {
+        if (uiReady && settingsOpen && settingsCategory === 4)
+            systemIntegration.refreshDefault()
+    }
+    onActiveChanged: {
+        if (!active && uiReady) clearPrivacyFields()
+        if (active) refreshDefaultBrowser()
+    }
     onSettingsCategoryChanged: {
+        refreshDefaultBrowser()
         if (uiReady && settingsCategory !== 7) clearPrivacyFields()
         if (importer && settingsCategory !== 5 && !importer.importing) importer.cancel()
         Qt.callLater(function() { categoryScroll.revealCategory(window.settingsCategory) })
     }
     onSettingsOpenChanged: {
+        refreshDefaultBrowser()
         if (uiReady && settingsOpen) { developerTools.close(); desktopSharePanel.cancel(); nativeShare.cancel(); temporaryPill = false }
         if (uiReady && !settingsOpen) clearPrivacyFields()
         if (importer && !settingsOpen && !importer.importing) importer.cancel()
@@ -1819,6 +1829,30 @@ Basic.ApplicationWindow {
                         visible: window.settingsCategory === 4
                         Layout.fillWidth: true
                         spacing: 16
+                        Basic.Label {
+                            text: qsTranslate("Onboarding", "Default browser")
+                            color: Theme.textFor(parent)
+                            Layout.fillWidth: true
+                        }
+                        UiButton {
+                            objectName: "setDefaultBrowserButton"
+                            text: window.systemIntegration.isDefault
+                                ? qsTranslate("Onboarding", "Arbiter is your default browser")
+                                : window.systemIntegration.busy
+                                    ? qsTranslate("Onboarding", "Waiting for your system…")
+                                    : qsTranslate("Onboarding", "Set as default")
+                            primary: !window.systemIntegration.isDefault
+                            enabled: !window.systemIntegration.busy && !window.systemIntegration.isDefault
+                            onClicked: window.systemIntegration.requestDefault()
+                        }
+                        Basic.Label {
+                            text: window.systemIntegration.message
+                            textFormat: Text.PlainText
+                            visible: text.length > 0
+                            color: Theme.mutedFor(parent)
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                        }
                         Basic.Label { text: qsTr("Interface language"); color: Theme.textFor(parent); Layout.fillWidth: true }
                         UiComboBox {
                             objectName: "interfaceLanguage"

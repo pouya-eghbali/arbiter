@@ -490,6 +490,7 @@ int main(int argc, char *argv[])
                                  {QStringLiteral("siteAudio"), QVariant::fromValue(&siteAudio)},
                                  {QStringLiteral("adblocker"), QVariant::fromValue(&adblocker)},
                                  {QStringLiteral("onboarding"), QVariant::fromValue(&onboarding)},
+                                 {QStringLiteral("systemIntegration"), QVariant::fromValue(&systemIntegration)},
                                  {QStringLiteral("windowDecorations"), appearance.windowDecorations()},
                                  {QStringLiteral("siteNavigation"), QVariant::fromValue(&siteNavigation)},
                                  {QStringLiteral("keyBindings"), QVariant::fromValue(&keyBindings)},
