@@ -61,6 +61,7 @@ class NativePage : public QObject {
 
   private:
     QWindow *m_window = nullptr;
+    bool m_starting = false;
     QUrl m_url;
     QRectF m_overlayRect;
     qreal m_coverProgress = 0;

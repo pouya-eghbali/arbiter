@@ -30,15 +30,21 @@ void NativePage::find(const QString &text, bool backwards) {
         MobilePlatform::find(this, text, backwards);
 }
 void NativePage::start() {
-    if (m_window)
+    if (m_window || m_starting)
         return;
+    m_starting = true;
     pages[tabId] = this;
-    m_window = MobilePlatform::createWebView(this, profile, privateMode);
-    emit nativeWindowChanged();
-    MobilePlatform::setOverlayRect(this, m_overlayRect);
-    MobilePlatform::setCoverProgress(this, m_coverProgress);
-    if (!m_url.isEmpty())
-        MobilePlatform::navigate(this, m_url);
+    QPointer<NativePage> guard(this);
+    MobilePlatform::createWebViewAsync(this, profile, privateMode, [guard](QWindow *window) {
+        if (!guard) { delete window; return; }
+        guard->m_starting = false;
+        guard->m_window = window;
+        emit guard->nativeWindowChanged();
+        if (!window) return;
+        MobilePlatform::setOverlayRect(guard, guard->m_overlayRect);
+        MobilePlatform::setCoverProgress(guard, guard->m_coverProgress);
+        if (!guard->m_url.isEmpty()) MobilePlatform::navigate(guard, guard->m_url);
+    });
 }
 void NativePage::setUrl(const QUrl &value) {
     if (m_url == value)

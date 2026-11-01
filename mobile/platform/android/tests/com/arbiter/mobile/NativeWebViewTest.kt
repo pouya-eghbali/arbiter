@@ -51,7 +51,7 @@ class NativeWebViewTest {
     (first as ArbiterPageView).drawPreview(android.graphics.Canvas(image))
     assertTrue("Tab previews must include the page behind the pill",android.graphics.Color.red(image.getPixel(200,750))>240)
     val press=android.view.MotionEvent.obtain(0,0,android.view.MotionEvent.ACTION_DOWN,200f,750f,0)
-    assertFalse("Pill touches must pass through to Qt Quick",first!!.dispatchTouchEvent(press));press.recycle();image.recycle()
+    assertTrue("Pill gestures must be consumed after routing to the owning Qt window",first!!.dispatchTouchEvent(press));press.recycle();image.recycle()
    }
    second=NativeBridge.create(other,other,false,script)
    instrumentation.runOnMainSync{second!!.loadDataWithBaseURL("https://fixture.example/","<title>Other fixture</title>","text/html","UTF-8",null)}

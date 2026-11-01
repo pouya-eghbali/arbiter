@@ -34,9 +34,38 @@ class ArbiterPageView(context:android.content.Context):WebView(context){
  private var forwarding=false
  private val settledTask=Runnable{settled?.invoke()}
  private fun frame()=android.graphics.RectF(overlay.left*width,overlay.top*height,overlay.right*width,overlay.bottom*height)
- override fun draw(canvas:android.graphics.Canvas){val rect=frame();if(rect.isEmpty){super.draw(canvas);return};val saved=canvas.save();val path=android.graphics.Path().apply{addRoundRect(rect,minOf(32*resources.displayMetrics.density,rect.height()/2),minOf(32*resources.displayMetrics.density,rect.height()/2),android.graphics.Path.Direction.CW)};canvas.clipOutPath(path);super.draw(canvas);canvas.restoreToCount(saved)}
- fun drawPreview(canvas:android.graphics.Canvas){super.draw(canvas)}
- override fun dispatchTouchEvent(event:android.view.MotionEvent):Boolean {if(event.actionMasked==android.view.MotionEvent.ACTION_DOWN)forwarding=frame().contains(event.x,event.y);if(forwarding)return false;return super.dispatchTouchEvent(event)}
+ override fun draw(canvas:android.graphics.Canvas){
+  val rect=frame()
+  if(rect.isEmpty){super.draw(canvas);return}
+  // ViewGroup draws a scrolled child in its content coordinate system. The
+  // cutout belongs to the viewport, so compensate before clipping the canvas.
+  rect.offset(scrollX.toFloat(),scrollY.toFloat())
+  val saved=canvas.save()
+  val path=android.graphics.Path().apply{addRoundRect(rect,minOf(32*resources.displayMetrics.density,rect.height()/2),minOf(32*resources.displayMetrics.density,rect.height()/2),android.graphics.Path.Direction.CW)}
+  canvas.clipOutPath(path);super.draw(canvas);canvas.restoreToCount(saved)
+ }
+ fun drawPreview(canvas:android.graphics.Canvas){
+  // Match ViewGroup.drawChild's viewport transform when rendering offscreen.
+  val saved=canvas.save();canvas.translate(-scrollX.toFloat(),-scrollY.toFloat())
+  super.draw(canvas);canvas.restoreToCount(saved)
+ }
+ override fun dispatchTouchEvent(event:android.view.MotionEvent):Boolean {
+  if(event.actionMasked==android.view.MotionEvent.ACTION_DOWN)forwarding=frame().contains(event.x,event.y)
+  if(!forwarding)return super.dispatchTouchEvent(event)
+  // Returning false sends the event to the foreign QtWindow wrapper, which has
+  // no QML scene. Deliver it to the owning Qt window instead, in its coordinates.
+  // Keep the whole gesture there even if the pointer leaves the rounded pill.
+  val owner=(parent as? android.view.View)?.parent as? android.view.View
+  if(owner!=null){
+   val sourceLocation=IntArray(2);val ownerLocation=IntArray(2)
+   getLocationOnScreen(sourceLocation);owner.getLocationOnScreen(ownerLocation)
+   val translated=android.view.MotionEvent.obtain(event)
+   translated.offsetLocation((sourceLocation[0]-ownerLocation[0]).toFloat(),(sourceLocation[1]-ownerLocation[1]).toFloat())
+   try{owner.onTouchEvent(translated)}finally{translated.recycle()}
+  }
+  if(event.actionMasked==android.view.MotionEvent.ACTION_UP||event.actionMasked==android.view.MotionEvent.ACTION_CANCEL)forwarding=false
+  return true
+ }
  override fun onScrollChanged(l:Int,t:Int,oldl:Int,oldt:Int){super.onScrollChanged(l,t,oldl,oldt);removeCallbacks(settledTask);postDelayed(settledTask,250)}
  override fun destroy(){removeCallbacks(settledTask);settled=null;super.destroy()}
 }
@@ -180,6 +209,7 @@ object NativeBridge {
  @JvmStatic fun action(id:String,name:String){activity().runOnUiThread{views[id]?.let{when(name){"back"->it.goBack();"forward"->it.goForward();"reload"->it.reload()}}}}
  @JvmStatic fun evaluate(id:String,script:String){activity().runOnUiThread{views[id]?.evaluateJavascript(script,null)}}
  @JvmStatic fun inspect(id:String){activity().runOnUiThread{views[id]?.evaluateJavascript("globalThis.__arbiterHasPassword?.()??true"){value->event(id,"loginInspection",JSONObject(mapOf("hasPassword" to (value!="false"))).toString())}}}
+ @JvmStatic fun discard(id:String,expected:WebView?){activity().runOnUiThread{if(expected!=null&&views[id]===expected)destroy(id)}}
  @JvmStatic fun destroy(id:String){activity().runOnUiThread{permissions.cancel(id);views.remove(id)?.let{it.stopLoading();it.destroy()};sources.remove(id);scripts.remove(id);findQueries.remove(id);privateProfiles.remove(id)?.let{profile->if(!privateProfiles.containsValue(profile))clearPrivateProfile(profile)}}}
  @JvmStatic fun configure(id:String,script:String,prefs:String){scripts[id]=script;evaluate(id,"globalThis.__arbiterUpdatePreferences?.($prefs)")}
  @JvmStatic fun overlay(id:String,x:Float,y:Float,width:Float,height:Float){activity().runOnUiThread{(views[id] as? ArbiterPageView)?.let{it.overlay=android.graphics.RectF(x,y,x+width,y+height);it.invalidate()}}}

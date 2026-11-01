@@ -23,7 +23,14 @@ void configureBackgroundSync(bool);
 void setSystemAppearance(const QColor &);
 void setLanguage(const QString &);
 QString legacySession();
+#ifdef Q_OS_ANDROID
+void createWebViewAsync(NativePage *, const QString &profile, bool privateMode, std::function<void(QWindow *)>);
+#else
 QWindow *createWebView(NativePage *, const QString &profile, bool privateMode);
+inline void createWebViewAsync(NativePage *page, const QString &profile, bool privateMode, std::function<void(QWindow *)> ready) {
+    ready(createWebView(page, profile, privateMode));
+}
+#endif
 void destroyWebView(NativePage *);
 void navigate(NativePage *, const QUrl &);
 void action(NativePage *, const QString &);

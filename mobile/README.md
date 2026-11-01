@@ -223,7 +223,10 @@ ARBITER_TEST_DESKTOP_FIXTURE="$PWD/build-release-tests-fcd301a1ff60/credentialsy
 The optional peer test uses temporary files and dummy credentials, never your
 real vault. Android instrumentation tests in `platform/android/tests` check
 passkey crypto, the native scheduled-sync service and actual WebView/profile
-isolation. Run the browser UI test on a disposable emulator; it deliberately
+isolation. `PillInteractionTest` additionally swipes a real page through the Qt/native
+window hierarchy, checks that the pill stays visible and fixed, verifies the scrolled
+preview, taps Tabs and dismisses it with Back. It runs with Android accessibility
+enabled by UI automation. Run the browser UI tests on a disposable emulator; they deliberately
 skips physical devices to protect personal browser profiles. From the generated
 `android-build` folder, run `./gradlew connectedDebugAndroidTest`. Test real WebView behavior
 on both operating systems before publishing a mobile release.

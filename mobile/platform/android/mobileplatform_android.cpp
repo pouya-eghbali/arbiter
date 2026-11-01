@@ -8,6 +8,8 @@
 #include <QPointer>
 #include <QTimer>
 #include <atomic>
+#include <QFutureWatcher>
+#include <memory>
 namespace {
 std::atomic<bool> acceptingEvents{true};
 constexpr auto bridge = "com/arbiter/mobile/NativeBridge";
@@ -158,22 +160,42 @@ void setLanguage(const QString &code) {
 QString legacySession() {
     return {};
 }
-QWindow *createWebView(NativePage *page, const QString &profile, bool privateMode) {
-    auto object = QJniObject::callStaticObjectMethod(
-        bridge, "create", "(Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;)Landroid/webkit/WebView;",
-        QJniObject::fromString(page->tabId).object<jstring>(),
-        QJniObject::fromString(profile).object<jstring>(), jboolean(privateMode),
-        QJniObject::fromString(MobileModel::instance->formScript(privateMode)).object<jstring>());
-    if (!object.isValid()) {
-        QJniEnvironment env;
-        env.checkAndClearExceptions();
-        page->event("error",
-                    {{"message", QObject::tr("Update Android System WebView to use isolated sessions.")}});
-        return nullptr;
-    }
-    auto owned = new QJniObject(object);
-    page->handle = owned;
-    return QWindow::fromWinId(reinterpret_cast<WId>(owned->object()));
+void createWebViewAsync(NativePage *page, const QString &profile, bool privateMode,
+                        std::function<void(QWindow *)> ready) {
+    // Never block Qt's GUI thread waiting for Android's UI thread: accessibility
+    // node queries on Android can simultaneously wait for that same Qt thread.
+    const auto id = page->tabId;
+    const auto script = MobileModel::instance->formScript(privateMode);
+    QPointer<NativePage> guarded(page);
+    auto object = std::make_shared<QJniObject>();
+    auto watcher = new QFutureWatcher<void>(qApp);
+    QObject::connect(watcher, &QFutureWatcher<void>::finished, qApp,
+        [watcher, guarded, id, object, ready = std::move(ready)] {
+            watcher->deleteLater();
+            if (!guarded) {
+                QJniObject::callStaticMethod<void>(bridge, "discard", "(Ljava/lang/String;Landroid/webkit/WebView;)V",
+                                                  QJniObject::fromString(id).object<jstring>(), object->object<jobject>());
+                ready(nullptr);
+                return;
+            }
+            if (!object->isValid()) {
+                guarded->event("error", {{"message", QObject::tr("Update Android System WebView to use isolated sessions.")}});
+                ready(nullptr);
+                return;
+            }
+            auto owned = new QJniObject(*object);
+            guarded->handle = owned;
+            ready(QWindow::fromWinId(reinterpret_cast<WId>(owned->object())));
+        });
+    watcher->setFuture(QNativeInterface::QAndroidApplication::runOnAndroidMainThread(
+        [object, id, profile, privateMode, script] {
+            *object = QJniObject::callStaticObjectMethod(
+                bridge, "create", "(Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;)Landroid/webkit/WebView;",
+                QJniObject::fromString(id).object<jstring>(), QJniObject::fromString(profile).object<jstring>(),
+                jboolean(privateMode), QJniObject::fromString(script).object<jstring>());
+            QJniEnvironment env;
+            env.checkAndClearExceptions();
+        }));
 }
 void destroyWebView(NativePage *page) {
     QJniObject::callStaticMethod<void>(bridge, "destroy", "(Ljava/lang/String;)V",

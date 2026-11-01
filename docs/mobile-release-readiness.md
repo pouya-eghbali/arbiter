@@ -50,6 +50,26 @@ installation, stable identifiers and source/relink distribution requirements.
 Self-built full-feature iOS apps need an Apple team able to provision App Groups
 and the credential provider; free Personal Team support is not promised.
 
+### Follow-up: real Android browsing and pill interaction
+
+Real Wikipedia browsing after commit `f489402` exposed a gap in the previous
+Android checks: they tested native engine/profile integration and an unscrolled
+cutout, not the actual Qt-window input path or page scrolling. Scrolling moved
+the cutout, pill touches reached the wrong Qt window, and scrolled previews used
+the wrong canvas origin. These have been corrected.
+
+The new `PillInteractionTest` drives a real rendered page using injected system
+touch events and screenshots. It checks fixed pill bounds/visibility after a
+swipe, viewport preview pixels, opening Tabs through the pill and returning with
+Back. Enabling accessibility for this test also exposed a synchronous
+Android-UI/Qt-GUI thread deadlock during WebView creation. Creation is now
+asynchronous, including safe cleanup if the page is closed before it completes.
+The complete Android suite now passes 13 tests, including this regression.
+Wikipedia, MDN and Hacker News were also opened through the actual app UI and
+captured with real page previews. These checks supplement the earlier audit;
+they do not establish full mobile
+end-to-end or screen-reader coverage.
+
 ## Original audit (before remediation)
 
 Reviewed 2026-11-01 against repository commit `052477c`, the existing Android APK,
