@@ -18,7 +18,7 @@ SPEC.loader.exec_module(inputs)
 
 class CrossInputTests(unittest.TestCase):
     def test_untrusted_sdk_archives_cannot_escape_validation_directory(self):
-        for name in ('../outside', '/sdk/file', 'sdk/../../outside', 'sdk\\outside', 'C:/sdk/file', 'sdk/file:stream'):
+        for name in ('../outside', '/sdk/file', 'sdk/../../outside', 'sdk\\..\\..\\outside', 'C:/sdk/file', 'sdk/file:stream'):
             with self.subTest(name=name), tempfile.TemporaryDirectory() as folder:
                 root = Path(folder)
                 archive = root / 'build-inputs-linux.zip'
