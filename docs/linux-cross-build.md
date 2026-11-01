@@ -52,6 +52,8 @@ review the lock diff, and rebuild. Toolchain, sysroot and engine inputs are
 fingerprinted so an SDK from different inputs cannot silently be reused.
 
 WebEngine and Qt PDF come from the same pinned, patched source snapshot.
+The driver explicitly selects a desktop build with WebRTC and browser printing/PDF
+enabled; Qt's default Unix cross-build configuration targets embedded devices.
 LLVM's Linux compiler builtins are cross-compiled from its checksum-pinned source.
 The native Mac Qt tools generate code; Linux Qt libraries are linked into target
 binaries. Linux media uses the target system's FFmpeg rather than bundling it.

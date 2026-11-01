@@ -229,12 +229,20 @@ def engine(args):
         f'-DGn_EXECUTABLE={args.host_qt / "libexec/gn"}',
         '-DQT_BUILD_EXAMPLES=OFF', '-DQT_BUILD_TESTS=OFF', '-DQT_SHOW_EXTRA_IDE_SOURCES=OFF',
         '-DFEATURE_qtwebengine_build=ON', '-DFEATURE_qtpdf_build=ON',
+        # Qt otherwise treats a cross-compiled Unix target as embedded and
+        # silently disables WebRTC and browser printing/PDF integration.
+        '-DFEATURE_webengine_embedded_build=OFF', '-DFEATURE_webengine_webrtc=ON',
+        '-DFEATURE_webengine_printing_and_pdf=ON',
         '-DFEATURE_webengine_system_ffmpeg=ON', '-DFEATURE_webengine_proprietary_codecs=ON',
         '-DFEATURE_webengine_geolocation=ON', '-DFEATURE_webengine_extensions=ON',
         '-DFEATURE_webengine_rust_build=OFF']
     env = environment(args)
     configure(args, code, build, options, env)
     common.require_enabled_modules(build)
+    cache = (build / 'CMakeCache.txt').read_text()
+    for feature in ('webengine_webrtc', 'webengine_printing_and_pdf'):
+        if not re.search(rf'^QT_FEATURE_{feature}:[^=]+=ON$', cache, re.MULTILINE):
+            raise RuntimeError(f'Required desktop feature is disabled: {feature}')
     if args.configure_only:
         return
     run('cmake', '--build', build, '--parallel', args.jobs, env=env)
