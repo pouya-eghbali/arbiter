@@ -65,7 +65,7 @@ private slots:
             QVERIFY2(!translator.translate("Main", "Settings").isEmpty(), code);
             QVERIFY2(!translator.translate("QObject", "New Tab").isEmpty(), code);
             QVERIFY2(!translator.translate("KeyBindings", "Edit address").isEmpty(), code);
-            QVERIFY2(!translator.translate("BiometricAuth", "Touch ID is available.").isEmpty(), code);
+            QVERIFY2(!translator.translate("BiometricAuth", "Device verification is unavailable. Check your system authentication settings.").isEmpty(), code);
             QVERIFY2(!translator.translate("NavigationPill", "Back to navigation").isEmpty(), code);
             QVERIFY2(!translator.translate("NavigationPill", "Mute site").isEmpty(), code);
             QVERIFY2(!translator.translate("WebContextMenu", "Copy image").isEmpty(), code);
