@@ -129,7 +129,7 @@ Controls.ApplicationWindow {
     readonly property string workspaceName: (browser.workspaces.find(w => w.id === browser.workspaceId) || {}).name || qsTr("Personal")
     // Keep toolbar geometry even while a sheet hides the pill. Opening
     // a browser panel must not resize/reflow the website behind the glass.
-    readonly property real toolbarBottomInset: pill.height + Math.max(14, bottomInset + 8) + 8
+    readonly property real toolbarBottomInset: pill.viewportHeight + Math.max(14, bottomInset + 8) + 8
     readonly property rect nativeOverlayRect: {
         const control = panel === "find" ? findBar : pill;
         if (control.nativeActive) return Qt.rect(0, 0, 0, 0);
@@ -456,6 +456,7 @@ Controls.ApplicationWindow {
             width: (parent.width - 32) * (1 - compactProgress) + Math.min(parent.width - 32, Math.max(180, parent.width * .6)) * compactProgress
             y: parent.height - height - Math.max(14, window.bottomInset + 8) - window.keyboardInset + 12 * (1 - pill.progress)
             height: implicitHeight
+            expandedWidth: parent.width - 32
             current: window.current
             enabled: !browser.privateLocked
             tabCount: window.visibleTabs.length
@@ -470,12 +471,15 @@ Controls.ApplicationWindow {
             Connections {
                 target: browser
                 function onToolbarScrolled(delta, offset) {
-                    if (!pill.presented || !window.current.url || pill.suggestions || window.keyboardInset > 0 || pillTouchHold.running || pillTransitionHold.running) return;
+                    if (!pill.presented || !window.current.url || pill.suggestions || window.keyboardInset > 0 || pillTouchHold.running) return;
+                    // Expansion must respond to reversal even during the collapse animation.
+                    if (delta < 0 && pill.collapsed) { pill.resetChrome(); return; }
+                    if (pillTransitionHold.running) return;
                     if (offset < 8) { pill.resetChrome(); return; }
                     pill.scrollTravel = Math.sign(delta) === Math.sign(pill.scrollTravel) ? pill.scrollTravel + delta : delta;
                     if (delta > 0 && offset > 80 && pill.scrollTravel > 56 && !pill.collapsed) {
                         pill.collapsed = true; pill.scrollTravel = 0; pillTransitionHold.restart();
-                    } else if (delta < 0 && pill.scrollTravel < -14 && pill.collapsed) pill.resetChrome();
+                    }
                 }
                 function onPageAction(tabId, action, argument) { if (tabId === browser.activeId && ["navigate", "back", "forward", "reload"].includes(action)) pill.resetChrome() }
             }

@@ -11,12 +11,17 @@ MobilePresentation {
     readonly property bool nativeActive: nativeGlass.active
     readonly property color pillText: nativeActive ? nativeGlass.foregroundColor : Theme.textFor(parent)
     readonly property color pillMuted: nativeActive ? Qt.alpha(nativeGlass.foregroundColor, .72) : Theme.mutedFor(parent)
+    property real expandedWidth: width
+    readonly property real expandedHeight: (suggestions ? 106 : 58) + Math.max(0, 18 * (MobileMetrics.textScale - 1))
     property bool collapsed: false
     readonly property bool compact: collapsed && Boolean(current.url) && !suggestions
     property real compactProgress: compact ? 1 : 0
     Behavior on compactProgress {
         NumberAnimation { duration: Theme.reducedMotion ? 0 : 260; easing.type: Easing.OutCubic }
     }
+    // Reserve full space until collapse finishes, and restore it before
+    // expansion starts. WebKit need not reflow the page on every visual frame.
+    readonly property real viewportHeight: compact && compactProgress > .999 ? implicitHeight : expandedHeight
     function expand() { collapsed = false; expandedByTouch() }
     signal expandedByTouch
     property int tabCount: 1
@@ -34,6 +39,7 @@ MobilePresentation {
         requested: browser.settings.liquidGlass === true
         radius: root.height / 2
         content: pillContent
+        minimumRenderSize: Qt.platform.os === "ios" ? Qt.size(root.expandedWidth, root.expandedHeight) : Qt.size(0, 0)
         WindowContainer {
             anchors.fill: parent
             window: nativeGlass.containerWindow
@@ -51,7 +57,8 @@ MobilePresentation {
         id: pillContent
         enabled: root.presented
         objectName: "mobilePillContent"
-        anchors.fill: parent
+        width: root.width
+        height: root.height
         clip: true
         Controls.AbstractButton {
             objectName: "mobileExpandPillButton"
@@ -86,8 +93,10 @@ MobilePresentation {
             visible: root.compactProgress < .99
             opacity: 1 - root.compactProgress
             enabled: !root.compact
-            anchors.fill: parent
-            anchors.margins: 5
+            width: root.expandedWidth - 10
+            height: root.expandedHeight - 10
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
             spacing: 2
             RowLayout {
                 visible: root.suggestions

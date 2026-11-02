@@ -34,7 +34,7 @@
       scheduled = false;
       const value = pending; pending = null;
       if (!value) return;
-      const message = {type: 'toolbarScroll', delta: value.delta, offset: value.y};
+      const message = {type: 'toolbarScroll', delta: value.delta, offset: value.y, documentScroll: value.element === root()};
       if (globalThis.__arbiterSend) globalThis.__arbiterSend(message);
       else if (window.webkit?.messageHandlers?.arbiterForms) window.webkit.messageHandlers.arbiterForms.postMessage(message);
       else window.arbiterForms?.postMessage(JSON.stringify(message));

@@ -300,10 +300,14 @@ void prepareRules(void (^callback)(void)) {
 @property(nonatomic, strong) UIView *coverShade;
 @property(nonatomic, strong) NSMutableDictionary *downloads;
 @property(nonatomic) NSUInteger navigationGeneration;
+@property(nonatomic) CGPoint previousPanTranslation;
+@property(nonatomic) CGFloat previousScrollOffset;
 @property(nonatomic, copy) NSString *privateProfile;
 - (instancetype)initWithPage:(NativePage *)owner profile:(NSString *)profile privateMode:(BOOL)privateMode;
 - (void)configure;
 - (void)captureForPreview;
+- (void)pagePanChanged:(UIPanGestureRecognizer *)gesture;
+- (void)reportPanTranslation:(CGPoint)translation state:(UIGestureRecognizerState)state;
 @end
 static NSMutableDictionary<NSString *, WKWebsiteDataStore *> *privateStores;
 static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
@@ -340,6 +344,7 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
     self.view.UIDelegate = self;
     self.view.allowsBackForwardNavigationGestures = YES;
     self.view.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
+    [self.view.scrollView.panGestureRecognizer addTarget:self action:@selector(pagePanChanged:)];
     [self.view addObserver:self forKeyPath:@"underPageBackgroundColor" options:NSKeyValueObservingOptionNew context:nil];
     [self.view addObserver:self forKeyPath:@"title" options:NSKeyValueObservingOptionNew context:nil];
     [self.view addObserver:self
@@ -362,6 +367,7 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
     }
     [NSObject cancelPreviousPerformRequestsWithTarget:self];
     [self.view removeObserver:self forKeyPath:@"scrollView.contentOffset"];
+    [self.view.scrollView.panGestureRecognizer removeTarget:self action:@selector(pagePanChanged:)];
     [self.view stopLoading];
     [self.view removeObserver:self forKeyPath:@"underPageBackgroundColor"];
     [self.view removeObserver:self forKeyPath:@"title"];
@@ -450,11 +456,41 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
     if (compiledRules)
         [controller addContentRuleList:compiledRules];
 }
+// UIKit direction is available while WebKit is asynchronously scrolling, even
+// when DOM scroll events are delayed or the toolbar changes the page viewport.
+- (void)pagePanChanged:(UIPanGestureRecognizer *)gesture {
+    [self reportPanTranslation:[gesture translationInView:self.view] state:gesture.state];
+}
+- (void)reportPanTranslation:(CGPoint)translation state:(UIGestureRecognizerState)state {
+    if (state == UIGestureRecognizerStateBegan) {
+        self.previousPanTranslation = translation;
+        return;
+    }
+    const CGPoint previous = self.previousPanTranslation;
+    self.previousPanTranslation = translation;
+    if (!page || state != UIGestureRecognizerStateChanged || page->coverProgress() > 0) return;
+    const CGFloat delta = previous.y - translation.y;
+    if (fabs(delta) < .5 || fabs(translation.x - previous.x) > fabs(delta)) return;
+    const auto scroll = self.view.scrollView;
+    const CGFloat offset = MAX(0., scroll.contentOffset.y + scroll.adjustedContentInset.top);
+    // Ignore rubber band movement at the top when considering a collapse.
+    if (delta > 0 && offset < 8) return;
+    page->event("toolbarScroll", {{"delta", delta}, {"offset", offset}});
+}
 - (void)observeValueForKeyPath:(NSString *)key
                       ofObject:(id)object
                         change:(NSDictionary *)change
                        context:(void *)context {
     if ([key isEqualToString:@"scrollView.contentOffset"]) {
+        auto scroll = self.view.scrollView;
+        const CGFloat maximum = MAX(0., scroll.contentSize.height - scroll.bounds.size.height + scroll.adjustedContentInset.bottom);
+        const CGFloat offset = MAX(0., MIN(scroll.contentOffset.y + scroll.adjustedContentInset.top, maximum));
+        const CGFloat delta = offset - self.previousScrollOffset;
+        self.previousScrollOffset = offset;
+        // Continue a downward flick after the finger lifts. Upward expansion
+        // comes directly from the pan recognizer, independent of DOM timing.
+        if (page && scroll.decelerating && delta > .5 && page->coverProgress() == 0)
+            page->event("toolbarScroll", {{"delta", delta}, {"offset", offset}});
         [NSObject cancelPreviousPerformRequestsWithTarget:self
                                                  selector:@selector(captureForPreview)
                                                    object:nil];
@@ -516,6 +552,9 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
     auto type = data.value("type").toString();
     if (!QStringList{"credentialFocus", "loginSubmitted", "loginSucceeded", "activityState", "toolbarScroll"}.contains(type))
         return;
+    // Native root scrolling must not be double-counted by the DOM observer.
+    // Retain the isolated helper for independently scrolling page elements.
+    if (type == "toolbarScroll" && data.value("documentScroll").toBool()) return;
     auto frame = message.frameInfo.securityOrigin;
     auto url = page->url();
     if (url.scheme() != "https" && url.scheme() != "http")
@@ -922,6 +961,11 @@ void evaluate(NativePage *page, const QString &script, std::function<void(QVaria
 } // namespace MobilePlatform
 
 #if TARGET_OS_SIMULATOR
+void arbiter_ios_test_reverse_scroll(NativePage *page) {
+    ArbiterWeb *bridge = (__bridge ArbiterWeb *)page->handle;
+    [bridge reportPanTranslation:CGPointZero state:UIGestureRecognizerStateBegan];
+    [bridge reportPanTranslation:CGPointMake(0, 2) state:UIGestureRecognizerStateChanged];
+}
 void arbiter_ios_test_system_appearance(bool dark) {
     activeWindowScene().traitOverrides.userInterfaceStyle =
         dark ? UIUserInterfaceStyleDark : UIUserInterfaceStyleLight;

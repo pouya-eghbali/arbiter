@@ -10,6 +10,7 @@ class SurfacePalette;
 class NativeGlassHost : public QQuickItem {
     Q_OBJECT
     QML_ELEMENT
+    Q_PROPERTY(QSizeF minimumRenderSize READ minimumRenderSize WRITE setMinimumRenderSize NOTIFY minimumRenderSizeChanged)
     Q_PROPERTY(bool blockOutsideInput MEMBER m_blockOutsideInput)
     Q_PROPERTY(QRectF contentRect READ contentRect WRITE setContentRect NOTIFY contentRectChanged)
     Q_PROPERTY(bool windowSurface READ windowSurface WRITE setWindowSurface NOTIFY windowSurfaceChanged)
@@ -25,6 +26,8 @@ class NativeGlassHost : public QQuickItem {
 public:
     explicit NativeGlassHost(QQuickItem *parent = nullptr);
     ~NativeGlassHost() override;
+    QSizeF minimumRenderSize() const { return m_minimumRenderSize; }
+    void setMinimumRenderSize(const QSizeF &value) { if (m_minimumRenderSize == value) return; m_minimumRenderSize = value; emit minimumRenderSizeChanged(); schedule(); }
     QRectF contentRect() const { return m_contentRect; }
     void setContentRect(const QRectF &value) { if (m_contentRect == value) return; m_contentRect = value; emit contentRectChanged(); schedule(); }
     bool windowSurface() const { return m_windowSurface; }
@@ -45,6 +48,7 @@ public:
     Q_INVOKABLE bool geometryAligned() const;
     bool handleOutsidePointer(const QPointF &, bool pressed);
 signals:
+    void minimumRenderSizeChanged();
     void windowSurfaceChanged();
     void contentRectChanged();
     void escapeRequested();
@@ -71,6 +75,7 @@ private:
     bool m_requested = false, m_active = false, m_queued = false, m_reduced = false;
     qreal m_radius = 28;
     QRectF m_contentRect;
+    QSizeF m_minimumRenderSize;
     QPointF m_originalPosition;
     QColor m_color = Qt::black;
     QPointer<QQuickItem> m_content, m_originalParent;
@@ -90,7 +95,7 @@ bool reducedTransparency();
 void *create(QQuickWindow *owner, QQuickWindow *foreground);
 void *createWindow(QQuickWindow *, NativeGlassHost *);
 QWindow *container(void *);
-void update(void *, const QRectF &, qreal radius);
+void update(void *, const QRectF &, qreal radius, const QSizeF &minimumRenderSize = {});
 void destroy(void *);
 void setVisible(void *, bool);
 void setOpacity(void *, qreal);

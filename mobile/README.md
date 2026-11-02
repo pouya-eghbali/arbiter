@@ -241,11 +241,15 @@ up or tapping the compact control restores the full toolbar; the first tap does
 not open the keyboard. Small direction changes are ignored, and a short hold
 after tapping gives time to use the restored controls. Tab changes, navigation,
 and password suggestions restore the full pill. Reduced Motion disables the
-size transition. iOS updates its obscured viewport inset alongside the animation.
+size transition. iOS reserves website space before expansion and releases it after collapse,
+avoiding per-frame WebKit relayout. Its native pan recognizer restores controls
+on the first upward movement, including a reversal during collapse. The native
+glass foreground keeps a stable render-target size throughout the transition.
 
-The isolated main-frame scroll helper supports document and nested scroll areas
-on iOS, Android, and WebEngine. It requires recent trusted touch/wheel input,
-clamps overscroll bounce, and ignores viewport/keyboard resize events. Scroll
+Android and WebEngine use the isolated main-frame helper for document and nested
+scroll areas; iOS uses UIKit for root scrolling and the helper for nested areas.
+The helper requires recent trusted touch/wheel input, clamps overscroll bounce,
+and ignores viewport/keyboard resize events. Scroll
 messages update transient UI state without saving the browser session per frame.
 
 Run `node mobile/tests/scroll_test.mjs` for the scroll-intent checks. The desktop

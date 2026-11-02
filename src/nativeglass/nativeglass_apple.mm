@@ -70,6 +70,7 @@ qreal keyboardInset(QQuickItem *item, const QRectF &frame) {
 @property(nonatomic, strong) NSGlassEffectView *effect API_AVAILABLE(macos(26.0));
 #endif
 @property(nonatomic) QWindow *container;
+@property(nonatomic) BOOL fixedRenderTarget;
 @end
 @implementation ArbiterNativeGlassContext
 @end
@@ -190,16 +191,20 @@ void *createWindow(QQuickWindow *owner, NativeGlassHost *host) {
 QWindow *container(void *value) {
     return ((__bridge ArbiterNativeGlassContext *)value).container;
 }
-void update(void *value, const QRectF &rect, qreal radius) {
+void update(void *value, const QRectF &rect, qreal radius, const QSizeF &minimumRenderSize) {
     auto context = (__bridge ArbiterNativeGlassContext *)value;
 #if TARGET_OS_IPHONE
     if (@available(iOS 26.0, *)) {
-        context.containerView.frame = CGRectMake(rect.x(), rect.y(), rect.width(), rect.height());
-        context.effect.frame = context.containerView.bounds;
-        context.effect.layer.cornerRadius = radius;
-        context.effect.layer.cornerCurve = kCACornerCurveContinuous;
-        context.effect.cornerConfiguration = [UICornerConfiguration configurationWithRadius:[UICornerRadius fixedRadius:radius]];
-        context.foreground.frame = context.effect.contentView.bounds;
+        context.fixedRenderTarget = minimumRenderSize.isValid();
+        [UIView performWithoutAnimation:^{
+            context.containerView.frame = CGRectMake(rect.x(), rect.y(), rect.width(), rect.height());
+            context.effect.frame = context.containerView.bounds;
+            context.effect.layer.cornerRadius = radius;
+            context.effect.layer.cornerCurve = kCACornerCurveContinuous;
+            context.effect.cornerConfiguration = [UICornerConfiguration configurationWithRadius:[UICornerRadius fixedRadius:radius]];
+            context.foreground.frame = CGRectMake(0, 0, MAX(rect.width(), minimumRenderSize.width()),
+                                                 MAX(rect.height(), minimumRenderSize.height()));
+        }];
         [context.owner bringSubviewToFront:context.containerView];
     }
 #else
@@ -275,7 +280,9 @@ bool geometryAligned(void *value) {
     const auto glass = [context.effect convertRect:context.effect.bounds toView:context.owner];
     const auto controls = [context.foreground convertRect:context.foreground.bounds toView:context.owner];
     const bool aligned = qAbs(glass.origin.x - controls.origin.x) < 1 && qAbs(glass.origin.y - controls.origin.y) < 1
-        && qAbs(glass.size.width - controls.size.width) < 1 && qAbs(glass.size.height - controls.size.height) < 1;
+        && (context.fixedRenderTarget
+            ? controls.size.width + 1 >= glass.size.width && controls.size.height + 1 >= glass.size.height
+            : qAbs(glass.size.width - controls.size.width) < 1 && qAbs(glass.size.height - controls.size.height) < 1);
     if (!aligned) qWarning("Native glass and controls disagree: glass %.1f,%.1f %.1fx%.1f; controls %.1f,%.1f %.1fx%.1f", glass.origin.x, glass.origin.y, glass.size.width, glass.size.height, controls.origin.x, controls.origin.y, controls.size.width, controls.size.height);
     return aligned;
 }
@@ -320,7 +327,7 @@ bool reducedTransparency() { return false; }
 void *create(QQuickWindow *, QQuickWindow *) { return nullptr; }
 void *createWindow(QQuickWindow *, NativeGlassHost *) { return nullptr; }
 QWindow *container(void *) { return nullptr; }
-void update(void *, const QRectF &, qreal) {}
+void update(void *, const QRectF &, qreal, const QSizeF &) {}
 void destroy(void *) {}
 void setVisible(void *, bool) {}
 void setOpacity(void *, qreal) {}

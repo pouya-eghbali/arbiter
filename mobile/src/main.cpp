@@ -30,6 +30,7 @@
 #include "nativepage.h"
 extern QWindow *arbiter_ios_test_window_at(QWindow *, QPointF, QPoint *);
 extern void arbiter_ios_test_system_appearance(bool);
+extern void arbiter_ios_test_reverse_scroll(NativePage *);
 extern void arbiter_ios_test_watch_clipboard();
 extern int arbiter_ios_test_clipboard_reads();
 extern void arbiter_ios_test_change_clipboard(const char *);
@@ -204,7 +205,7 @@ int main(int argc, char **argv) {
                 auto timer = new QTimer(window);
                 timer->setInterval(200);
                 QObject::connect(timer, &QTimer::timeout, window,
-                    [timer, window, &browser, stage = 0, attempts = 0, busy = false, expandedInset = 0.]() mutable {
+                    [timer, window, &browser, stage = 0, attempts = 0, busy = false, expandedInset = 0., renderSize = QSize()]() mutable {
                         if (busy) return;
                         auto page = NativePage::pages.value("target");
                         if (!page || page->title() != "Viewport fixture") {
@@ -218,14 +219,23 @@ int main(int argc, char **argv) {
                             "return bottom > 0 && bottom <= %1 + 2 && document.elementFromPoint(innerWidth / 2, bottom - 24)?.tagName === 'BUTTON'; })()")
                             .arg(usable);
                         page->evaluate(query,
-                            [timer, window, page, &browser, &stage, &attempts, &busy, &expandedInset, inset, usable](QVariant result) {
+                            [timer, window, page, &browser, &stage, &attempts, &busy, &expandedInset, &renderSize, inset, usable](QVariant result) {
                                 busy = false;
                                 if (inset < 50 || !result.toBool()) {
                                     if (++attempts > 50) qFatal("Website bottom controls overlap browser toolbar or fail hit testing (usable=%f inset=%f stage=%d)", usable, inset, stage);
                                     return;
                                 }
                                 attempts = 0;
+                                auto nativeRenderSize = [window]() -> QSize {
+                                    for (auto host : window->findChildren<NativeGlassHost *>()) {
+                                        if (!host->content() || host->content()->objectName() != "mobilePillContent" || !host->containerWindow()) continue;
+                                        if (host->content()->window()) return host->content()->window()->size();
+                                    }
+                                    return {};
+                                };
                                 if (stage == 0) {
+                                    renderSize = nativeRenderSize();
+                                    if (!renderSize.isValid()) qFatal("Native pill rendering target missing");
                                     expandedInset = inset;
                                     qInfo("Fixed website footer clears toolbar (usable=%f inset=%f)", usable, inset);
                                     const QPoint point(page->nativeWindow()->width()/2, qRound(usable - 24));
@@ -238,14 +248,23 @@ int main(int argc, char **argv) {
                                 } else if (stage == 2) QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "more"));
                                 else if (stage == 4) QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "tabs"));
                                 else if (stage == 6) QMetaObject::invokeMethod(window, "dismiss");
-                                else if (stage == 8) browser.setSetting("liquidGlass", false);
-                                else if (stage == 10) browser.updatePage(browser.activeId(), "toolbarScroll", {{"delta", 90}, {"offset", 200}});
-                                else if (stage == 12) {
+                                else if (stage == 8) browser.updatePage(browser.activeId(), "toolbarScroll", {{"delta", 90}, {"offset", 200}});
+                                else if (stage == 9) {
+                                    if (nativeRenderSize() != renderSize) qFatal("Pill animation resized its native render target");
+                                    arbiter_ios_test_reverse_scroll(page);
+                                }
+                                else if (stage == 10) {
+                                    auto pill = window->findChild<QQuickItem *>("mobilePill");
+                                    if (!pill || pill->property("compact").toBool()) qFatal("Native two-point upward gesture did not immediately reverse collapse");
+                                    browser.setSetting("liquidGlass", false);
+                                }
+                                else if (stage == 12) browser.updatePage(browser.activeId(), "toolbarScroll", {{"delta", 90}, {"offset", 200}});
+                                else if (stage == 14) {
                                     auto pill = window->findChild<QQuickItem *>("mobilePill");
                                     if (!pill || !pill->property("compact").toBool() || pill->width() > window->width() * .7 || inset >= expandedInset - 10)
                                         qFatal("Compact pill did not shrink native viewport reservation");
                                     browser.updatePage(browser.activeId(), "toolbarScroll", {{"delta", -25}, {"offset", 175}});
-                                } else if (stage == 14) {
+                                } else if (stage == 16) {
                                     auto pill = window->findChild<QQuickItem *>("mobilePill");
                                     if (!pill || pill->property("compact").toBool()) qFatal("Upward scroll did not restore native pill");
                                     qInfo("Website fixed controls remain visible and hit-testable after scroll, browser panels, Glacier switch and compact toolbar transitions");

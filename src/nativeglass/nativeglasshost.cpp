@@ -4,6 +4,7 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QTouchEvent>
+#include <QtMath>
 
 NativeGlassHost::NativeGlassHost(QQuickItem *parent) : QQuickItem(parent) {
     connect(this, &QQuickItem::windowChanged, this, [this] { release(); watchGeometry(); schedule(); });
@@ -172,11 +173,15 @@ void NativeGlassHost::synchronize() {
         // Qt and UIKit must agree: the material carries the scene offset,
         // while its foreground has local (0,0) geometry inside contentView.
         m_container->setGeometry(rect.toAlignedRect());
-        m_foreground->setGeometry(QRect(QPoint(), rect.size().toSize()));
+        // Keep an animating pill's render target stable. Resizing the Metal
+        // surface every frame otherwise reallocates buffers and stutters.
+        const QSize renderSize(qCeil(qMax(rect.width(), m_minimumRenderSize.width())),
+                               qCeil(qMax(rect.height(), m_minimumRenderSize.height())));
+        m_foreground->setGeometry(QRect(QPoint(), renderSize));
     } else m_foreground->setGeometry(rect.toAlignedRect());
     m_content->setPosition(m_contentRect.isValid() ? m_contentRect.topLeft() : QPointF());
     m_content->setSize(m_contentRect.isValid() ? m_contentRect.size() : size());
-    NativeGlass::update(m_native, rect, m_radius);
+    NativeGlass::update(m_native, rect, m_radius, m_minimumRenderSize);
     NativeGlass::setOpacity(m_native, opacity);
     NativeGlass::setVisible(m_native, true);
     const auto color = NativeGlass::foregroundColor(m_native);
@@ -227,7 +232,7 @@ bool reducedTransparency() { return false; }
 void *create(QQuickWindow *, QQuickWindow *) { return nullptr; }
 void *createWindow(QQuickWindow *, NativeGlassHost *) { return nullptr; }
 QWindow *container(void *) { return nullptr; }
-void update(void *, const QRectF &, qreal) {}
+void update(void *, const QRectF &, qreal, const QSizeF &) {}
 void destroy(void *) {}
 void setVisible(void *, bool) {}
 void setOpacity(void *, qreal) {}
