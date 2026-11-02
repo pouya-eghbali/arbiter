@@ -97,7 +97,7 @@
   "General": "一般",
   "History": "履歴",
   "Images (*.png *.jpg *.jpeg *.webp)": "Images (*.png *.jpg *.jpeg *.webp)",
-  "In Arbiter on desktop, open Settings → Sync, enable sync and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.": "デスクトップの Arbiter で設定 → 同期を開き、同期を有効にしてペアリング招待をコピーします。ペアリング前にコンピュータ名と証明書のフィンガープリントを確認してください。",
+  "In Arbiter on desktop, open Settings → Passwords → Sync, enable sync and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.": "デスクトップの Arbiter で設定 → パスワード → 同期を開き、同期を有効にしてペアリング招待をコピーします。ペアリング前にコンピュータ名と証明書のフィンガープリントを確認してください。",
   "Interface icons by Lucide and its contributors": "Lucide とその寄稿者によるインターフェイス アイコン",
   "Invalid device authorization": "端末の認可情報が無効です",
   "Invalid pairing code": "ペアリングコードが無効です",
@@ -149,6 +149,7 @@
   "Pause ad blocking for this site": "Pause ad blocking for this site",
   "Pause blocking for a website from the browser menu. Restore blocking for individual websites below.": "ブラウザのメニューでサイトのブロックを一時停止できます。以下でサイトごとに再開できます。",
   "Personal": "個人",
+  "Position the desktop pairing code inside the frame.": "デスクトップのペアリングコードを枠内に収めてください。",
   "Previous match": "Previous match",
   "Privacy": "プライバシー",
   "Privacy policy": "プライバシーポリシー",
@@ -176,7 +177,6 @@
   "Saved credentials, autofill and unlocking": "保存済みの認証情報、自動入力、ロック解除",
   "Saved passwords and passkeys stay encrypted on this device.": "Saved passwords and passkeys stay encrypted on this device.",
   "Scan QR code": "Scan QR code",
-  "Scan the pairing QR code from desktop Settings → Sync.": "Scan the pairing QR code from desktop Settings → Sync.",
   "Scan your Arbiter desktop pairing code, or allow a website to use your camera when you choose.": "デスクトップ版Arbiterのペアリングコードを読み取るか、許可したウェブサイトでカメラを使用します。",
   "Search": "Search",
   "Search engine": "検索エンジン",
@@ -241,5 +241,6 @@
   "Widevine & DRM": "Widevine & DRM",
   "Workspace name": "ワークスペース名",
   "Workspaces": "ワークスペース",
+  "You can also scan with your phone’s Camera app to open Arbiter.": "スマートフォンのカメラアプリでスキャンして Arbiter を開くこともできます。",
   "You’re ready": "You’re ready"
 }

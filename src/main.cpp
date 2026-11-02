@@ -27,6 +27,7 @@
 #include "passwordmanager.h"
 #include "credentialstore.h"
 #include <QTemporaryDir>
+#include <QQuickWindow>
 #include "webauthncontroller.h"
 #include "passkeycontroller.h"
 #include "credentialsync.h"
@@ -361,6 +362,20 @@ int main(int argc, char *argv[])
             if (QLineF(at, previous).length() > 1) { qCritical() << "More menu moved after opening" << previous << "to" << at << "window" << content->window()->geometry(); qApp->exit(16); return; }
             QMetaObject::invokeMethod(menu, "close");
         });
+        return app.exec();
+    }
+    if(app.arguments().contains(QStringLiteral("--settings-ui-smoke-test"))) {
+        QQmlApplicationEngine preview;
+        preview.loadFromModule(QStringLiteral("Arbiter"),QStringLiteral("SettingsPreview"));
+        if(preview.rootObjects().isEmpty()) return 2;
+        auto *window=qobject_cast<QQuickWindow *>(preview.rootObjects().first());
+        if(!window) return 3;
+        const bool manager=app.arguments().contains(QStringLiteral("--saved-logins"));
+        window->setProperty("showManager",manager);
+        if(manager) QMetaObject::invokeMethod(window,"openManagerPreview");
+        QString output;
+        for(const auto &argument:app.arguments()) if(argument.startsWith("--design-output=")) output=argument.mid(16);
+        QTimer::singleShot(1200,window,[&,window,output] { app.exit(window->grabWindow().save(output) ? 0 : 4); });
         return app.exec();
     }
     if(app.arguments().contains(QStringLiteral("--credential-store-smoke-test"))) {

@@ -18,7 +18,8 @@ ColumnLayout {
         { id: "sync", icon: "refresh-cw", title: qsTr("Sync"), detail: qsTr("Desktop pairing and local encrypted sync") },
         { id: "about", icon: "globe", title: qsTr("About Arbiter"), detail: qsTr("Version, license and contributions") }
     ]
-    readonly property var filteredCategories: categories.filter(c => !query.trim() || (c.title + " " + c.detail).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
+    readonly property var filteredCategories: categories.filter(c => (c.id !== "sync" || query.trim().length > 0) && (!query.trim() || (c.title + " " + c.detail).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())))
+    function goBack() { category = category === "sync" ? "passwords" : ["licenses", "privacy-policy"].includes(category) ? "about" : "" }
     signal pairRequested
     signal vaultRequested
     signal historyRequested
@@ -204,6 +205,7 @@ ColumnLayout {
         description: Qt.platform.os === "android" ? qsTr("Use Arbiter passkeys in other apps.") : qsTr("Use Arbiter passwords and passkeys in other apps.")
         MobileButton { Layout.fillWidth: true; text: qsTr("Enable credential provider"); onClicked: browser.enableCredentialProvider() }
     }
+    MobileSettingsRow { objectName: "settingsSyncLink"; visible: root.category === "passwords"; Layout.fillWidth: true; text: qsTr("Sync"); detail: qsTr("Desktop pairing and local encrypted sync"); iconName: "refresh-cw"; onClicked: root.category = "sync" }
     MobileButton { visible: root.category === "passwords" && browser.vault.unlocked; Layout.fillWidth: true; text: qsTr("Lock vault"); iconName: "lock"; onClicked: browser.vault.lock() }
 
     MobileSection {

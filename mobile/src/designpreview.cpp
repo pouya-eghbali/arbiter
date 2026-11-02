@@ -175,6 +175,10 @@ void renderDesignPreview(MobileModel &model, QQmlApplicationEngine &engine, cons
             if (workspace) QMetaObject::invokeMethod(workspace, "edit", Q_ARG(QVariant, QVariant("work")), Q_ARG(QVariant, QVariant("A longer workspace title")));
         }
     });
+    if(state == "scan") QTimer::singleShot(600,window,[window] {
+        auto scanner=window->findChild<QObject *>("pairingScanner");
+        if(!scanner || scanner->property("cameraEnabled").toBool()) qFatal("Scanner preview must not activate the camera");
+    });
     if (state == "settingschecks") {
         QTimer::singleShot(700, window, [window, output] {
             auto loader = window->findChild<QObject *>("settingsLoader");
@@ -184,6 +188,7 @@ void renderDesignPreview(MobileModel &model, QQmlApplicationEngine &engine, cons
                 return value.metaType() == QMetaType::fromType<QJSValue>() ? value.value<QJSValue>().toVariant().toList() : value.toList();
             };
             if (entries(settings->property("categories")).size() != 6) { qCritical("Settings categories were not consolidated"); qApp->exit(1); return; }
+            if (entries(settings->property("filteredCategories")).size() != 5) { qCritical("Sync must be nested under Passwords"); qApp->exit(1); return; }
             settings->setProperty("query", "language");
             if (entries(settings->property("filteredCategories")).size() != 1) { qCritical("Settings search did not find General"); qApp->exit(1); return; }
             settings->setProperty("query", "");
@@ -201,6 +206,12 @@ void renderDesignPreview(MobileModel &model, QQmlApplicationEngine &engine, cons
             if (!engines || engines->property("count").toInt() != 6) { qCritical("Missing supported search engines"); qApp->exit(1); return; }
             settings->setProperty("category", "passwords");
             QTest::qWait(80);
+            auto syncLink = findItem(findItem, window->contentItem(), "settingsSyncLink");
+            if (!syncLink || !syncLink->isVisible()) { qCritical("Missing nested Sync link"); qApp->exit(1); return; }
+            settings->setProperty("category", "sync");
+            QMetaObject::invokeMethod(settings,"goBack");
+            if (settings->property("category") != "passwords") { qCritical("Sync back navigation lost its parent"); qApp->exit(1); return; }
+            QTest::qWait(40);
             auto vault = findItem(findItem, window->contentItem(), "settingsVaultLink");
             if (!vault || !vault->isVisible()) { qCritical("Settings vault link was not visible"); qApp->exit(1); return; }
             QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, vault->mapToScene(QPointF(vault->width()/2, vault->height()/2)).toPoint());

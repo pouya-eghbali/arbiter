@@ -4,6 +4,7 @@
 #include "designpreview.h"
 #endif
 #include <QTemporaryDir>
+#include <QScopeGuard>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QDesktopServices>
@@ -115,6 +116,12 @@ int main(int argc, char **argv) {
 #endif
     QDesktopServices::setUrlHandler("http", &browser, "openUrl");
     QDesktopServices::setUrlHandler("https", &browser, "openUrl");
+    QDesktopServices::setUrlHandler("arbiter-pair", &browser, "openUrl");
+    for(const auto &argument:app.arguments().mid(1))
+        if(argument.startsWith("arbiter-pair:")) browser.openUrl(QUrl(argument));
+    const auto clearUrlHandlers=qScopeGuard([] {
+        for(const auto &scheme:{"http","https","arbiter-pair"}) QDesktopServices::unsetUrlHandler(scheme);
+    });
     QQmlApplicationEngine engine;
     engine.addImageProvider("brand", new BrandImages);
     Catalog catalog;

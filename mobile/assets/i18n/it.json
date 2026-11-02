@@ -97,7 +97,7 @@
   "General": "Generali",
   "History": "Cronologia",
   "Images (*.png *.jpg *.jpeg *.webp)": "Images (*.png *.jpg *.jpeg *.webp)",
-  "In Arbiter on desktop, open Settings → Sync, enable sync and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.": "In Arbiter sul desktop, apri Impostazioni → Sincronizzazione, abilita la sincronizzazione e copia l’invito di associazione. Verifica il nome del computer e l’impronta del certificato prima dell’associazione.",
+  "In Arbiter on desktop, open Settings → Passwords → Sync, enable sync and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.": "In Arbiter sul desktop, apri Impostazioni → Password → Sincronizzazione, abilita la sincronizzazione e copia l’invito di associazione. Verifica il nome del computer e l’impronta del certificato prima dell’associazione.",
   "Interface icons by Lucide and its contributors": "Icone dell'interfaccia di Lucide e dei suoi contributori",
   "Invalid device authorization": "Autorizzazione del dispositivo non valida",
   "Invalid pairing code": "Codice di associazione non valido",
@@ -149,6 +149,7 @@
   "Pause ad blocking for this site": "Pause ad blocking for this site",
   "Pause blocking for a website from the browser menu. Restore blocking for individual websites below.": "Sospendi il blocco per un sito dal menu del browser. Riattivalo per i singoli siti qui sotto.",
   "Personal": "Personale",
+  "Position the desktop pairing code inside the frame.": "Inquadra il codice di associazione del desktop nella cornice.",
   "Previous match": "Previous match",
   "Privacy": "Privacy",
   "Privacy policy": "Informativa sulla privacy",
@@ -176,7 +177,6 @@
   "Saved credentials, autofill and unlocking": "Credenziali salvate, compilazione automatica e sblocco",
   "Saved passwords and passkeys stay encrypted on this device.": "Saved passwords and passkeys stay encrypted on this device.",
   "Scan QR code": "Scan QR code",
-  "Scan the pairing QR code from desktop Settings → Sync.": "Scan the pairing QR code from desktop Settings → Sync.",
   "Scan your Arbiter desktop pairing code, or allow a website to use your camera when you choose.": "Scansiona il codice di associazione di Arbiter sul computer o consenti a un sito di usare la fotocamera quando lo scegli.",
   "Search": "Search",
   "Search engine": "Motore di ricerca",
@@ -241,5 +241,6 @@
   "Widevine & DRM": "Widevine e DRM",
   "Workspace name": "Nome dell'area di lavoro",
   "Workspaces": "Spazi di lavoro",
+  "You can also scan with your phone’s Camera app to open Arbiter.": "Puoi anche scansionare con l’app Fotocamera del telefono per aprire Arbiter.",
   "You’re ready": "You’re ready"
 }

@@ -1,4 +1,5 @@
 #include "mobilemodel.h"
+#include <utility>
 #include "mobileplatform.h"
 #include "nativepage.h"
 #include <QBuffer>
@@ -1031,3 +1032,15 @@ QString MobileModel::thirdPartyNotices() const {
     }
     return text;
 }
+
+void MobileModel::openUrl(const QUrl &url) {
+    if(url.scheme()==QStringLiteral("arbiter-pair")) {
+        const auto invitation=url.toString(QUrl::FullyEncoded);
+        if(MobileVault::pairingInfo(invitation).isEmpty()) { emit message(tr("Invalid pairing code")); return; }
+        m_pairingInvitation=invitation;
+        emit pairingInvitationReceived();
+        return;
+    }
+    if(url.scheme()==QStringLiteral("http") || url.scheme()==QStringLiteral("https")) navigate(url.toString());
+}
+QString MobileModel::takePairingInvitation() { return std::exchange(m_pairingInvitation,{}); }

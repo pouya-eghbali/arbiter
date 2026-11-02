@@ -113,6 +113,19 @@ Basic.ApplicationWindow {
     property bool settingsOpen: false
     property bool editingDarkAppearance: appearance.dark
     property int settingsCategory: 0
+    readonly property bool credentialSettings: [1, 2, 5, 10].includes(settingsCategory)
+    readonly property var settingsSections: [
+        { id: 0, title: qsTr("Appearance"), icon: "palette" },
+        { id: 1, title: qsTr("Passwords"), icon: "key-round" },
+        { id: 3, title: qsTr("Keyboard"), icon: "keyboard" },
+        { id: 4, title: qsTr("Configuration"), icon: "settings" },
+        { id: 6, title: qsTr("Performance"), icon: "gauge" },
+        { id: 7, title: qsTr("Privacy"), icon: "shield" },
+        { id: 8, title: qsTr("Extensions"), icon: "puzzle" },
+        { id: 9, title: qsTr("Downloads"), icon: "download" },
+        { id: 11, title: qsTr("About"), icon: "info" }
+    ]
+
     function clearPrivacyFields() { currentPrivacyPassword.clear(); newPrivacyPassword.clear(); confirmPrivacyPassword.clear() }
     function refreshDefaultBrowser() {
         if (uiReady && settingsOpen && settingsCategory === 4)
@@ -126,7 +139,7 @@ Basic.ApplicationWindow {
         refreshDefaultBrowser()
         if (uiReady && settingsCategory !== 7) clearPrivacyFields()
         if (importer && settingsCategory !== 5 && !importer.importing) importer.cancel()
-        Qt.callLater(function() { categoryScroll.revealCategory(window.settingsCategory) })
+        Qt.callLater(function() { categoryScroll.revealCategory(window.settingsCategory); if (settingsScroll.contentItem) settingsScroll.contentItem.contentY = 0 })
     }
     onSettingsOpenChanged: {
         refreshDefaultBrowser()
@@ -1321,7 +1334,8 @@ Basic.ApplicationWindow {
                     contentWidth: availableWidth
                     clip: true
                     function revealCategory(index: int) {
-                        const item = settingsNavigation.itemAt(index)
+                        const category = [1, 2, 5, 10].includes(index) ? 1 : index
+                        const item = settingsNavigation.itemAt(window.settingsSections.findIndex(section => section.id === category))
                         const flick = contentItem as Flickable
                         if (!item || !flick) return
                         flick.contentY = Math.max(0, Math.min(item.y,
@@ -1333,25 +1347,23 @@ Basic.ApplicationWindow {
                         spacing: 8
                         Repeater {
                             id: settingsNavigation
-                            model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads"), qsTr("Sync"), qsTr("About")]
+                            model: window.settingsSections
                             delegate: UiButton {
                                 id: categoryButton
                                 required property int index
-                                required property string modelData
+                                required property var modelData
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 44
-                                text: modelData
-                                highlighted: window.settingsCategory === index
+                                text: modelData.title
+                                highlighted: (window.credentialSettings ? 1 : window.settingsCategory) === modelData.id
                                 Accessible.role: Accessible.PageTab
                                 Accessible.name: modelData
                                 Accessible.selected: highlighted
-                                onActiveFocusChanged: if (activeFocus) categoryScroll.revealCategory(index)
-                                contentItem: Basic.Label {
-                                    text: categoryButton.text
-                                    color: categoryButton.highlighted ? Theme.textFor(parent) : Theme.mutedFor(parent)
-                                    font.pixelSize: 14
-                                    font.weight: categoryButton.highlighted ? Font.DemiBold : Font.Normal
-                                    verticalAlignment: Text.AlignVCenter
+                                onActiveFocusChanged: if (activeFocus) categoryScroll.revealCategory(modelData.id)
+                                contentItem: RowLayout {
+                                    spacing: 10
+                                    UiIcon { name: categoryButton.modelData.icon; color: categoryButton.highlighted ? Theme.textFor(parent) : Theme.mutedFor(parent); Layout.preferredWidth: 18; Layout.preferredHeight: 18 }
+                                    Basic.Label { text: categoryButton.text; color: categoryButton.highlighted ? Theme.textFor(parent) : Theme.mutedFor(parent); Layout.fillWidth: true; elide: Text.ElideRight; font.pixelSize: 14; font.weight: categoryButton.highlighted ? Font.DemiBold : Font.Normal }
                                 }
                                 background: Rectangle {
                                     radius: height / 2
@@ -1360,7 +1372,7 @@ Basic.ApplicationWindow {
                                 onClicked: {
                                     window.recordingIndex = -1
                                     window.bindingError = ""
-                                    window.settingsCategory = index
+                                    window.settingsCategory = modelData.id
                                 }
                                 Keys.onDownPressed: settingsNavigation.itemAt(Math.min(settingsNavigation.count - 1, index + 1)).forceActiveFocus()
                                 Keys.onUpPressed: settingsNavigation.itemAt(Math.max(0, index - 1)).forceActiveFocus()
@@ -1378,14 +1390,28 @@ Basic.ApplicationWindow {
                 contentWidth: availableWidth
                 clip: true
                 ColumnLayout {
-                    width: Math.min(720, settingsScroll.availableWidth)
+                    width: Math.min(980, settingsScroll.availableWidth)
                     spacing: 24
                     Basic.Label {
-                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads"), qsTr("Sync"), qsTr("About")][window.settingsCategory]
+                        text: window.credentialSettings ? qsTr("Passwords") : [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads"), qsTr("Sync"), qsTr("About")][window.settingsCategory]
                         font.pixelSize: 28
                         font.weight: Font.DemiBold
                         color: Theme.textFor(parent)
                         Layout.bottomMargin: 4
+                    }
+                    Flow {
+                        visible: window.credentialSettings
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Repeater {
+                            model: [{ id: 1, title: qsTr("Passwords") }, { id: 2, title: qsTr("Passkeys") }, { id: 10, title: qsTr("Sync") }, { id: 5, title: qsTr("Import") }]
+                            UiButton {
+                                required property var modelData
+                                text: modelData.title; flat: true; highlighted: window.settingsCategory === modelData.id
+                                Accessible.role: Accessible.PageTab; Accessible.selected: highlighted
+                                onClicked: window.settingsCategory = modelData.id
+                            }
+                        }
                     }
                     ColumnLayout {
                         visible: window.settingsCategory === 0
@@ -1601,54 +1627,11 @@ Basic.ApplicationWindow {
                             wrapMode: Text.Wrap
                         }
                     }
-                    ColumnLayout {
+                    PasswordSettings {
                         visible: window.settingsCategory === 1
                         Layout.fillWidth: true
-                        spacing: 20
-                        Basic.Label {
-                            text: qsTr("Keep your saved logins on this computer, protected by your system credential store.")
-                            color: Theme.mutedFor(parent)
-                            Layout.fillWidth: true
-                            wrapMode: Text.Wrap
-                        }
-                        UiCheckBox {
-                            text: qsTr("Offer to save and fill passwords")
-                            checked: window.passwords.enabled
-                            onToggled: window.passwords.enabled = checked
-                        }
-                        UiCheckBox {
-                            text: qsTr("Verify my identity before filling saved passwords")
-                            objectName: "passwordBiometricPreference"
-                            checked: window.passwords.biometricEnabled
-                            enabled: window.passwords.enabled
-                            onToggled: window.passwords.biometricEnabled = checked
-                        }
-                        Basic.Label {
-                            text: qsTr("Uses fingerprint verification when available. Your operating system may separately ask for permission to access its credential store.")
-                            color: Theme.mutedFor(parent)
-                            Layout.fillWidth: true
-                            wrapMode: Text.Wrap
-                        }
-                        Basic.Label { text: qsTr("Ask me to verify again"); color: Theme.textFor(parent) }
-                        UiComboBox {
-                            objectName: "passwordVerificationCooldown"
-                            readonly property var durations: [0, 60, 300, 900, 1800, 3600]
-                            model: [qsTr("Every time"), qsTr("After 1 minute"), qsTr("After 5 minutes"),
-                                    qsTr("After 15 minutes"), qsTr("After 30 minutes"), qsTr("After 1 hour")]
-                            currentIndex: durations.indexOf(window.passwords.verificationCooldown)
-                            displayText: currentIndex < 0 ? qsTr("After %1 seconds").arg(window.passwords.verificationCooldown) : currentText
-                            enabled: window.passwords.enabled && window.passwords.biometricEnabled
-                            implicitWidth: 240
-                            onActivated: window.passwords.verificationCooldown = durations[currentIndex]
-                        }
-                        Basic.Label {
-                            text: qsTr("Remember a successful fingerprint verification for this long. Locking, sleeping, or restarting clears it. Your operating system still controls access to its credential store.")
-                            color: Theme.mutedFor(parent)
-                            Layout.fillWidth: true
-                            wrapMode: Text.Wrap
-                        }
-                        UiButton { text: qsTr("Manage saved passwords…"); onClicked: window.openPasswordSettings() }
-                        UiButton { text: qsTr("Import passwords + history…"); onClicked: window.settingsCategory = 5 }
+                        manager: window.passwords
+                        onManageRequested: window.openPasswordSettings()
                     }
                     ColumnLayout {
                         visible: window.settingsCategory === 2
@@ -1667,16 +1650,12 @@ Basic.ApplicationWindow {
                             text: qsTr("Passwords and passkeys use the same automatically created, OS-protected credential vault. Passkey sign-in asks for device verification; there is no separate Arbiter passphrase.")
                             color: Theme.mutedFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap
                         }
-                        Basic.Label {
+                        UiSettingsRow {
                             visible: window.passkeys.enabled
-                            text: window.passkeys.biometricStatus
-                            color: Theme.mutedFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap
-                        }
-                        UiButton {
-                            visible: window.passkeys.enabled
-                            text: qsTr("Refresh device authentication")
-                            enabled: !window.passkeys.busy
-                            onClicked: window.passkeys.refreshBiometrics()
+                            Layout.fillWidth: true
+                            title: qsTr("Device verification")
+                            description: window.passkeys.biometricStatus
+                            UiIconButton { iconName: "refresh-cw"; label: qsTr("Refresh device authentication"); enabled: !window.passkeys.busy; onClicked: window.passkeys.refreshBiometrics() }
                         }
                         Basic.Label {
                             visible: window.passkeys.enabled && window.passkeys.error.length > 0
@@ -1810,12 +1789,11 @@ Basic.ApplicationWindow {
                         visible: window.settingsCategory === 4
                         Layout.fillWidth: true
                         spacing: 16
-                        Basic.Label {
-                            text: qsTranslate("Onboarding", "Default browser")
-                            color: Theme.textFor(parent)
+                        UiSettingsRow {
                             Layout.fillWidth: true
-                        }
-                        UiButton {
+                            title: qsTranslate("Onboarding", "Default browser")
+                            description: window.systemIntegration.message
+                            UiButton {
                             objectName: "setDefaultBrowserButton"
                             text: window.systemIntegration.isDefault
                                 ? qsTranslate("Onboarding", "Arbiter is your default browser")
@@ -1826,40 +1804,37 @@ Basic.ApplicationWindow {
                             enabled: !window.systemIntegration.busy && !window.systemIntegration.isDefault
                             onClicked: window.systemIntegration.requestDefault()
                         }
-                        Basic.Label {
-                            text: window.systemIntegration.message
-                            textFormat: Text.PlainText
-                            visible: text.length > 0
-                            color: Theme.mutedFor(parent)
-                            Layout.fillWidth: true
-                            wrapMode: Text.Wrap
                         }
-                        Basic.Label { text: qsTr("Interface language"); color: Theme.textFor(parent); Layout.fillWidth: true }
-                        UiComboBox {
-                            objectName: "interfaceLanguage"
+
+                        UiSettingsRow {
                             Layout.fillWidth: true
+                            title: qsTr("Interface language")
+                            description: window.localization.restartRequired ? qsTr("Restart Arbiter to apply the new language.")
+                                : qsTr("Use your system language or choose a language for Arbiter. Websites keep their own content and language.")
+                            UiComboBox {
+                            objectName: "interfaceLanguage"
+                            implicitWidth: 240
                             model: window.localization.languages
                             textRole: "name"
                             currentIndex: window.localization.languages.findIndex(item => item.code === window.localization.language)
                             onActivated: window.localization.language = window.localization.languages[currentIndex].code
                             Accessible.name: qsTr("Interface language")
+
+                            }
                         }
-                        Basic.Label {
-                            text: window.localization.restartRequired ? qsTr("Restart Arbiter to apply the new language.")
-                                : qsTr("Use your system language or choose a language for Arbiter. Websites keep their own content and language.")
-                            color: Theme.mutedFor(parent)
+                        UiSettingsRow {
                             Layout.fillWidth: true
-                            wrapMode: Text.Wrap
-                        }
-                        Basic.Label { text: qsTr("Default search engine"); color: Theme.textFor(parent); Layout.fillWidth: true }
-                        UiComboBox {
+                            title: qsTr("Default search engine")
+                            UiComboBox {
                             objectName: "defaultSearchEngine"
-                            Layout.fillWidth: true
+                            implicitWidth: 240
                             model: ["DuckDuckGo", "Google", "Bing", "Brave Search", "Ecosia", "Startpage"]
                             readonly property var engineIds: ["duckduckgo", "google", "bing", "brave", "ecosia", "startpage"]
                             currentIndex: engineIds.indexOf(window.browserPreferences.searchEngine)
                             onActivated: window.browserPreferences.searchEngine = engineIds[currentIndex]
                             Accessible.name: qsTr("Default search engine")
+
+                            }
                         }
                         UiButton {
                             objectName: "replayTutorialButton"
@@ -1941,8 +1916,11 @@ Basic.ApplicationWindow {
                         visible: window.settingsCategory === 6
                         Layout.fillWidth: true
                         spacing: 20
-                        Basic.Label { text: qsTr("Put inactive tabs to sleep after"); color: Theme.textFor(parent) }
-                        UiComboBox {
+                        UiSettingsRow {
+                            Layout.fillWidth: true
+                            title: qsTr("Put inactive tabs to sleep after")
+                            description: qsTr("Sleeping tabs pause background activity and resume when you return. Visible split panes and tabs playing audio stay awake. Page contents are preserved without reloading. Turning this off wakes sleeping tabs.")
+                            UiComboBox {
                             objectName: "tabSleepTimeout"
                             readonly property var durations: [0, 60, 300, 900, 1800, 3600]
                             model: [qsTr("Off"), qsTr("1 minute"), qsTr("5 minutes"), qsTr("15 minutes"), qsTr("30 minutes"), qsTr("1 hour")]
@@ -1951,12 +1929,8 @@ Basic.ApplicationWindow {
                             implicitWidth: 240
                             Accessible.name: qsTr("Tab sleep timeout")
                             onActivated: window.tabSleep.timeoutSeconds = durations[currentIndex]
-                        }
-                        Basic.Label {
-                            text: qsTr("Sleeping tabs pause background activity and resume when you return. Visible split panes and tabs playing audio stay awake. Page contents are preserved without reloading. Turning this off wakes sleeping tabs.")
-                            color: Theme.mutedFor(parent)
-                            Layout.fillWidth: true
-                            wrapMode: Text.Wrap
+
+                            }
                         }
                     }
                     ColumnLayout {
@@ -1994,8 +1968,11 @@ Basic.ApplicationWindow {
                             wrapMode: Text.Wrap
                         }
                         UiButton { text: qsTr("New private window"); onClicked: window.newPrivateWindow() }
-                        Basic.Label { text: qsTr("Lock after no activity for"); color: Theme.textFor(parent) }
-                        UiComboBox {
+                        UiSettingsRow {
+                            Layout.fillWidth: true
+                            title: qsTr("Lock after no activity for")
+                            description: qsTr("Private windows also lock immediately when switched to the background, minimized, or when your computer locks or sleeps. Use biometrics (or a Windows Hello PIN), or the global private-browsing PIN/password to unlock. Change your PIN/password below by entering its current value.")
+                            UiComboBox {
                             objectName: "privateLockTimeout"
                             implicitWidth: 240
                             readonly property var durations: [60, 120, 300, 600, 900, 1800, 3600]
@@ -2004,13 +1981,10 @@ Basic.ApplicationWindow {
                             displayText: currentIndex < 0 && window.privacy ? qsTr("%1 seconds").arg(window.privacy.timeoutSeconds) : currentText
                             onActivated: function(index) { if (window.privacy) window.privacy.timeoutSeconds = durations[index] }
                             Accessible.name: qsTr("Private browsing lock timeout")
+
+                            }
                         }
-                        Basic.Label {
-                            Layout.fillWidth: true
-                            text: qsTr("Private windows also lock immediately when switched to the background, minimized, or when your computer locks or sleeps. Use biometrics (or a Windows Hello PIN), or the global private-browsing PIN/password to unlock. Change your PIN/password below by entering its current value.")
-                            color: Theme.mutedFor(parent)
-                            wrapMode: Text.Wrap
-                        }
+
                         Basic.Label {
                             Layout.fillWidth: true
                             text: window.privacy && window.privacy.configured ? qsTr("Change private-browsing PIN/password") : qsTr("Set private-browsing PIN/password")
@@ -2318,6 +2292,8 @@ Basic.ApplicationWindow {
         }
     }
     PasswordPanel {
+        privateMode: window.privateMode
+        browserPreferences: window.browserPreferences
         id: passwordPanel
         anchors.fill: parent
         z: 30

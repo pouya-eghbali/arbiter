@@ -16,7 +16,7 @@ Device names also travel with the versioned state so conflicts remain readable
 when changes arrive through a shared peer. This directory is display metadata,
 not an authorization or membership list; the device page lists direct connections.
 
-On computer A, enable Sync and choose **Add a device**. For another computer,
+On computer A, open Settings → Passwords → Sync and enable it and choose **Add a device**. For another computer,
 copy the pairing code and paste it into computer B's Sync settings, review the
 device and certificate fingerprint, then connect. On a phone, scan A's code;
 **Add another computer** adds B without replacing A. Existing single-computer
@@ -125,3 +125,15 @@ native-peer transfer tests use fabricated credentials only. Physical-device syst
 picker and website interoperability tests remain a release gate. iOS distribution
 also requires Apple's managed browser entitlement approval. This implementation has
 not had an independent security audit; do not describe it as audited.
+
+## Pairing links
+
+Desktop invitations use `arbiter-pair://v1?data=…`. iOS declares the custom scheme
+and Qt URL handler; Android declares a browsable intent filter and dispatches both
+launch and subsequent intents through the same model handler. This follows
+[Qt URL handling](https://doc.qt.io/qt-6.12/qdesktopservices.html#setUrlHandler).
+A validated invitation is queued until the UI is ready and foregrounded. It never
+becomes a browsing tab or a search query. Receiving a link does not connect a
+peer: native verification and the existing device/certificate review still apply.
+The in-app scanner uses a full-screen camera surface with an aiming guide; its
+camera stops when the page closes or the app is backgrounded.

@@ -52,6 +52,12 @@
 				<string>https</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.arbiter.mobile.pairing</string>
+			<key>CFBundleURLSchemes</key>
+			<array><string>arbiter-pair</string></array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>@ARBITER_MOBILE_BUILD_NUMBER@</string>

@@ -97,7 +97,7 @@
   "General": "常规",
   "History": "历史记录",
   "Images (*.png *.jpg *.jpeg *.webp)": "Images (*.png *.jpg *.jpeg *.webp)",
-  "In Arbiter on desktop, open Settings → Sync, enable sync and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.": "在桌面版 Arbiter 中打开设置 → 同步，启用同步并复制配对邀请。配对前请核对电脑名称和证书指纹。",
+  "In Arbiter on desktop, open Settings → Passwords → Sync, enable sync and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.": "在桌面版 Arbiter 中打开设置 → 密码 → 同步，启用同步并复制配对邀请。配对前请核对电脑名称和证书指纹。",
   "Interface icons by Lucide and its contributors": "界面图标由 Lucide 及其贡献者提供",
   "Invalid device authorization": "设备授权无效",
   "Invalid pairing code": "配对码无效",
@@ -149,6 +149,7 @@
   "Pause ad blocking for this site": "Pause ad blocking for this site",
   "Pause blocking for a website from the browser menu. Restore blocking for individual websites below.": "在浏览器菜单中暂停某个网站的拦截，并在下方为各网站恢复拦截。",
   "Personal": "个人",
+  "Position the desktop pairing code inside the frame.": "将桌面端的配对码置于框内。",
   "Previous match": "Previous match",
   "Privacy": "隐私",
   "Privacy policy": "隐私政策",
@@ -176,7 +177,6 @@
   "Saved credentials, autofill and unlocking": "已保存的凭据、自动填充和解锁",
   "Saved passwords and passkeys stay encrypted on this device.": "Saved passwords and passkeys stay encrypted on this device.",
   "Scan QR code": "Scan QR code",
-  "Scan the pairing QR code from desktop Settings → Sync.": "Scan the pairing QR code from desktop Settings → Sync.",
   "Scan your Arbiter desktop pairing code, or allow a website to use your camera when you choose.": "扫描 Arbiter 桌面版配对码，或在你选择允许时让网站使用摄像头。",
   "Search": "Search",
   "Search engine": "搜索引擎",
@@ -241,5 +241,6 @@
   "Widevine & DRM": "Widevine 和 DRM",
   "Workspace name": "工作区名称",
   "Workspaces": "工作区",
+  "You can also scan with your phone’s Camera app to open Arbiter.": "你也可以使用手机的相机应用扫描以打开 Arbiter。",
   "You’re ready": "You’re ready"
 }

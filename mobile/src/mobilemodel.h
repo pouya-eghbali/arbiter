@@ -91,9 +91,8 @@ class MobileModel : public QObject {
     Q_INVOKABLE QString addTab(const QString &address = QString());
     Q_INVOKABLE void selectTab(const QString &id);
     Q_INVOKABLE void closeTab(const QString &id);
-    Q_INVOKABLE void openUrl(const QUrl &url) {
-        navigate(url.toString());
-    }
+    Q_INVOKABLE void openUrl(const QUrl &url);
+    Q_INVOKABLE QString takePairingInvitation();
     Q_INVOKABLE void navigate(const QString &address);
     Q_INVOKABLE QUrl addressUrl(const QString &address) const;
     Q_INVOKABLE void updatePage(const QString &id, const QString &type, const QVariantMap &data);
@@ -149,6 +148,7 @@ class MobileModel : public QObject {
     void loginOffered(QString origin, QString username);
     void accountsOffered(QVariantList accounts);
     void pairingReady(QString desktop, QString pin);
+    void pairingInvitationReceived();
     void defaultBrowserRequested();
     void credentialProviderRequested();
     void pageAction(QString tabId, QString action, QString argument);
@@ -163,6 +163,7 @@ class MobileModel : public QObject {
     QJsonArray m_tabs, m_workspaces, m_history, m_downloads;
     QJsonObject m_settings, m_pending, m_focus;
     QVariantMap m_previews;
+    QString m_pairingInvitation;
     QString m_active, m_workspace, m_privateContext, m_storePath;
     bool m_private = false, m_locked = false, m_syncing = false;
     MobileTabs m_screens;

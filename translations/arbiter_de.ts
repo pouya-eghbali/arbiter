@@ -2186,7 +2186,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+148"/>
+        <location filename="../qml/Main.qml" line="+161"/>
         <source>Private browsing — Arbiter</source>
         <translation>Privates Surfen – Arbiter</translation>
     </message>
@@ -2197,14 +2197,14 @@
     </message>
     <message>
         <location line="+643"/>
-        <location line="+1656"/>
+        <location line="+1617"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>Neuer Tab</translation>
     </message>
     <message>
-        <location line="-1653"/>
-        <location line="+1742"/>
+        <location line="-1614"/>
+        <location line="+1703"/>
         <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
@@ -2212,89 +2212,91 @@
         <translation>Startseite</translation>
     </message>
     <message>
-        <location line="-1247"/>
+        <location line="-1208"/>
         <source>Settings</source>
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location line="+26"/>
-        <location line="+48"/>
+        <location line="-1205"/>
+        <location line="+1278"/>
         <source>Appearance</source>
         <translation>Erscheinungsbild</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1277"/>
+        <location line="+1277"/>
+        <location line="+0"/>
+        <location line="+11"/>
         <source>Passwords</source>
         <translation>Passwörter</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-11"/>
+        <location line="+11"/>
         <source>Passkeys</source>
         <translation>Passkeys</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1287"/>
+        <location line="+1276"/>
         <source>Keyboard</source>
         <translation>Tastatur</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1275"/>
+        <location line="+1275"/>
         <source>Configuration</source>
         <translation>Konfiguration</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="+0"/>
+        <location line="+11"/>
         <source>Import</source>
         <translation>Importieren</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1285"/>
+        <location line="+1274"/>
         <source>Performance</source>
         <translation>Leistung</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1273"/>
+        <location line="+1273"/>
         <source>Privacy</source>
         <translation>Datenschutz</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1272"/>
+        <location line="+1272"/>
         <source>Extensions</source>
         <translation>Erweiterungen</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1271"/>
+        <location line="+1271"/>
         <source>Downloads</source>
         <translation>Downloads</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1270"/>
+        <location line="+1270"/>
         <source>About</source>
         <translation>Über</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="+0"/>
+        <location line="+11"/>
         <source>Sync</source>
         <translation>Synchronisierung</translation>
     </message>
     <message>
-        <location line="-13"/>
+        <location line="-24"/>
         <source>Done</source>
         <translation>Fertig</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+39"/>
         <location line="+6"/>
         <source>Color theme</source>
         <translation>Farbschema</translation>
@@ -2428,92 +2430,17 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+359"/>
+        <location line="+309"/>
         <source>Off</source>
         <translation>Aus</translation>
     </message>
     <message>
-        <location line="-352"/>
+        <location line="-302"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>Website-Navigation unter dem Tab-Titel oder als separate Menüs in der macOS-Menüleiste anzeigen.</translation>
     </message>
     <message>
-        <location line="+11"/>
-        <source>Keep your saved logins on this computer, protected by your system credential store.</source>
-        <translation>Behalten Sie Ihre gespeicherten Anmeldedaten auf diesem Computer, geschützt durch Ihren Systemanmeldeinformationsspeicher.</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>Offer to save and fill passwords</source>
-        <translation>Angebot zum Speichern und Ausfüllen von Passwörtern</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Verify my identity before filling saved passwords</source>
-        <translation>Überprüfen Sie meine Identität, bevor Sie gespeicherte Passwörter eingeben</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>Uses fingerprint verification when available. Your operating system may separately ask for permission to access its credential store.</source>
-        <translation>Verwendet die Fingerabdrucküberprüfung, sofern verfügbar. Ihr Betriebssystem bittet möglicherweise separat um Erlaubnis, auf seinen Anmeldeinformationsspeicher zuzugreifen.</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Ask me to verify again</source>
-        <translation>Bitten Sie mich um eine erneute Bestätigung</translation>
-    </message>
-    <message>
-        <location line="+4"/>
-        <source>Every time</source>
-        <translation>Jedes Mal</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>After 1 minute</source>
-        <translation>Nach 1 Minute</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>After 5 minutes</source>
-        <translation>Nach 5 Minuten</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>After 15 minutes</source>
-        <translation>Nach 15 Minuten</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>After 30 minutes</source>
-        <translation>Nach 30 Minuten</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>After 1 hour</source>
-        <translation>Nach 1 Stunde</translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>After %1 seconds</source>
-        <translation>Nach %1 Sekunden</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>Remember a successful fingerprint verification for this long. Locking, sleeping, or restarting clears it. Your operating system still controls access to its credential store.</source>
-        <translation>Erinnern Sie sich noch lange an eine erfolgreiche Fingerabdrucküberprüfung. Durch Sperren, Ruhen oder Neustarten wird das Problem gelöscht. Ihr Betriebssystem kontrolliert weiterhin den Zugriff auf seinen Anmeldeinformationsspeicher.</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Manage saved passwords…</source>
-        <translation>Gespeicherte Passwörter verwalten…</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Import passwords + history…</source>
-        <translation>Passwörter und Verlauf importieren…</translation>
-    </message>
-    <message>
-        <location line="+8"/>
+        <location line="+18"/>
         <source>Use a passkey saved in Arbiter, or scan a QR code with your phone when a website asks you to sign in.</source>
         <translation>Verwenden Sie einen in Arbiter gespeicherten Passkey oder scannen Sie einen QR-Code mit Ihrem Telefon, wenn Sie auf einer Website zur Anmeldung aufgefordert werden.</translation>
     </message>
@@ -2528,12 +2455,12 @@
         <translation>Passwörter und Passkeys verwenden denselben automatisch erstellten, vom Betriebssystem geschützten Tresor. Die Anmeldung mit Passkey erfordert eine Gerätebestätigung; eine separate Arbiter-Passphrase gibt es nicht.</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+8"/>
         <source>Refresh device authentication</source>
         <translation>Geräteauthentifizierung aktualisieren</translation>
     </message>
     <message>
-        <location line="+18"/>
+        <location line="+16"/>
         <source>Click a shortcut, then press the new combination. Changes save automatically. Escape cancels recording.</source>
         <translation>Klicken Sie auf eine Verknüpfung und drücken Sie dann die neue Kombination. Änderungen werden automatisch gespeichert. Escape bricht die Aufnahme ab.</translation>
     </message>
@@ -2583,13 +2510,13 @@
         <translation>Verschieben Sie das Fenster, indem Sie den leeren Startseitenhintergrund ziehen.</translation>
     </message>
     <message>
-        <location line="+32"/>
-        <location line="+8"/>
+        <location line="+27"/>
+        <location line="+10"/>
         <source>Interface language</source>
         <translation>Sprache der Benutzeroberfläche</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="-9"/>
         <source>Restart Arbiter to apply the new language.</source>
         <translation>Starten Sie Arbiter neu, um die neue Sprache anzuwenden.</translation>
     </message>
@@ -2599,13 +2526,13 @@
         <translation>Verwenden Sie Ihre Systemsprache oder wählen Sie eine Sprache für Arbiter. Websites behalten ihren eigenen Inhalt und ihre eigene Sprache.</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+14"/>
         <location line="+8"/>
         <source>Default search engine</source>
         <translation>Standardsuchmaschine</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+6"/>
         <source>Replay welcome tutorial</source>
         <translation>Willkommens-Tutorial noch einmal abspielen</translation>
     </message>
@@ -2645,53 +2572,58 @@
         <translation>Versetzen Sie inaktive Tabs danach in den Ruhezustand</translation>
     </message>
     <message>
-        <location line="+4"/>
-        <location line="+54"/>
+        <location line="+5"/>
+        <location line="+53"/>
         <source>1 minute</source>
         <translation>1 Minute</translation>
     </message>
     <message>
-        <location line="-54"/>
-        <location line="+54"/>
+        <location line="-53"/>
+        <location line="+53"/>
         <source>5 minutes</source>
         <translation>5 Minuten</translation>
     </message>
     <message>
-        <location line="-54"/>
-        <location line="+54"/>
+        <location line="-53"/>
+        <location line="+53"/>
         <source>15 minutes</source>
         <translation>15 Minuten</translation>
     </message>
     <message>
-        <location line="-54"/>
-        <location line="+54"/>
+        <location line="-53"/>
+        <location line="+53"/>
         <source>30 minutes</source>
         <translation>30 Minuten</translation>
     </message>
     <message>
-        <location line="-54"/>
-        <location line="+54"/>
+        <location line="-53"/>
+        <location line="+53"/>
         <source>1 hour</source>
         <translation>1 Stunde</translation>
     </message>
     <message>
-        <location line="-52"/>
-        <location line="+54"/>
+        <location line="-51"/>
+        <location line="+53"/>
         <source>%1 seconds</source>
         <translation>%1 Sekunden</translation>
     </message>
     <message>
-        <location line="-52"/>
+        <location line="-51"/>
         <source>Tab sleep timeout</source>
         <translation>Tab-Ruhezeit-Timeout</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-8"/>
         <source>Sleeping tabs pause background activity and resume when you return. Visible split panes and tabs playing audio stay awake. Page contents are preserved without reloading. Turning this off wakes sleeping tabs.</source>
         <translation>Schlafende Tabs pausieren die Hintergrundaktivität und setzen sie fort, wenn Sie zurückkehren. Sichtbare geteilte Bereiche und Registerkarten für die Audiowiedergabe bleiben aktiv. Der Seiteninhalt bleibt ohne Neuladen erhalten. Wenn Sie dies deaktivieren, werden schlafende Tabs geweckt.</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="-266"/>
+        <source>Device verification</source>
+        <translation>Gerätebestätigung</translation>
+    </message>
+    <message>
+        <location line="+285"/>
         <source>Ad blocking</source>
         <translation>Werbeblocker</translation>
     </message>
@@ -2731,12 +2663,12 @@
         <translation>Neues privates Fenster</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+3"/>
         <source>Lock after no activity for</source>
         <translation>Sperre nach keiner Aktivität für</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>2 minutes</source>
         <translation>2 Minuten</translation>
     </message>
@@ -2751,12 +2683,12 @@
         <translation>Zeitüberschreitung beim Sperren des privaten Surfens</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-9"/>
         <source>Private windows also lock immediately when switched to the background, minimized, or when your computer locks or sleeps. Use biometrics (or a Windows Hello PIN), or the global private-browsing PIN/password to unlock. Change your PIN/password below by entering its current value.</source>
         <translation>Private Fenster werden auch sofort gesperrt, wenn sie in den Hintergrund geschaltet oder minimiert werden oder wenn Ihr Computer gesperrt oder in den Ruhezustand versetzt wird. Verwenden Sie zum Entsperren biometrische Daten (oder eine Windows Hello-PIN) oder die globale PIN/das Passwort für privates Surfen. Ändern Sie unten Ihre PIN/Ihr Passwort, indem Sie den aktuellen Wert eingeben.</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+16"/>
         <source>Change private-browsing PIN/password</source>
         <translation>PIN/Passwort für privates Surfen ändern</translation>
     </message>
@@ -2821,7 +2753,7 @@
         <translation>Zu Arbiter hinzufügen</translation>
     </message>
     <message>
-        <location line="+337"/>
+        <location line="+339"/>
         <source>%1 open · Pick up where you left off</source>
         <translation>%1 geöffnet · Machen Sie dort weiter, wo Sie aufgehört haben</translation>
     </message>
@@ -2897,7 +2829,7 @@
         <translation>Privat</translation>
     </message>
     <message>
-        <location line="-1339"/>
+        <location line="-1287"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass (experimentell)</translation>
     </message>
@@ -3107,7 +3039,7 @@
         <translation>Farben</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="+398"/>
+        <location filename="../qml/Main.qml" line="+352"/>
         <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Default browser</source>
         <translation>Standardbrowser</translation>
@@ -3248,7 +3180,7 @@
         <translation>Öffnen Sie Weblinks in Arbiter. Ihr System fordert Sie möglicherweise zur Bestätigung auf. Dies ist völlig optional.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="+7"/>
+        <location filename="../qml/Main.qml" line="+5"/>
         <location filename="../qml/Onboarding.qml" line="+3"/>
         <source>Arbiter is your default browser</source>
         <translation>Arbiter ist Ihr Standardbrowser</translation>
@@ -3789,7 +3721,7 @@
 <context>
     <name>PasswordPanel</name>
     <message>
-        <location filename="../qml/PasswordPanel.qml" line="+190"/>
+        <location filename="../qml/PasswordPanel.qml" line="+192"/>
         <location line="+23"/>
         <source>Passwords</source>
         <translation>Passwörter</translation>
@@ -3797,12 +3729,12 @@
     <message>
         <location line="-17"/>
         <location line="+39"/>
-        <location line="+82"/>
+        <location line="+107"/>
         <source>No username</source>
         <translation>Kein Benutzername</translation>
     </message>
     <message>
-        <location line="-99"/>
+        <location line="-124"/>
         <source>Focus a login field on an HTTPS page, then open Passwords again. Embedded frames and forms that submit to another website are not filled.</source>
         <translation>Focus a login field on an HTTPS page, then open Passwords again. Embedded frames and forms that submit to another website are not filled.</translation>
     </message>
@@ -3838,12 +3770,12 @@
     </message>
     <message>
         <location line="+5"/>
-        <location line="+82"/>
+        <location line="+101"/>
         <source>Username (optional)</source>
         <translation>Benutzername (optional)</translation>
     </message>
     <message>
-        <location line="-82"/>
+        <location line="-101"/>
         <source>Username to save</source>
         <translation>Benutzername zum Speichern</translation>
     </message>
@@ -3854,32 +3786,27 @@
     </message>
     <message>
         <location line="+2"/>
-        <location line="+92"/>
+        <location line="+111"/>
         <source>Save</source>
         <translation>Speichern</translation>
     </message>
     <message>
-        <location line="-81"/>
+        <location line="-93"/>
         <source>Saved passwords</source>
         <translation>Gespeicherte Passwörter</translation>
     </message>
     <message>
         <location line="+1"/>
+        <source>%1 saved logins</source>
+        <translation>%1 gespeicherte Anmeldungen</translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>Done</source>
         <translation>Fertig</translation>
     </message>
     <message>
-        <location line="+3"/>
-        <source>Offer to save and fill passwords</source>
-        <translation>Angebot zum Speichern und Ausfüllen von Passwörtern</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Passwords use macOS Keychain, Windows Credential Manager, or a Linux keyring. Websites and usernames are indexed locally. Credentials do not sync between devices.</source>
-        <translation>Passwörter verwenden den macOS-Schlüsselbund, den Windows-Anmeldeinformationsmanager oder einen Linux-Schlüsselbund. Websites und Benutzernamen werden lokal indiziert. Anmeldeinformationen werden nicht zwischen Geräten synchronisiert.</translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="+8"/>
         <source>Search sites and usernames</source>
         <translation>Durchsuchen Sie Websites und Benutzernamen</translation>
     </message>
@@ -3889,13 +3816,13 @@
         <translation>Gespeicherte Passwörter durchsuchen</translation>
     </message>
     <message>
-        <location line="+20"/>
+        <location line="+39"/>
         <source>Update</source>
         <translation>Update</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <location line="+57"/>
+        <location line="+2"/>
+        <location line="+55"/>
         <source>Delete</source>
         <translation>Löschen</translation>
     </message>
@@ -3905,13 +3832,23 @@
         <translation>Noch keine gespeicherten Passwörter.</translation>
     </message>
     <message>
-        <location line="+4"/>
-        <location line="+11"/>
+        <location line="-48"/>
+        <location line="+63"/>
         <source>Add login</source>
         <translation>Login hinzufügen</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-69"/>
+        <source>Stored securely on this device. Use Sync in Passwords settings to connect your devices.</source>
+        <translation>Sicher auf diesem Gerät gespeichert. Verbinde deine Geräte unter Passwörter → Sync in den Einstellungen.</translation>
+    </message>
+    <message>
+        <location line="+54"/>
+        <source>No matching logins.</source>
+        <translation>Keine passenden Anmeldungen.</translation>
+    </message>
+    <message>
+        <location line="+15"/>
         <source>Replace saved password</source>
         <translation>Gespeichertes Passwort ersetzen</translation>
     </message>
@@ -3961,6 +3898,92 @@
         <location line="-3"/>
         <source>Delete this password?</source>
         <translation>Dieses Passwort löschen?</translation>
+    </message>
+</context>
+<context>
+    <name>PasswordSettings</name>
+    <message>
+        <location filename="../qml/PasswordSettings.qml" line="+13"/>
+        <source>Saved passwords</source>
+        <translation>Gespeicherte Passwörter</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>%1 saved logins, protected by your operating system.</source>
+        <translation>%1 gespeicherte Anmeldungen, geschützt durch dein Betriebssystem.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Manage saved passwords…</source>
+        <translation>Gespeicherte Passwörter verwalten…</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <location line="+2"/>
+        <source>Offer to save and fill passwords</source>
+        <translation>Angebot zum Speichern und Ausfüllen von Passwörtern</translation>
+    </message>
+    <message>
+        <location line="-1"/>
+        <source>Save new logins and suggest matching accounts on websites.</source>
+        <translation>Neue Anmeldungen speichern und passende Konten auf Websites vorschlagen.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <location line="+2"/>
+        <source>Verify my identity before filling saved passwords</source>
+        <translation>Überprüfen Sie meine Identität, bevor Sie gespeicherte Passwörter eingeben</translation>
+    </message>
+    <message>
+        <location line="-1"/>
+        <source>Use device authentication before filling a saved login.</source>
+        <translation>Vor dem Ausfüllen einer gespeicherten Anmeldung die Geräteauthentifizierung verwenden.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <location line="+10"/>
+        <source>Ask me to verify again</source>
+        <translation>Bitten Sie mich um eine erneute Bestätigung</translation>
+    </message>
+    <message>
+        <location line="-9"/>
+        <source>Locking, sleeping, or restarting clears the remembered verification.</source>
+        <translation>Sperren, Ruhezustand oder Neustart löschen die gemerkte Bestätigung.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Every time</source>
+        <translation>Jedes Mal</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>After 1 minute</source>
+        <translation>Nach 1 Minute</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>After 5 minutes</source>
+        <translation>Nach 5 Minuten</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>After 15 minutes</source>
+        <translation>Nach 15 Minuten</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>After 30 minutes</source>
+        <translation>Nach 30 Minuten</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>After 1 hour</source>
+        <translation>Nach 1 Stunde</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>After %1 seconds</source>
+        <translation>Nach %1 Sekunden</translation>
     </message>
 </context>
 <context>
@@ -4150,7 +4173,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+615"/>
+        <location filename="../src/main.cpp" line="+627"/>
         <source>Settings…</source>
         <translation>Einstellungen…</translation>
     </message>
@@ -4659,7 +4682,7 @@
 <context>
     <name>SyncSettings</name>
     <message>
-        <location filename="../qml/SyncSettings.qml" line="+13"/>
+        <location filename="../qml/SyncSettings.qml" line="+11"/>
         <source>Bring your vault along</source>
         <translation>Dein Tresor für unterwegs</translation>
     </message>
@@ -4709,12 +4732,12 @@
         <translation>Gerät hinzufügen</translation>
     </message>
     <message>
-        <location line="+15"/>
-        <source>On your phone, open Passwords &amp; passkeys → Scan desktop code, then scan this code. It grants access to this vault. The invitation expires in two minutes and can be used once.</source>
-        <translation>Öffne auf deinem Smartphone „Passwörter &amp; Passkeys“ → „Desktop-Code scannen“ und scanne diesen Code. Er gewährt Zugriff auf diesen Tresor. Die Einladung läuft nach zwei Minuten ab und kann einmal verwendet werden.</translation>
+        <location line="+18"/>
+        <source>Scan with Arbiter or your phone’s Camera app. Review the device before connecting. This invitation grants access to your vault, expires in two minutes, and works once.</source>
+        <translation>Scanne mit Arbiter oder der Kamera-App deines Smartphones. Prüfe das Gerät vor dem Verbinden. Diese Einladung gewährt Zugriff auf deinen Tresor, läuft nach zwei Minuten ab und ist einmal verwendbar.</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Copy pairing code for another computer</source>
         <translation>Kopplungscode für anderen Computer kopieren</translation>
     </message>
@@ -4724,17 +4747,17 @@
         <translation>Kopplung abbrechen</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>Paste a pairing code from another computer</source>
         <translation>Kopplungscode eines anderen Computers einfügen</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+1"/>
         <source>Review connection</source>
         <translation>Verbindung prüfen</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+7"/>
         <source>Connect to %1? This shares your vault with this device and the devices it syncs with.</source>
         <translation>Mit %1 verbinden? Dein Tresor wird mit diesem Gerät und den Geräten geteilt, mit denen es synchronisiert wird.</translation>
     </message>

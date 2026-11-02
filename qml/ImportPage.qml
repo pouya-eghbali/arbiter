@@ -79,13 +79,13 @@ ColumnLayout {
         Basic.Label { text: qsTr("Passwords"); color: Theme.text; font.weight: Font.DemiBold }
         RowLayout {
             UiButton { text: qsTr("Choose password CSV…"); enabled: !page.controller.busy; onClicked: passwordFile.open() }
-            UiButton { text: qsTr("Clear"); enabled: !page.controller.busy && page.controller.passwordFileLabel.length > 0; onClicked: page.controller.setPasswordFile("") }
+            UiIconButton { iconName: "x"; label: qsTr("Clear"); enabled: !page.controller.busy && page.controller.passwordFileLabel.length > 0; onClicked: page.controller.setPasswordFile("") }
         }
         Basic.Label { text: page.controller.passwordFileLabel || qsTr("No password file selected"); textFormat: Text.PlainText; color: Theme.muted; Layout.fillWidth: true; elide: Text.ElideMiddle }
         Basic.Label { text: qsTr("History"); color: Theme.text; font.weight: Font.DemiBold }
         RowLayout {
             UiButton { text: qsTr("Choose history file…"); enabled: !page.controller.busy; onClicked: historyFile.open() }
-            UiButton { text: qsTr("Clear"); enabled: !page.controller.busy && page.controller.historyFileLabel.length > 0; onClicked: page.controller.setHistoryFile("") }
+            UiIconButton { iconName: "x"; label: qsTr("Clear"); enabled: !page.controller.busy && page.controller.historyFileLabel.length > 0; onClicked: page.controller.setHistoryFile("") }
         }
         Basic.Label { text: page.controller.historyFileLabel || qsTr("No history file selected"); textFormat: Text.PlainText; color: Theme.muted; Layout.fillWidth: true; elide: Text.ElideMiddle }
         Basic.Label {

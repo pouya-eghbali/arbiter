@@ -2186,7 +2186,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+148"/>
+        <location filename="../qml/Main.qml" line="+161"/>
         <source>Private browsing — Arbiter</source>
         <translation>プライベート ブラウジング — Arbiter</translation>
     </message>
@@ -2197,14 +2197,14 @@
     </message>
     <message>
         <location line="+643"/>
-        <location line="+1656"/>
+        <location line="+1617"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>新しいタブ</translation>
     </message>
     <message>
-        <location line="-1653"/>
-        <location line="+1742"/>
+        <location line="-1614"/>
+        <location line="+1703"/>
         <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
@@ -2212,89 +2212,91 @@
         <translation>スタートページ</translation>
     </message>
     <message>
-        <location line="-1247"/>
+        <location line="-1208"/>
         <source>Settings</source>
         <translation>設定</translation>
     </message>
     <message>
-        <location line="+26"/>
-        <location line="+48"/>
+        <location line="-1205"/>
+        <location line="+1278"/>
         <source>Appearance</source>
         <translation>外観</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1277"/>
+        <location line="+1277"/>
+        <location line="+0"/>
+        <location line="+11"/>
         <source>Passwords</source>
         <translation>パスワード</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-11"/>
+        <location line="+11"/>
         <source>Passkeys</source>
         <translation>パスキー</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1287"/>
+        <location line="+1276"/>
         <source>Keyboard</source>
         <translation>キーボード</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1275"/>
+        <location line="+1275"/>
         <source>Configuration</source>
         <translation>構成</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="+0"/>
+        <location line="+11"/>
         <source>Import</source>
         <translation>インポート</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1285"/>
+        <location line="+1274"/>
         <source>Performance</source>
         <translation>パフォーマンス</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1273"/>
+        <location line="+1273"/>
         <source>Privacy</source>
         <translation>プライバシー</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1272"/>
+        <location line="+1272"/>
         <source>Extensions</source>
         <translation>拡張機能</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1271"/>
+        <location line="+1271"/>
         <source>Downloads</source>
         <translation>ダウンロード</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="-1270"/>
+        <location line="+1270"/>
         <source>About</source>
         <translation>概要</translation>
     </message>
     <message>
-        <location line="-48"/>
-        <location line="+48"/>
+        <location line="+0"/>
+        <location line="+11"/>
         <source>Sync</source>
         <translation>同期</translation>
     </message>
     <message>
-        <location line="-13"/>
+        <location line="-24"/>
         <source>Done</source>
         <translation>完了</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+39"/>
         <location line="+6"/>
         <source>Color theme</source>
         <translation>カラーテーマ</translation>
@@ -2428,92 +2430,17 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+359"/>
+        <location line="+309"/>
         <source>Off</source>
         <translation>オフ</translation>
     </message>
     <message>
-        <location line="-352"/>
+        <location line="-302"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>Web サイトのナビゲーションをタブ タイトルの下に表示するか、macOS メニュー バーの別のメニューとして表示します。</translation>
     </message>
     <message>
-        <location line="+11"/>
-        <source>Keep your saved logins on this computer, protected by your system credential store.</source>
-        <translation>保存されたログイン情報は、システム資格情報ストアによって保護されて、このコンピュータに保存されます。</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>Offer to save and fill passwords</source>
-        <translation>パスワードの保存と入力を申し出ます</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Verify my identity before filling saved passwords</source>
-        <translation>保存されたパスワードを入力する前に身元を確認してください</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>Uses fingerprint verification when available. Your operating system may separately ask for permission to access its credential store.</source>
-        <translation>利用可能な場合は指紋認証を使用します。オペレーティング システムは、資格情報ストアにアクセスするための許可を個別に要求する場合があります。</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Ask me to verify again</source>
-        <translation>もう一度確認するよう依頼する</translation>
-    </message>
-    <message>
-        <location line="+4"/>
-        <source>Every time</source>
-        <translation>毎回</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>After 1 minute</source>
-        <translation>1分後</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>After 5 minutes</source>
-        <translation>5分後</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>After 15 minutes</source>
-        <translation>15分後</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>After 30 minutes</source>
-        <translation>30分後</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>After 1 hour</source>
-        <translation>1時間後</translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>After %1 seconds</source>
-        <translation>%1 秒後</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>Remember a successful fingerprint verification for this long. Locking, sleeping, or restarting clears it. Your operating system still controls access to its credential store.</source>
-        <translation>これほど長い間、指紋認証が成功したことを覚えておいてください。ロック、スリープ、または再起動するとクリアされます。オペレーティング システムは引き続き資格情報ストアへのアクセスを制御します。</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Manage saved passwords…</source>
-        <translation>保存されたパスワードを管理します…</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Import passwords + history…</source>
-        <translation>パスワードと履歴をインポート…</translation>
-    </message>
-    <message>
-        <location line="+8"/>
+        <location line="+18"/>
         <source>Use a passkey saved in Arbiter, or scan a QR code with your phone when a website asks you to sign in.</source>
         <translation>Arbiter に保存されているパスキーを使用するか、Web サイトでサインインを求められたら携帯電話で QR コードをスキャンします。</translation>
     </message>
@@ -2528,12 +2455,12 @@
         <translation>パスワードとパスキーは、自動作成され OS で保護された同じ保管庫を使用します。パスキーでのサインインにはデバイス認証が必要です。Arbiter 専用のパスフレーズは不要です。</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+8"/>
         <source>Refresh device authentication</source>
         <translation>デバイス認証を更新</translation>
     </message>
     <message>
-        <location line="+18"/>
+        <location line="+16"/>
         <source>Click a shortcut, then press the new combination. Changes save automatically. Escape cancels recording.</source>
         <translation>ショートカットをクリックして、新しい組み合わせを押します。変更は自動的に保存されます。エスケープすると録音がキャンセルされます。</translation>
     </message>
@@ -2583,13 +2510,13 @@
         <translation>空のスタートページの背景をドラッグしてウィンドウを移動します。</translation>
     </message>
     <message>
-        <location line="+32"/>
-        <location line="+8"/>
+        <location line="+27"/>
+        <location line="+10"/>
         <source>Interface language</source>
         <translation>表示言語</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="-9"/>
         <source>Restart Arbiter to apply the new language.</source>
         <translation>Arbiter を再起動して、新しい言語を適用します。</translation>
     </message>
@@ -2599,13 +2526,13 @@
         <translation>システム言語を使用するか、Arbiter の言語を選択してください。 Web サイトは独自のコンテンツと言語を保持します。</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+14"/>
         <location line="+8"/>
         <source>Default search engine</source>
         <translation>デフォルトの検索エンジン</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+6"/>
         <source>Replay welcome tutorial</source>
         <translation>ようこそチュートリアルを再生してください</translation>
     </message>
@@ -2645,53 +2572,58 @@
         <translation>非アクティブなタブをスリープ状態にするのは次のとおりです</translation>
     </message>
     <message>
-        <location line="+4"/>
-        <location line="+54"/>
+        <location line="+5"/>
+        <location line="+53"/>
         <source>1 minute</source>
         <translation>1分</translation>
     </message>
     <message>
-        <location line="-54"/>
-        <location line="+54"/>
+        <location line="-53"/>
+        <location line="+53"/>
         <source>5 minutes</source>
         <translation>5分</translation>
     </message>
     <message>
-        <location line="-54"/>
-        <location line="+54"/>
+        <location line="-53"/>
+        <location line="+53"/>
         <source>15 minutes</source>
         <translation>15分</translation>
     </message>
     <message>
-        <location line="-54"/>
-        <location line="+54"/>
+        <location line="-53"/>
+        <location line="+53"/>
         <source>30 minutes</source>
         <translation>30分</translation>
     </message>
     <message>
-        <location line="-54"/>
-        <location line="+54"/>
+        <location line="-53"/>
+        <location line="+53"/>
         <source>1 hour</source>
         <translation>1時間</translation>
     </message>
     <message>
-        <location line="-52"/>
-        <location line="+54"/>
+        <location line="-51"/>
+        <location line="+53"/>
         <source>%1 seconds</source>
         <translation>%1 秒</translation>
     </message>
     <message>
-        <location line="-52"/>
+        <location line="-51"/>
         <source>Tab sleep timeout</source>
         <translation>タブのスリープ タイムアウト</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-8"/>
         <source>Sleeping tabs pause background activity and resume when you return. Visible split panes and tabs playing audio stay awake. Page contents are preserved without reloading. Turning this off wakes sleeping tabs.</source>
         <translation>スリープ状態のタブはバックグラウンド アクティビティを一時停止し、戻ったときに再開します。オーディオを再生している表示される分割ペインとタブは起動したままになります。ページの内容は再読み込みせずに保持されます。これをオフにすると、スリープ状態のタブが目覚めます。</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="-266"/>
+        <source>Device verification</source>
+        <translation>デバイス認証</translation>
+    </message>
+    <message>
+        <location line="+285"/>
         <source>Ad blocking</source>
         <translation>広告ブロック</translation>
     </message>
@@ -2731,12 +2663,12 @@
         <translation>新しいプライベートウィンドウ</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+3"/>
         <source>Lock after no activity for</source>
         <translation>何も操作しないとロックされる</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>2 minutes</source>
         <translation>2 分</translation>
     </message>
@@ -2751,12 +2683,12 @@
         <translation>プライベート ブラウジングのロック タイムアウト</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-9"/>
         <source>Private windows also lock immediately when switched to the background, minimized, or when your computer locks or sleeps. Use biometrics (or a Windows Hello PIN), or the global private-browsing PIN/password to unlock. Change your PIN/password below by entering its current value.</source>
         <translation>プライベート ウィンドウは、バックグラウンドに切り替えたとき、最小化したとき、またはコンピュータがロックまたはスリープ状態になったときにもすぐにロックされます。ロックを解除するには、生体認証 (または Windows Hello PIN)、またはグローバル プライベート ブラウジング PIN/パスワードを使用します。現在の値を入力して、以下の PIN/パスワードを変更します。</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+16"/>
         <source>Change private-browsing PIN/password</source>
         <translation>プライベート ブラウジングの PIN/パスワードを変更する</translation>
     </message>
@@ -2821,7 +2753,7 @@
         <translation>Arbiter に追加</translation>
     </message>
     <message>
-        <location line="+337"/>
+        <location line="+339"/>
         <source>%1 open · Pick up where you left off</source>
         <translation>%1 が開いています · 中断したところから再開します</translation>
     </message>
@@ -2897,7 +2829,7 @@
         <translation>プライベート</translation>
     </message>
     <message>
-        <location line="-1339"/>
+        <location line="-1287"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass（試験的）</translation>
     </message>
@@ -3107,7 +3039,7 @@
         <translation>色</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="+398"/>
+        <location filename="../qml/Main.qml" line="+352"/>
         <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Default browser</source>
         <translation>既定のブラウザー</translation>
@@ -3248,7 +3180,7 @@
         <translation>Arbiter の Web リンクを開きます。システムにより確認を求められる場合があります。これは完全にオプションです。</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="+7"/>
+        <location filename="../qml/Main.qml" line="+5"/>
         <location filename="../qml/Onboarding.qml" line="+3"/>
         <source>Arbiter is your default browser</source>
         <translation>Arbiter はデフォルトのブラウザです</translation>
@@ -3789,7 +3721,7 @@
 <context>
     <name>PasswordPanel</name>
     <message>
-        <location filename="../qml/PasswordPanel.qml" line="+190"/>
+        <location filename="../qml/PasswordPanel.qml" line="+192"/>
         <location line="+23"/>
         <source>Passwords</source>
         <translation>パスワード</translation>
@@ -3797,12 +3729,12 @@
     <message>
         <location line="-17"/>
         <location line="+39"/>
-        <location line="+82"/>
+        <location line="+107"/>
         <source>No username</source>
         <translation>ユーザー名がありません</translation>
     </message>
     <message>
-        <location line="-99"/>
+        <location line="-124"/>
         <source>Focus a login field on an HTTPS page, then open Passwords again. Embedded frames and forms that submit to another website are not filled.</source>
         <translation>HTTPS ページのログイン フィールドにフォーカスし、[パスワード] を再度開きます。別の Web サイトに送信される埋め込みフレームとフォームは入力されません。</translation>
     </message>
@@ -3838,12 +3770,12 @@
     </message>
     <message>
         <location line="+5"/>
-        <location line="+82"/>
+        <location line="+101"/>
         <source>Username (optional)</source>
         <translation>ユーザー名 (オプション)</translation>
     </message>
     <message>
-        <location line="-82"/>
+        <location line="-101"/>
         <source>Username to save</source>
         <translation>保存するユーザー名</translation>
     </message>
@@ -3854,32 +3786,27 @@
     </message>
     <message>
         <location line="+2"/>
-        <location line="+92"/>
+        <location line="+111"/>
         <source>Save</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location line="-81"/>
+        <location line="-93"/>
         <source>Saved passwords</source>
         <translation>保存されたパスワード</translation>
     </message>
     <message>
         <location line="+1"/>
+        <source>%1 saved logins</source>
+        <translation>%1 件の保存済みログイン</translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>Done</source>
         <translation>完了</translation>
     </message>
     <message>
-        <location line="+3"/>
-        <source>Offer to save and fill passwords</source>
-        <translation>パスワードの保存と入力を申し出ます</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Passwords use macOS Keychain, Windows Credential Manager, or a Linux keyring. Websites and usernames are indexed locally. Credentials do not sync between devices.</source>
-        <translation>パスワードには、macOS キーチェーン、Windows Credential Manager、または Linux キーリングが使用されます。 Web サイトとユーザー名はローカルでインデックス付けされます。認証情報はデバイス間で同期されません。</translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="+8"/>
         <source>Search sites and usernames</source>
         <translation>サイトとユーザー名を検索する</translation>
     </message>
@@ -3889,13 +3816,13 @@
         <translation>保存されたパスワードを検索する</translation>
     </message>
     <message>
-        <location line="+20"/>
+        <location line="+39"/>
         <source>Update</source>
         <translation>更新</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <location line="+57"/>
+        <location line="+2"/>
+        <location line="+55"/>
         <source>Delete</source>
         <translation>削除</translation>
     </message>
@@ -3905,13 +3832,23 @@
         <translation>保存されたパスワードはまだありません。</translation>
     </message>
     <message>
-        <location line="+4"/>
-        <location line="+11"/>
+        <location line="-48"/>
+        <location line="+63"/>
         <source>Add login</source>
         <translation>ログインを追加</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-69"/>
+        <source>Stored securely on this device. Use Sync in Passwords settings to connect your devices.</source>
+        <translation>このデバイスに安全に保存されます。設定の「パスワード → 同期」でデバイスを接続できます。</translation>
+    </message>
+    <message>
+        <location line="+54"/>
+        <source>No matching logins.</source>
+        <translation>一致するログインはありません。</translation>
+    </message>
+    <message>
+        <location line="+15"/>
         <source>Replace saved password</source>
         <translation>保存されたパスワードを置き換えます</translation>
     </message>
@@ -3961,6 +3898,92 @@
         <location line="-3"/>
         <source>Delete this password?</source>
         <translation>このパスワードを削除しますか?</translation>
+    </message>
+</context>
+<context>
+    <name>PasswordSettings</name>
+    <message>
+        <location filename="../qml/PasswordSettings.qml" line="+13"/>
+        <source>Saved passwords</source>
+        <translation>保存されたパスワード</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>%1 saved logins, protected by your operating system.</source>
+        <translation>OS で保護された %1 件の保存済みログイン。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Manage saved passwords…</source>
+        <translation>保存されたパスワードを管理します…</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <location line="+2"/>
+        <source>Offer to save and fill passwords</source>
+        <translation>パスワードの保存と入力を申し出ます</translation>
+    </message>
+    <message>
+        <location line="-1"/>
+        <source>Save new logins and suggest matching accounts on websites.</source>
+        <translation>新しいログインを保存し、ウェブサイトで一致するアカウントを提案します。</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <location line="+2"/>
+        <source>Verify my identity before filling saved passwords</source>
+        <translation>保存されたパスワードを入力する前に身元を確認してください</translation>
+    </message>
+    <message>
+        <location line="-1"/>
+        <source>Use device authentication before filling a saved login.</source>
+        <translation>保存済みログインを入力する前にデバイス認証を使用します。</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <location line="+10"/>
+        <source>Ask me to verify again</source>
+        <translation>もう一度確認するよう依頼する</translation>
+    </message>
+    <message>
+        <location line="-9"/>
+        <source>Locking, sleeping, or restarting clears the remembered verification.</source>
+        <translation>ロック、スリープ、再起動で記憶された認証が解除されます。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Every time</source>
+        <translation>毎回</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>After 1 minute</source>
+        <translation>1分後</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>After 5 minutes</source>
+        <translation>5分後</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>After 15 minutes</source>
+        <translation>15分後</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>After 30 minutes</source>
+        <translation>30分後</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>After 1 hour</source>
+        <translation>1時間後</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>After %1 seconds</source>
+        <translation>%1 秒後</translation>
     </message>
 </context>
 <context>
@@ -4150,7 +4173,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+615"/>
+        <location filename="../src/main.cpp" line="+627"/>
         <source>Settings…</source>
         <translation>設定…</translation>
     </message>
@@ -4659,7 +4682,7 @@
 <context>
     <name>SyncSettings</name>
     <message>
-        <location filename="../qml/SyncSettings.qml" line="+13"/>
+        <location filename="../qml/SyncSettings.qml" line="+11"/>
         <source>Bring your vault along</source>
         <translation>保管庫を持ち歩く</translation>
     </message>
@@ -4709,12 +4732,12 @@
         <translation>デバイスを追加</translation>
     </message>
     <message>
-        <location line="+15"/>
-        <source>On your phone, open Passwords &amp; passkeys → Scan desktop code, then scan this code. It grants access to this vault. The invitation expires in two minutes and can be used once.</source>
-        <translation>スマートフォンで「パスワードとパスキー」→「デスクトップのコードをスキャン」を開き、このコードを読み取ってください。この保管庫へのアクセスが許可されます。招待は2分後に失効し、1回のみ使用できます。</translation>
+        <location line="+18"/>
+        <source>Scan with Arbiter or your phone’s Camera app. Review the device before connecting. This invitation grants access to your vault, expires in two minutes, and works once.</source>
+        <translation>Arbiter またはスマートフォンのカメラアプリでスキャンしてください。接続前にデバイスを確認してください。この招待は保管庫へのアクセスを許可し、2 分で期限切れになり、一度だけ使用できます。</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Copy pairing code for another computer</source>
         <translation>別のコンピュータ用のペアリングコードをコピー</translation>
     </message>
@@ -4724,17 +4747,17 @@
         <translation>ペアリングをキャンセル</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>Paste a pairing code from another computer</source>
         <translation>別のコンピュータのペアリングコードを貼り付け</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+1"/>
         <source>Review connection</source>
         <translation>接続を確認</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+7"/>
         <source>Connect to %1? This shares your vault with this device and the devices it syncs with.</source>
         <translation>%1に接続しますか？保管庫がこのデバイスと、その同期先のデバイスに共有されます。</translation>
     </message>

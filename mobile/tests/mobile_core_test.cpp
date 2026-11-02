@@ -259,8 +259,23 @@ class MobileCoreTest : public QObject {
             return url.toString();
         };
         QVERIFY(!MobileVault::pairingInfo(invitation()).isEmpty());
+        QTemporaryDir directory;
+        MobileModel model(nullptr,directory.path());
+        const auto before=model.tabs();
+        QSignalSpy received(&model,&MobileModel::pairingInvitationReceived);
+        model.openUrl(QUrl(invitation()));
+        QCOMPARE(received.size(),1);
+        QCOMPARE(model.takePairingInvitation(),invitation());
+        QVERIFY(model.takePairingInvitation().isEmpty());
+        QCOMPARE(model.tabs(),before); // Never navigate/search with the pairing secret.
+        QVERIFY(model.vault()->devices().isEmpty()); // OS delivery never connects a device automatically.
+
         payload["endpoint"] = "https://example.com";
         QVERIFY(MobileVault::pairingInfo(invitation()).isEmpty());
+        model.openUrl(QUrl(invitation()));
+        QCOMPARE(received.size(),1);
+        QVERIFY(model.takePairingInvitation().isEmpty());
+
         QVERIFY(!MobileVault::localEndpoint(QUrl("https://192.168.1.1@evil.example")));
         QVERIFY(!MobileVault::localEndpoint(QUrl("http://127.0.0.1")));
     }

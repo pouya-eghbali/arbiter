@@ -23,7 +23,7 @@ Controls.ApplicationWindow {
     // Let the page reach the home indicator; keep controls in the safe area.
     bottomPadding: 0
     readonly property real bottomInset: window.SafeArea.margins.bottom
-    readonly property color surfaceColor: browsingSurface && current.url && !browser.privateLocked ? (current.background || "white") : Theme.window
+    readonly property color surfaceColor: panel === "scan" ? "#080b10" : browsingSurface && current.url && !browser.privateLocked ? (current.background || "white") : Theme.window
     color: surfaceColor
     onSurfaceColorChanged: browser.setSystemAppearance(surfaceColor)
 
@@ -40,7 +40,7 @@ Controls.ApplicationWindow {
     property int onboardingStep: 0
     property bool colorDark: Theme.dark
     readonly property bool darkMode: browser.settings.theme === "dark" || (browser.settings.theme === "system" && Application.styleHints.colorScheme === Qt.Dark)
-    readonly property bool specialPanel: ["address", "tabs", "workspaces", "more", "find"].includes(panel)
+    readonly property bool specialPanel: ["address", "tabs", "workspaces", "more", "find", "scan"].includes(panel)
     readonly property bool browsingSurface: panel === "" || panel === "find"
     NativeGlassHost { id: pageGlassCapability; visible: false }
     readonly property bool nativeFloatingOverlays: Qt.platform.os === "ios" && browser.backend === "webview" && Theme.liquidGlass && pageGlassCapability.available
@@ -176,7 +176,7 @@ Controls.ApplicationWindow {
     function dismiss() {
         cancelPendingPanel();
         if (panel === "settings" && settingsLoader.item && settingsLoader.item.category) {
-            settingsLoader.item.category = "";
+            settingsLoader.item.goBack();
             return;
         }
         Qt.inputMethod.hide();
@@ -227,12 +227,24 @@ Controls.ApplicationWindow {
                 browser.pageAction(browser.activeId, "back", "");
         }
     }
+    function acceptPairingLink() {
+        if (!browser.onboardingDone || panel === "onboarding" || browser.vault.busy || Application.state !== Qt.ApplicationActive) return;
+        const invitation = browser.takePairingInvitation();
+        if (!invitation) return;
+        window.showPanel("pair");
+        browser.vault.pair(invitation);
+    }
+    Connections { target: Application; function onStateChanged() { if (Application.state === Qt.ApplicationActive) Qt.callLater(window.acceptPairingLink); } }
+    onPanelChanged: Qt.callLater(acceptPairingLink)
     Component.onCompleted: {
         refresh();
+        Qt.callLater(acceptPairingLink);
         browser.setSystemAppearance(surfaceColor);
     }
     Connections {
         target: browser
+        function onPairingInvitationReceived() { window.acceptPairingLink(); }
+        function onSettingsChanged() { Qt.callLater(window.acceptPairingLink); }
         function onChanged() {
             window.refresh();
         }
@@ -252,6 +264,7 @@ Controls.ApplicationWindow {
     }
     Connections {
         target: browser.vault
+        function onChanged() { if (!browser.vault.busy) Qt.callLater(window.acceptPairingLink); }
         function onPairingReview(desktop, pin) {
             window.pairDesktop = desktop;
             window.pairPin = pin;
@@ -609,6 +622,21 @@ Controls.ApplicationWindow {
             onAction: name => window.moreAction(name)
         }
     }
+    Loader {
+        anchors.fill: parent
+        active: window.panel === "scan"
+        visible: active
+        sourceComponent: Component {
+            PairingScanner {
+                cameraEnabled: browser.backend !== "preview"
+                topInset: window.SafeArea.margins.top
+                bottomInset: window.bottomInset
+                onInvitation: value => { window.showPanel("pair"); browser.vault.pair(value); }
+                onCancel: window.showPanel("pair")
+            }
+        }
+    }
+
     // Sheets replace the native surface; all controls remain QML, including on phones.
     Rectangle {
         anchors.fill: parent
@@ -924,7 +952,7 @@ Controls.ApplicationWindow {
                     Text {
                         textFormat: Text.PlainText
                         visible: window.panel === "pair"
-                        text: qsTr("In Arbiter on desktop, open Settings → Sync, enable sync and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.")
+                        text: qsTr("In Arbiter on desktop, open Settings → Passwords → Sync, enable sync and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.")
                         color: Theme.mutedFor(parent)
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
@@ -935,21 +963,6 @@ Controls.ApplicationWindow {
                         text: qsTr("Scan QR code")
                         iconName: "qr-code"
                         onClicked: window.open("scan")
-                    }
-                    MobileEmptyState {
-                        Layout.fillWidth: true
-                        visible: window.panel === "scan" && browser.backend === "preview"
-                        title: qsTr("Scan QR code")
-                        iconName: "qr-code"
-                    }
-                    Loader {
-                        visible: window.panel === "scan"
-                        active: visible && browser.backend !== "preview"
-                        Layout.fillWidth: true
-                        source: "PairingScanner.qml"
-                        onLoaded: item.invitation.connect(value => {
-                            browser.vault.pair(value);
-                        })
                     }
                     MobileField {
                         id: invitation

@@ -6,6 +6,8 @@ import QtQuick.Controls.Basic as Basic
 Item {
     id: panel
     required property var manager
+    property var browserPreferences: null
+    property bool privateMode: false
     required property var activeView
     readonly property bool overlayVisible: suggestionPopup.visible || fillPopup.visible || savePopup.visible || managePopup.visible || editPopup.visible || deletePopup.visible
     property var target: null
@@ -280,63 +282,82 @@ Item {
     Popup {
         id: managePopup
         height: Math.min(650, panel.height - 60)
+        width: Math.min(760, panel.width - 40)
+        onOpened: searchField.forceActiveFocus()
         contentItem: ColumnLayout {
-            spacing: 14
+            spacing: 16
             RowLayout {
-                Basic.Label { text: qsTr("Saved passwords"); font.pixelSize: 22; Layout.fillWidth: true }
-                UiButton { text: qsTr("Done"); onClicked: managePopup.close() }
-            }
-            UiCheckBox {
-                text: qsTr("Offer to save and fill passwords")
-                checked: panel.manager.enabled
-                onToggled: panel.manager.enabled = checked
+                Layout.fillWidth: true
+                spacing: 12
+                UiIcon { name: "key-round"; color: Theme.accent; Layout.preferredWidth: 26; Layout.preferredHeight: 26 }
+                ColumnLayout {
+                    Layout.fillWidth: true; spacing: 3
+                    Basic.Label { text: qsTr("Saved passwords"); color: Theme.textFor(parent); font.pixelSize: 24; font.weight: Font.DemiBold }
+                    Basic.Label { text: qsTr("%1 saved logins").arg(panel.manager.entries.length); color: Theme.mutedFor(parent); font.pixelSize: 13 }
+                }
+                Item { Layout.fillWidth: true }
+                UiIconButton { iconName: "x"; label: qsTr("Done"); onClicked: managePopup.close() }
             }
             Basic.Label {
-                text: qsTr("Passwords use macOS Keychain, Windows Credential Manager, or a Linux keyring. Websites and usernames are indexed locally. Credentials do not sync between devices.")
-                Layout.fillWidth: true
-                wrapMode: Text.Wrap
-                color: Theme.mutedFor(parent)
+                text: qsTr("Stored securely on this device. Use Sync in Passwords settings to connect your devices.")
+                Layout.fillWidth: true; wrapMode: Text.Wrap; color: Theme.mutedFor(parent); font.pixelSize: 13
             }
-            UiTextField { id: searchField; Layout.fillWidth: true; placeholderText: qsTr("Search sites and usernames"); Accessible.name: qsTr("Search saved passwords") }
-            Basic.ScrollView {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                contentWidth: availableWidth
-                ColumnLayout {
-                    width: parent.width
-                    Repeater {
-                        model: panel.manager.entries
-                        delegate: RowLayout {
-                            id: credentialRow
-                            required property var modelData
-                            visible: (modelData.origin + " " + modelData.username).toLowerCase().includes(searchField.text.toLowerCase())
-                            Layout.fillWidth: true
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                Basic.Label { text: credentialRow.modelData.origin; textFormat: Text.PlainText; Layout.fillWidth: true; elide: Text.ElideMiddle }
-                                Basic.Label { text: credentialRow.modelData.username || qsTr("No username"); textFormat: Text.PlainText; Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.mutedFor(parent) }
-                            }
-                            UiButton {
-                                text: qsTr("Update")
-                                enabled: !panel.manager.busy && panel.manager.enabled
-                                onClicked: panel.edit(credentialRow.modelData.origin, credentialRow.modelData.username)
-                            }
-                            UiButton {
-                                text: qsTr("Delete")
-                                enabled: !panel.manager.busy
-                                onClicked: {
-                                    panel.deleteId = credentialRow.modelData.id
-                                    panel.deleteLabel = credentialRow.modelData.origin + " — " + credentialRow.modelData.username
-                                    deletePopup.open()
-                                }
-                            }
+            RowLayout {
+                Layout.fillWidth: true; spacing: 10
+                UiTextField { id: searchField; Layout.fillWidth: true; placeholderText: qsTr("Search sites and usernames"); Accessible.name: qsTr("Search saved passwords") }
+                UiIconButton { iconName: "plus"; label: qsTr("Add login"); implicitWidth: 40; implicitHeight: 40; enabled: !panel.manager.busy && panel.manager.enabled; onClicked: panel.edit("", "") }
+            }
+            ListView {
+                id: savedLogins
+                objectName: "savedPasswordList"
+                Layout.fillWidth: true; Layout.fillHeight: true
+                clip: true; spacing: 4; cacheBuffer: 100
+                model: panel.manager.entries.filter(entry => (entry.origin + " " + entry.username).toLowerCase().includes(searchField.text.toLowerCase()))
+                Basic.ScrollBar.vertical: Basic.ScrollBar { policy: savedLogins.contentHeight > savedLogins.height ? Basic.ScrollBar.AsNeeded : Basic.ScrollBar.AlwaysOff }
+                delegate: Rectangle {
+                    id: login
+                    required property var modelData
+                    width: savedLogins.width; height: 76; radius: 12
+                    color: hover.hovered ? Theme.hoverFor(parent) : "transparent"
+                    readonly property bool inViewport: managePopup.visible && y + height >= savedLogins.contentY && y < savedLogins.contentY + savedLogins.height
+                    property url favicon: ""
+                    function refreshIcon() {
+                        if (inViewport && panel.browserPreferences) favicon = panel.browserPreferences.favicon(modelData.origin, !panel.privateMode)
+                    }
+                    onInViewportChanged: if (inViewport) refreshIcon()
+                    Component.onCompleted: refreshIcon()
+                    HoverHandler { id: hover }
+                    Connections {
+                        target: panel.browserPreferences
+                        function onFaviconReady(origin: string) { if (origin === login.modelData.origin) login.refreshIcon() }
+                    }
+                    RowLayout {
+                        anchors.fill: parent; anchors.margins: 12; spacing: 14
+                        Rectangle {
+                            Layout.preferredWidth: 40; Layout.preferredHeight: 40; radius: 11; color: Theme.fieldFor(parent)
+                            UiIcon { anchors.centerIn: parent; width: 21; height: 21; name: "globe"; color: Theme.mutedFor(parent); visible: siteIcon.status !== Image.Ready }
+                            Image { id: siteIcon; anchors.centerIn: parent; width: 24; height: 24; sourceSize: Qt.size(48, 48); source: login.favicon; asynchronous: true; cache: true; fillMode: Image.PreserveAspectFit }
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true; spacing: 4
+                            Basic.Label { text: login.modelData.origin.replace(/^https?:\/\//, "").replace(/\/$/, ""); textFormat: Text.PlainText; Layout.fillWidth: true; elide: Text.ElideMiddle; color: Theme.textFor(parent); font.weight: Font.Medium }
+                            Basic.Label { text: login.modelData.username || qsTr("No username"); textFormat: Text.PlainText; Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.mutedFor(parent); font.pixelSize: 13 }
+                        }
+                        UiIconButton { iconName: "pencil"; label: qsTr("Update"); enabled: !panel.manager.busy && panel.manager.enabled; onClicked: panel.edit(login.modelData.origin, login.modelData.username) }
+                        UiIconButton {
+                            iconName: "trash-2"; label: qsTr("Delete"); enabled: !panel.manager.busy
+                            onClicked: { panel.deleteId = login.modelData.id; panel.deleteLabel = login.modelData.origin + " — " + login.modelData.username; deletePopup.open() }
                         }
                     }
-                    Basic.Label { visible: panel.manager.entries.length === 0; text: qsTr("No saved passwords yet."); color: Theme.mutedFor(parent) }
+                }
+                Basic.Label {
+                    anchors.centerIn: parent; width: parent.width; horizontalAlignment: Text.AlignHCenter
+                    visible: savedLogins.count === 0
+                    text: panel.manager.entries.length === 0 ? qsTr("No saved passwords yet.") : qsTr("No matching logins.")
+                    color: Theme.mutedFor(parent); wrapMode: Text.Wrap
                 }
             }
-            Basic.Label { text: panel.manager.error; visible: text.length > 0; Layout.fillWidth: true; wrapMode: Text.Wrap }
-            UiButton { text: qsTr("Add login"); enabled: !panel.manager.busy && panel.manager.enabled; onClicked: panel.edit("", "") }
+            Basic.Label { text: panel.manager.error; visible: text.length > 0; Layout.fillWidth: true; wrapMode: Text.Wrap; color: Theme.textFor(parent) }
         }
     }
 

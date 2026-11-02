@@ -97,7 +97,7 @@
   "General": "General",
   "History": "History",
   "Images (*.png *.jpg *.jpeg *.webp)": "Images (*.png *.jpg *.jpeg *.webp)",
-  "In Arbiter on desktop, open Settings → Sync, enable sync and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.": "In Arbiter on desktop, open Settings → Sync, enable sync and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.",
+  "In Arbiter on desktop, open Settings → Passwords → Sync, enable sync and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.": "In Arbiter on desktop, open Settings → Passwords → Sync, enable sync and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.",
   "Interface icons by Lucide and its contributors": "Interface icons by Lucide and its contributors",
   "Invalid device authorization": "Invalid device authorization",
   "Invalid pairing code": "Invalid pairing code",
@@ -149,6 +149,7 @@
   "Pause ad blocking for this site": "Pause ad blocking for this site",
   "Pause blocking for a website from the browser menu. Restore blocking for individual websites below.": "Pause blocking for a website from the browser menu. Restore blocking for individual websites below.",
   "Personal": "Personal",
+  "Position the desktop pairing code inside the frame.": "Position the desktop pairing code inside the frame.",
   "Previous match": "Previous match",
   "Privacy": "Privacy",
   "Privacy policy": "Privacy policy",
@@ -176,7 +177,6 @@
   "Saved credentials, autofill and unlocking": "Saved credentials, autofill and unlocking",
   "Saved passwords and passkeys stay encrypted on this device.": "Saved passwords and passkeys stay encrypted on this device.",
   "Scan QR code": "Scan QR code",
-  "Scan the pairing QR code from desktop Settings → Sync.": "Scan the pairing QR code from desktop Settings → Sync.",
   "Scan your Arbiter desktop pairing code, or allow a website to use your camera when you choose.": "Scan your Arbiter desktop pairing code, or allow a website to use your camera when you choose.",
   "Search": "Search",
   "Search engine": "Search engine",
@@ -241,5 +241,6 @@
   "Widevine & DRM": "Widevine & DRM",
   "Workspace name": "Workspace name",
   "Workspaces": "Workspaces",
+  "You can also scan with your phone’s Camera app to open Arbiter.": "You can also scan with your phone’s Camera app to open Arbiter.",
   "You’re ready": "You’re ready"
 }

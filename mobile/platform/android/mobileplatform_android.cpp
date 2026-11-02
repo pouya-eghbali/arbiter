@@ -63,7 +63,7 @@ void nativeOpenUrl(JNIEnv *, jclass, jstring text) {
     auto url = QJniObject(text).toString();
     QMetaObject::invokeMethod(qApp, [url] {
         if (MobileModel::instance)
-            MobileModel::instance->navigate(url);
+            MobileModel::instance->openUrl(QUrl(url));
     });
 }
 jboolean nativeBlocked(JNIEnv *, jclass, jstring url, jstring source, jstring kind, jstring method) {

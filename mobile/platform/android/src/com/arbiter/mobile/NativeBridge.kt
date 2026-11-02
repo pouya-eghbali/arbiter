@@ -115,7 +115,7 @@ object NativeBridge {
  @JvmStatic fun initialize(){
   if(downloadMonitorStarted.compareAndSet(false,true))downloadExecutor.scheduleWithFixedDelay({pollDownloads()},1,1,java.util.concurrent.TimeUnit.SECONDS)
   activity().runOnUiThread{
-  activity().intent?.dataString?.let{if(Uri.parse(it).scheme in listOf("http","https"))openUrl(it)}
+  activity().intent?.dataString?.let{if(Uri.parse(it).scheme in listOf("http","https","arbiter-pair"))openUrl(it)}
   if(WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)){
    val store=androidx.webkit.ProfileStore.getInstance()
    for(name in store.allProfileNames)if(name.startsWith("private-"))try{store.deleteProfile(name)}catch(_:IllegalStateException){}

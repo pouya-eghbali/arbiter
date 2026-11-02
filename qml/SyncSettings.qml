@@ -8,7 +8,7 @@ ColumnLayout {
     id: root
     required property var manager
     spacing: 20
-    Basic.Label { text: qsTr("Bring your vault along"); color: Theme.text; font.pixelSize: 26; font.weight: Font.DemiBold }
+    Basic.Label { text: qsTr("Bring your vault along"); color: Theme.text; font.pixelSize: 22; font.weight: Font.DemiBold }
     Basic.Label {
         Layout.fillWidth: true
         text: qsTr("Enable sync once to share passwords and passkeys between paired devices over local Wi-Fi. Sync starts automatically whenever Arbiter opens and keeps running until you turn it off. No separate vault, passphrase, or cloud account is needed.")
@@ -61,31 +61,31 @@ ColumnLayout {
             enabled: !!root.manager && !root.manager.busy
             onClicked: root.manager.pair()
         }
-        ColumnLayout {
+        GridLayout {
             visible: !!root.manager && root.manager.pairingImage.length > 0
-            spacing: 12; Layout.fillWidth: true
+            columns: root.width > 640 ? 2 : 1
+            columnSpacing: 24; rowSpacing: 16; Layout.fillWidth: true
             Rectangle {
-                Layout.preferredWidth: 280; Layout.preferredHeight: 280
+                Layout.preferredWidth: 260; Layout.preferredHeight: 260
                 color: "white"; radius: 18
-                Image { anchors.fill: parent; anchors.margins: 10; source: root.manager ? root.manager.pairingImage : ""; smooth: false; fillMode: Image.PreserveAspectFit }
+                Image { anchors.fill: parent; anchors.margins: 12; source: root.manager ? root.manager.pairingImage : ""; smooth: false; fillMode: Image.PreserveAspectFit }
             }
-            Basic.Label {
-                Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.muted
-                text: qsTr("On your phone, open Passwords & passkeys → Scan desktop code, then scan this code. It grants access to this vault. The invitation expires in two minutes and can be used once.")
+            ColumnLayout {
+                Layout.fillWidth: true; spacing: 16
+                Basic.Label {
+                    Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.muted
+                    text: qsTr("Scan with Arbiter or your phone’s Camera app. Review the device before connecting. This invitation grants access to your vault, expires in two minutes, and works once.")
+                }
+                RowLayout {
+                    UiIconButton { iconName: "copy"; label: qsTr("Copy pairing code for another computer"); onClicked: root.manager.copyPairingCode() }
+                    UiIconButton { iconName: "x"; label: qsTr("Cancel pairing"); onClicked: root.manager.cancelPairing() }
+                }
             }
-            UiButton { text: qsTr("Copy pairing code for another computer"); onClicked: root.manager.copyPairingCode() }
-            UiButton { text: qsTr("Cancel pairing"); onClicked: root.manager.cancelPairing() }
         }
-        UiTextField {
-            id: invitation
-            Layout.fillWidth: true
-            placeholderText: qsTr("Paste a pairing code from another computer")
-            enabled: !!root.manager && !root.manager.busy
-        }
-        UiButton {
-            text: qsTr("Review connection")
-            enabled: invitation.text.trim().length > 0 && !!root.manager && !root.manager.busy
-            onClicked: { root.manager.reviewPairing(invitation.text); invitation.clear() }
+        RowLayout {
+            Layout.fillWidth: true; spacing: 10
+            UiTextField { id: invitation; Layout.fillWidth: true; placeholderText: qsTr("Paste a pairing code from another computer"); enabled: !!root.manager && !root.manager.busy }
+            UiButton { text: qsTr("Review connection"); enabled: invitation.text.trim().length > 0 && !!root.manager && !root.manager.busy; onClicked: { root.manager.reviewPairing(invitation.text); invitation.clear() } }
         }
         ColumnLayout {
             visible: !!root.manager && root.manager.pendingDevice.length > 0
