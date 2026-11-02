@@ -124,6 +124,9 @@ Controls.ApplicationWindow {
     }
     readonly property Item glassBackdrop: backdropScene
     readonly property string workspaceName: (browser.workspaces.find(w => w.id === browser.workspaceId) || {}).name || qsTr("Personal")
+    // Use the resting toolbar geometry even while a sheet hides the pill. Opening
+    // a browser panel must not resize/reflow the website behind the glass.
+    readonly property real toolbarBottomInset: pill.height + Math.max(14, bottomInset + 8) + 8
     readonly property rect nativeOverlayRect: {
         const control = panel === "find" ? findBar : pill;
         if (control.nativeActive) return Qt.rect(0, 0, 0, 0);
@@ -347,6 +350,8 @@ Controls.ApplicationWindow {
                         };
                         if (browser.backend === "webengine")
                             properties.pageProfile = engineProfiles.profile(record);
+                        else
+                            properties.toolbarBottomInset = Qt.binding(() => Qt.platform.os === "ios" ? window.toolbarBottomInset : 0);
                         setSource(browser.backend === "webengine" ? "WebEnginePane.qml" : "NativePane.qml", properties);
                     }
                     active = true;

@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
 #else
 #if defined(Q_OS_IOS) && TARGET_OS_SIMULATOR
     QTemporaryDir smokeProfile;
-    const bool uiSmoke = qEnvironmentVariableIsSet("ARBITER_CLIPBOARD_SMOKE") || qEnvironmentVariableIsSet("ARBITER_UI_SMOKE") || qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE") || qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE") || qEnvironmentVariableIsSet("ARBITER_APPEARANCE_SMOKE") || qEnvironmentVariableIsSet("ARBITER_PANEL_PREVIEW");
+    const bool uiSmoke = qEnvironmentVariableIsSet("ARBITER_VIEWPORT_SMOKE") || qEnvironmentVariableIsSet("ARBITER_CLIPBOARD_SMOKE") || qEnvironmentVariableIsSet("ARBITER_UI_SMOKE") || qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE") || qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE") || qEnvironmentVariableIsSet("ARBITER_APPEARANCE_SMOKE") || qEnvironmentVariableIsSet("ARBITER_PANEL_PREVIEW");
     if (uiSmoke) {
         const QJsonObject profile{
             {"settings", QJsonObject{{"onboardingDone", true}, {"liquidGlass", true}, {"theme", "dark"}}},
@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
 #if defined(Q_OS_IOS) && TARGET_OS_SIMULATOR
     // Native-view visibility and snapshot transitions need a real iOS/Metal test.
     // This diagnostic entry point is never compiled into physical-device builds.
-    if (qEnvironmentVariableIsSet("ARBITER_CLIPBOARD_SMOKE") || qEnvironmentVariableIsSet("ARBITER_UI_SMOKE") || qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE") || qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE") || qEnvironmentVariableIsSet("ARBITER_APPEARANCE_SMOKE") || qEnvironmentVariableIsSet("ARBITER_PANEL_PREVIEW")) {
+    if (qEnvironmentVariableIsSet("ARBITER_VIEWPORT_SMOKE") || qEnvironmentVariableIsSet("ARBITER_CLIPBOARD_SMOKE") || qEnvironmentVariableIsSet("ARBITER_UI_SMOKE") || qEnvironmentVariableIsSet("ARBITER_SUGGESTIONS_SMOKE") || qEnvironmentVariableIsSet("ARBITER_OVERLAY_SMOKE") || qEnvironmentVariableIsSet("ARBITER_APPEARANCE_SMOKE") || qEnvironmentVariableIsSet("ARBITER_PANEL_PREVIEW")) {
         auto window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
         QTimer::singleShot(1500, window, [window, &browser, &engine] {
             if (qEnvironmentVariableIsSet("ARBITER_CLIPBOARD_SMOKE")) {
@@ -197,6 +197,55 @@ int main(int argc, char **argv) {
                     browser.setPreview(tab.value("id").toString(), preview);
                 }
                 window->setProperty("panel", qEnvironmentVariable("ARBITER_PANEL_PREVIEW"));
+                return;
+            }
+            if (qEnvironmentVariableIsSet("ARBITER_VIEWPORT_SMOKE")) {
+                browser.selectTab("target");
+                auto timer = new QTimer(window);
+                timer->setInterval(200);
+                QObject::connect(timer, &QTimer::timeout, window,
+                    [timer, window, &browser, stage = 0, attempts = 0, busy = false]() mutable {
+                        if (busy) return;
+                        auto page = NativePage::pages.value("target");
+                        if (!page || page->title() != "Viewport fixture") {
+                            if (++attempts > 100) qFatal("Viewport fixture did not load");
+                            return;
+                        }
+                        busy = true;
+                        const auto inset = page->toolbarBottomInset();
+                        const auto usable = page->nativeWindow()->height() - (page->supportsObscuredInsets() ? inset : 0);
+                        const auto query = QString("(() => { const bottom = document.querySelector('footer').getBoundingClientRect().bottom; "
+                            "return bottom > 0 && bottom <= %1 + 2 && document.elementFromPoint(innerWidth / 2, bottom - 24)?.tagName === 'BUTTON'; })()")
+                            .arg(usable);
+                        page->evaluate(query,
+                            [timer, window, page, &browser, &stage, &attempts, &busy, inset, usable](QVariant result) {
+                                busy = false;
+                                if (inset < 50 || !result.toBool()) {
+                                    if (++attempts > 50) qFatal("Website bottom controls overlap browser toolbar or fail hit testing (usable=%f inset=%f stage=%d)", usable, inset, stage);
+                                    return;
+                                }
+                                attempts = 0;
+                                if (stage == 0) {
+                                    qInfo("Fixed website footer clears toolbar (usable=%f inset=%f)", usable, inset);
+                                    const QPoint point(page->nativeWindow()->width()/2, qRound(usable - 24));
+                                    QPoint local;
+                                    const auto global = page->nativeWindow()->mapToGlobal(point);
+                                    if (arbiter_ios_test_window_at(window, window->mapFromGlobal(global), &local) != page->nativeWindow())
+                                        qFatal("Browser chrome intercepts website footer touches");
+                                } else if (stage == 1) {
+                                    page->evaluate("scrollTo(0, document.body.scrollHeight)");
+                                } else if (stage == 2) QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "more"));
+                                else if (stage == 4) QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "tabs"));
+                                else if (stage == 6) QMetaObject::invokeMethod(window, "dismiss");
+                                else if (stage == 8) browser.setSetting("liquidGlass", false);
+                                else if (stage == 10) {
+                                    qInfo("Website fixed controls remain visible and hit-testable after scroll, browser panels and Glacier switch");
+                                    timer->stop(); qApp->quit();
+                                }
+                                ++stage;
+                            });
+                    });
+                timer->start();
                 return;
             }
             if (qEnvironmentVariableIsSet("ARBITER_APPEARANCE_SMOKE")) {

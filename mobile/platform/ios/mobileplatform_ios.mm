@@ -819,6 +819,20 @@ void mediaPlaying(NativePage *page, std::function<void(bool)> callback) {
       callback(state == WKMediaPlaybackStatePlaying);
     }];
 }
+bool supportsObscuredInsets() {
+    if (@available(iOS 26.0, *)) return true;
+    return false;
+}
+void setToolbarBottomInset(NativePage *page, qreal inset) {
+    if (!page->handle) return;
+    ArbiterWeb *bridge = (__bridge ArbiterWeb *)page->handle;
+    if (@available(iOS 26.0, *)) {
+        // Keep the native page edge-to-edge for glass sampling, but tell WebKit
+        // where browser chrome begins. Unlike scrollView.contentInset this also
+        // relocates fixed/sticky site controls and updates the layout viewport.
+        bridge.view.obscuredContentInsets = UIEdgeInsetsMake(0, 0, inset, 0);
+    }
+}
 void setOverlayRect(NativePage *page, const QRectF &rect) {
     if (!page->handle)
         return;

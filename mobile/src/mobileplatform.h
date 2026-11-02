@@ -37,6 +37,8 @@ void action(NativePage *, const QString &);
 void evaluate(NativePage *, const QString &, std::function<void(QVariant)> = {});
 void configurePage(NativePage *);
 void setOverlayRect(NativePage *, const QRectF &normalized);
+bool supportsObscuredInsets();
+void setToolbarBottomInset(NativePage *, qreal);
 void capture(NativePage *);
 void setCoverProgress(NativePage *, qreal);
 void find(NativePage *, const QString &, bool backwards);

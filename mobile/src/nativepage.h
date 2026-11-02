@@ -16,6 +16,8 @@ class NativePage : public QObject {
     Q_PROPERTY(QUrl url READ url WRITE setUrl NOTIFY changed)
     Q_PROPERTY(qreal coverProgress READ coverProgress WRITE setCoverProgress NOTIFY coverProgressChanged)
     Q_PROPERTY(QRectF overlayRect READ overlayRect WRITE setOverlayRect NOTIFY overlayRectChanged)
+    Q_PROPERTY(qreal toolbarBottomInset READ toolbarBottomInset WRITE setToolbarBottomInset NOTIFY toolbarBottomInsetChanged)
+    Q_PROPERTY(bool supportsObscuredInsets READ supportsObscuredInsets CONSTANT)
     Q_PROPERTY(QString title READ title NOTIFY changed)
     Q_PROPERTY(bool canBack MEMBER canBack NOTIFY changed)
     Q_PROPERTY(bool canForward MEMBER canForward NOTIFY changed)
@@ -38,6 +40,9 @@ class NativePage : public QObject {
         return m_overlayRect;
     }
     void setOverlayRect(const QRectF &rect);
+    qreal toolbarBottomInset() const { return m_toolbarBottomInset; }
+    void setToolbarBottomInset(qreal);
+    bool supportsObscuredInsets() const;
     qreal coverProgress() const { return m_coverProgress; }
     void setCoverProgress(qreal);
     Q_INVOKABLE void capture();
@@ -56,6 +61,7 @@ class NativePage : public QObject {
     void changed();
     void nativeWindowChanged();
     void overlayRectChanged();
+    void toolbarBottomInsetChanged();
     void coverProgressChanged();
     void browserEvent(QString tabId, QString type, QVariantMap data);
 
@@ -64,6 +70,7 @@ class NativePage : public QObject {
     bool m_starting = false;
     QUrl m_url;
     QRectF m_overlayRect;
+    qreal m_toolbarBottomInset = 0;
     qreal m_coverProgress = 0;
     QString m_title;
 };

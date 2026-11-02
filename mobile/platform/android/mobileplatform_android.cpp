@@ -227,6 +227,8 @@ void evaluate(NativePage *page, const QString &script, std::function<void(QVaria
 void mediaPlaying(NativePage *, std::function<void(bool)> callback) {
     callback(!QJniObject::callStaticMethod<jboolean>(bridge, "canSleep"));
 }
+bool supportsObscuredInsets() { return false; }
+void setToolbarBottomInset(NativePage *, qreal) {}
 void setOverlayRect(NativePage *page, const QRectF &rect) {
     QJniObject::callStaticMethod<void>(
         bridge, "overlay", "(Ljava/lang/String;FFFF)V", QJniObject::fromString(page->tabId).object<jstring>(),

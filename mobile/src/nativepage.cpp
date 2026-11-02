@@ -14,6 +14,16 @@ void NativePage::setOverlayRect(const QRectF &rect) {
     if (m_window)
         MobilePlatform::setOverlayRect(this, rect);
 }
+bool NativePage::supportsObscuredInsets() const {
+    return MobilePlatform::supportsObscuredInsets();
+}
+void NativePage::setToolbarBottomInset(qreal value) {
+    value = qMax(0., value);
+    if (qFuzzyCompare(m_toolbarBottomInset, value)) return;
+    m_toolbarBottomInset = value;
+    if (m_window) MobilePlatform::setToolbarBottomInset(this, value);
+    emit toolbarBottomInsetChanged();
+}
 void NativePage::setCoverProgress(qreal value) {
     value = qBound(0., value, 1.);
     if (qFuzzyCompare(m_coverProgress, value)) return;
@@ -41,6 +51,7 @@ void NativePage::start() {
         guard->m_window = window;
         emit guard->nativeWindowChanged();
         if (!window) return;
+        MobilePlatform::setToolbarBottomInset(guard, guard->m_toolbarBottomInset);
         MobilePlatform::setOverlayRect(guard, guard->m_overlayRect);
         MobilePlatform::setCoverProgress(guard, guard->m_coverProgress);
         if (!guard->m_url.isEmpty()) MobilePlatform::navigate(guard, guard->m_url);

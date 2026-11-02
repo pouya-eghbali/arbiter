@@ -234,6 +234,28 @@ on both operating systems before publishing a mobile release.
 Native Swift crypto checks: `python3 tools/mobile/test_native_crypto.py`.
 Release-tool/manifest tests: `python3 tools/mobile/test_release_tools.py`.
 
+### iOS browser-toolbar viewport regression
+
+On iOS 26+, the native page uses WebKit's public `obscuredContentInsets` to
+keep fixed/sticky website controls above the floating pill while retaining an
+edge-to-edge glass backdrop. Earlier iOS versions reserve toolbar space in the
+native page frame. Android's native view layout is unchanged.
+
+Serve `mobile/tests/fixtures` locally (for example on port 8768), then run the
+installed simulator app:
+
+```sh
+SIMCTL_CHILD_ARBITER_VIEWPORT_SMOKE=1 \
+SIMCTL_CHILD_ARBITER_OVERLAY_URL=http://127.0.0.1:8768/viewport.html \
+xcrun simctl launch --terminate-running-process --console-pty booted com.arbiter.mobile
+```
+
+The isolated-profile test checks fixed website controls against the usable
+viewport, checks native and DOM hit testing at the website's Continue button, scrolls,
+opens menu/tab panels, and switches to Glacier. Physical-device checks should
+also cover a site's own app-opening sheet, keyboard, and rotation. The diagnostic
+entry point is compiled only into simulator builds.
+
 ### iOS clipboard foreground regression
 
 After building and installing the simulator app, run:

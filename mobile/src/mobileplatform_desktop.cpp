@@ -71,6 +71,8 @@ void evaluate(NativePage *, const QString &, std::function<void(QVariant)> cb) {
     if (cb)
         cb({});
 }
+bool supportsObscuredInsets() { return false; }
+void setToolbarBottomInset(NativePage *, qreal) {}
 void setOverlayRect(NativePage *, const QRectF &) {}
 void capture(NativePage *) {}
 void find(NativePage *, const QString &, bool) {}
