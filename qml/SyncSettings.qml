@@ -7,10 +7,7 @@ import QtQuick.Controls.Basic as Basic
 ColumnLayout {
     id: root
     required property var manager
-    required property var passkeys
-    signal passkeySettingsRequested()
     spacing: 20
-    onVisibleChanged: { if (!visible) phrase.clear() }
     Basic.Label { text: qsTr("Bring your vault along"); color: Theme.text; font.pixelSize: 26; font.weight: Font.DemiBold }
     Basic.Label {
         Layout.fillWidth: true
@@ -25,27 +22,12 @@ ColumnLayout {
     ColumnLayout {
         visible: !!root.manager && !root.manager.unlocked
         Layout.fillWidth: true; spacing: 12
-        Basic.Label {
-            visible: root.passkeys.needsMigration
-            text: qsTr("Enter your previous passkey passphrase once to move existing passkeys into your OS-protected credential vault. Passwords do not need to be imported again.")
-            color: Theme.muted; Layout.fillWidth: true; wrapMode: Text.WordWrap
-        }
-        UiTextField {
-            id: phrase
-            onVisibleChanged: if (!visible) clear()
-            visible: root.passkeys.needsMigration
-            Layout.fillWidth: true; Layout.maximumWidth: 420
-            placeholderText: qsTr("Previous passkey passphrase")
-            echoMode: TextInput.Password
-            enabled: !!root.manager && !root.manager.busy
-            onAccepted: enableSync.clicked()
-        }
         UiButton {
             id: enableSync
             text: root.manager && root.manager.enabled ? qsTr("Retry sync") : qsTr("Enable sync")
             primary: true
-            enabled: !!root.manager && !root.manager.busy && (!root.passkeys.needsMigration || phrase.text.length > 0)
-            onClicked: { root.manager.setEnabled(true, phrase.text); phrase.clear() }
+            enabled: !!root.manager && !root.manager.busy
+            onClicked: root.manager.setEnabled(true)
         }
     }
     RowLayout {

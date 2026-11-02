@@ -23,7 +23,7 @@ Basic.ApplicationWindow {
         && !window.webauthn.active && !sitePermissionQueue.active && !desktopSharePanel.request
         && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible && !shortcutHelp.visible
         && !downloadsPanel.visible && !extensionPanel.visible && !extensionReview.visible
-        && !splitWithPicker.visible && !tutorial.visible && !passkeySetup.visible && !biometricSetup.visible
+        && !splitWithPicker.visible && !tutorial.visible
         && !pagePrinter.busy && !nativeShare.active && !passwordPanel.overlayVisible
 
     readonly property bool canSharePage: webView && browserPreferences.shareableUrl(webView.url).toString().length > 0
@@ -41,7 +41,7 @@ Basic.ApplicationWindow {
             developerTools.close()
             temporaryPill = false
             splitWithPicker.close(); workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.close()
-            biometricSetup.close(); passkeySetup.close(); tutorial.close()
+            tutorial.close()
             if (webView) { webAuthnPanel.cancelFor(webView); passwordPanel.cancelFor(webView) }
             for (let i = 0; i < tabViews.count; ++i) {
                 const view = tabViews.itemAt(i) as WebEngineView
@@ -224,7 +224,6 @@ Basic.ApplicationWindow {
         shuttingDown = true
         sitePermissionQueue.clear()
         desktopSharePanel.cancel()
-        biometricSetup.close()
         workspacePanel.close()
         historyPanel.close()
         addressPopup.close()
@@ -641,7 +640,7 @@ Basic.ApplicationWindow {
     function showShortcutHelp() {
         if (shortcutHelp.opened) { shortcutHelp.close(); return }
         if (privateCovered || settingsOpen || shuttingDown || window.webauthn.active || sitePermissionQueue.active
-            || desktopSharePanel.request || passwordPanel.overlayVisible || passkeySetup.visible || biometricSetup.visible || pagePrinter.busy) return
+            || desktopSharePanel.request || passwordPanel.overlayVisible || pagePrinter.busy) return
         nativeShare.cancel()
         splitWithPicker.close(); workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.close()
         extensionPanel.close(); downloadsPanel.close(); navigationPill.dismissMenu()
@@ -1665,25 +1664,8 @@ Basic.ApplicationWindow {
                         }
                         Basic.Label {
                             visible: window.passkeys.enabled
-                            text: window.passkeys.needsMigration
-                                ? qsTr("Existing passkeys need a one-time migration. Enter the old passphrase below; future sign-ins use your device authentication.")
-                                : qsTr("Passwords and passkeys use the same automatically created, OS-protected credential vault. Passkey sign-in asks for device verification; there is no separate Arbiter passphrase.")
+                            text: qsTr("Passwords and passkeys use the same automatically created, OS-protected credential vault. Passkey sign-in asks for device verification; there is no separate Arbiter passphrase.")
                             color: Theme.mutedFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap
-                        }
-                        UiTextField {
-                            id: oldPasskeyPhrase
-                            onVisibleChanged: if (!visible) clear()
-                            visible: window.passkeys.needsMigration
-                            Layout.fillWidth: true; Layout.maximumWidth: 420
-                            echoMode: TextInput.Password
-                            placeholderText: qsTr("Previous passkey passphrase")
-                            enabled: !window.passkeys.busy
-                        }
-                        UiButton {
-                            visible: window.passkeys.needsMigration
-                            text: qsTr("Migrate existing passkeys")
-                            enabled: !window.passkeys.busy && oldPasskeyPhrase.text.length > 0
-                            onClicked: { window.passkeys.migrateLegacy(oldPasskeyPhrase.text); oldPasskeyPhrase.clear() }
                         }
                         Basic.Label {
                             visible: window.passkeys.enabled
@@ -1931,8 +1913,6 @@ Basic.ApplicationWindow {
                         visible: window.settingsCategory === 10
                         Layout.fillWidth: true
                         manager: window.credentialSync
-                        passkeys: window.passkeys
-                        onPasskeySettingsRequested: window.settingsCategory = 2
                     }
                     AboutPage {
                         visible: window.settingsCategory === 11
@@ -2323,8 +2303,6 @@ Basic.ApplicationWindow {
             else window.navigate(url)
         }
     }
-    BiometricSetup { id: biometricSetup; objectName: "biometricSetup"; controller: window.passkeys }
-    PasskeySetup { id: passkeySetup; objectName: "passkeySetup"; controller: window.passkeys }
 
     PermissionPanel {
         anchors.fill: parent

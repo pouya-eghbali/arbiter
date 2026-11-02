@@ -28,14 +28,13 @@ class CredentialSync final : public QObject {
     Q_PROPERTY(QString pendingDevice READ pendingDevice NOTIFY changed)
     Q_PROPERTY(QString pendingPin READ pendingPin NOTIFY changed)
 public:
-    CredentialSync(PasswordManager *passwords,PasskeyVault *passkeys,QObject *parent=nullptr);
     CredentialSync(PasswordManager *passwords,PasskeyVault *passkeys,const QString &directory,
                    SecretStore *store,const QString &loopbackAddress,QObject *parent=nullptr);
     ~CredentialSync() override { lock(); }
     bool unlocked() const { return m_key.present() && m_passkeysReady(); }
     bool busy() const { return m_busy; }
     bool enabled() const { return m_enabled; }
-    Q_INVOKABLE void setEnabled(bool enabled, const QString &legacyPassphrase = {});
+    Q_INVOKABLE void setEnabled(bool enabled);
     QString error() const { return m_error; }
     QString pairingImage() const { return m_qr; }
     QString pairingCode() const { return m_code; }
@@ -45,7 +44,7 @@ public:
     QVariantList conflictChoices() const;
     QString pendingDevice() const { return m_pending.value("name").toString(); }
     QString pendingPin() const { return m_pending.value("pin").toString(); }
-    Q_INVOKABLE void unlock(const QString &passphrase,bool biometric=false);
+    void unlock();
     Q_INVOKABLE void lock();
     Q_INVOKABLE void pair();
     Q_INVOKABLE void cancelPairing();
@@ -73,7 +72,7 @@ private:
     void finish(const QString &error={});
     void loadIdentity(Done callback);
     bool save();
-    void refresh(Done callback, bool authorizeExisting = false);
+    void refresh(Done callback);
     void resume();
     bool persistEnabled(bool enabled);
     void apply(Done callback);
@@ -82,7 +81,6 @@ private:
     QByteArray payload(const QJsonObject &data) const;
     PasswordManager *m_passwords;
     PasskeyVault *m_passkeys;
-    KeychainSecretStore m_defaultStore;
     SecretStore *m_store;
     QString m_loopbackAddress;
     CredentialSyncServer m_server;
@@ -93,6 +91,6 @@ private:
     QTimer m_poll;
     QJsonObject m_document,m_current,m_pending;
     ArbiterSync::State m_state;
-    bool m_busy=false,m_locking=false,m_enabled=false,m_resuming=false,m_enrolling=false;
+    bool m_busy=false,m_locking=false,m_enabled=false,m_enrolling=false;
     quint64 m_epoch=0;
 };

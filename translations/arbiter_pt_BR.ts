@@ -504,39 +504,6 @@
     </message>
 </context>
 <context>
-    <name>BiometricSetup</name>
-    <message>
-        <location filename="../qml/BiometricSetup.qml" line="+31"/>
-        <source>Enable %1</source>
-        <translation>Habilitar %1</translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Enter your vault passphrase, then verify with your device. Later passkey operations can use device verification for up to 15 minutes while Arbiter stays active. Your passphrase remains the fallback and is required again after restarting or leaving the app.</source>
-        <translation>Insira a senha do cofre e verifique com seu dispositivo. As operações posteriores de senha podem usar a verificação do dispositivo por até 15 minutos enquanto Arbiter permanece ativo. Sua senha permanece como alternativa e é necessária novamente após reiniciar ou sair do aplicativo.</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>Enter your vault passphrase once, then verify with Touch ID. macOS will protect the unlock key in this app’s device-only Keychain. Each later passkey use asks for Touch ID, including after restarting or switching apps. Your passphrase remains the fallback. Changing enrolled fingerprints requires enabling Touch ID again.</source>
-        <translation>Insira a senha do seu cofre uma vez e verifique com Touch ID. macOS protegerá a chave de desbloqueio no Keychain somente para dispositivos deste aplicativo. Cada uso posterior da senha solicita Touch ID, inclusive após reiniciar ou trocar de aplicativo. Sua senha continua sendo a alternativa. A alteração das impressões digitais registradas requer a ativação de Touch ID novamente.</translation>
-    </message>
-    <message>
-        <location line="+9"/>
-        <source>Vault passphrase</source>
-        <translation>Frase secreta do cofre</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>Cancel</source>
-        <translation>Cancelar</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Enable</source>
-        <translation>Ativar</translation>
-    </message>
-</context>
-<context>
     <name>BrowserAccess</name>
     <message>
         <location filename="../qml/BrowserAccess.qml" line="+10"/>
@@ -724,7 +691,7 @@
 <context>
     <name>CredentialStore</name>
     <message>
-        <location filename="../src/credentialstore.cpp" line="+35"/>
+        <location filename="../src/credentialstore.cpp" line="+34"/>
         <source>Could not create the credential store.</source>
         <translation>Não foi possível criar o armazenamento de credenciais.</translation>
     </message>
@@ -774,7 +741,7 @@
         <translation>A chave de credenciais do sistema operacional é inválida.</translation>
     </message>
     <message>
-        <location line="+19"/>
+        <location line="+13"/>
         <source>Could not read the encrypted credentials.</source>
         <translation>Não foi possível ler as credenciais criptografadas.</translation>
     </message>
@@ -789,35 +756,25 @@
         <translation>Não foi possível salvar as credenciais criptografadas.</translation>
     </message>
     <message>
-        <location line="+14"/>
+        <location line="+5"/>
         <source>This credential is no longer available.</source>
         <translation>Esta credencial não está mais disponível.</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+2"/>
         <source>The credential is missing.</source>
         <translation>A credencial está ausente.</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>The legacy credential is missing. It was not replaced.</source>
-        <translation>A credencial anterior está ausente. Ela não foi substituída.</translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>Could not migrate the credential. The original was preserved.</source>
-        <translation>Não foi possível migrar a credencial. A original foi preservada.</translation>
     </message>
 </context>
 <context>
     <name>CredentialSync</name>
     <message>
-        <location filename="../src/credentialsync.cpp" line="+95"/>
+        <location filename="../src/credentialsync.cpp" line="+93"/>
         <source>This computer</source>
         <translation>Este computador</translation>
     </message>
     <message>
-        <location line="+28"/>
+        <location line="+27"/>
         <location line="+339"/>
         <source>Could not save the sync preference.</source>
         <translation>Não foi possível salvar a preferência de sincronização.</translation>
@@ -2239,15 +2196,15 @@
         <translation>Configurações - Arbiter</translation>
     </message>
     <message>
-        <location line="+644"/>
-        <location line="+1674"/>
+        <location line="+643"/>
+        <location line="+1656"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>Nova aba</translation>
     </message>
     <message>
-        <location line="-1671"/>
-        <location line="+1760"/>
+        <location line="-1653"/>
+        <location line="+1742"/>
         <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
@@ -2255,7 +2212,7 @@
         <translation>Página inicial</translation>
     </message>
     <message>
-        <location line="-1265"/>
+        <location line="-1247"/>
         <source>Settings</source>
         <translation>Configurações</translation>
     </message>
@@ -2471,12 +2428,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+375"/>
+        <location line="+359"/>
         <source>Off</source>
         <translation>Desativado</translation>
     </message>
     <message>
-        <location line="-368"/>
+        <location line="-352"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>Mostre a navegação do site sob o título da guia ou como menus separados na barra de menus do macOS.</translation>
     </message>
@@ -2566,27 +2523,12 @@
         <translation>O cofre de senha de Arbiter e o fluxo QR do telefone exigem a versão corrigida do WebEngine.</translation>
     </message>
     <message>
-        <location line="+8"/>
-        <source>Existing passkeys need a one-time migration. Enter the old passphrase below; future sign-ins use your device authentication.</source>
-        <translation>As chaves de acesso existentes precisam de uma migração única. Digite a frase secreta antiga abaixo; os próximos acessos usarão a autenticação do dispositivo.</translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+7"/>
         <source>Passwords and passkeys use the same automatically created, OS-protected credential vault. Passkey sign-in asks for device verification; there is no separate Arbiter passphrase.</source>
         <translation>Senhas e chaves de acesso usam o mesmo cofre criado automaticamente e protegido pelo sistema operacional. O acesso com chave de acesso solicita a verificação do dispositivo; não existe uma frase secreta separada do Arbiter.</translation>
     </message>
     <message>
-        <location line="+8"/>
-        <source>Previous passkey passphrase</source>
-        <translation>Frase secreta anterior das chaves de acesso</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Migrate existing passkeys</source>
-        <translation>Migrar chaves de acesso existentes</translation>
-    </message>
-    <message>
-        <location line="+11"/>
+        <location line="+10"/>
         <source>Refresh device authentication</source>
         <translation>Atualizar autenticação do dispositivo</translation>
     </message>
@@ -2879,7 +2821,7 @@
         <translation>Adicionar a Arbiter</translation>
     </message>
     <message>
-        <location line="+339"/>
+        <location line="+337"/>
         <source>%1 open · Pick up where you left off</source>
         <translation>%1 aberto · Continue de onde parou</translation>
     </message>
@@ -2955,7 +2897,7 @@
         <translation>Privado</translation>
     </message>
     <message>
-        <location line="-1357"/>
+        <location line="-1339"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass (experimental)</translation>
     </message>
@@ -3165,7 +3107,7 @@
         <translation>Cores</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="+414"/>
+        <location filename="../qml/Main.qml" line="+398"/>
         <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Default browser</source>
         <translation>Navegador padrão</translation>
@@ -3534,102 +3476,9 @@
     </message>
 </context>
 <context>
-    <name>PasskeySetup</name>
-    <message>
-        <location filename="../qml/PasskeySetup.qml" line="+28"/>
-        <source>Set up Arbiter passkeys</source>
-        <translation>Configurar senhas Arbiter</translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Choose a passphrase of at least 12 characters. Use it to create or use an Arbiter passkey, or enable optional biometric unlocking in Settings. Private keys are encrypted and kept in your operating system&apos;s credential store on this computer. Optional encrypted local sync is available in Settings. There is no passphrase recovery; losing this profile, its system credentials, or the passphrase can lose access to these passkeys. Keep another sign-in method for your accounts.</source>
-        <translation>Escolha uma frase secreta com pelo menos 12 caracteres. Use-a para criar ou utilizar uma chave de acesso Arbiter, ou ative o desbloqueio biométrico opcional nas configurações. As chaves privadas são criptografadas e mantidas no armazenamento de credenciais do sistema operacional deste computador. A sincronização local criptografada opcional está disponível nas configurações. Não há recuperação da frase secreta; perder este perfil, suas credenciais do sistema ou a frase secreta pode causar a perda de acesso a essas chaves. Mantenha outro método de acesso para suas contas.</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Vault passphrase</source>
-        <translation>Frase secreta do cofre</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Confirm vault passphrase</source>
-        <translation>Confirme a senha do cofre</translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>Cancel</source>
-        <translation>Cancelar</translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>Create vault</source>
-        <translation>Criar cofre</translation>
-    </message>
-</context>
-<context>
     <name>PasskeyVault</name>
     <message>
-        <location filename="../src/passkeyvault.cpp" line="+65"/>
-        <source>Set up the passkey vault first.</source>
-        <translation>Configure primeiro o cofre da chave de acesso.</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <location line="+39"/>
-        <location line="+9"/>
-        <source>Could not save the biometric preference.</source>
-        <translation>Não foi possível salvar a preferência biométrica.</translation>
-    </message>
-    <message>
-        <location line="-41"/>
-        <source>Biometric verification is unavailable. Use your vault passphrase.</source>
-        <translation>A verificação biométrica não está disponível. Use a senha do seu cofre.</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <location line="+19"/>
-        <source>Biometric setup was cancelled.</source>
-        <translation>A configuração biométrica foi cancelada.</translation>
-    </message>
-    <message>
-        <location line="-18"/>
-        <source>Could not verify the vault passphrase. Wait before trying again.</source>
-        <translation>Não foi possível verificar a senha do cofre. Espere antes de tentar novamente.</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <location line="+50"/>
-        <source>Could not protect the biometric session key in memory. Use your vault passphrase.</source>
-        <translation>Não foi possível proteger a chave de sessão biométrica na memória. Use a senha do seu cofre.</translation>
-    </message>
-    <message>
-        <location line="-48"/>
-        <source>Enable biometric unlocking for your passkey vault</source>
-        <translation>Ative o desbloqueio biométrico para seu cofre de chaves</translation>
-    </message>
-    <message>
-        <location line="+4"/>
-        <source>Biometric setup was cancelled. Use your vault passphrase.</source>
-        <translation>A configuração biométrica foi cancelada. Use a senha do seu cofre.</translation>
-    </message>
-    <message>
-        <location line="+58"/>
-        <location line="+2"/>
-        <source>Unlock your passkey vault for this website</source>
-        <translation>Desbloqueie seu cofre de senha para este site</translation>
-    </message>
-    <message>
-        <location line="-13"/>
-        <source>Could not unlock the vault. Use your vault passphrase.</source>
-        <translation>Não foi possível desbloquear o cofre. Use a senha do seu cofre.</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>The vault has changed. Use your vault passphrase.</source>
-        <translation>O cofre mudou. Use a senha do seu cofre.</translation>
-    </message>
-    <message>
-        <location line="+54"/>
+        <location filename="../src/passkeyvault.cpp" line="+85"/>
         <source>The passkey vault is in use by another browser process.</source>
         <translation>O cofre da chave de acesso está em uso por outro processo do navegador.</translation>
     </message>
@@ -3639,61 +3488,20 @@
         <translation>O catálogo de chaves de acesso está danificado. Restaure seu perfil antes de continuar.</translation>
     </message>
     <message>
-        <location line="+25"/>
-        <source>A vault already exists or setup was interrupted. Restore the existing vault; it will not be overwritten.</source>
-        <translation>Já existe um cofre ou a configuração foi interrompida. Restaure o cofre existente; não será sobrescrito.</translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Use at least 12 characters and enter the same passphrase twice.</source>
-        <translation>Use pelo menos 12 caracteres e digite a mesma senha duas vezes.</translation>
-    </message>
-    <message>
-        <location line="-130"/>
-        <location line="+140"/>
-        <source>Could not initialize cryptography.</source>
-        <translation>Não foi possível inicializar a criptografia.</translation>
-    </message>
-    <message>
-        <location line="-109"/>
-        <source>Enter your vault passphrase or enable biometric unlocking again.</source>
-        <translation>Digite a senha do seu cofre ou ative o desbloqueio biométrico novamente.</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>Biometric verification was cancelled. Use your vault passphrase.</source>
-        <translation>A verificação biométrica foi cancelada. Use a senha do seu cofre.</translation>
-    </message>
-    <message>
-        <location line="+107"/>
+        <location line="+259"/>
         <source>Could not save the passkey catalog.</source>
         <translation>Não foi possível salvar o catálogo de chaves de acesso.</translation>
     </message>
     <message>
-        <location line="+8"/>
-        <source>Could not finish saving the vault catalog.</source>
-        <translation>Não foi possível terminar de salvar o catálogo do Vault.</translation>
-    </message>
-    <message>
-        <location line="+26"/>
-        <source>The secure vault record is invalid.</source>
-        <translation>O registro do cofre seguro é inválido.</translation>
-    </message>
-    <message>
-        <location line="+22"/>
+        <location line="-230"/>
         <location line="+7"/>
         <source>Invalid authenticator request.</source>
         <translation>Solicitação de autenticador inválida.</translation>
     </message>
     <message>
-        <location line="+20"/>
-        <source>Focus Arbiter and use your vault passphrase.</source>
-        <translation>Concentre-se em Arbiter e use a senha do seu cofre.</translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Verification failed. Wait before trying again, then enter your vault passphrase.</source>
-        <translation>Falha na verificação. Aguarde antes de tentar novamente e digite a senha do seu cofre.</translation>
+        <location line="+18"/>
+        <source>Device verification was cancelled or failed. Try again.</source>
+        <translation>A verificação do dispositivo foi cancelada ou falhou. Tente novamente.</translation>
     </message>
     <message>
         <location line="+8"/>
@@ -3751,12 +3559,7 @@
         <translation>Verifique sua identidade para usar sua chave de acesso do Arbiter</translation>
     </message>
     <message>
-        <location line="+13"/>
-        <source>Set up your passkey vault before enabling encrypted sync.</source>
-        <translation>Configure o cofre de chaves de acesso antes de ativar a sincronização criptografada.</translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="+17"/>
         <source>Sync unlocking was cancelled.</source>
         <translation>O desbloqueio da sincronização foi cancelado.</translation>
     </message>
@@ -3767,14 +3570,14 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+37"/>
+        <location line="+36"/>
         <location line="+39"/>
         <source>Unlock the desktop sync vault and try again.</source>
         <translation>Desbloqueie o cofre de sincronização do computador e tente novamente.</translation>
     </message>
     <message>
-        <location line="-69"/>
-        <location line="+10"/>
+        <location line="-68"/>
+        <location line="+9"/>
         <source>The sync session expired.</source>
         <translation>A sessão de sincronização expirou.</translation>
     </message>
@@ -3814,12 +3617,7 @@
         <translation>Não foi possível proteger a chave de credenciais.</translation>
     </message>
     <message>
-        <location line="+7"/>
-        <source>Could not finish credential migration. The original vault was preserved.</source>
-        <translation>Não foi possível concluir a migração das credenciais. O cofre original foi preservado.</translation>
-    </message>
-    <message>
-        <location line="+11"/>
+        <location line="+17"/>
         <source>Could not create the credential catalog.</source>
         <translation>Não foi possível criar o catálogo de credenciais.</translation>
     </message>
@@ -3829,12 +3627,7 @@
         <translation>A chave de credenciais está ausente. As chaves de acesso existentes foram preservadas.</translation>
     </message>
     <message>
-        <location line="+11"/>
-        <source>The previous passphrase did not unlock your passkeys.</source>
-        <translation>A frase secreta anterior não desbloqueou suas chaves de acesso.</translation>
-    </message>
-    <message>
-        <location filename="../src/passkeyvault.h" line="+36"/>
+        <location filename="../src/passkeyvault.h" line="+27"/>
         <source>Biometrics</source>
         <translation>Biometria</translation>
     </message>
@@ -3847,7 +3640,7 @@
 <context>
     <name>PasswordManager</name>
     <message>
-        <location filename="../src/passwordmanager.cpp" line="+79"/>
+        <location filename="../src/passwordmanager.cpp" line="+72"/>
         <source>Could not create the password index directory.</source>
         <translation>Não foi possível criar o diretório de índice de senha.</translation>
     </message>
@@ -3928,7 +3721,7 @@
     </message>
     <message>
         <location line="+268"/>
-        <location line="+8"/>
+        <location line="+7"/>
         <source>Sync was stopped.</source>
         <translation>A sincronização foi interrompida.</translation>
     </message>
@@ -3948,15 +3741,15 @@
         <translation>Ativar a sincronização criptografada de credenciais para este perfil</translation>
     </message>
     <message>
-        <location line="-329"/>
+        <location line="-328"/>
         <location line="+53"/>
         <location line="+228"/>
-        <location line="+33"/>
+        <location line="+32"/>
         <source>Password storage is unavailable or busy.</source>
         <translation>O armazenamento de senha não está disponível ou está ocupado.</translation>
     </message>
     <message>
-        <location line="-253"/>
+        <location line="-252"/>
         <source>This account does not belong to the current website.</source>
         <translation>Esta conta não pertence ao site atual.</translation>
     </message>
@@ -4357,7 +4150,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+591"/>
+        <location filename="../src/main.cpp" line="+615"/>
         <source>Settings…</source>
         <translation>Configurações…</translation>
     </message>
@@ -4520,13 +4313,13 @@
     <message>
         <location filename="../src/secretstore.cpp" line="+25"/>
         <location line="+15"/>
-        <location filename="../src/secretstore_mac.mm" line="+59"/>
+        <location filename="../src/secretstore_mac.mm" line="+63"/>
         <source>Could not read the credential from the system credential store. Unlock your keyring and try again.</source>
         <translation>Não foi possível ler a credencial do armazenamento de credenciais do sistema. Desbloqueie seu chaveiro e tente novamente.</translation>
     </message>
     <message>
         <location line="+15"/>
-        <location filename="../src/secretstore_mac.mm" line="+15"/>
+        <location filename="../src/secretstore_mac.mm" line="+17"/>
         <source>Could not save the credential securely. Unlock your system keyring, or enable a supported credential store, and try again.</source>
         <translation>Não foi possível salvar a credencial com segurança. Desbloqueie o chaveiro do sistema ou ative um armazenamento de credenciais compatível e tente novamente.</translation>
     </message>
@@ -4610,11 +4403,6 @@
         <location line="+1"/>
         <source>Could not sync. Keep the other device open and unlocked on the same Wi-Fi.</source>
         <translation>Não foi possível sincronizar. Mantenha o outro dispositivo aberto e desbloqueado no mesmo Wi-Fi.</translation>
-    </message>
-    <message>
-        <location filename="../src/secretstore_mac.mm" line="-25"/>
-        <source>Sync paused: macOS requires permission to read a saved credential. Use that credential in Arbiter to approve access, then try syncing again.</source>
-        <translation>Sincronização pausada: macOS requer permissão para ler uma credencial salva. Use essa credencial em Arbiter para aprovar o acesso e tente sincronizar novamente.</translation>
     </message>
 </context>
 <context>
@@ -4871,7 +4659,7 @@
 <context>
     <name>SyncSettings</name>
     <message>
-        <location filename="../qml/SyncSettings.qml" line="+14"/>
+        <location filename="../qml/SyncSettings.qml" line="+13"/>
         <source>Bring your vault along</source>
         <translation>Leve seu cofre com você</translation>
     </message>
@@ -4881,27 +4669,17 @@
         <translation>Abra a sincronização em uma janela normal do navegador para parear os dispositivos.</translation>
     </message>
     <message>
-        <location line="+32"/>
+        <location line="+18"/>
         <source>Working with your secure vault…</source>
         <translation>Acessando seu cofre seguro…</translation>
     </message>
     <message>
-        <location line="-37"/>
+        <location line="-23"/>
         <source>Enable sync once to share passwords and passkeys between paired devices over local Wi-Fi. Sync starts automatically whenever Arbiter opens and keeps running until you turn it off. No separate vault, passphrase, or cloud account is needed.</source>
         <translation>Ative a sincronização uma única vez para compartilhar senhas e chaves de acesso entre dispositivos pareados pelo Wi-Fi local. Ela inicia automaticamente ao abrir o Arbiter e continua até você desativá-la. Não é necessário outro cofre, frase secreta ou conta na nuvem.</translation>
     </message>
     <message>
         <location line="+13"/>
-        <source>Enter your previous passkey passphrase once to move existing passkeys into your OS-protected credential vault. Passwords do not need to be imported again.</source>
-        <translation>Digite uma única vez a frase secreta anterior para mover as chaves de acesso existentes para o cofre protegido pelo sistema operacional. Não é necessário importar as senhas novamente.</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>Previous passkey passphrase</source>
-        <translation>Frase secreta anterior das chaves de acesso</translation>
-    </message>
-    <message>
-        <location line="+7"/>
         <source>Retry sync</source>
         <translation>Tentar sincronizar novamente</translation>
     </message>
@@ -5445,12 +5223,7 @@
 <context>
     <name>WebAuthnPanel</name>
     <message>
-        <location filename="../qml/WebAuthnPanel.qml" line="+70"/>
-        <source>Set up passkeys</source>
-        <translation>Configurar senhas</translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location filename="../qml/WebAuthnPanel.qml" line="+65"/>
         <source>Create a passkey</source>
         <translation>Crie uma chave de acesso</translation>
     </message>
@@ -5486,28 +5259,8 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Set up on this computer</source>
-        <translation>Configurar neste computador</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>No passkeys saved on this computer</source>
-        <translation>Nenhuma senha salva neste computador</translation>
-    </message>
-    <message>
-        <location line="+0"/>
         <source>Verify with your device</source>
         <translation>Verificar com seu dispositivo</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Verify with %1 or your passphrase</source>
-        <translation>Verifique com %1 ou sua senha</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>Verify vault passphrase</source>
-        <translation>Verifique a senha do cofre</translation>
     </message>
     <message>
         <location line="+7"/>
@@ -5530,27 +5283,7 @@
         <translation>Use o autenticador do seu sistema</translation>
     </message>
     <message>
-        <location line="+9"/>
-        <source>Choose a passphrase of at least 12 characters to protect passkeys on this computer. You can enable biometric unlocking in Settings. Optional encrypted local sync is available; there is no passphrase recovery. Keep another sign-in method for your accounts.</source>
-        <translation>Escolha uma senha de pelo menos 12 caracteres para proteger as chaves de acesso neste computador. Você pode ativar o desbloqueio biométrico em Configurações. A sincronização local criptografada opcional está disponível; não há recuperação de senha. Mantenha outro método de login para suas contas.</translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>Vault passphrase</source>
-        <translation>Frase secreta do cofre</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Confirm passphrase</source>
-        <translation>Confirmar senha</translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>Set up and create passkey</source>
-        <translation>Configurar e criar senha</translation>
-    </message>
-    <message>
-        <location line="+17"/>
+        <location line="+16"/>
         <source>Scan with your phone&apos;s camera. Keep the phone nearby with Bluetooth and internet enabled. Your passkey stays on the phone.</source>
         <translation>Digitalize com a câmera do seu telefone. Mantenha o telefone por perto com Bluetooth e internet ativados. Sua senha permanece no telefone.</translation>
     </message>
@@ -5571,41 +5304,6 @@
     </message>
     <message>
         <location line="+14"/>
-        <source>Use %1</source>
-        <translation>Usar %1</translation>
-    </message>
-    <message>
-        <location line="+9"/>
-        <source>Enable persistent Touch ID in Settings using your vault passphrase once.</source>
-        <translation>Habilite Touch ID persistente em Configurações usando a senha do seu cofre uma vez.</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Or use your vault passphrase below.</source>
-        <translation>Ou use a senha do seu cofre abaixo.</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Use your passphrase once to enable biometric unlocking for this session.</source>
-        <translation>Use sua senha uma vez para ativar o desbloqueio biométrico para esta sessão.</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>Enter your old passphrase once to migrate existing passkeys. Future sign-ins use device verification.</source>
-        <translation>Digite uma única vez a frase secreta antiga para migrar as chaves de acesso existentes. Os próximos acessos usarão a verificação do dispositivo.</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>Arbiter passkey vault passphrase</source>
-        <translation>Arbiter senha do cofre da chave de acesso</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>Previous passkey passphrase (one time)</source>
-        <translation>Frase secreta anterior das chaves de acesso (uma única vez)</translation>
-    </message>
-    <message>
-        <location line="+8"/>
         <source>No Arbiter passkey matches this request. Cancel and choose another sign-in method.</source>
         <translation>Nenhuma senha Arbiter corresponde a esta solicitação. Cancele e escolha outro método de login.</translation>
     </message>

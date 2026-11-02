@@ -8,8 +8,8 @@ namespace PasskeyCrypto {
 void wipe(QByteArray &bytes);
 QByteArray random(int size);
 QByteArray derive(const QByteArray &passphrase, const QByteArray &salt);
-QByteArray seal(const QByteArray &plain, const QByteArray &key, const QByteArray &context);
-QByteArray open(const QByteArray &sealed, const QByteArray &key, const QByteArray &context);
+QByteArray seal(const QByteArray &plain, const QByteArray &key, const QByteArray &context, qsizetype maximumBytes = 8192);
+QByteArray open(const QByteArray &sealed, const QByteArray &key, const QByteArray &context, qsizetype maximumBytes = 8192);
 struct Key { QByteArray der; QByteArray cose; };
 Key generate();
 // Normalize transferable P-256 keys to PKCS#8 and verify their public point.

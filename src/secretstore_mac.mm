@@ -9,9 +9,12 @@ dispatch_queue_t queue() {
     return value;
 }
 NSDictionary *query(const QString &service,const QString &key) {
-    return @{(__bridge id)kSecClass:(__bridge id)kSecClassGenericPassword,
+    auto result=[@{(__bridge id)kSecClass:(__bridge id)kSecClassGenericPassword,
              (__bridge id)kSecAttrService:service.toNSString(),
-             (__bridge id)kSecAttrAccount:key.toNSString()};
+             (__bridge id)kSecAttrAccount:key.toNSString()} mutableCopy];
+    if(service==QStringLiteral("Arbiter Credentials"))
+        result[(__bridge id)kSecUseDataProtectionKeychain]=@YES;
+    return result;
 }
 void completed(QPointer<SecretStore> owner,SecretStore::Callback callback,const QString &error,const QByteArray &data={}) {
     const QString message=error;
@@ -42,7 +45,9 @@ void readMacSecret(SecretStore *store,const QString &service,const QString &key,
         OSStatus status=errSecInteractionNotAllowed;
         CFTypeRef result=nullptr;
         {
-            NoInteraction policy(!interactive);
+            const bool protectedStore=service==QStringLiteral("Arbiter Credentials");
+            if(protectedStore && !interactive) match[(__bridge id)kSecUseAuthenticationUI]=(__bridge id)kSecUseAuthenticationUIFail;
+            NoInteraction policy(!interactive && !protectedStore);
             if(policy.valid) {
                 status=SecItemCopyMatching((__bridge CFDictionaryRef)match,&result);
             }
@@ -55,8 +60,7 @@ void readMacSecret(SecretStore *store,const QString &service,const QString &key,
         }
         if(result) CFRelease(result);
         const bool ok=status==errSecSuccess || (optional && status==errSecItemNotFound);
-        const auto error=ok ? QString() : !interactive ? QObject::tr("Sync paused: macOS requires permission to read a saved credential. Use that credential in Arbiter to approve access, then try syncing again.")
-            : QObject::tr("Could not read the credential from the system credential store. Unlock your keyring and try again.");
+        const auto error=ok ? QString() : QObject::tr("Could not read the credential from the system credential store. Unlock your keyring and try again.");
         completed(owner,callback,error,ok ? value : QByteArray());
     });
 }
@@ -69,6 +73,8 @@ void writeMacSecret(SecretStore *store,const QString &service,const QString &key
         auto status=SecItemUpdate((__bridge CFDictionaryRef)match,(__bridge CFDictionaryRef)value);
         if(status==errSecItemNotFound) {
             auto entry=[match mutableCopy];[entry addEntriesFromDictionary:value];
+            if(service==QStringLiteral("Arbiter Credentials"))
+                entry[(__bridge id)kSecAttrAccessible]=(__bridge id)kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly;
             status=SecItemAdd((__bridge CFDictionaryRef)entry,nullptr);
         }
         completed(owner,callback,status==errSecSuccess ? QString() : QObject::tr("Could not save the credential securely. Unlock your system keyring, or enable a supported credential store, and try again."));

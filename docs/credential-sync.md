@@ -71,16 +71,15 @@ resumes automatically through the OS credential store. If the OS refuses access,
 on macOS automatic retries use noninteractive Keychain reads rather than opening authorization dialogs. Turning off sync preserves
 credentials and pairings and persists the disabled preference.
 
-Older password/passkey/transport records are copied into the shared store on
-first authorized access. Originals are retained as migration backups; tombstones
-prevent deleted records from being reimported. Explicit deletion also removes the retained legacy source. Legacy passphrase-protected
-passkeys need the old passphrase once (or their existing biometric enrollment)
-to retain the same key. New passkeys need no setup. The UI never uses a cached
-sync authorization as permission to sign a website's challenge: passkey use
-requires fresh native verification, and password filling keeps its configurable
-verification cooldown. Mobile already stores both credential types together and
-keeps foreground verification separate from sync. This protects access through
-Arbiter, not against a compromised OS or modified application.
+Desktop credential data lives under `credentials-v2/Default`. Older development
+vaults, per-item Keychain services, passphrase catalogs, and their pairing state
+are not loaded or migrated. This is an intentional pre-release format break:
+reimport test passwords and pair devices again. Old files/items are not deleted
+or queried. On macOS the single master key uses the app-scoped Data Protection
+Keychain with `AfterFirstUnlockThisDeviceOnly`; running sync is independent of
+foreground device verification. Password filling retains its verification
+cooldown, and every passkey operation still requires fresh native verification.
+Mobile already uses a shared store and needs no separate passkey setup.
 
 ## Records and conflicts
 
@@ -108,7 +107,7 @@ Password identity is SHA-256 of canonical origin, NUL, username. Native password
 stores enforce HTTPS origin and account binding. Passkeys retain RP ID, credential
 ID, user handle, P-256 private key (portable PKCS#8), COSE public key and backup flags.
 Only ES256 is supported. Each receiving desktop reseals keys under its own local
-vault key; the desktop passphrase is never transferred. Legacy non-backup-eligible
+vault key; OS authentication secrets are never transferred. Non-backup-eligible
 credentials stay on their original desktop and are excluded from transfer. Re-register
 a passkey to create a sync-eligible replacement; its original eligibility cannot change. New eligible credentials are marked backed
 up after an actual peer copy is observed. Authenticators use a zero signature counter.
@@ -126,11 +125,3 @@ native-peer transfer tests use fabricated credentials only. Physical-device syst
 picker and website interoperability tests remain a release gate. iOS distribution
 also requires Apple's managed browser entitlement approval. This implementation has
 not had an independent security audit; do not describe it as audited.
-
-On macOS, background credential exports use noninteractive Keychain reads. If a
-legacy item needs approval for this app, sync stops with a permission error rather
-than opening a chain of Keychain password dialogs. Explicit password filling may
-still ask macOS to authorize that individual item; “Always Allow” applies to that
-item, not every credential sharing the service label. Existing item ACLs are not
-removed or broadened. The native adapter serializes credential-store operations
-and restores the process's previous interaction policy after each silent read.

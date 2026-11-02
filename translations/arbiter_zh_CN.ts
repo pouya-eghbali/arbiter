@@ -504,39 +504,6 @@
     </message>
 </context>
 <context>
-    <name>BiometricSetup</name>
-    <message>
-        <location filename="../qml/BiometricSetup.qml" line="+31"/>
-        <source>Enable %1</source>
-        <translation>启用%1</translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Enter your vault passphrase, then verify with your device. Later passkey operations can use device verification for up to 15 minutes while Arbiter stays active. Your passphrase remains the fallback and is required again after restarting or leaving the app.</source>
-        <translation>输入您的保管库密码，然后使用您的设备进行验证。稍后的密钥操作可以使用设备验证长达 15 分钟，同时 Arbiter 保持活动状态。您的密码仍然是备用密码，并且在重新启动或离开应用程序后再次需要输入密码。</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>Enter your vault passphrase once, then verify with Touch ID. macOS will protect the unlock key in this app’s device-only Keychain. Each later passkey use asks for Touch ID, including after restarting or switching apps. Your passphrase remains the fallback. Changing enrolled fingerprints requires enabling Touch ID again.</source>
-        <translation>输入您的保管库密码一次，然后使用 Touch ID 进行验证。 macOS 将保护此应用程序的设备专用 Keychain 中的解锁密钥。以后每次使用密钥都需要 Touch ID，包括在重新启动或切换应用程序后。您的密码仍然是备用密码。更改已登记的指纹需要再次启用Touch ID。</translation>
-    </message>
-    <message>
-        <location line="+9"/>
-        <source>Vault passphrase</source>
-        <translation>保险库口令</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>Cancel</source>
-        <translation>取消</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Enable</source>
-        <translation>启用</translation>
-    </message>
-</context>
-<context>
     <name>BrowserAccess</name>
     <message>
         <location filename="../qml/BrowserAccess.qml" line="+10"/>
@@ -724,7 +691,7 @@
 <context>
     <name>CredentialStore</name>
     <message>
-        <location filename="../src/credentialstore.cpp" line="+35"/>
+        <location filename="../src/credentialstore.cpp" line="+34"/>
         <source>Could not create the credential store.</source>
         <translation>无法创建凭据存储。</translation>
     </message>
@@ -774,7 +741,7 @@
         <translation>操作系统凭据密钥无效。</translation>
     </message>
     <message>
-        <location line="+19"/>
+        <location line="+13"/>
         <source>Could not read the encrypted credentials.</source>
         <translation>无法读取加密凭据。</translation>
     </message>
@@ -789,35 +756,25 @@
         <translation>无法保存加密凭据。</translation>
     </message>
     <message>
-        <location line="+14"/>
+        <location line="+5"/>
         <source>This credential is no longer available.</source>
         <translation>此凭据已不可用。</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+2"/>
         <source>The credential is missing.</source>
         <translation>凭据缺失。</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>The legacy credential is missing. It was not replaced.</source>
-        <translation>旧凭据缺失。未将其替换。</translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>Could not migrate the credential. The original was preserved.</source>
-        <translation>无法迁移凭据。原始凭据已保留。</translation>
     </message>
 </context>
 <context>
     <name>CredentialSync</name>
     <message>
-        <location filename="../src/credentialsync.cpp" line="+95"/>
+        <location filename="../src/credentialsync.cpp" line="+93"/>
         <source>This computer</source>
         <translation>此电脑</translation>
     </message>
     <message>
-        <location line="+28"/>
+        <location line="+27"/>
         <location line="+339"/>
         <source>Could not save the sync preference.</source>
         <translation>无法保存同步偏好设置。</translation>
@@ -2239,15 +2196,15 @@
         <translation>设置 — Arbiter</translation>
     </message>
     <message>
-        <location line="+644"/>
-        <location line="+1674"/>
+        <location line="+643"/>
+        <location line="+1656"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>新建标签页</translation>
     </message>
     <message>
-        <location line="-1671"/>
-        <location line="+1760"/>
+        <location line="-1653"/>
+        <location line="+1742"/>
         <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
@@ -2255,7 +2212,7 @@
         <translation>起始页</translation>
     </message>
     <message>
-        <location line="-1265"/>
+        <location line="-1247"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
@@ -2471,12 +2428,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+375"/>
+        <location line="+359"/>
         <source>Off</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location line="-368"/>
+        <location line="-352"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>在选项卡标题下显示网站导航，或在 macOS 菜单栏中显示为单独的菜单。</translation>
     </message>
@@ -2566,27 +2523,12 @@
         <translation>Arbiter 的密钥库和电话 QR 流程需要修补的 WebEngine 版本。</translation>
     </message>
     <message>
-        <location line="+8"/>
-        <source>Existing passkeys need a one-time migration. Enter the old passphrase below; future sign-ins use your device authentication.</source>
-        <translation>现有通行密钥需要进行一次性迁移。请在下方输入旧口令；以后的登录将使用设备身份验证。</translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+7"/>
         <source>Passwords and passkeys use the same automatically created, OS-protected credential vault. Passkey sign-in asks for device verification; there is no separate Arbiter passphrase.</source>
         <translation>密码和通行密钥使用同一个自动创建并由操作系统保护的凭据保险库。使用通行密钥登录时需进行设备验证，无需单独的 Arbiter 口令。</translation>
     </message>
     <message>
-        <location line="+8"/>
-        <source>Previous passkey passphrase</source>
-        <translation>之前的通行密钥口令</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Migrate existing passkeys</source>
-        <translation>迁移现有通行密钥</translation>
-    </message>
-    <message>
-        <location line="+11"/>
+        <location line="+10"/>
         <source>Refresh device authentication</source>
         <translation>刷新设备身份验证</translation>
     </message>
@@ -2879,7 +2821,7 @@
         <translation>添加至 Arbiter</translation>
     </message>
     <message>
-        <location line="+339"/>
+        <location line="+337"/>
         <source>%1 open · Pick up where you left off</source>
         <translation>%1 打开 · 从上次停下的地方继续</translation>
     </message>
@@ -2955,7 +2897,7 @@
         <translation>私人</translation>
     </message>
     <message>
-        <location line="-1357"/>
+        <location line="-1339"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass（实验性）</translation>
     </message>
@@ -3165,7 +3107,7 @@
         <translation>颜色</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="+414"/>
+        <location filename="../qml/Main.qml" line="+398"/>
         <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Default browser</source>
         <translation>默认浏览器</translation>
@@ -3534,102 +3476,9 @@
     </message>
 </context>
 <context>
-    <name>PasskeySetup</name>
-    <message>
-        <location filename="../qml/PasskeySetup.qml" line="+28"/>
-        <source>Set up Arbiter passkeys</source>
-        <translation>设置 Arbiter 密钥</translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Choose a passphrase of at least 12 characters. Use it to create or use an Arbiter passkey, or enable optional biometric unlocking in Settings. Private keys are encrypted and kept in your operating system&apos;s credential store on this computer. Optional encrypted local sync is available in Settings. There is no passphrase recovery; losing this profile, its system credentials, or the passphrase can lose access to these passkeys. Keep another sign-in method for your accounts.</source>
-        <translation>请选择至少 12 个字符的口令。创建或使用 Arbiter 通行密钥时需输入此口令，也可在设置中启用可选的生物识别解锁。私钥经过加密，并保存在此电脑的操作系统凭据存储中。可在设置中启用可选的加密本地同步。口令无法找回；丢失此配置文件、系统凭据或口令，可能导致无法使用这些通行密钥。请为账号保留其他登录方式。</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Vault passphrase</source>
-        <translation>保险库口令</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Confirm vault passphrase</source>
-        <translation>确认保管库密码</translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>Cancel</source>
-        <translation>取消</translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>Create vault</source>
-        <translation>创建保管库</translation>
-    </message>
-</context>
-<context>
     <name>PasskeyVault</name>
     <message>
-        <location filename="../src/passkeyvault.cpp" line="+65"/>
-        <source>Set up the passkey vault first.</source>
-        <translation>首先设置密钥库。</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <location line="+39"/>
-        <location line="+9"/>
-        <source>Could not save the biometric preference.</source>
-        <translation>无法保存生物识别首选项。</translation>
-    </message>
-    <message>
-        <location line="-41"/>
-        <source>Biometric verification is unavailable. Use your vault passphrase.</source>
-        <translation>生物识别验证不可用。使用您的保管库密码。</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <location line="+19"/>
-        <source>Biometric setup was cancelled.</source>
-        <translation>生物识别设置已取消。</translation>
-    </message>
-    <message>
-        <location line="-18"/>
-        <source>Could not verify the vault passphrase. Wait before trying again.</source>
-        <translation>无法验证保管库密码。请等待后再重试。</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <location line="+50"/>
-        <source>Could not protect the biometric session key in memory. Use your vault passphrase.</source>
-        <translation>无法保护内存中的生物识别会话密钥。使用您的保管库密码。</translation>
-    </message>
-    <message>
-        <location line="-48"/>
-        <source>Enable biometric unlocking for your passkey vault</source>
-        <translation>为您的密钥库启用生物识别解锁</translation>
-    </message>
-    <message>
-        <location line="+4"/>
-        <source>Biometric setup was cancelled. Use your vault passphrase.</source>
-        <translation>生物识别设置已取消。使用您的保管库密码。</translation>
-    </message>
-    <message>
-        <location line="+58"/>
-        <location line="+2"/>
-        <source>Unlock your passkey vault for this website</source>
-        <translation>解锁该网站的密钥库</translation>
-    </message>
-    <message>
-        <location line="-13"/>
-        <source>Could not unlock the vault. Use your vault passphrase.</source>
-        <translation>无法解锁保管库。使用您的保管库密码。</translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>The vault has changed. Use your vault passphrase.</source>
-        <translation>金库已更改。使用您的保管库密码。</translation>
-    </message>
-    <message>
-        <location line="+54"/>
+        <location filename="../src/passkeyvault.cpp" line="+85"/>
         <source>The passkey vault is in use by another browser process.</source>
         <translation>密钥库正被另一个浏览器进程使用。</translation>
     </message>
@@ -3639,61 +3488,20 @@
         <translation>密钥目录已损坏。在继续之前恢复您的个人资料。</translation>
     </message>
     <message>
-        <location line="+25"/>
-        <source>A vault already exists or setup was interrupted. Restore the existing vault; it will not be overwritten.</source>
-        <translation>保管库已存在或安装已中断。恢复现有的保管库；它不会被覆盖。</translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Use at least 12 characters and enter the same passphrase twice.</source>
-        <translation>至少使用 12 个字符并输入相同的密码两次。</translation>
-    </message>
-    <message>
-        <location line="-130"/>
-        <location line="+140"/>
-        <source>Could not initialize cryptography.</source>
-        <translation>无法初始化加密。</translation>
-    </message>
-    <message>
-        <location line="-109"/>
-        <source>Enter your vault passphrase or enable biometric unlocking again.</source>
-        <translation>输入您的保管库密码或再次启用生物识别解锁。</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>Biometric verification was cancelled. Use your vault passphrase.</source>
-        <translation>生物识别验证已取消。使用您的保管库密码。</translation>
-    </message>
-    <message>
-        <location line="+107"/>
+        <location line="+259"/>
         <source>Could not save the passkey catalog.</source>
         <translation>无法保存密钥目录。</translation>
     </message>
     <message>
-        <location line="+8"/>
-        <source>Could not finish saving the vault catalog.</source>
-        <translation>无法完成保管库目录的保存。</translation>
-    </message>
-    <message>
-        <location line="+26"/>
-        <source>The secure vault record is invalid.</source>
-        <translation>安全保管库记录无效。</translation>
-    </message>
-    <message>
-        <location line="+22"/>
+        <location line="-230"/>
         <location line="+7"/>
         <source>Invalid authenticator request.</source>
         <translation>验证器请求无效。</translation>
     </message>
     <message>
-        <location line="+20"/>
-        <source>Focus Arbiter and use your vault passphrase.</source>
-        <translation>关注 Arbiter 并使用您的保管库密码。</translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Verification failed. Wait before trying again, then enter your vault passphrase.</source>
-        <translation>验证失败。请稍候后再重试，然后输入您的保管库密码。</translation>
+        <location line="+18"/>
+        <source>Device verification was cancelled or failed. Try again.</source>
+        <translation>设备验证已取消或失败。请重试。</translation>
     </message>
     <message>
         <location line="+8"/>
@@ -3751,12 +3559,7 @@
         <translation>验证身份以使用你的 Arbiter 通行密钥</translation>
     </message>
     <message>
-        <location line="+13"/>
-        <source>Set up your passkey vault before enabling encrypted sync.</source>
-        <translation>启用加密同步前，请先设置通行密钥库。</translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="+17"/>
         <source>Sync unlocking was cancelled.</source>
         <translation>同步解锁已取消。</translation>
     </message>
@@ -3767,14 +3570,14 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+37"/>
+        <location line="+36"/>
         <location line="+39"/>
         <source>Unlock the desktop sync vault and try again.</source>
         <translation>请解锁桌面端同步密码库后重试。</translation>
     </message>
     <message>
-        <location line="-69"/>
-        <location line="+10"/>
+        <location line="-68"/>
+        <location line="+9"/>
         <source>The sync session expired.</source>
         <translation>同步会话已过期。</translation>
     </message>
@@ -3814,12 +3617,7 @@
         <translation>无法保护凭据密钥。</translation>
     </message>
     <message>
-        <location line="+7"/>
-        <source>Could not finish credential migration. The original vault was preserved.</source>
-        <translation>无法完成凭据迁移。原始保险库已保留。</translation>
-    </message>
-    <message>
-        <location line="+11"/>
+        <location line="+17"/>
         <source>Could not create the credential catalog.</source>
         <translation>无法创建凭据目录。</translation>
     </message>
@@ -3829,12 +3627,7 @@
         <translation>凭据密钥缺失。现有通行密钥已保留。</translation>
     </message>
     <message>
-        <location line="+11"/>
-        <source>The previous passphrase did not unlock your passkeys.</source>
-        <translation>之前的口令未能解锁你的通行密钥。</translation>
-    </message>
-    <message>
-        <location filename="../src/passkeyvault.h" line="+36"/>
+        <location filename="../src/passkeyvault.h" line="+27"/>
         <source>Biometrics</source>
         <translation>生物识别</translation>
     </message>
@@ -3847,7 +3640,7 @@
 <context>
     <name>PasswordManager</name>
     <message>
-        <location filename="../src/passwordmanager.cpp" line="+79"/>
+        <location filename="../src/passwordmanager.cpp" line="+72"/>
         <source>Could not create the password index directory.</source>
         <translation>无法创建密码索引目录。</translation>
     </message>
@@ -3928,7 +3721,7 @@
     </message>
     <message>
         <location line="+268"/>
-        <location line="+8"/>
+        <location line="+7"/>
         <source>Sync was stopped.</source>
         <translation>同步已停止。</translation>
     </message>
@@ -3948,15 +3741,15 @@
         <translation>为此配置文件启用加密凭据同步</translation>
     </message>
     <message>
-        <location line="-329"/>
+        <location line="-328"/>
         <location line="+53"/>
         <location line="+228"/>
-        <location line="+33"/>
+        <location line="+32"/>
         <source>Password storage is unavailable or busy.</source>
         <translation>密码存储不可用或正忙。</translation>
     </message>
     <message>
-        <location line="-253"/>
+        <location line="-252"/>
         <source>This account does not belong to the current website.</source>
         <translation>该帐号不属于当前网站。</translation>
     </message>
@@ -4357,7 +4150,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+591"/>
+        <location filename="../src/main.cpp" line="+615"/>
         <source>Settings…</source>
         <translation>设置…</translation>
     </message>
@@ -4520,13 +4313,13 @@
     <message>
         <location filename="../src/secretstore.cpp" line="+25"/>
         <location line="+15"/>
-        <location filename="../src/secretstore_mac.mm" line="+59"/>
+        <location filename="../src/secretstore_mac.mm" line="+63"/>
         <source>Could not read the credential from the system credential store. Unlock your keyring and try again.</source>
         <translation>无法从系统凭证存储中读取凭证。解锁您的钥匙圈并重试。</translation>
     </message>
     <message>
         <location line="+15"/>
-        <location filename="../src/secretstore_mac.mm" line="+15"/>
+        <location filename="../src/secretstore_mac.mm" line="+17"/>
         <source>Could not save the credential securely. Unlock your system keyring, or enable a supported credential store, and try again.</source>
         <translation>无法安全地保存凭据。解锁您的系统密钥环，或启用受支持的凭据存储，然后重试。</translation>
     </message>
@@ -4610,11 +4403,6 @@
         <location line="+1"/>
         <source>Could not sync. Keep the other device open and unlocked on the same Wi-Fi.</source>
         <translation>无法同步。请在另一设备上保持应用开启并解锁，并连接到同一 Wi-Fi。</translation>
-    </message>
-    <message>
-        <location filename="../src/secretstore_mac.mm" line="-25"/>
-        <source>Sync paused: macOS requires permission to read a saved credential. Use that credential in Arbiter to approve access, then try syncing again.</source>
-        <translation>同步已暂停：macOS 需要读取已保存凭据的权限。使用 Arbiter 中的该凭据来批准访问，然后再次尝试同步。</translation>
     </message>
 </context>
 <context>
@@ -4871,7 +4659,7 @@
 <context>
     <name>SyncSettings</name>
     <message>
-        <location filename="../qml/SyncSettings.qml" line="+14"/>
+        <location filename="../qml/SyncSettings.qml" line="+13"/>
         <source>Bring your vault along</source>
         <translation>随身携带密码库</translation>
     </message>
@@ -4881,27 +4669,17 @@
         <translation>请在普通浏览窗口中打开同步设置以配对设备。</translation>
     </message>
     <message>
-        <location line="+32"/>
+        <location line="+18"/>
         <source>Working with your secure vault…</source>
         <translation>正在处理安全密码库…</translation>
     </message>
     <message>
-        <location line="-37"/>
+        <location line="-23"/>
         <source>Enable sync once to share passwords and passkeys between paired devices over local Wi-Fi. Sync starts automatically whenever Arbiter opens and keeps running until you turn it off. No separate vault, passphrase, or cloud account is needed.</source>
         <translation>只需启用一次同步，即可通过本地 Wi-Fi 在已配对设备间共享密码和通行密钥。每次打开 Arbiter 时同步会自动启动，并持续运行，直到你将其关闭。无需单独的保险库、口令或云账户。</translation>
     </message>
     <message>
         <location line="+13"/>
-        <source>Enter your previous passkey passphrase once to move existing passkeys into your OS-protected credential vault. Passwords do not need to be imported again.</source>
-        <translation>只需输入一次之前的通行密钥口令，即可将现有通行密钥移至操作系统保护的凭据保险库。无需重新导入密码。</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>Previous passkey passphrase</source>
-        <translation>之前的通行密钥口令</translation>
-    </message>
-    <message>
-        <location line="+7"/>
         <source>Retry sync</source>
         <translation>重试同步</translation>
     </message>
@@ -5445,12 +5223,7 @@
 <context>
     <name>WebAuthnPanel</name>
     <message>
-        <location filename="../qml/WebAuthnPanel.qml" line="+70"/>
-        <source>Set up passkeys</source>
-        <translation>设置密钥</translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location filename="../qml/WebAuthnPanel.qml" line="+65"/>
         <source>Create a passkey</source>
         <translation>创建密钥</translation>
     </message>
@@ -5486,28 +5259,8 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Set up on this computer</source>
-        <translation>在此计算机上设置</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>No passkeys saved on this computer</source>
-        <translation>此计算机上没有保存密钥</translation>
-    </message>
-    <message>
-        <location line="+0"/>
         <source>Verify with your device</source>
         <translation>使用设备验证身份</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Verify with %1 or your passphrase</source>
-        <translation>使用 %1 或您的密码进行验证</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>Verify vault passphrase</source>
-        <translation>验证保管库密码</translation>
     </message>
     <message>
         <location line="+7"/>
@@ -5530,27 +5283,7 @@
         <translation>使用您的系统验证器</translation>
     </message>
     <message>
-        <location line="+9"/>
-        <source>Choose a passphrase of at least 12 characters to protect passkeys on this computer. You can enable biometric unlocking in Settings. Optional encrypted local sync is available; there is no passphrase recovery. Keep another sign-in method for your accounts.</source>
-        <translation>选择至少包含 12 个字符的密码来保护此计算机上的密钥。您可以在“设置”中启用生物识别解锁。可选加密本地同步；没有密码短语恢复。为您的帐户保留另一种登录方法。</translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>Vault passphrase</source>
-        <translation>保险库口令</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Confirm passphrase</source>
-        <translation>确认密码</translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>Set up and create passkey</source>
-        <translation>设置并创建密钥</translation>
-    </message>
-    <message>
-        <location line="+17"/>
+        <location line="+16"/>
         <source>Scan with your phone&apos;s camera. Keep the phone nearby with Bluetooth and internet enabled. Your passkey stays on the phone.</source>
         <translation>使用手机相机扫描。将手机放在附近并启用蓝牙和互联网。您的密钥保留在手机上。</translation>
     </message>
@@ -5571,41 +5304,6 @@
     </message>
     <message>
         <location line="+14"/>
-        <source>Use %1</source>
-        <translation>使用%1</translation>
-    </message>
-    <message>
-        <location line="+9"/>
-        <source>Enable persistent Touch ID in Settings using your vault passphrase once.</source>
-        <translation>使用您的保管库密码在“设置”中启用持久 Touch ID 一次。</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Or use your vault passphrase below.</source>
-        <translation>或使用下面的保管库密码。</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Use your passphrase once to enable biometric unlocking for this session.</source>
-        <translation>使用您的密码一次即可为此会话启用生物识别解锁。</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>Enter your old passphrase once to migrate existing passkeys. Future sign-ins use device verification.</source>
-        <translation>只需输入一次旧口令，即可迁移现有通行密钥。以后的登录将使用设备验证。</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>Arbiter passkey vault passphrase</source>
-        <translation>Arbiter 密钥库密码</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>Previous passkey passphrase (one time)</source>
-        <translation>之前的通行密钥口令（仅一次）</translation>
-    </message>
-    <message>
-        <location line="+8"/>
         <source>No Arbiter passkey matches this request. Cancel and choose another sign-in method.</source>
         <translation>没有 Arbiter 密钥与此请求匹配。取消并选择其他登录方式。</translation>
     </message>

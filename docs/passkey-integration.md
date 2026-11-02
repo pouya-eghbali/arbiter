@@ -60,14 +60,11 @@ available enrolled fprintd authenticator for this verification. Unavailable or
 cancelled verification fails closed; an unlocked sync session cannot authorize a
 website challenge.
 
-The existing passphrase format remains readable for migration. Entering the old
-passphrase once saves its encryption key into the shared OS-protected store,
-retaining credential IDs, signing keys, RP/user binding, and backup eligibility.
-Existing persistent biometric enrollment can also supply the legacy key. Source
-records remain intact until their authenticated copies are committed. A missing
-master key, invalid catalog, or failed decryption never creates a replacement
-over existing credentials. The old PBKDF2 passphrase path is retained for legacy
-profiles and regression tests, not offered as new-user setup.
+Old development vaults are intentionally unsupported. There is no passphrase
+setup, migration, per-item Keychain fallback, or optional biometric enrollment.
+The `credentials-v2/Default` profile store starts independently of those files.
+Missing keys or damaged data in the current format still fail without resetting
+or overwriting credentials.
 
 OpenSSL generates P-256 keys and DER ECDSA/SHA-256 signatures (COSE ES256). Private
 records retain authenticated vault/credential identities. No private material is
@@ -76,26 +73,21 @@ website's RP, user, credential descriptors, ES256 support, and cancellation epoc
 Native verification, focus checks, and navigation cancellation remain separate
 from OS keyring access and background sync.
 
-## Device verification and legacy biometric enrollment
+## Device verification
 
-Normal passkey operations use fresh native verification: LocalAuthentication's
+Passkey operations use fresh native verification: LocalAuthentication's
 `deviceOwnerAuthentication` on macOS (Touch ID first, system password fallback),
 Windows Hello on Windows, and enrolled fprintd matching on Linux. Foreground and
-request-epoch checks reject cancelled, replaced, or background requests. Verification
-failures leave the challenge open for retry and never return a signature.
+request-epoch checks reject cancelled, replaced, or background requests. Failed
+verification leaves the challenge open for retry and never returns a signature.
+Sync authorization cannot substitute for website user verification.
 
-The earlier persistent macOS biometric enrollment remains readable only as a
-migration source. Its Data Protection Keychain item uses
-`kSecAttrAccessibleWhenUnlockedThisDeviceOnly` and
-`kSecAccessControlBiometryCurrentSet`. Successfully unlocking that existing item
-can migrate the legacy root without retyping its passphrase. The old per-session
-biometric cache is likewise retained only for old-format profiles/tests.
-
-The release packager continues validating any embedded Developer ID provisioning
-profile before adding restricted Keychain entitlements. The new shared-store flow
-does not require those biometric-item entitlements. Mobile already uses one
-OS-protected credential store with native device verification and has no separate
-passkey setup passphrase.
+On macOS the shared master key is stored in the app-scoped Data Protection
+Keychain rather than the legacy login Keychain. Proper signing/provisioning is
+required. Missing access fails rather than falling back to per-password items.
+A signed app can run `--credential-store-smoke-test` to check a disposable,
+noninteractive shared-store round trip and clean up its synthetic OS key. No
+browser profile or existing credentials are accessed by this probe.
 
 ## Phone QR transport
 
@@ -201,7 +193,7 @@ the patches and running the following validation before distribution.
 
 `passkeyvault_test` covers encryption authentication, independent signature
 verification, registration/assertion, persistence, wrong RP IDs, allow/exclusion
-lists, unsupported algorithms, tampered metadata, incorrect passphrases and
+lists, unsupported algorithms, tampered metadata, rejected device verification and
 failed storage. With `ARBITER_TEST_KEYCHAIN=1`, it also creates and uses a
 synthetic encrypted passkey in the real OS store and removes its test entries.
 That round trip passes locally on macOS. Windows/Linux are not runtime-validated
@@ -233,10 +225,3 @@ three platforms, including Windows native WebAuthn coexistence. On 2026-10-23,
 the user reported successful GitHub sign-in using a passkey on an iPhone through
 the QR flow on macOS. This is a manual interoperability result; the automated
 pipeline still records physical phone validation as `not_run`.
-
-The opt-in signed macOS test `ARBITER_PROTECTED_KEY_PROBE=1 biometricauth_test
-protectedKeyRequiresNativeAuthorization` creates a synthetic key, verifies that
-Keychain refuses a noninteractive read, then deletes the test item. It requires a
-properly provisioned test app and never reads user credentials. Unit tests also
-cover persistent unlock after restart/lock, failed enrollment, cancellation,
-changed keys, migration, disabling, and passphrase fallback.

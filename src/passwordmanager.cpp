@@ -36,13 +36,6 @@ QByteArray record(const QString &origin, const QString &username, const QString 
 }
 }
 
-PasswordManager::PasswordManager(QObject *parent)
-    : PasswordManager(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
-                          + QStringLiteral("/passwords/Default"), QStringLiteral("Default"), nullptr, parent)
-{
-    m_enabled = Settings().value(QStringLiteral("Passwords/enabled"), true).toBool();
-}
-
 PasswordManager::PasswordManager(const QString &directory, const QString &profile,
                                  SecretStore *store, QObject *parent, VerificationClock clock)
     : QObject(parent), m_verificationClock(clock ? std::move(clock) : VerificationClock([] {
@@ -54,7 +47,7 @@ PasswordManager::PasswordManager(const QString &directory, const QString &profil
     const int cooldown=Settings().value(QStringLiteral("Passwords/verificationCooldown"),300).toInt(&valid);
     m_verificationCooldown=valid ? std::clamp(cooldown,0,3600) : 300;
     m_biometricEnabled=Settings().value(QStringLiteral("Passwords/biometricEnabled"),true).toBool();
-    if (!m_store) m_store = new KeychainSecretStore(this);
+    Q_ASSERT(m_store);
     m_pendingTimer.setSingleShot(true);
     m_pendingTimer.setInterval(120000);
     connect(&m_pendingTimer, &QTimer::timeout, this, &PasswordManager::dismissPending);
@@ -546,7 +539,7 @@ void PasswordSession::suggestPassword(const QUrl &committedUrl, const QVariantMa
 }
 
 
-void PasswordManager::exportAfterVerification(SyncResult callback, bool authorizeExisting, std::function<bool()> current)
+void PasswordManager::exportAfterVerification(SyncResult callback, std::function<bool()> current)
 {
     if(m_busy || !m_writable) { callback(tr("Password storage is unavailable or busy."),{}); return; }
     m_busy=true; emit stateChanged();
@@ -555,14 +548,13 @@ void PasswordManager::exportAfterVerification(SyncResult callback, bool authoriz
     auto step=std::make_shared<std::function<void(int)>>();
     const std::weak_ptr<std::function<void(int)>> weak=step;
     const QPointer<PasswordManager> guard(this);
-    *step=[guard,entries,result,weak,callback,authorizeExisting,current](int index) {
+    *step=[guard,entries,result,weak,callback,current](int index) {
         if(!guard) return;
         if(current && !current()) { guard->finish({}); callback(tr("Sync was stopped."),{}); return; }
         if(index==entries.size()) { guard->finish({}); callback({},*result); return; }
         const auto entry=entries[index].toMap();
         const auto continuation=weak.lock();
-        auto read=[guard,authorizeExisting](const QString &key,SecretStore::Callback callback) { if(authorizeExisting) guard->m_store->read(key,std::move(callback)); else guard->m_store->readSilently(key,std::move(callback)); };
-        read(guard->secretKey(entry.value("id").toString()),
+        guard->m_store->readSilently(guard->secretKey(entry.value("id").toString()),
             [guard,entry,result,continuation,callback,index,current](const QString &error,const QByteArray &bytes) {
                 if(!guard) return;
                 if(current && !current()) { guard->finish({}); callback(tr("Sync was stopped."),{}); return; }

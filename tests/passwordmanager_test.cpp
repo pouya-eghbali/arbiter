@@ -378,7 +378,7 @@ private slots:
     void systemKeychainRoundTrip() {
         if (!qEnvironmentVariableIsSet("ARBITER_TEST_KEYCHAIN"))
             QSKIP("Set ARBITER_TEST_KEYCHAIN=1 to exercise the OS store with a disposable synthetic secret.");
-        KeychainSecretStore store;
+        KeychainSecretStore store(nullptr,QStringLiteral("Arbiter Test Credentials"));
         const auto key = "Arbiter/Passwords/test/" + QUuid::createUuid().toString();
         bool done = false;
         QString error;

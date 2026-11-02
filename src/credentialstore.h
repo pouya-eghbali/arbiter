@@ -13,8 +13,7 @@
 class CredentialStore final : public SecretStore {
     Q_OBJECT
 public:
-    CredentialStore(const QString &directory, SecretStore *keys, SecretStore *passwords,
-                    SecretStore *passkeys, SecretStore *sync, QObject *parent=nullptr);
+    CredentialStore(const QString &directory, SecretStore *keys, QObject *parent=nullptr);
     bool automaticProtection() const override { return true; }
     void read(const QString &key, Callback callback) override;
     void readOptional(const QString &key, Callback callback) override;
@@ -30,9 +29,8 @@ private:
     void execute();
     void complete(const QString &error,const QByteArray &data={});
     bool save(const QCborMap &records);
-    SecretStore *legacy(const QString &key) const;
     QString m_directory;
-    QPointer<SecretStore> m_keys,m_passwords,m_passkeys,m_sync;
+    QPointer<SecretStore> m_keys;
     LockedKey m_key;
     QByteArray m_id;
     QCborMap m_records;

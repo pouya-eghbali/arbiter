@@ -1,6 +1,7 @@
 // This fixture automates consent only in the test process. Production never
 // installs a virtual authenticator or exposes this provider to web content.
 #include "../src/passkeyvault.h"
+#include "credentialsync/testdeviceauth.h"
 #include <QApplication>
 #include <QCborMap>
 #include <QCryptographicHash>
@@ -19,6 +20,7 @@ class TestStore final : public SecretStore {
 public:
     QHash<QString, QByteArray> entries;
     void read(const QString &key, Callback cb) override { cb(entries.contains(key) ? QString() : QStringLiteral("missing"), entries.value(key)); }
+    void readOptional(const QString &key,Callback cb) override { cb({},entries.value(key)); }
     void write(const QString &key, const QByteArray &bytes, Callback cb) override { entries[key] = bytes; cb({}, {}); }
     void remove(const QString &key, Callback cb) override { entries.remove(key); cb({}, {}); }
 };
@@ -80,7 +82,7 @@ private slots:
         handledPayload = true;
         auto entries = vault->credentials(QStringLiteral("example.test"));
         QByteArray id = entries.isEmpty() ? QByteArray() : entries.first().toMap().value(QStringLiteral("id")).toByteArray();
-        vault->perform(bridge->property("registration").toBool(), payload, id, QStringLiteral("synthetic vault passphrase"),
+        vault->perform(bridge->property("registration").toBool(), payload, id,
             [guard = bridge](int status, const QByteArray &response) {
                 if (guard) QMetaObject::invokeMethod(guard, "complete", Q_ARG(QByteArray, response), Q_ARG(int, status));
             });
@@ -89,8 +91,7 @@ private slots:
 #ifndef QT_ARBITER_WEBAUTHN_ABI
         QSKIP("Requires the patched engine SDK; stock Qt cannot exercise this boundary.");
 #else
-        QTemporaryDir dir; TestStore store; PasskeyVault localVault(&store, dir.path()); vault = &localVault;
-        localVault.setup(QStringLiteral("synthetic vault passphrase"), QStringLiteral("synthetic vault passphrase")); QVERIFY(localVault.configured());
+        QTemporaryDir dir; TestStore store; TestDeviceAuth deviceAuth;PasskeyVault localVault(&store, dir.path(),nullptr,&deviceAuth); vault = &localVault;
         TestProvider provider(vault);
         qApp->setProperty("arbiter.passkeys", QVariant::fromValue(static_cast<QObject *>(&provider)));
         struct Reset { ~Reset() { qApp->setProperty("arbiter.passkeys", QVariant()); } } reset;

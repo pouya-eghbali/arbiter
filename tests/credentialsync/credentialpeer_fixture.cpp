@@ -20,12 +20,11 @@ int main(int argc,char **argv) {
     PasswordManager passwords(directory.path()+"/passwords","Fixture",&p);
     passwords.save(QUrl("https://fixture.example"),"fixture-user","fixture-password-not-a-secret");
     PasskeyVault passkeys(&k,directory.path()+"/passkeys");
-    const QString phrase=QStringLiteral("test fixture passphrase only"); passkeys.setup(phrase,phrase);
     CredentialSync sync(&passwords,&passkeys,directory.path()+"/sync",&s,"127.0.0.1");
     bool printed=false;
     QObject::connect(&sync,&CredentialSync::changed,&app,[&] {
         if(printed || sync.busy() || !sync.unlocked() || sync.address().isEmpty()) return;
         printed=true; sync.pair(); QTextStream(stdout)<<sync.pairingCode()<<Qt::endl;
     });
-    sync.unlock(phrase); QTimer::singleShot(10*60*1000,&app,&QCoreApplication::quit); return app.exec();
+    sync.unlock(); QTimer::singleShot(10*60*1000,&app,&QCoreApplication::quit); return app.exec();
 }

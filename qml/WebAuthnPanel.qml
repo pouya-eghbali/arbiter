@@ -36,11 +36,6 @@ Item {
         function onPinSubmitted() { pinField.text = ""; confirmationField.text = "" }
     }
 
-    Connections {
-        target: panel.passkeys
-        function onVerificationSubmitted() { vaultPhrase.text = "" }
-        function onChanged() { if (!panel.passkeys.verifying) vaultPhrase.text = "" }
-    }
     UiPopup {
         popupType: Theme.nativePopups ? Basic.Popup.Window : Basic.Popup.Item
         id: authPopup
@@ -53,7 +48,7 @@ Item {
         Basic.Overlay.modal: Rectangle { color: Theme.scrim }
         focus: true
         closePolicy: Basic.Popup.CloseOnEscape
-        onClosed: { setupPhrase.text = ""; setupConfirmation.text = ""; vaultPhrase.text = ""; if (panel.controller.active) panel.controller.cancel() }
+        onClosed: if (panel.controller.active) panel.controller.cancel()
         background: GlassSurface { radius: Theme.panelRadius }
         height: Math.min(authContent.implicitHeight + topPadding + bottomPadding, panel.height - 40)
         contentItem: Basic.ScrollView {
@@ -67,8 +62,7 @@ Item {
             RowLayout {
                 Layout.fillWidth: true
                 Basic.Label {
-                    text: panel.passkeys.verifying && panel.passkeys.registration && !panel.passkeys.configured ? qsTr("Set up passkeys")
-                        : panel.passkeys.registration ? qsTr("Create a passkey") : qsTr("Sign in")
+                    text: panel.passkeys.registration ? qsTr("Create a passkey") : qsTr("Sign in")
                     font.pixelSize: 26; font.weight: Font.DemiBold; color: Theme.textFor(parent); Layout.fillWidth: true
                 }
                 UiButton { iconName: "x"; flat: true; font.pixelSize: 24; Accessible.name: qsTr("Cancel sign-in"); onClicked: panel.controller.cancel() }
@@ -92,9 +86,8 @@ Item {
                     objectName: "localPasskeyChoice"
                     Layout.fillWidth: true; visible: panel.passkeys.localAvailable
                     text: qsTr("Arbiter passkey"); iconName: "user"; prominent: true
-                    subtitle: panel.passkeys.automaticVault ? qsTr("Verify with your device") : !panel.passkeys.configured ? panel.passkeys.registration ? qsTr("Set up on this computer") : qsTr("No passkeys saved on this computer")
-                        : panel.passkeys.biometricReady ? qsTr("Verify with %1 or your passphrase").arg(panel.passkeys.biometricName) : qsTr("Verify vault passphrase")
-                    enabled: !panel.passkeys.busy && (panel.passkeys.configured || panel.passkeys.registration)
+                    subtitle: qsTr("Verify with your device")
+                    enabled: !panel.passkeys.busy
                     onClicked: panel.passkeys.useLocal()
                 }
                 UiChoiceCard {
@@ -107,23 +100,6 @@ Item {
                     Layout.fillWidth: true; visible: panel.passkeys.systemAvailable
                     text: qsTr("Windows Hello / security key"); subtitle: qsTr("Use your system authenticator"); iconName: "key"
                     onClicked: panel.passkeys.useSystem()
-                }
-            }
-            ColumnLayout {
-                visible: panel.passkeys.verifying && panel.passkeys.registration && !panel.passkeys.configured
-                Layout.fillWidth: true
-                spacing: 12
-                Basic.Label {
-                    text: qsTr("Choose a passphrase of at least 12 characters to protect passkeys on this computer. You can enable biometric unlocking in Settings. Optional encrypted local sync is available; there is no passphrase recovery. Keep another sign-in method for your accounts.")
-                    textFormat: Text.PlainText; color: Theme.mutedFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap
-                }
-                UiTextField { id: setupPhrase; objectName: "inlinePasskeyPhrase"; Layout.fillWidth: true; echoMode: TextInput.Password; placeholderText: qsTr("Vault passphrase"); enabled: !panel.passkeys.busy }
-                UiTextField { id: setupConfirmation; objectName: "inlinePasskeyConfirmation"; Layout.fillWidth: true; echoMode: TextInput.Password; placeholderText: qsTr("Confirm passphrase"); enabled: !panel.passkeys.busy }
-                UiButton {
-                    objectName: "inlinePasskeySetup"
-                    text: qsTr("Set up and create passkey"); primary: true; Layout.fillWidth: true
-                    enabled: !panel.passkeys.busy && setupPhrase.text.length >= 12 && setupPhrase.text === setupConfirmation.text
-                    onClicked: { panel.passkeys.setupForRequest(setupPhrase.text, setupConfirmation.text); setupPhrase.text = ""; setupConfirmation.text = "" }
                 }
             }
             Image {
@@ -167,40 +143,6 @@ Item {
                 Layout.fillWidth: true
             }
 
-            UiButton {
-                visible: !panel.passkeys.automaticVault && panel.passkeys.verifying && panel.passkeys.biometricEnabled && panel.passkeys.biometricAvailable
-                text: qsTr("Use %1").arg(panel.passkeys.biometricName)
-                objectName: "verifyBiometricButton"
-                primary: true
-                enabled: !panel.passkeys.busy && panel.passkeys.biometricReady
-                    && (panel.passkeys.registration || localAccount.currentIndex >= 0)
-                onClicked: panel.passkeys.verifyBiometric(localAccount.currentIndex)
-            }
-            Basic.Label {
-                visible: !panel.passkeys.automaticVault && !panel.passkeys.needsMigration && panel.passkeys.verifying && panel.passkeys.biometricEnabled
-                text: panel.passkeys.biometricNeedsEnrollment ? qsTr("Enable persistent Touch ID in Settings using your vault passphrase once.") : panel.passkeys.busy ? panel.passkeys.biometricStatus : panel.passkeys.biometricReady
-                    ? qsTr("Or use your vault passphrase below.")
-                    : qsTr("Use your passphrase once to enable biometric unlocking for this session.")
-                Layout.fillWidth: true
-                wrapMode: Text.Wrap
-                color: Theme.mutedFor(parent)
-            }
-            Basic.Label {
-                visible: panel.passkeys.verifying && panel.passkeys.needsMigration
-                text: qsTr("Enter your old passphrase once to migrate existing passkeys. Future sign-ins use device verification.")
-                Layout.fillWidth: true; wrapMode: Text.Wrap; color: Theme.mutedFor(parent)
-            }
-            UiTextField {
-                id: vaultPhrase
-                objectName: "passkeyVaultPhrase"
-                visible: !panel.passkeys.automaticVault && panel.passkeys.verifying && panel.passkeys.configured && (panel.passkeys.registration || panel.passkeys.accounts.length > 0)
-                echoMode: TextInput.Password
-                placeholderText: panel.passkeys.needsMigration ? qsTr("Previous passkey passphrase (one time)") : qsTr("Arbiter passkey vault passphrase")
-                Accessible.name: placeholderText
-                Layout.fillWidth: true
-                enabled: !panel.passkeys.busy
-                onAccepted: panel.passkeys.verify(localAccount.currentIndex, text)
-            }
             Basic.Label {
                 visible: panel.passkeys.verifying && panel.passkeys.configured && !panel.passkeys.registration && panel.passkeys.accounts.length === 0
                 text: qsTr("No Arbiter passkey matches this request. Cancel and choose another sign-in method.")
@@ -211,10 +153,10 @@ Item {
             UiButton {
                 visible: panel.passkeys.verifying && panel.passkeys.configured
                 text: panel.passkeys.registration ? qsTr("Create passkey in Arbiter") : qsTr("Sign in with Arbiter")
-                objectName: "verifyPassphraseButton"
-                enabled: !panel.passkeys.busy && (panel.passkeys.automaticVault || vaultPhrase.text.length > 0)
+                objectName: "verifyDeviceButton"
+                enabled: !panel.passkeys.busy
                     && (panel.passkeys.registration || localAccount.currentIndex >= 0)
-                onClicked: panel.passkeys.verify(localAccount.currentIndex, vaultPhrase.text)
+                onClicked: panel.passkeys.verify(localAccount.currentIndex)
             }
             Basic.Label {
                 visible: panel.passkeys.error.length > 0

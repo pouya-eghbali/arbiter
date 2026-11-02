@@ -27,7 +27,6 @@ class PasswordManager : public QObject
     Q_PROPERTY(bool pendingUpdate READ pendingUpdate NOTIFY pendingChanged)
     Q_PROPERTY(QString captureScript READ captureScript CONSTANT)
 public:
-    explicit PasswordManager(QObject *parent = nullptr);
     using VerificationClock=std::function<qint64()>;
     PasswordManager(const QString &directory, const QString &profile, SecretStore *store,
                     QObject *parent = nullptr, VerificationClock clock = {});
@@ -61,7 +60,7 @@ public:
     // Native-only transfer APIs. The sync coordinator must first authenticate
     // the user when enabling sync; these are never web/QML methods.
     using SyncResult=std::function<void(const QString &,const QJsonArray &)>;
-    void exportAfterVerification(SyncResult callback, bool authorizeExisting = false, std::function<bool()> current = {});
+    void exportAfterVerification(SyncResult callback, std::function<bool()> current = {});
     void upsertFromSync(const QJsonObject &data,ImportCallback callback);
     void removeFromSync(const QString &origin,const QString &username,ImportCallback callback);
     static QString fillScript(const QString &origin, const QString &document,

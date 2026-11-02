@@ -23,17 +23,11 @@ class PasskeyController final : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool biometricAvailable READ biometricAvailable NOTIFY changed)
-    Q_PROPERTY(bool biometricEnabled READ biometricEnabled NOTIFY changed)
-    Q_PROPERTY(bool biometricReady READ biometricReady NOTIFY changed)
-    Q_PROPERTY(bool biometricPersistenceSupported READ biometricPersistenceSupported NOTIFY changed)
-    Q_PROPERTY(bool biometricNeedsEnrollment READ biometricNeedsEnrollment NOTIFY changed)
     Q_PROPERTY(QString biometricName READ biometricName NOTIFY changed)
     Q_PROPERTY(QString biometricStatus READ biometricStatus NOTIFY changed)
     Q_PROPERTY(int abi READ abi CONSTANT)
     Q_PROPERTY(bool enabled READ enabled CONSTANT)
     Q_PROPERTY(bool configured READ configured NOTIFY changed)
-    Q_PROPERTY(bool automaticVault READ automaticVault NOTIFY changed)
-    Q_PROPERTY(bool needsMigration READ needsMigration NOTIFY changed)
     Q_PROPERTY(bool active READ active NOTIFY changed)
     Q_PROPERTY(bool localAvailable READ localAvailable NOTIFY changed)
     Q_PROPERTY(bool phoneAvailable READ phoneAvailable NOTIFY changed)
@@ -51,24 +45,15 @@ public:
     PasskeyController(SecretStore *store, const QString &directory, BiometricAuth *biometrics, QObject *parent = nullptr);
     ~PasskeyController() override;
     bool biometricAvailable() const { return m_vault.biometricAvailable(); }
-    bool biometricEnabled() const { return m_vault.biometricEnabled(); }
-    bool biometricReady() const { return m_vault.biometricReady(); }
-    bool biometricPersistenceSupported() const { return m_vault.biometricPersistenceSupported(); }
-    bool biometricNeedsEnrollment() const { return m_vault.biometricNeedsEnrollment(); }
     QString biometricName() const { return m_vault.biometricName(); }
     QString biometricStatus() const { return m_vault.biometricStatus(); }
     Q_INVOKABLE void refreshBiometrics() { m_biometrics->refresh(); }
-    Q_INVOKABLE void setBiometricEnabled(bool enabled, const QString &phrase) { m_vault.setBiometricEnabled(enabled,phrase); }
     Q_INVOKABLE void cancelBiometric() { m_vault.cancelBiometric(); }
     Q_INVOKABLE void lockBiometrics() { m_vault.lockBiometrics(); }
-    Q_INVOKABLE void verifyBiometric(int accountIndex);
     PasskeyVault *vaultForSync() { return &m_vault; }
     int abi() const { return 1; }
     bool enabled() const;
     bool configured() const { return m_vault.configured(); }
-    bool automaticVault() const { return m_vault.automaticVault(); }
-    bool needsMigration() const { return m_vault.needsMigration(); }
-    Q_INVOKABLE void migrateLegacy(const QString &phrase) { m_vault.migrateLegacy(phrase); }
     bool active() const { return m_bridge; }
     bool localAvailable() const;
     bool phoneAvailable() const;
@@ -84,25 +69,21 @@ public:
     Q_INVOKABLE QVariantList credentials(const QString &rp) const { return m_vault.credentials(rp); }
     Q_INVOKABLE void handle(QWebEngineWebAuthUxRequest *request);
     Q_INVOKABLE void clear();
-    Q_INVOKABLE void setup(const QString &passphrase, const QString &confirmation);
-    Q_INVOKABLE void setupForRequest(const QString &passphrase,const QString &confirmation);
     Q_INVOKABLE void useLocal();
     Q_INVOKABLE void usePhone();
     Q_INVOKABLE void useSystem();
     Q_INVOKABLE void powerOnBluetooth();
     Q_INVOKABLE void requestBluetoothPermission();
-    Q_INVOKABLE void verify(int accountIndex, const QString &passphrase);
+    Q_INVOKABLE void verify(int accountIndex);
 signals:
     void changed();
     void verificationSubmitted();
 private slots:
     void update();
 private:
-    void verifyLocal(int accountIndex, const QString &phrase, bool biometric);
     PasskeyProviderBridge m_provider;
-    QString m_pendingSetupPhrase;
     BiometricAuth *m_biometrics;
-    KeychainSecretStore m_store;
+    SecretStore *m_store;
     PasskeyVault m_vault;
     QPointer<QObject> m_bridge;
     QPointer<QWebEngineWebAuthUxRequest> m_request;

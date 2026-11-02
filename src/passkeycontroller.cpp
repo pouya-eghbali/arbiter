@@ -22,24 +22,17 @@ PasskeyController::PasskeyController(QObject *parent)
         + QStringLiteral("/passkeys/Default"),nullptr,parent) {}
 PasskeyController::PasskeyController(SecretStore *store, const QString &directory, BiometricAuth *biometrics, QObject *parent)
     : QObject(parent), m_provider(this), m_biometrics(biometrics ? biometrics : createBiometricAuth(this)),
-      m_store(this,QStringLiteral("Arbiter Passkeys")), m_vault(store ? store : &m_store,directory,this,m_biometrics)
+      m_store(store), m_vault(store,directory,this,m_biometrics)
 {
     QTimer::singleShot(0,m_biometrics,&BiometricAuth::refresh);
-    connect(&m_vault, &PasskeyVault::changed, this, [this] {
-        emit changed();
-        if(!m_vault.busy() && !m_pendingSetupPhrase.isEmpty()) {
-            auto phrase=std::exchange(m_pendingSetupPhrase,{});
-            if(configured() && verifying() && registration()) verifyLocal(0,phrase,false);
-            phrase.fill(QChar(0));
-        }
-    });
+    connect(&m_vault, &PasskeyVault::changed, this, &PasskeyController::changed);
     if (enabled()) qApp->setProperty("arbiter.passkeys", QVariant::fromValue(static_cast<QObject *>(&m_provider)));
 }
 bool PasskeyController::enabled() const {
 #ifdef ARBITER_PATCHED_WEBENGINE
     // The exported symbol also prevents loading a stock runtime with patched
     // headers: the dynamic loader must resolve the matching engine ABI.
-    return qWebEngineArbiterWebAuthnAbi() == abi();
+    return m_store && qWebEngineArbiterWebAuthnAbi() == abi();
 #else
     return false;
 #endif
@@ -91,17 +84,10 @@ void PasskeyController::update() { emit changed(); }
 void PasskeyController::clear()
 {
     ++m_operationEpoch;
-    m_pendingSetupPhrase.fill(QChar(0)); m_pendingSetupPhrase.clear();
     m_vault.cancelBiometric();
     if (m_bridge) disconnect(m_bridge, nullptr, this, nullptr);
     if (m_request) disconnect(m_request, nullptr, this, nullptr);
     m_bridge.clear(); m_request.clear(); m_qr.clear(); emit changed();
-}
-void PasskeyController::setup(const QString &phrase, const QString &confirmation) { if (enabled()) m_vault.setup(phrase, confirmation); }
-void PasskeyController::setupForRequest(const QString &phrase,const QString &confirmation) {
-    if(!enabled() || !verifying() || !registration() || configured() || busy()) return;
-    m_pendingSetupPhrase=phrase;
-    m_vault.setup(phrase,confirmation);
 }
 void PasskeyController::useLocal() { if (localAvailable() && !busy()) { m_qr.clear(); QMetaObject::invokeMethod(m_bridge, "useLocal"); } }
 void PasskeyController::useSystem() { if (systemAvailable() && !busy()) { m_qr.clear(); QMetaObject::invokeMethod(m_bridge, "useSystem"); emit changed(); } }
@@ -125,11 +111,7 @@ void PasskeyController::usePhone()
     } catch (const std::exception &) { return; }
     emit changed();
 }
-void PasskeyController::verify(int accountIndex, const QString &passphrase)
-{ verifyLocal(accountIndex,passphrase,false); }
-void PasskeyController::verifyBiometric(int accountIndex)
-{ verifyLocal(accountIndex,{},true); }
-void PasskeyController::verifyLocal(int accountIndex, const QString &passphrase, bool biometric)
+void PasskeyController::verify(int accountIndex)
 {
     if (!verifying() || busy()) return;
     auto entries = accounts();
@@ -144,14 +126,13 @@ void PasskeyController::verifyLocal(int accountIndex, const QString &passphrase,
             && request->state()!=QWebEngineWebAuthUxRequest::WebAuthUxState::Cancelled
             && request->state()!=QWebEngineWebAuthUxRequest::WebAuthUxState::Completed;
     };
-    const bool deviceVerification=biometric || m_vault.automaticVault();
-    m_vault.perform(registration(), bridge->property("payload").toByteArray(), id, passphrase,
-        [bridge, current, deviceVerification](int status, const QByteArray &response) {
+    m_vault.perform(registration(), bridge->property("payload").toByteArray(), id,
+        [bridge, current](int status, const QByteArray &response) {
             // No response is delivered after cancellation, navigation or timeout.
             // A dismissed/failed biometric prompt is not a failed WebAuthn
-            // ceremony. Keep this challenge alive for the passphrase fallback.
-            if (current() && !(deviceVerification && status==1))
+            // ceremony. Keep this challenge alive so device verification can be retried.
+            if (current() && status!=1)
                 QMetaObject::invokeMethod(bridge, "complete", Q_ARG(QByteArray, response), Q_ARG(int, status));
-        }, current, biometric);
+        }, current);
     emit verificationSubmitted();
 }

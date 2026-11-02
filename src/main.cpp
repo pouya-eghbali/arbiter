@@ -26,6 +26,7 @@
 #include "sitepermissions.h"
 #include "passwordmanager.h"
 #include "credentialstore.h"
+#include <QTemporaryDir>
 #include "webauthncontroller.h"
 #include "passkeycontroller.h"
 #include "credentialsync.h"
@@ -362,8 +363,31 @@ int main(int argc, char *argv[])
         });
         return app.exec();
     }
-    // CI verifies the deployed WebEngine helper and QML plugins without opening
-    // profiles, loading settings, touching credentials, or contacting a website.
+    if(app.arguments().contains(QStringLiteral("--credential-store-smoke-test"))) {
+        // Disposable signed-app probe: no browser profile, actual credentials,
+        // or biometric prompts. Verify the Data Protection master-key path.
+        QTemporaryDir directory;
+        KeychainSecretStore keys(nullptr,QStringLiteral("Arbiter Credentials"));
+        CredentialStore first(directory.path(),&keys),second(directory.path(),&keys);
+        const QByteArray fixture(12000,'x');int result=1;
+        first.write(QStringLiteral("probe"),fixture,[&](const QString &error,const QByteArray &) {
+            if(!error.isEmpty()) { qWarning().noquote()<<error;app.exit(1);return; }
+            second.readSilently(QStringLiteral("probe"),[&](const QString &error,const QByteArray &value) {
+                const bool valid=error.isEmpty() && value==fixture;
+                QFile identity(directory.filePath(QStringLiteral("identity")));
+                if(!identity.open(QIODevice::ReadOnly)) {app.exit(2);return;}
+                const auto account=QStringLiteral("com.arbiter.browser/credentials/v1/")+QString::fromLatin1(identity.readAll().toHex());
+                keys.remove(account,[&,valid](const QString &cleanup,const QByteArray &) {
+                    result=valid && cleanup.isEmpty() ? 0 : 3;
+                    if(!valid) qWarning()<<"Data Protection credential round trip failed";
+                    app.exit(result);
+                });
+            });
+        });
+        QTimer::singleShot(30000,&app,[&]{app.exit(4);});
+        return app.exec();
+    }
+    // Isolated engine check: no profile, credentials, settings or websites.
     if (app.arguments().contains(QStringLiteral("--release-smoke-test"))) {
         QQmlApplicationEngine smoke;
         QObject::connect(&smoke, &QQmlEngine::exit, &app, &QCoreApplication::exit);
@@ -423,18 +447,15 @@ int main(int argc, char *argv[])
     SitePermissionSettings sitePermissionSettings;
     webProfiles.profileCreated=[&sitePermissionSettings,&downloads](QQuickWebEngineProfile *profile) { sitePermissionSettings.trackProfile(profile); downloads.trackProfile(profile); };
     History history;
-    const auto profileRoot=QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    const auto profileRoot=QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+        +QStringLiteral("/credentials-v2/Default");
     KeychainSecretStore credentialKeys(nullptr,QStringLiteral("Arbiter Credentials"));
-    KeychainSecretStore legacyPasswords;
-    KeychainSecretStore legacyPasskeys(nullptr,QStringLiteral("Arbiter Passkeys"));
-    KeychainSecretStore legacySync(nullptr,QStringLiteral("Arbiter Sync"));
-    CredentialStore credentialStore(profileRoot+QStringLiteral("/credentials/Default"),&credentialKeys,
-        &legacyPasswords,&legacyPasskeys,&legacySync);
-    PasswordManager passwords(profileRoot+QStringLiteral("/passwords/Default"),QStringLiteral("Default"),&credentialStore);
+    CredentialStore credentialStore(profileRoot,&credentialKeys);
+    PasswordManager passwords(profileRoot+QStringLiteral("/passwords"),QStringLiteral("Default"),&credentialStore);
     BrowserImporter importer(&passwords,&history);
     BrowserImportSelection importSelection(&importer);
     WebAuthnController webauthn;
-    PasskeyController passkeys(&credentialStore,profileRoot+QStringLiteral("/passkeys/Default"),nullptr);
+    PasskeyController passkeys(&credentialStore,profileRoot+QStringLiteral("/passkeys"),nullptr);
     CredentialSync credentialSync(&passwords,passkeys.vaultForSync(),profileRoot+QStringLiteral("/sync"),&credentialStore,{});
     auto *passwordBiometrics=createBiometricAuth(&passwords);
     const auto updatePasswordBiometrics=[&passwords,passwordBiometrics] {

@@ -22,8 +22,7 @@ public:
 class KeychainSecretStore final : public SecretStore
 {
 public:
-    explicit KeychainSecretStore(QObject *parent = nullptr,
-        const QString &service = QStringLiteral("Arbiter Passwords")) : SecretStore(parent), m_service(service) {}
+    explicit KeychainSecretStore(QObject *parent, const QString &service) : SecretStore(parent), m_service(service) {}
     void read(const QString &key, Callback callback) override;
     void readOptional(const QString &key, Callback callback) override;
     void readOptionalSilently(const QString &key, Callback callback) override;

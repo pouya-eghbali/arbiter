@@ -16,9 +16,8 @@ bool writeFile(const QString &path,const QByteArray &data) {
         && file.write(data)==data.size() && file.commit();
 }
 }
-CredentialStore::CredentialStore(const QString &directory,SecretStore *keys,SecretStore *passwords,
-    SecretStore *passkeys,SecretStore *sync,QObject *parent)
-    :SecretStore(parent),m_directory(directory),m_keys(keys),m_passwords(passwords),m_passkeys(passkeys),m_sync(sync) {}
+CredentialStore::CredentialStore(const QString &directory,SecretStore *keys,QObject *parent)
+    :SecretStore(parent),m_directory(directory),m_keys(keys) {}
 void CredentialStore::read(const QString &key,Callback cb) { enqueue({key,{},0,true,false,std::move(cb)}); }
 void CredentialStore::readOptional(const QString &key,Callback cb) { enqueue({key,{},0,true,true,std::move(cb)}); }
 void CredentialStore::readSilently(const QString &key,Callback cb) { enqueue({key,{},0,false,false,std::move(cb)}); }
@@ -76,15 +75,9 @@ void CredentialStore::opened(const QString &error,const QByteArray &key) {
     if(!error.isEmpty() || key.size()!=32 || !m_key.set(key)) { complete(error.isEmpty() ? tr("The OS credential key is invalid.") : error); return; }
     execute();
 }
-SecretStore *CredentialStore::legacy(const QString &key) const {
-    if(key.startsWith("com.arbiter.browser/passkeys/v1/")) return m_passkeys;
-    if(key.startsWith("sync-v1-")) return m_sync;
-    if(key.startsWith("Arbiter/Passwords/v1/")) return m_passwords;
-    return nullptr;
-}
 bool CredentialStore::save(const QCborMap &records) {
     auto plain=QCborValue(records).toCbor(),key=m_key.copy();
-    const auto sealed=PasskeyCrypto::seal(plain,key,"ArbiterCredentials/v1/"+m_id);
+    const auto sealed=PasskeyCrypto::seal(plain,key,"ArbiterCredentials/v1/"+m_id,maximumBytes-28);
     PasskeyCrypto::wipe(key); PasskeyCrypto::wipe(plain);
     return !sealed.isEmpty() && sealed.size()<=maximumBytes && writeFile(m_directory+"/credentials.enc",sealed);
 }
@@ -93,7 +86,7 @@ void CredentialStore::execute() {
     QFile file(m_directory+"/credentials.enc");
     if(file.exists()) {
         if(!file.open(QIODevice::ReadOnly) || file.size()>maximumBytes) { complete(tr("Could not read the encrypted credentials.")); return; }
-        auto key=m_key.copy(),plain=PasskeyCrypto::open(file.readAll(),key,"ArbiterCredentials/v1/"+m_id);
+        auto key=m_key.copy(),plain=PasskeyCrypto::open(file.readAll(),key,"ArbiterCredentials/v1/"+m_id,maximumBytes-28);
         PasskeyCrypto::wipe(key); QCborParserError error;
         auto value=QCborValue::fromCbor(plain,&error); PasskeyCrypto::wipe(plain);
         if(error.error!=QCborError::NoError || !value.isMap()) { complete(tr("Credential authentication failed. Existing credentials were not overwritten.")); return; }
@@ -101,41 +94,16 @@ void CredentialStore::execute() {
     }
     const auto &job=m_jobs.head();
     if(job.operation) {
-        // A null tombstone prevents a removed legacy item from being reimported.
-        m_records.insert(job.key,job.operation==2 ? QCborValue(nullptr) : QCborValue(job.data));
+        if(job.operation==2) m_records.remove(job.key);
+        else m_records.insert(job.key,job.data);
         if(!save(m_records)) { complete(tr("Could not save encrypted credentials.")); return; }
-        if(job.operation==2) {
-            // An explicit deletion also removes any retained migration source.
-            // Commit the tombstone first, so a failed cleanup cannot resurrect it.
-            if(auto *source=legacy(job.key)) {
-                const QPointer<CredentialStore> self(this);
-                source->remove(job.key,[self](const QString &error,const QByteArray &) { if(self) self->complete(error); });
-                return;
-            }
-        }
         complete({}); return;
     }
     if(m_records.contains(job.key)) {
         const auto value=m_records.value(job.key);
         complete(value.isByteArray() || job.optional ? QString() : tr("This credential is no longer available."),value.toByteArray()); return;
     }
-    auto *source=legacy(job.key);
-    if(!source) { complete(job.optional ? QString() : tr("The credential is missing.")); return; }
-    const QPointer<CredentialStore> self(this);
-    auto imported=[self](const QString &error,const QByteArray &data) {
-        if(!self) return;
-        if(!error.isEmpty()) { self->complete(error); return; }
-        if(data.isEmpty() && !self->m_jobs.head().optional) { self->complete(tr("The legacy credential is missing. It was not replaced.")); return; }
-        if(!data.isEmpty()) {
-            self->m_records.insert(self->m_jobs.head().key,data);
-            if(!self->save(self->m_records)) { self->complete(tr("Could not migrate the credential. The original was preserved.")); return; }
-        }
-        // Keep legacy records intact as migration backups. All future reads
-        // use the authenticated shared store, including after an app restart.
-        self->complete({},data);
-    };
-    if(job.interactive) source->readOptional(job.key,imported);
-    else source->readOptionalSilently(job.key,imported);
+    complete(job.optional ? QString() : tr("The credential is missing."));
 }
 void CredentialStore::complete(const QString &error,const QByteArray &data) {
     auto result=data; auto job=m_jobs.dequeue();

@@ -20,32 +20,22 @@ public:
     using Result = std::function<void(int status, const QByteArray &response)>;
     explicit PasskeyVault(SecretStore *store, const QString &directory, QObject *parent = nullptr, BiometricAuth *biometrics = nullptr);
     ~PasskeyVault() override;
-    bool configured() const { return automaticVault() || m_index.value(2).toBool(); }
-    bool automaticVault() const { return m_store && m_store->automaticProtection() && !needsMigration(); }
-    bool needsMigration() const { return m_store && m_store->automaticProtection() && m_index.value(2).toBool() && !m_index.value(6).toBool(); }
+    bool configured() const { return true; } // Automatically created; no setup UI.
     bool busy() const { return m_busy; }
     QString error() const { return m_error; }
-    void migrateLegacy(const QString &phrase);
-    Q_INVOKABLE void setup(const QString &passphrase, const QString &confirmation);
-    bool biometricEnabled() const { return m_index.value(4).toBool(); }
     bool biometricAvailable() const { return m_biometrics && m_biometrics->available(); }
-    bool biometricReady() const;
-    bool biometricPersistenceSupported() const { return m_biometrics && m_biometrics->persistentKeysSupported(); }
-    bool biometricPersistent() const { return m_index.value(5).toByteArray().size() == 16; }
-    bool biometricNeedsEnrollment() const { return biometricEnabled() && biometricPersistenceSupported() && !biometricPersistent(); }
     QString biometricName() const { return m_biometrics ? m_biometrics->name() : tr("Biometrics"); }
     QString biometricStatus() const { return m_biometrics ? m_biometrics->status() : tr("Biometric support is unavailable."); }
-    void setBiometricEnabled(bool enabled, const QString &passphrase);
     void lockBiometrics();
     void cancelBiometric();
     QVariantList credentials(const QString &rp) const;
     void perform(bool registration, const QByteArray &request, const QByteArray &credentialId,
-                 const QString &passphrase, Result callback, std::function<bool()> current = {}, bool biometric = false);
+                 Result callback, std::function<bool()> current = {});
     // Native-only transfer session, separately bounded from website verification.
     using SyncResult=std::function<void(const QString &,const QJsonArray &)>;
     using SyncWrite=std::function<void(const QString &)>;
-    void unlockForSync(const QString &passphrase,bool biometric,SyncResult callback);
-    void exportForSync(SyncResult callback, bool authorizeExisting = false);
+    void unlockForSync(SyncResult callback);
+    void exportForSync(SyncResult callback);
     void upsertFromSync(const QJsonObject &data,SyncWrite callback);
     void removeFromSync(const QByteArray &credentialId,SyncWrite callback);
     bool syncReady() const { return m_syncKey.present(); }
@@ -59,25 +49,16 @@ private:
     bool begin();
     void finish(const QString &error = {});
     QString itemKey(const QByteArray &id) const;
-    void unlock(const QString &passphrase, std::function<void(QByteArray)> callback);
-    QString biometricKeyId(const QByteArray &reference) const { return itemKey({}) + QStringLiteral("biometric/") + QString::fromLatin1(reference.toHex()); }
-    void unlockBiometric(std::function<void(QByteArray)> callback);
     void automaticKey(std::function<void(QByteArray)> callback);
-    void adoptKey(const QByteArray &key, std::function<void(QByteArray)> callback);
-    bool cacheKey(const QByteArray &key);
+    void saveRootKey(const QByteArray &key, std::function<void(QByteArray)> callback);
     QPointer<SecretStore> m_store;
     QString m_directory;
     QCborMap m_index;
     std::unique_ptr<QLockFile> m_lock;
     bool m_busy = false;
     QString m_error;
-    int m_failures = 0;
-    qint64 m_retryAfter = 0;
     QPointer<BiometricAuth> m_biometrics;
     quint64 m_syncEpoch=0;
     LockedKey m_syncKey;
-    LockedKey m_cachedKey;
-    QByteArray m_cachedVaultId;
-    QTimer m_cacheExpiry;
     quint64 m_biometricEpoch = 0;
 };

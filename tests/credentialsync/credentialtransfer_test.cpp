@@ -10,6 +10,7 @@
 #include <QSslSocket>
 #include <QTemporaryDir>
 #include <QtTest>
+#include "testdeviceauth.h"
 
 class MemorySecrets : public SecretStore {
 public:
@@ -21,7 +22,6 @@ public:
 };
 class CredentialTransferTest : public QObject {
     Q_OBJECT
-    const QString phrase=QStringLiteral("fixture vault passphrase only");
     QJsonObject info(const CredentialSync &sync) {
         const QUrl code(sync.pairingCode());
         const auto encoded=code.query().section('=',1);
@@ -68,9 +68,9 @@ private slots:
         };
         QTemporaryDir directory; MemorySecrets passwordStore,passkeyStore;DeferredSecrets syncStore;
         PasswordManager passwords(directory.path()+"/passwords","Fixture",&passwordStore);
-        PasskeyVault passkeys(&passkeyStore,directory.path()+"/passkeys");passkeys.setup(phrase,phrase);
+        PasskeyVault passkeys(&passkeyStore,directory.path()+"/passkeys");
         CredentialSync sync(&passwords,&passkeys,directory.path()+"/sync",&syncStore,"127.0.0.1");
-        sync.unlock(phrase);QTRY_VERIFY(!syncStore.waiting.isEmpty());QVERIFY(sync.busy());
+        sync.unlock();QTRY_VERIFY(!syncStore.waiting.isEmpty());QVERIFY(sync.busy());
         passkeys.lockSync();QVERIFY(!sync.busy());QVERIFY(!sync.unlocked());
         const auto waiting=syncStore.waiting;syncStore.waiting.clear();for(const auto &callback:waiting)callback();
         QVERIFY(!sync.unlocked());QVERIFY(sync.address().isEmpty());
@@ -78,16 +78,17 @@ private slots:
     }
     void passkeyTransfersWithoutChangingItsCredentialOrSigningKey() {
         QTemporaryDir a,b; MemorySecrets storeA,storeB;
-        PasskeyVault source(&storeA,a.path()),destination(&storeB,b.path()); source.setup(phrase,phrase); destination.setup(phrase,phrase);
+        TestDeviceAuth auth;PasskeyVault source(&storeA,a.path(),nullptr,&auth),destination(&storeB,b.path(),nullptr,&auth);
         QCborMap rp,user,algorithm,request;
         rp.insert(QStringLiteral("id"),QStringLiteral("example.com")); user.insert(QStringLiteral("id"),QByteArray("fixture-user")); user.insert(QStringLiteral("name"),QStringLiteral("alice"));
         algorithm.insert(QStringLiteral("type"),QStringLiteral("public-key")); algorithm.insert(QStringLiteral("alg"),-7);
         request.insert(1,QByteArray(32,'c')); request.insert(2,rp); request.insert(3,user); request.insert(4,QCborArray{algorithm});
-        int status=-1; source.perform(true,QCborValue(request).toCbor(),{},phrase,[&](int value,const QByteArray &) { status=value; }); QCOMPARE(status,0);
+        int status=-1; source.perform(true,QCborValue(request).toCbor(),{},[&](int value,const QByteArray &) { status=value; }); QCOMPARE(status,0);
         QJsonArray exported; QString error;
-        source.unlockForSync(phrase,false,[&](const QString &e,const QJsonArray &records) { error=e; exported=records; });
+        source.unlockForSync([&](const QString &e,const QJsonArray &) { error=e; });
+        source.exportForSync([&](const QString &e,const QJsonArray &records) { error=e;exported=records; });
         QTRY_VERIFY(exported.size()==1 || !error.isEmpty()); QVERIFY2(error.isEmpty(),qPrintable(error)); QCOMPARE(exported.size(),1);
-        destination.unlockForSync(phrase,false,[&](const QString &e,const QJsonArray &) { error=e; }); QVERIFY2(error.isEmpty(),qPrintable(error));
+        destination.unlockForSync([&](const QString &e,const QJsonArray &) { error=e; }); QVERIFY2(error.isEmpty(),qPrintable(error));
         auto ineligible=exported.first().toObject(); ineligible.insert("backupEligible",false);
         bool rejected=false; destination.upsertFromSync(ineligible,[&](const QString &e) { rejected=!e.isEmpty(); });
         QTRY_VERIFY(rejected);
@@ -97,7 +98,7 @@ private slots:
         QTRY_COMPARE(again.size(),1); QCOMPARE(again,exported);
         const auto id=QByteArray::fromBase64(exported.first().toObject().value("credentialId").toString().toLatin1(),QByteArray::Base64UrlEncoding);
         QCborMap assertion; assertion.insert(1,QStringLiteral("example.com")); assertion.insert(2,QByteArray(32,'d'));
-        destination.perform(false,QCborValue(assertion).toCbor(),id,phrase,[&](int value,const QByteArray &bytes) { status=value; QVERIFY(!bytes.isEmpty()); }); QCOMPARE(status,0);
+        destination.perform(false,QCborValue(assertion).toCbor(),id,[&](int value,const QByteArray &bytes) { status=value; QVERIFY(!bytes.isEmpty()); }); QCOMPARE(status,0);
         destination.lockSync(); QVERIFY(!destination.syncReady());
         destination.exportForSync([&](const QString &e,const QJsonArray &) { error=e; }); QVERIFY(!error.isEmpty());
     }
@@ -108,16 +109,15 @@ private slots:
             PasswordManager passwords;
             PasskeyVault passkeys;
             CredentialSync sync;
-            Computer(const QString &phrase):passwords(directory.path()+"/passwords","Fixture",&passwordStore),
+            Computer():passwords(directory.path()+"/passwords","Fixture",&passwordStore),
                 passkeys(&passkeyStore,directory.path()+"/passkeys"),
                 sync(&passwords,&passkeys,directory.path()+"/sync",&syncStore,"127.0.0.1") {
-                passkeys.setup(phrase,phrase);
             }
-        } a(phrase), b(phrase), c(phrase);
+        } a, b, c;
         const auto url=QUrl("https://three.example");
         const auto id=ArbiterSync::passwordId(url.toString(),"user");
         a.passwords.save(url,"user","original");
-        for(auto computer:{&a,&b,&c}) { computer->sync.unlock(phrase); QTRY_VERIFY_WITH_TIMEOUT(!computer->sync.busy(),15000); QVERIFY2(computer->sync.unlocked(),qPrintable(computer->sync.error())); }
+        for(auto computer:{&a,&b,&c}) { computer->sync.unlock(); QTRY_VERIFY_WITH_TIMEOUT(!computer->sync.busy(),15000); QVERIFY2(computer->sync.unlocked(),qPrintable(computer->sync.error())); }
         a.sync.pair(); b.sync.reviewPairing(a.sync.pairingCode()); QVERIFY(!b.sync.pendingDevice().isEmpty()); b.sync.confirmPairing();
         QTRY_VERIFY_WITH_TIMEOUT(!b.sync.busy(),15000); QVERIFY2(b.sync.error().isEmpty(),qPrintable(b.sync.error())); QCOMPARE(b.passwords.entries().size(),1);
         a.passwords.save(url,"user","remote change");
@@ -136,7 +136,7 @@ private slots:
         b.sync.lock();
         a.passwords.save(url,"user","edit on A");
         c.passwords.save(url,"user","edit on C");
-        b.sync.unlock(phrase); QTRY_VERIFY_WITH_TIMEOUT(!b.sync.busy(),15000); QVERIFY(b.sync.unlocked());
+        b.sync.unlock(); QTRY_VERIFY_WITH_TIMEOUT(!b.sync.busy(),15000); QVERIFY(b.sync.unlocked());
         c.sync.sync(); QTRY_VERIFY_WITH_TIMEOUT(!c.sync.busy(),15000); QVERIFY2(c.sync.error().isEmpty(),qPrintable(c.sync.error()));
         b.sync.sync(); QTRY_VERIFY_WITH_TIMEOUT(!b.sync.busy(),15000); QVERIFY2(b.sync.error().isEmpty(),qPrintable(b.sync.error()));
         QCOMPARE(a.sync.conflicts(),1); QCOMPARE(b.sync.conflicts(),1);
@@ -151,7 +151,7 @@ private slots:
         a.sync.lock();
         c.passwords.remove(c.passwords.entries().first().toMap().value("id").toString());
         c.sync.sync(); QTRY_VERIFY_WITH_TIMEOUT(!c.sync.busy(),15000); QVERIFY(b.passwords.entries().isEmpty());
-        a.sync.unlock(phrase); QTRY_VERIFY_WITH_TIMEOUT(!a.sync.busy(),15000);
+        a.sync.unlock(); QTRY_VERIFY_WITH_TIMEOUT(!a.sync.busy(),15000);
         b.sync.sync(); QTRY_VERIFY_WITH_TIMEOUT(!b.sync.busy(),15000);
         QVERIFY2(a.passwords.entries().isEmpty(),qPrintable(b.sync.error()));
         c.sync.sync(); QTRY_VERIFY_WITH_TIMEOUT(!c.sync.busy(),15000); QVERIFY(c.passwords.entries().isEmpty());
@@ -167,13 +167,13 @@ private slots:
     void pinnedLocalPairingSyncRevocationAndTombstones() {
         QTemporaryDir directory; MemorySecrets passwordsStore,passkeysStore,syncStore;
         PasswordManager passwords(directory.path()+"/passwords","Fixture",&passwordsStore);
-        PasskeyVault passkeys(&passkeysStore,directory.path()+"/passkeys"); passkeys.setup(phrase,phrase);
+        PasskeyVault passkeys(&passkeysStore,directory.path()+"/passkeys");
         passwords.save(QUrl("https://example.com"),"fixture-user","fixture-original");
         CredentialSync sync(&passwords,&passkeys,directory.path()+"/sync",&syncStore,"127.0.0.1");
         auto *tls=sync.findChild<QSslServer *>(); QVERIFY(tls);
         connect(tls,&QSslServer::errorOccurred,this,[](QSslSocket *s,QAbstractSocket::SocketError) { qWarning() << "Fixture server TLS error" << s->errorString(); });
         connect(tls,&QSslServer::alertSent,this,[](QSslSocket *,QSsl::AlertLevel,QSsl::AlertType,const QString &message) { qWarning() << "Fixture TLS alert" << message; });
-        sync.unlock(phrase); QTRY_VERIFY(!sync.busy()); QVERIFY2(sync.unlocked(),qPrintable(sync.error()));
+        sync.unlock(); QTRY_VERIFY(!sync.busy()); QVERIFY2(sync.unlocked(),qPrintable(sync.error()));
         sync.pair(); QVERIFY(!sync.pairingImage().isEmpty()); const auto pairing=info(sync);
         const auto wireKey=QByteArray::fromBase64(pairing.value("key").toString().toLatin1(),QByteArray::Base64UrlEncoding);
         QVERIFY(wireKey!=syncStore.items.value("sync-v1-master"));

@@ -28,9 +28,9 @@ QByteArray derive(const QByteArray &passphrase, const QByteArray &salt)
         EVP_sha256(), 32, reinterpret_cast<unsigned char *>(key.data())) != 1) { wipe(key); return {}; }
     return key;
 }
-QByteArray seal(const QByteArray &plain, const QByteArray &key, const QByteArray &context)
+QByteArray seal(const QByteArray &plain, const QByteArray &key, const QByteArray &context, qsizetype maximumBytes)
 {
-    if (key.size() != 32 || plain.size() > 8192) return {};
+    if (key.size() != 32 || maximumBytes<0 || maximumBytes>64*1024*1024 || plain.size() > maximumBytes) return {};
     auto nonce = random(12);
     if (nonce.size() != 12) return {};
     Handle<EVP_CIPHER_CTX, EVP_CIPHER_CTX_free> ctx(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
@@ -49,9 +49,9 @@ QByteArray seal(const QByteArray &plain, const QByteArray &key, const QByteArray
     out.resize(total + n);
     return nonce + out + tag;
 }
-QByteArray open(const QByteArray &sealed, const QByteArray &key, const QByteArray &context)
+QByteArray open(const QByteArray &sealed, const QByteArray &key, const QByteArray &context, qsizetype maximumBytes)
 {
-    if (key.size() != 32 || sealed.size() < 28 || sealed.size() > 8220) return {};
+    if (key.size() != 32 || sealed.size() < 28 || maximumBytes<0 || maximumBytes>64*1024*1024 || sealed.size() > maximumBytes+28) return {};
     Handle<EVP_CIPHER_CTX, EVP_CIPHER_CTX_free> ctx(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
     if (!ctx) return {};
     QByteArray out(sealed.size(), Qt::Uninitialized);
