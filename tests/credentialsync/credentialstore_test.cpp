@@ -106,6 +106,7 @@ private slots:
             PasskeyVault vault(&store,dir.filePath("passkeys"),nullptr,&auth);
             QVERIFY(vault.configured());
             perform(vault,true);QCOMPARE(auth.prompts,1);
+            QVERIFY(!vault.credentials("example.com").isEmpty());
             id=vault.credentials("example.com").first().toMap().value("id").toByteArray();
             auth.success=false;perform(vault,false,id,1);
             auth.success=true;perform(vault,false,id);QCOMPARE(auth.prompts,3);

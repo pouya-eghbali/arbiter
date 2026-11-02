@@ -91,6 +91,9 @@ void CredentialStore::execute() {
         auto value=QCborValue::fromCbor(plain,&error); PasskeyCrypto::wipe(plain);
         if(error.error!=QCborError::NoError || !value.isMap()) { complete(tr("Credential authentication failed. Existing credentials were not overwritten.")); return; }
         m_records=value.toMap();
+        // QSaveFile atomically replaces this file below. Windows cannot replace
+        // it while our read handle is still open.
+        file.close();
     }
     const auto &job=m_jobs.head();
     if(job.operation) {
