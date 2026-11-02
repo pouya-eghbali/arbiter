@@ -49,6 +49,7 @@ PasswordManager::PasswordManager(const QString &directory, const QString &profil
           return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
       })), m_directory(directory), m_profile(profile), m_store(store)
 {
+    m_enabled=Settings().value(QStringLiteral("Passwords/enabled"),true).toBool();
     bool valid=false;
     const int cooldown=Settings().value(QStringLiteral("Passwords/verificationCooldown"),300).toInt(&valid);
     m_verificationCooldown=valid ? std::clamp(cooldown,0,3600) : 300;
@@ -545,7 +546,7 @@ void PasswordSession::suggestPassword(const QUrl &committedUrl, const QVariantMa
 }
 
 
-void PasswordManager::exportAfterVerification(SyncResult callback)
+void PasswordManager::exportAfterVerification(SyncResult callback, bool authorizeExisting, std::function<bool()> current)
 {
     if(m_busy || !m_writable) { callback(tr("Password storage is unavailable or busy."),{}); return; }
     m_busy=true; emit stateChanged();
@@ -554,14 +555,17 @@ void PasswordManager::exportAfterVerification(SyncResult callback)
     auto step=std::make_shared<std::function<void(int)>>();
     const std::weak_ptr<std::function<void(int)>> weak=step;
     const QPointer<PasswordManager> guard(this);
-    *step=[guard,entries,result,weak,callback](int index) {
+    *step=[guard,entries,result,weak,callback,authorizeExisting,current](int index) {
         if(!guard) return;
+        if(current && !current()) { guard->finish({}); callback(tr("Sync was stopped."),{}); return; }
         if(index==entries.size()) { guard->finish({}); callback({},*result); return; }
         const auto entry=entries[index].toMap();
         const auto continuation=weak.lock();
-        guard->m_store->readSilently(guard->secretKey(entry.value("id").toString()),
-            [guard,entry,result,continuation,callback,index](const QString &error,const QByteArray &bytes) {
+        auto read=[guard,authorizeExisting](const QString &key,SecretStore::Callback callback) { if(authorizeExisting) guard->m_store->read(key,std::move(callback)); else guard->m_store->readSilently(key,std::move(callback)); };
+        read(guard->secretKey(entry.value("id").toString()),
+            [guard,entry,result,continuation,callback,index,current](const QString &error,const QByteArray &bytes) {
                 if(!guard) return;
+                if(current && !current()) { guard->finish({}); callback(tr("Sync was stopped."),{}); return; }
                 if(!error.isEmpty()) { guard->finish(error); callback(error,{}); return; }
                 const auto record=QCborValue::fromCbor(bytes).toMap();
                 if(record.value(QStringLiteral("version")).toInteger()!=1 || record.value(QStringLiteral("origin")).toString()!=entry.value("origin").toString()
@@ -587,4 +591,11 @@ void PasswordManager::removeFromSync(const QString &origin,const QString &userna
     const auto index=find(origin,username);
     if(index<0) { callback(true,{}); return; }
     removeWithCallback(m_entries[index].toMap().value("id").toString(),std::move(callback));
+}
+
+void PasswordManager::verifyForSync(VerifyCallback callback) {
+    // Platforms with a device authenticator ask once on enrollment. Where none
+    // is available, the OS keyring remains the authorization boundary.
+    if(m_verifyUser && m_biometricAvailable) m_verifyUser(tr("Enable encrypted credential sync for this profile"),std::move(callback));
+    else callback(true,{});
 }

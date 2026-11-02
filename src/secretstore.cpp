@@ -78,3 +78,11 @@ void KeychainSecretStore::readSilently(const QString &key, Callback callback) {
     read(key, std::move(callback));
 #endif
 }
+
+void KeychainSecretStore::readOptionalSilently(const QString &key, Callback callback) {
+#ifdef Q_OS_MACOS
+    readMacSecret(this,m_service,key,false,true,std::move(callback));
+#else
+    readOptional(key,std::move(callback));
+#endif
+}

@@ -20,9 +20,12 @@ public:
     using Result = std::function<void(int status, const QByteArray &response)>;
     explicit PasskeyVault(SecretStore *store, const QString &directory, QObject *parent = nullptr, BiometricAuth *biometrics = nullptr);
     ~PasskeyVault() override;
-    bool configured() const { return m_index.value(2).toBool(); }
+    bool configured() const { return automaticVault() || m_index.value(2).toBool(); }
+    bool automaticVault() const { return m_store && m_store->automaticProtection() && !needsMigration(); }
+    bool needsMigration() const { return m_store && m_store->automaticProtection() && m_index.value(2).toBool() && !m_index.value(6).toBool(); }
     bool busy() const { return m_busy; }
     QString error() const { return m_error; }
+    void migrateLegacy(const QString &phrase);
     Q_INVOKABLE void setup(const QString &passphrase, const QString &confirmation);
     bool biometricEnabled() const { return m_index.value(4).toBool(); }
     bool biometricAvailable() const { return m_biometrics && m_biometrics->available(); }
@@ -42,11 +45,10 @@ public:
     using SyncResult=std::function<void(const QString &,const QJsonArray &)>;
     using SyncWrite=std::function<void(const QString &)>;
     void unlockForSync(const QString &passphrase,bool biometric,SyncResult callback);
-    void exportForSync(SyncResult callback);
+    void exportForSync(SyncResult callback, bool authorizeExisting = false);
     void upsertFromSync(const QJsonObject &data,SyncWrite callback);
     void removeFromSync(const QByteArray &credentialId,SyncWrite callback);
-    bool syncReady() const { return m_syncKey.present() && (m_syncStayUnlocked || m_syncExpiry.isActive()); }
-    void setSyncStayUnlocked(bool enabled);
+    bool syncReady() const { return m_syncKey.present(); }
     void lockSync();
 signals:
     void changed();
@@ -60,6 +62,8 @@ private:
     void unlock(const QString &passphrase, std::function<void(QByteArray)> callback);
     QString biometricKeyId(const QByteArray &reference) const { return itemKey({}) + QStringLiteral("biometric/") + QString::fromLatin1(reference.toHex()); }
     void unlockBiometric(std::function<void(QByteArray)> callback);
+    void automaticKey(std::function<void(QByteArray)> callback);
+    void adoptKey(const QByteArray &key, std::function<void(QByteArray)> callback);
     bool cacheKey(const QByteArray &key);
     QPointer<SecretStore> m_store;
     QString m_directory;
@@ -71,9 +75,7 @@ private:
     qint64 m_retryAfter = 0;
     QPointer<BiometricAuth> m_biometrics;
     quint64 m_syncEpoch=0;
-    bool m_syncStayUnlocked=false;
     LockedKey m_syncKey;
-    QTimer m_syncExpiry;
     LockedKey m_cachedKey;
     QByteArray m_cachedVaultId;
     QTimer m_cacheExpiry;

@@ -32,6 +32,8 @@ class PasskeyController final : public QObject
     Q_PROPERTY(int abi READ abi CONSTANT)
     Q_PROPERTY(bool enabled READ enabled CONSTANT)
     Q_PROPERTY(bool configured READ configured NOTIFY changed)
+    Q_PROPERTY(bool automaticVault READ automaticVault NOTIFY changed)
+    Q_PROPERTY(bool needsMigration READ needsMigration NOTIFY changed)
     Q_PROPERTY(bool active READ active NOTIFY changed)
     Q_PROPERTY(bool localAvailable READ localAvailable NOTIFY changed)
     Q_PROPERTY(bool phoneAvailable READ phoneAvailable NOTIFY changed)
@@ -64,6 +66,9 @@ public:
     int abi() const { return 1; }
     bool enabled() const;
     bool configured() const { return m_vault.configured(); }
+    bool automaticVault() const { return m_vault.automaticVault(); }
+    bool needsMigration() const { return m_vault.needsMigration(); }
+    Q_INVOKABLE void migrateLegacy(const QString &phrase) { m_vault.migrateLegacy(phrase); }
     bool active() const { return m_bridge; }
     bool localAvailable() const;
     bool phoneAvailable() const;

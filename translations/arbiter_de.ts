@@ -356,8 +356,8 @@
     <name>BiometricAuth</name>
     <message>
         <location filename="../src/biometricauth.cpp" line="+14"/>
-        <source>Return to Arbiter and use your vault passphrase or try again.</source>
-        <translation>Kehren Sie zu Arbiter zurück und verwenden Sie Ihre Tresor-Passphrase oder versuchen Sie es erneut.</translation>
+        <source>Return to Arbiter and try device verification again.</source>
+        <translation>Kehre zu Arbiter zurück und versuche die Gerätebestätigung erneut.</translation>
     </message>
     <message>
         <location line="+10"/>
@@ -367,13 +367,13 @@
     </message>
     <message>
         <location line="+2"/>
-        <source>Biometric verification is unavailable. Use your vault passphrase.</source>
-        <translation>Die biometrische Überprüfung ist nicht verfügbar. Verwenden Sie Ihr Tresor-Passwort.</translation>
+        <source>Device verification is unavailable. Check your system authentication settings.</source>
+        <translation>Die Gerätebestätigung ist nicht verfügbar. Prüfe die Authentifizierungseinstellungen deines Systems.</translation>
     </message>
     <message>
         <location line="+21"/>
-        <source>Biometric verification was cancelled or timed out. Use your vault passphrase or try again.</source>
-        <translation>Die biometrische Überprüfung wurde abgebrochen oder es ist eine Zeitüberschreitung aufgetreten. Verwenden Sie Ihre Tresor-Passphrase oder versuchen Sie es erneut.</translation>
+        <source>Device verification was cancelled or timed out. Try again.</source>
+        <translation>Die Gerätebestätigung wurde abgebrochen oder ist abgelaufen. Versuche es erneut.</translation>
     </message>
     <message>
         <location filename="../src/biometricauth.h" line="+24"/>
@@ -484,23 +484,23 @@
     </message>
     <message>
         <location line="+7"/>
-        <source>Touch ID is available.</source>
-        <translation>Touch ID ist verfügbar.</translation>
+        <source>Touch ID or your macOS login password can verify your identity.</source>
+        <translation>Touch ID oder dein macOS-Anmeldepasswort kann deine Identität bestätigen.</translation>
     </message>
     <message>
         <location line="+0"/>
-        <source>Touch ID is unavailable. Enroll a fingerprint in macOS settings, or use your vault passphrase.</source>
-        <translation>Touch ID ist nicht verfügbar. Registrieren Sie einen Fingerabdruck in den macOS-Einstellungen oder verwenden Sie Ihre Tresor-Passphrase.</translation>
+        <source>Device verification is unavailable. Check your macOS login settings.</source>
+        <translation>Die Gerätebestätigung ist nicht verfügbar. Prüfe deine macOS-Anmeldeeinstellungen.</translation>
     </message>
     <message>
-        <location line="+58"/>
-        <source>Touch ID is unavailable or locked out. Use your vault passphrase.</source>
-        <translation>Touch ID ist nicht verfügbar oder gesperrt. Verwenden Sie Ihr Tresor-Passwort.</translation>
+        <location line="+57"/>
+        <source>Device authentication is unavailable. Check your macOS login settings.</source>
+        <translation>Die Geräteauthentifizierung ist nicht verfügbar. Prüfe deine macOS-Anmeldeeinstellungen.</translation>
     </message>
     <message>
         <location line="+35"/>
-        <source>Touch ID did not verify. Use your vault passphrase or try again.</source>
-        <translation>Touch ID hat nicht überprüft. Verwenden Sie Ihre Tresor-Passphrase oder versuchen Sie es erneut.</translation>
+        <source>Device verification was cancelled or failed. Try again.</source>
+        <translation>Die Gerätebestätigung wurde abgebrochen oder ist fehlgeschlagen. Versuche es erneut.</translation>
     </message>
 </context>
 <context>
@@ -722,14 +722,108 @@
     </message>
 </context>
 <context>
+    <name>CredentialStore</name>
+    <message>
+        <location filename="../src/credentialstore.cpp" line="+35"/>
+        <source>Could not create the credential store.</source>
+        <translation>Der Anmeldedatenspeicher konnte nicht erstellt werden.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The credential store is in use. Try again.</source>
+        <translation>Der Anmeldedatenspeicher wird verwendet. Versuche es erneut.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The credential store identity is damaged. It was not replaced.</source>
+        <translation>Die Identität des Anmeldedatenspeichers ist beschädigt. Sie wurde nicht ersetzt.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>The credential store identity is missing. Existing credentials were not overwritten.</source>
+        <translation>Die Identität des Anmeldedatenspeichers fehlt. Vorhandene Anmeldedaten wurden nicht überschrieben.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not save the credential store identity.</source>
+        <translation>Die Identität des Anmeldedatenspeichers konnte nicht gespeichert werden.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The OS credential store is unavailable.</source>
+        <translation>Der Anmeldedatenspeicher des Betriebssystems ist nicht verfügbar.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>The OS credential key is missing. Existing credentials were not overwritten.</source>
+        <translation>Der Schlüssel für die Anmeldedaten fehlt im Betriebssystem. Vorhandene Anmeldedaten wurden nicht überschrieben.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Could not initialize credential encryption.</source>
+        <translation>Die Verschlüsselung der Anmeldedaten konnte nicht initialisiert werden.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Could not protect the credential key.</source>
+        <translation>Der Schlüssel für die Anmeldedaten konnte nicht geschützt werden.</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>The OS credential key is invalid.</source>
+        <translation>Der Schlüssel für die Anmeldedaten im Betriebssystem ist ungültig.</translation>
+    </message>
+    <message>
+        <location line="+19"/>
+        <source>Could not read the encrypted credentials.</source>
+        <translation>Die verschlüsselten Anmeldedaten konnten nicht gelesen werden.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Credential authentication failed. Existing credentials were not overwritten.</source>
+        <translation>Die Authentifizierung der Anmeldedaten ist fehlgeschlagen. Vorhandene Anmeldedaten wurden nicht überschrieben.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Could not save encrypted credentials.</source>
+        <translation>Die verschlüsselten Anmeldedaten konnten nicht gespeichert werden.</translation>
+    </message>
+    <message>
+        <location line="+14"/>
+        <source>This credential is no longer available.</source>
+        <translation>Diese Anmeldedaten sind nicht mehr verfügbar.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The credential is missing.</source>
+        <translation>Die Anmeldedaten fehlen.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>The legacy credential is missing. It was not replaced.</source>
+        <translation>Die bisherigen Anmeldedaten fehlen. Sie wurden nicht ersetzt.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Could not migrate the credential. The original was preserved.</source>
+        <translation>Die Anmeldedaten konnten nicht migriert werden. Das Original blieb erhalten.</translation>
+    </message>
+</context>
+<context>
     <name>CredentialSync</name>
     <message>
-        <location filename="../src/credentialsync.cpp" line="+80"/>
+        <location filename="../src/credentialsync.cpp" line="+95"/>
         <source>This computer</source>
         <translation>Dieser Computer</translation>
     </message>
     <message>
-        <location line="+45"/>
+        <location line="+28"/>
+        <location line="+339"/>
+        <source>Could not save the sync preference.</source>
+        <translation>Die Synchronisierungseinstellung konnte nicht gespeichert werden.</translation>
+    </message>
+    <message>
+        <location line="-322"/>
         <source>Could not create the encrypted sync directory.</source>
         <translation>Nicht möglich: Verschlüsseltes Synchronisierungsverzeichnis erstellen.</translation>
     </message>
@@ -789,17 +883,17 @@
         <translation>Nicht möglich: Auf lokale Synchronisierung warten: %1.</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+53"/>
         <source>Connect this computer to a local Wi-Fi or Ethernet network before pairing.</source>
         <translation>Verbinde diesen Computer vor dem Koppeln mit einem lokalen WLAN oder Ethernet-Netzwerk.</translation>
     </message>
     <message>
-        <location line="+37"/>
+        <location line="-14"/>
         <source>Could not save encrypted sync changes.</source>
         <translation>Nicht möglich: Verschlüsselte Synchronisierungsänderungen speichern.</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+27"/>
         <source>Could not render the pairing code.</source>
         <translation>Nicht möglich: Kopplungscode darstellen.</translation>
     </message>
@@ -2105,7 +2199,7 @@
 <context>
     <name>MacBiometricAuth</name>
     <message>
-        <location filename="../src/biometricauth_mac.mm" line="-81"/>
+        <location filename="../src/biometricauth_mac.mm" line="-80"/>
         <location line="+18"/>
         <source>Persistent biometric unlocking is unavailable.</source>
         <translation>Eine dauerhafte biometrische Entsperrung ist nicht verfügbar.</translation>
@@ -2127,7 +2221,7 @@
         <translation>Der biometrische Tresorschlüssel konnte nicht entsperrt werden. Verwenden Sie Ihre Passphrase oder aktivieren Sie Touch ID erneut.</translation>
     </message>
     <message>
-        <location line="+45"/>
+        <location line="+44"/>
         <source>Touch ID could not unlock the vault key. Use your passphrase or enable Touch ID again.</source>
         <translation>Touch ID konnte den Tresorschlüssel nicht entsperren. Verwenden Sie Ihre Passphrase oder aktivieren Sie Touch ID erneut.</translation>
     </message>
@@ -2146,14 +2240,14 @@
     </message>
     <message>
         <location line="+644"/>
-        <location line="+1682"/>
+        <location line="+1674"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>Neuer Tab</translation>
     </message>
     <message>
-        <location line="-1679"/>
-        <location line="+1768"/>
+        <location line="-1671"/>
+        <location line="+1760"/>
         <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
@@ -2161,7 +2255,7 @@
         <translation>Startseite</translation>
     </message>
     <message>
-        <location line="-1273"/>
+        <location line="-1265"/>
         <source>Settings</source>
         <translation>Einstellungen</translation>
     </message>
@@ -2377,12 +2471,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+383"/>
+        <location line="+375"/>
         <source>Off</source>
         <translation>Aus</translation>
     </message>
     <message>
-        <location line="-376"/>
+        <location line="-368"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>Website-Navigation unter dem Tab-Titel oder als separate Menüs in der macOS-Menüleiste anzeigen.</translation>
     </message>
@@ -2472,52 +2566,32 @@
         <translation>Der Passkey-Tresor und der Telefon-QR-Flow von Arbiter erfordern den gepatchten WebEngine-Build.</translation>
     </message>
     <message>
-        <location line="+6"/>
-        <source>Passkey vault is configured</source>
-        <translation>Der Passkey-Tresor ist konfiguriert</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>Set up passkey vault…</source>
-        <translation>Passkey-Tresor einrichten…</translation>
-    </message>
-    <message>
-        <location line="+14"/>
-        <source>Disable biometric unlocking</source>
-        <translation>Deaktivieren Sie die biometrische Entsperrung</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>Enable %1…</source>
-        <translation>%1 aktivieren…</translation>
-    </message>
-    <message>
-        <location line="+9"/>
-        <source>Enable persistent %1…</source>
-        <translation>Persistent %1 aktivieren…</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>Biometric unlocking lasts up to 15 minutes while Arbiter stays active. Enter your passphrase once after restarting or leaving the app; each later passkey use still asks for device verification.</source>
-        <translation>Die biometrische Entsperrung dauert bis zu 15 Minuten, während Arbiter aktiv bleibt. Geben Sie Ihre Passphrase einmal ein, nachdem Sie die App neu gestartet oder verlassen haben. Bei jeder späteren Verwendung des Passkeys wird immer noch eine Geräteüberprüfung verlangt.</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>Enable Touch ID once with your vault passphrase. Each passkey use then asks for Touch ID, even after restarting or switching apps. The passphrase remains your fallback; changing enrolled fingerprints requires enabling Touch ID again.</source>
-        <translation>Aktivieren Sie Touch ID einmal mit Ihrer Tresor-Passphrase. Bei jeder Passkey-Nutzung wird dann nach Touch ID gefragt, auch nach einem Neustart oder einem App-Wechsel. Die Passphrase bleibt Ihr Fallback; Um registrierte Fingerabdrücke zu ändern, muss Touch ID erneut aktiviert werden.</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>Refresh biometric support</source>
-        <translation>Biometrische Unterstützung aktualisieren</translation>
+        <location line="+8"/>
+        <source>Existing passkeys need a one-time migration. Enter the old passphrase below; future sign-ins use your device authentication.</source>
+        <translation>Vorhandene Passkeys müssen einmalig migriert werden. Gib unten die bisherige Passphrase ein; künftige Anmeldungen verwenden die Geräteauthentifizierung.</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Lock now</source>
-        <translation>Jetzt sperren</translation>
+        <source>Passwords and passkeys use the same automatically created, OS-protected credential vault. Passkey sign-in asks for device verification; there is no separate Arbiter passphrase.</source>
+        <translation>Passwörter und Passkeys verwenden denselben automatisch erstellten, vom Betriebssystem geschützten Tresor. Die Anmeldung mit Passkey erfordert eine Gerätebestätigung; eine separate Arbiter-Passphrase gibt es nicht.</translation>
     </message>
     <message>
-        <location line="+16"/>
+        <location line="+8"/>
+        <source>Previous passkey passphrase</source>
+        <translation>Bisherige Passkey-Passphrase</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Migrate existing passkeys</source>
+        <translation>Vorhandene Passkeys migrieren</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Refresh device authentication</source>
+        <translation>Geräteauthentifizierung aktualisieren</translation>
+    </message>
+    <message>
+        <location line="+18"/>
         <source>Click a shortcut, then press the new combination. Changes save automatically. Escape cancels recording.</source>
         <translation>Klicken Sie auf eine Verknüpfung und drücken Sie dann die neue Kombination. Änderungen werden automatisch gespeichert. Escape bricht die Aufnahme ab.</translation>
     </message>
@@ -2881,7 +2955,7 @@
         <translation>Privat</translation>
     </message>
     <message>
-        <location line="-1365"/>
+        <location line="-1357"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass (experimentell)</translation>
     </message>
@@ -3091,7 +3165,7 @@
         <translation>Farben</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="+422"/>
+        <location filename="../qml/Main.qml" line="+414"/>
         <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Default browser</source>
         <translation>Standardbrowser</translation>
@@ -3495,7 +3569,7 @@
 <context>
     <name>PasskeyVault</name>
     <message>
-        <location filename="../src/passkeyvault.cpp" line="+67"/>
+        <location filename="../src/passkeyvault.cpp" line="+65"/>
         <source>Set up the passkey vault first.</source>
         <translation>Richten Sie zuerst den Passkey-Tresor ein.</translation>
     </message>
@@ -3539,13 +3613,13 @@
         <translation>Die biometrische Einrichtung wurde abgebrochen. Verwenden Sie Ihr Tresor-Passwort.</translation>
     </message>
     <message>
-        <location line="+57"/>
+        <location line="+58"/>
         <location line="+2"/>
         <source>Unlock your passkey vault for this website</source>
         <translation>Entsperren Sie Ihren Passkey-Tresor für diese Website</translation>
     </message>
     <message>
-        <location line="-12"/>
+        <location line="-13"/>
         <source>Could not unlock the vault. Use your vault passphrase.</source>
         <translation>Der Tresor konnte nicht entsperrt werden. Verwenden Sie Ihr Tresor-Passwort.</translation>
     </message>
@@ -3555,7 +3629,7 @@
         <translation>Der Tresor hat sich geändert. Verwenden Sie Ihr Tresor-Passwort.</translation>
     </message>
     <message>
-        <location line="+53"/>
+        <location line="+54"/>
         <source>The passkey vault is in use by another browser process.</source>
         <translation>Der Passkey-Tresor wird von einem anderen Browserprozess verwendet.</translation>
     </message>
@@ -3565,7 +3639,7 @@
         <translation>Der Passkey-Katalog ist beschädigt. Stellen Sie Ihr Profil wieder her, bevor Sie fortfahren.</translation>
     </message>
     <message>
-        <location line="+16"/>
+        <location line="+25"/>
         <source>A vault already exists or setup was interrupted. Restore the existing vault; it will not be overwritten.</source>
         <translation>Ein Tresor ist bereits vorhanden oder die Einrichtung wurde unterbrochen. Stellen Sie den vorhandenen Tresor wieder her. es wird nicht überschrieben.</translation>
     </message>
@@ -3575,13 +3649,13 @@
         <translation>Verwenden Sie mindestens 12 Zeichen und geben Sie zweimal dieselbe Passphrase ein.</translation>
     </message>
     <message>
-        <location line="-120"/>
-        <location line="+130"/>
+        <location line="-130"/>
+        <location line="+140"/>
         <source>Could not initialize cryptography.</source>
         <translation>Die Kryptografie konnte nicht initialisiert werden.</translation>
     </message>
     <message>
-        <location line="-99"/>
+        <location line="-109"/>
         <source>Enter your vault passphrase or enable biometric unlocking again.</source>
         <translation>Geben Sie Ihr Tresor-Passwort ein oder aktivieren Sie die biometrische Entsperrung erneut.</translation>
     </message>
@@ -3591,7 +3665,7 @@
         <translation>Die biometrische Überprüfung wurde abgebrochen. Verwenden Sie Ihr Tresor-Passwort.</translation>
     </message>
     <message>
-        <location line="+97"/>
+        <location line="+107"/>
         <source>Could not save the passkey catalog.</source>
         <translation>Der Passkey-Katalog konnte nicht gespeichert werden.</translation>
     </message>
@@ -3601,12 +3675,12 @@
         <translation>Das Speichern des Tresorkatalogs konnte nicht abgeschlossen werden.</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+26"/>
         <source>The secure vault record is invalid.</source>
         <translation>Der Secure Vault-Datensatz ist ungültig.</translation>
     </message>
     <message>
-        <location line="+20"/>
+        <location line="+22"/>
         <location line="+7"/>
         <source>Invalid authenticator request.</source>
         <translation>Ungültige Authentifizierungsanforderung.</translation>
@@ -3667,7 +3741,17 @@
         <translation>Die Authentifizierungsanfrage konnte nicht signiert werden.</translation>
     </message>
     <message>
-        <location line="+22"/>
+        <location line="+10"/>
+        <source>Device verification is unavailable. Set up device authentication in system settings.</source>
+        <translation>Die Gerätebestätigung ist nicht verfügbar. Richte die Geräteauthentifizierung in den Systemeinstellungen ein.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Verify to use your Arbiter passkey</source>
+        <translation>Bestätige deine Identität, um deinen Arbiter-Passkey zu verwenden</translation>
+    </message>
+    <message>
+        <location line="+13"/>
         <source>Set up your passkey vault before enabling encrypted sync.</source>
         <translation>Richte deinen Passkey-Tresor ein, bevor du die verschlüsselte Synchronisierung aktivierst.</translation>
     </message>
@@ -3683,14 +3767,14 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+36"/>
+        <location line="+37"/>
         <location line="+39"/>
         <source>Unlock the desktop sync vault and try again.</source>
         <translation>Entsperre den Desktop-Synchronisierungstresor und versuche es erneut.</translation>
     </message>
     <message>
-        <location line="-68"/>
-        <location line="+9"/>
+        <location line="-69"/>
+        <location line="+10"/>
         <source>The sync session expired.</source>
         <translation>Die Synchronisierungssitzung ist abgelaufen.</translation>
     </message>
@@ -3725,7 +3809,32 @@
         <translation>Der Passkey wurde entfernt, aber die Indexaktualisierung muss wiederholt werden.</translation>
     </message>
     <message>
-        <location filename="../src/passkeyvault.h" line="+33"/>
+        <location line="+10"/>
+        <source>Could not protect the credential key.</source>
+        <translation>Der Schlüssel für die Anmeldedaten konnte nicht geschützt werden.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Could not finish credential migration. The original vault was preserved.</source>
+        <translation>Die Migration der Anmeldedaten konnte nicht abgeschlossen werden. Der ursprüngliche Tresor blieb erhalten.</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Could not create the credential catalog.</source>
+        <translation>Der Anmeldedatenkatalog konnte nicht erstellt werden.</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <source>The credential key is missing. Existing passkeys were preserved.</source>
+        <translation>Der Schlüssel für die Anmeldedaten fehlt. Vorhandene Passkeys blieben erhalten.</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>The previous passphrase did not unlock your passkeys.</source>
+        <translation>Die bisherige Passphrase konnte deine Passkeys nicht entsperren.</translation>
+    </message>
+    <message>
+        <location filename="../src/passkeyvault.h" line="+36"/>
         <source>Biometrics</source>
         <translation>Biometrie</translation>
     </message>
@@ -3738,7 +3847,7 @@
 <context>
     <name>PasswordManager</name>
     <message>
-        <location filename="../src/passwordmanager.cpp" line="+78"/>
+        <location filename="../src/passwordmanager.cpp" line="+79"/>
         <source>Could not create the password index directory.</source>
         <translation>Das Passwortindexverzeichnis konnte nicht erstellt werden.</translation>
     </message>
@@ -3818,7 +3927,13 @@
         <translation>Passwort gelöscht.</translation>
     </message>
     <message>
-        <location line="+278"/>
+        <location line="+268"/>
+        <location line="+8"/>
+        <source>Sync was stopped.</source>
+        <translation>Die Synchronisierung wurde gestoppt.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
         <source>A password does not match its secure index entry.</source>
         <translation>Ein Passwort stimmt nicht mit seinem sicheren Indexeintrag überein.</translation>
     </message>
@@ -3828,15 +3943,20 @@
         <translation>Der Ursprung des synchronisierten Passworts ist ungültig.</translation>
     </message>
     <message>
-        <location line="-313"/>
+        <location line="+13"/>
+        <source>Enable encrypted credential sync for this profile</source>
+        <translation>Verschlüsselte Synchronisierung der Anmeldedaten für dieses Profil aktivieren</translation>
+    </message>
+    <message>
+        <location line="-329"/>
         <location line="+53"/>
         <location line="+228"/>
-        <location line="+30"/>
+        <location line="+33"/>
         <source>Password storage is unavailable or busy.</source>
         <translation>Der Passwortspeicher ist nicht verfügbar oder ausgelastet.</translation>
     </message>
     <message>
-        <location line="-250"/>
+        <location line="-253"/>
         <source>This account does not belong to the current website.</source>
         <translation>This account does not belong to the current website.</translation>
     </message>
@@ -4237,7 +4357,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+583"/>
+        <location filename="../src/main.cpp" line="+591"/>
         <source>Settings…</source>
         <translation>Einstellungen…</translation>
     </message>
@@ -4756,74 +4876,54 @@
         <translation>Dein Tresor für unterwegs</translation>
     </message>
     <message>
-        <location line="+3"/>
-        <source>Connect your computers and phones to share one credential vault over local Wi-Fi. Connected devices exchange encrypted changes, including deletions. Keep Arbiter open and desktop sync unlocked; no cloud account is needed.</source>
-        <translation>Verbinde deine Computer und Smartphones, um einen gemeinsamen Zugangsdaten-Tresor im lokalen WLAN zu nutzen. Verbundene Geräte tauschen verschlüsselte Änderungen einschließlich Löschungen aus. Lass Arbiter geöffnet und die Desktop-Synchronisierung entsperrt. Ein Cloud-Konto ist nicht nötig.</translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="+8"/>
         <source>Open Sync in a regular browser window to pair your devices.</source>
         <translation>Öffne die Synchronisierung in einem normalen Browserfenster, um Geräte zu koppeln.</translation>
     </message>
     <message>
-        <location line="+7"/>
-        <source>Set up your Arbiter passkey vault first. Its passphrase or biometric verification will also unlock your sync session.</source>
-        <translation>Richte zuerst deinen Arbiter-Passkey-Tresor ein. Seine Passphrase oder die biometrische Überprüfung entsperrt auch deine Synchronisierungssitzung.</translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>Set up passkey vault</source>
-        <translation>Passkey-Tresor einrichten</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>Vault passphrase</source>
-        <translation>Tresor-Passphrase</translation>
-    </message>
-    <message>
-        <location line="+9"/>
-        <source>Unlock sync</source>
-        <translation>Synchronisierung entsperren</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>Unlock with %1</source>
-        <translation>Mit %1 entsperren</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>Keep sync unlocked until this computer locks</source>
-        <translation>Sync bis zum Sperren dieses Computers entsperrt lassen</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.</source>
-        <translation>Optional für die Hintergrundsynchronisierung des Telefons. Gekoppelte Geräte können synchronisieren, solange dieser Computer entsperrt bleibt. Beim Sperren des Computers oder Beenden von Arbiter wird die Synchronisierung immer gesperrt.</translation>
-    </message>
-    <message>
-        <location line="+6"/>
+        <location line="+32"/>
         <source>Working with your secure vault…</source>
         <translation>Sicherer Tresor wird verarbeitet…</translation>
     </message>
     <message>
+        <location line="-37"/>
+        <source>Enable sync once to share passwords and passkeys between paired devices over local Wi-Fi. Sync starts automatically whenever Arbiter opens and keeps running until you turn it off. No separate vault, passphrase, or cloud account is needed.</source>
+        <translation>Aktiviere die Synchronisierung einmal, um Passwörter und Passkeys zwischen gekoppelten Geräten im lokalen WLAN zu teilen. Sie startet automatisch beim Öffnen von Arbiter und läuft, bis du sie ausschaltest. Ein separater Tresor, eine Passphrase oder ein Cloud-Konto ist nicht nötig.</translation>
+    </message>
+    <message>
         <location line="+13"/>
-        <source>Sync is unlocked</source>
-        <translation>Synchronisierung ist entsperrt</translation>
+        <source>Enter your previous passkey passphrase once to move existing passkeys into your OS-protected credential vault. Passwords do not need to be imported again.</source>
+        <translation>Gib einmal deine bisherige Passkey-Passphrase ein, um vorhandene Passkeys in den vom Betriebssystem geschützten Tresor zu übertragen. Passwörter müssen nicht erneut importiert werden.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Previous passkey passphrase</source>
+        <translation>Bisherige Passkey-Passphrase</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Retry sync</source>
+        <translation>Synchronisierung erneut versuchen</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Enable sync</source>
+        <translation>Synchronisierung aktivieren</translation>
+    </message>
+    <message>
+        <location line="+23"/>
+        <source>Sync is enabled</source>
+        <translation>Synchronisierung ist aktiviert</translation>
     </message>
     <message>
         <location line="+2"/>
-        <source>Lock</source>
-        <translation>Sperren</translation>
+        <source>Turn off sync</source>
+        <translation>Synchronisierung ausschalten</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.</source>
-        <translation>Diese Sitzung bleibt entsperrt, bis du diesen Computer oder die Synchronisierung sperrst oder Arbiter beendest.</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>This session locks after 10 minutes or when your computer locks. Keep Arbiter open on both devices while syncing.</source>
-        <translation>Diese Sitzung wird nach 10 Minuten oder beim Sperren des Computers gesperrt. Lass Arbiter während der Synchronisierung auf beiden Geräten geöffnet.</translation>
+        <location line="+4"/>
+        <source>Sync continues while Arbiter is open, including when this computer is locked. Sleeping or offline devices reconnect when available. Password filling and passkey sign-in keep their own verification requirements.</source>
+        <translation>Die Synchronisierung läuft, solange Arbiter geöffnet ist, auch bei gesperrtem Computer. Geräte im Ruhezustand oder ohne Verbindung verbinden sich wieder, sobald sie verfügbar sind. Für das Ausfüllen von Passwörtern und die Anmeldung mit Passkey gelten weiterhin eigene Bestätigungsanforderungen.</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -5395,6 +5495,11 @@
         <translation>Auf diesem Computer sind keine Passkeys gespeichert</translation>
     </message>
     <message>
+        <location line="+0"/>
+        <source>Verify with your device</source>
+        <translation>Mit deinem Gerät bestätigen</translation>
+    </message>
+    <message>
         <location line="+1"/>
         <source>Verify with %1 or your passphrase</source>
         <translation>Überprüfen Sie mit %1 oder Ihrer Passphrase</translation>
@@ -5485,9 +5590,19 @@
         <translation>Verwenden Sie Ihre Passphrase einmal, um die biometrische Entsperrung für diese Sitzung zu aktivieren.</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+7"/>
+        <source>Enter your old passphrase once to migrate existing passkeys. Future sign-ins use device verification.</source>
+        <translation>Gib deine bisherige Passphrase einmal ein, um vorhandene Passkeys zu migrieren. Künftige Anmeldungen verwenden die Gerätebestätigung.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
         <source>Arbiter passkey vault passphrase</source>
         <translation>Arbiter Passkey-Tresor-Passphrase</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Previous passkey passphrase (one time)</source>
+        <translation>Bisherige Passkey-Passphrase (einmalig)</translation>
     </message>
     <message>
         <location line="+8"/>

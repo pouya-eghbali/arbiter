@@ -43,6 +43,7 @@ public:
     int verificationCooldown() const { return m_verificationCooldown; }
     void setVerificationCooldown(int seconds);
     void clearUserVerification();
+    void verifyForSync(VerifyCallback callback);
 
     QString error() const { return m_error; }
     QString message() const { return m_message; }
@@ -58,9 +59,9 @@ public:
     using ImportCallback=std::function<void(bool imported,const QString &error)>;
     void importAccount(const QUrl &url,const QString &username,const QString &password,ImportCallback callback);
     // Native-only transfer APIs. The sync coordinator must first authenticate
-    // the user by unlocking the passkey vault; these are never web/QML methods.
+    // the user when enabling sync; these are never web/QML methods.
     using SyncResult=std::function<void(const QString &,const QJsonArray &)>;
-    void exportAfterVerification(SyncResult callback);
+    void exportAfterVerification(SyncResult callback, bool authorizeExisting = false, std::function<bool()> current = {});
     void upsertFromSync(const QJsonObject &data,ImportCallback callback);
     void removeFromSync(const QString &origin,const QString &username,ImportCallback callback);
     static QString fillScript(const QString &origin, const QString &document,

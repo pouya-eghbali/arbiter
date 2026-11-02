@@ -20,7 +20,6 @@
   // Deliberately synthetic, local-only UI state. Never read credentials,
   // clipboard contents, biometrics or network peers from a marketing preview.
   let unlocked = $state(true);
-  let keepUnlocked = $state(false);
   let background = $state(false);
   let pairing = $state(false);
   let reviewing = $state(false);
@@ -29,7 +28,7 @@
   let invitation = $state('');
   let synced = $state(false);
   let syncing = $state(false);
-  let announcement = $state('Try locking sync, pairing a device, or syncing the sample devices.');
+  let announcement = $state('Try turning off sync, pairing a device, or syncing the sample devices.');
   let timer: ReturnType<typeof setTimeout> | undefined;
   let connected = $derived(devices.includes('iPhone'));
   const qrCells = Array.from({ length: 441 }, (_, index) => {
@@ -80,12 +79,11 @@
     syncing = false;
     pairing = false;
     reviewing = false;
-    announcement = 'Sync is locked in the preview.';
+    announcement = 'Sync is turned off in the preview.';
   }
   function reset() {
     clearTimeout(timer);
     unlocked = true;
-    keepUnlocked = false;
     background = false;
     pairing = false;
     reviewing = false;
@@ -95,7 +93,7 @@
     synced = false;
     syncing = false;
     announcement =
-      'Preview reset. Try locking sync, pairing a device, or syncing the sample devices.';
+      'Preview reset. Try turning off sync, pairing a device, or syncing the sample devices.';
   }
   onDestroy(() => clearTimeout(timer));
 </script>
@@ -129,21 +127,15 @@
         <p class="intro">
           Connect your computers and phones to share one credential vault over local Wi-Fi.
         </p>
-        <label class="checkbox"
-          ><input type="checkbox" bind:checked={keepUnlocked} /><span
-            >Keep sync unlocked until this computer locks</span
-          ></label
-        >
         {#if unlocked}
           <div class="unlock-status">
-            <Icon name="shield-check" size={18} /><strong>Sync is unlocked</strong><button
-              onclick={lock}>Lock</button
+            <Icon name="shield-check" size={18} /><strong>Sync is enabled</strong><button
+              onclick={lock}>Turn off</button
             >
           </div>
           <p class="session-note">
-            {keepUnlocked
-              ? 'This session stays unlocked until you lock this computer.'
-              : 'Keep Arbiter open on both devices while syncing.'}
+            Enable once. Sync starts automatically when Arbiter opens, including after a restart.
+            Keep both devices on the same Wi-Fi.
           </p>
           <button class="primary" onclick={beginPairing}>Add a device</button>
           {#if pairing}
@@ -225,14 +217,13 @@
         {:else}
           <div class="locked">
             <Icon name="lock" size={28} />
-            <p>Unlock your sync session.</p>
-            <div class="masked">••••••••</div>
+            <p>Enable encrypted sync for your paired devices.</p>
             <button
               class="primary"
               onclick={() => {
                 unlocked = true;
-                announcement = 'Preview unlocked. No passphrase or biometrics were requested.';
-              }}>Unlock sync</button
+                announcement = 'Sync enabled in this preview. No real credentials are accessed.';
+              }}>Enable sync</button
             >
           </div>
         {/if}
@@ -317,7 +308,7 @@
             </div>{/if}
         </div>
         <p class="phone-note">
-          Direct encrypted sync over the same Wi-Fi. Keep desktop sync unlocked.
+          Direct encrypted sync over the same Wi-Fi. Enable sync on desktop and keep Arbiter open.
         </p>
       {/if}
     </div>
@@ -590,14 +581,7 @@
   .locked p {
     font-size: 1.7cqw;
   }
-  .masked {
-    width: 100%;
-    border: 1px solid #ffffff35;
-    border-radius: 1cqw;
-    padding: 1.5cqw;
-    letter-spacing: 0.6cqw;
-    color: #bdc5d1;
-  }
+
   .closed-settings {
     grid-column: 1 / -1;
     position: relative;

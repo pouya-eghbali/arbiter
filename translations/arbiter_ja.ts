@@ -356,8 +356,8 @@
     <name>BiometricAuth</name>
     <message>
         <location filename="../src/biometricauth.cpp" line="+14"/>
-        <source>Return to Arbiter and use your vault passphrase or try again.</source>
-        <translation>Arbiter に戻り、ボールトのパスフレーズを使用するか、再試行してください。</translation>
+        <source>Return to Arbiter and try device verification again.</source>
+        <translation>Arbiter に戻ってデバイス認証をやり直してください。</translation>
     </message>
     <message>
         <location line="+10"/>
@@ -367,13 +367,13 @@
     </message>
     <message>
         <location line="+2"/>
-        <source>Biometric verification is unavailable. Use your vault passphrase.</source>
-        <translation>生体認証は利用できません。ボールトのパスフレーズを使用します。</translation>
+        <source>Device verification is unavailable. Check your system authentication settings.</source>
+        <translation>デバイス認証を利用できません。システムの認証設定を確認してください。</translation>
     </message>
     <message>
         <location line="+21"/>
-        <source>Biometric verification was cancelled or timed out. Use your vault passphrase or try again.</source>
-        <translation>生体認証がキャンセルされたか、タイムアウトになりました。ボールトのパスフレーズを使用するか、もう一度試してください。</translation>
+        <source>Device verification was cancelled or timed out. Try again.</source>
+        <translation>デバイス認証がキャンセルされたか、時間切れになりました。もう一度お試しください。</translation>
     </message>
     <message>
         <location filename="../src/biometricauth.h" line="+24"/>
@@ -484,23 +484,23 @@
     </message>
     <message>
         <location line="+7"/>
-        <source>Touch ID is available.</source>
-        <translation>Touch ID が入荷しました。</translation>
+        <source>Touch ID or your macOS login password can verify your identity.</source>
+        <translation>Touch ID または macOS のログインパスワードで本人確認できます。</translation>
     </message>
     <message>
         <location line="+0"/>
-        <source>Touch ID is unavailable. Enroll a fingerprint in macOS settings, or use your vault passphrase.</source>
-        <translation>Touch ID は利用できません。 macOS 設定で指紋を登録するか、ボールトのパスフレーズを使用します。</translation>
+        <source>Device verification is unavailable. Check your macOS login settings.</source>
+        <translation>デバイス認証を利用できません。macOS のログイン設定を確認してください。</translation>
     </message>
     <message>
-        <location line="+58"/>
-        <source>Touch ID is unavailable or locked out. Use your vault passphrase.</source>
-        <translation>Touch ID は利用できないか、ロックアウトされています。ボールトのパスフレーズを使用します。</translation>
+        <location line="+57"/>
+        <source>Device authentication is unavailable. Check your macOS login settings.</source>
+        <translation>デバイス認証を利用できません。macOS のログイン設定を確認してください。</translation>
     </message>
     <message>
         <location line="+35"/>
-        <source>Touch ID did not verify. Use your vault passphrase or try again.</source>
-        <translation>Touch ID は検証しませんでした。ボールトのパスフレーズを使用するか、もう一度試してください。</translation>
+        <source>Device verification was cancelled or failed. Try again.</source>
+        <translation>デバイス認証がキャンセルされたか、失敗しました。もう一度お試しください。</translation>
     </message>
 </context>
 <context>
@@ -722,14 +722,108 @@
     </message>
 </context>
 <context>
+    <name>CredentialStore</name>
+    <message>
+        <location filename="../src/credentialstore.cpp" line="+35"/>
+        <source>Could not create the credential store.</source>
+        <translation>認証情報ストアを作成できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The credential store is in use. Try again.</source>
+        <translation>認証情報ストアは使用中です。もう一度お試しください。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The credential store identity is damaged. It was not replaced.</source>
+        <translation>認証情報ストアの識別情報が破損しています。置き換えは行われていません。</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>The credential store identity is missing. Existing credentials were not overwritten.</source>
+        <translation>認証情報ストアの識別情報がありません。既存の認証情報は上書きされていません。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not save the credential store identity.</source>
+        <translation>認証情報ストアの識別情報を保存できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The OS credential store is unavailable.</source>
+        <translation>OS の認証情報ストアを利用できません。</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>The OS credential key is missing. Existing credentials were not overwritten.</source>
+        <translation>OS の認証情報キーがありません。既存の認証情報は上書きされていません。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Could not initialize credential encryption.</source>
+        <translation>認証情報の暗号化を初期化できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Could not protect the credential key.</source>
+        <translation>認証情報キーを保護できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>The OS credential key is invalid.</source>
+        <translation>OS の認証情報キーが無効です。</translation>
+    </message>
+    <message>
+        <location line="+19"/>
+        <source>Could not read the encrypted credentials.</source>
+        <translation>暗号化された認証情報を読み取れませんでした。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Credential authentication failed. Existing credentials were not overwritten.</source>
+        <translation>認証情報の検証に失敗しました。既存の認証情報は上書きされていません。</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Could not save encrypted credentials.</source>
+        <translation>暗号化された認証情報を保存できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+14"/>
+        <source>This credential is no longer available.</source>
+        <translation>この認証情報は利用できなくなりました。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The credential is missing.</source>
+        <translation>認証情報がありません。</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>The legacy credential is missing. It was not replaced.</source>
+        <translation>以前の認証情報がありません。置き換えは行われていません。</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Could not migrate the credential. The original was preserved.</source>
+        <translation>認証情報を移行できませんでした。元の情報は保持されています。</translation>
+    </message>
+</context>
+<context>
     <name>CredentialSync</name>
     <message>
-        <location filename="../src/credentialsync.cpp" line="+80"/>
+        <location filename="../src/credentialsync.cpp" line="+95"/>
         <source>This computer</source>
         <translation>このコンピュータ</translation>
     </message>
     <message>
-        <location line="+45"/>
+        <location line="+28"/>
+        <location line="+339"/>
+        <source>Could not save the sync preference.</source>
+        <translation>同期設定を保存できませんでした。</translation>
+    </message>
+    <message>
+        <location line="-322"/>
         <source>Could not create the encrypted sync directory.</source>
         <translation>暗号化同期ディレクトリを作成できませんでした。</translation>
     </message>
@@ -789,17 +883,17 @@
         <translation>ローカル同期接続を待機：%1できませんでした。</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+53"/>
         <source>Connect this computer to a local Wi-Fi or Ethernet network before pairing.</source>
         <translation>ペアリングする前に、このコンピュータをローカルWi-Fiまたはイーサネットに接続してください。</translation>
     </message>
     <message>
-        <location line="+37"/>
+        <location line="-14"/>
         <source>Could not save encrypted sync changes.</source>
         <translation>暗号化された同期変更を保存できませんでした。</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+27"/>
         <source>Could not render the pairing code.</source>
         <translation>ペアリングコードを表示できませんでした。</translation>
     </message>
@@ -2105,7 +2199,7 @@
 <context>
     <name>MacBiometricAuth</name>
     <message>
-        <location filename="../src/biometricauth_mac.mm" line="-81"/>
+        <location filename="../src/biometricauth_mac.mm" line="-80"/>
         <location line="+18"/>
         <source>Persistent biometric unlocking is unavailable.</source>
         <translation>永続的な生体認証によるロック解除は利用できません。</translation>
@@ -2127,7 +2221,7 @@
         <translation>生体認証ボールト キーのロックを解除できませんでした。パスフレーズを使用するか、Touch ID を再度有効にします。</translation>
     </message>
     <message>
-        <location line="+45"/>
+        <location line="+44"/>
         <source>Touch ID could not unlock the vault key. Use your passphrase or enable Touch ID again.</source>
         <translation>Touch ID はボールト キーのロックを解除できませんでした。パスフレーズを使用するか、Touch ID を再度有効にします。</translation>
     </message>
@@ -2146,14 +2240,14 @@
     </message>
     <message>
         <location line="+644"/>
-        <location line="+1682"/>
+        <location line="+1674"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>新しいタブ</translation>
     </message>
     <message>
-        <location line="-1679"/>
-        <location line="+1768"/>
+        <location line="-1671"/>
+        <location line="+1760"/>
         <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
@@ -2161,7 +2255,7 @@
         <translation>スタートページ</translation>
     </message>
     <message>
-        <location line="-1273"/>
+        <location line="-1265"/>
         <source>Settings</source>
         <translation>設定</translation>
     </message>
@@ -2377,12 +2471,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+383"/>
+        <location line="+375"/>
         <source>Off</source>
         <translation>オフ</translation>
     </message>
     <message>
-        <location line="-376"/>
+        <location line="-368"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>Web サイトのナビゲーションをタブ タイトルの下に表示するか、macOS メニュー バーの別のメニューとして表示します。</translation>
     </message>
@@ -2472,52 +2566,32 @@
         <translation>Arbiter のパスキー ボールトと電話 QR フローには、パッチ適用された WebEngine ビルドが必要です。</translation>
     </message>
     <message>
-        <location line="+6"/>
-        <source>Passkey vault is configured</source>
-        <translation>パスキーボールトが構成されています</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>Set up passkey vault…</source>
-        <translation>パスキー保管庫をセットアップします…</translation>
-    </message>
-    <message>
-        <location line="+14"/>
-        <source>Disable biometric unlocking</source>
-        <translation>生体認証によるロック解除を無効にする</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>Enable %1…</source>
-        <translation>%1 を有効にします…</translation>
-    </message>
-    <message>
-        <location line="+9"/>
-        <source>Enable persistent %1…</source>
-        <translation>永続的な %1 を有効にする…</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>Biometric unlocking lasts up to 15 minutes while Arbiter stays active. Enter your passphrase once after restarting or leaving the app; each later passkey use still asks for device verification.</source>
-        <translation>Arbiter がアクティブな間、生体認証によるロック解除は最大 15 分間続きます。アプリを再起動するか終了した後、パスフレーズを 1 回入力してください。その後パスキーを使用するたびにデバイスの検証が要求されます。</translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>Enable Touch ID once with your vault passphrase. Each passkey use then asks for Touch ID, even after restarting or switching apps. The passphrase remains your fallback; changing enrolled fingerprints requires enabling Touch ID again.</source>
-        <translation>ボールトのパスフレーズを使用して Touch ID を 1 回有効にします。アプリを再起動または切り替えた後でも、パスキーを使用するたびに Touch ID が要求されます。パスフレーズはフォールバックのままです。登録された指紋を変更するには、Touch ID を再度有効にする必要があります。</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>Refresh biometric support</source>
-        <translation>生体認証サポートを更新する</translation>
+        <location line="+8"/>
+        <source>Existing passkeys need a one-time migration. Enter the old passphrase below; future sign-ins use your device authentication.</source>
+        <translation>既存のパスキーは一度だけ移行が必要です。以前のパスフレーズを入力してください。以後のサインインにはデバイス認証を使用します。</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Lock now</source>
-        <translation>今すぐロック</translation>
+        <source>Passwords and passkeys use the same automatically created, OS-protected credential vault. Passkey sign-in asks for device verification; there is no separate Arbiter passphrase.</source>
+        <translation>パスワードとパスキーは、自動作成され OS で保護された同じ保管庫を使用します。パスキーでのサインインにはデバイス認証が必要です。Arbiter 専用のパスフレーズは不要です。</translation>
     </message>
     <message>
-        <location line="+16"/>
+        <location line="+8"/>
+        <source>Previous passkey passphrase</source>
+        <translation>以前のパスキーのパスフレーズ</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Migrate existing passkeys</source>
+        <translation>既存のパスキーを移行</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Refresh device authentication</source>
+        <translation>デバイス認証を更新</translation>
+    </message>
+    <message>
+        <location line="+18"/>
         <source>Click a shortcut, then press the new combination. Changes save automatically. Escape cancels recording.</source>
         <translation>ショートカットをクリックして、新しい組み合わせを押します。変更は自動的に保存されます。エスケープすると録音がキャンセルされます。</translation>
     </message>
@@ -2881,7 +2955,7 @@
         <translation>プライベート</translation>
     </message>
     <message>
-        <location line="-1365"/>
+        <location line="-1357"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass（試験的）</translation>
     </message>
@@ -3091,7 +3165,7 @@
         <translation>色</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="+422"/>
+        <location filename="../qml/Main.qml" line="+414"/>
         <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Default browser</source>
         <translation>既定のブラウザー</translation>
@@ -3495,7 +3569,7 @@
 <context>
     <name>PasskeyVault</name>
     <message>
-        <location filename="../src/passkeyvault.cpp" line="+67"/>
+        <location filename="../src/passkeyvault.cpp" line="+65"/>
         <source>Set up the passkey vault first.</source>
         <translation>最初にパスキー保管庫を設定します。</translation>
     </message>
@@ -3539,13 +3613,13 @@
         <translation>生体認証のセットアップがキャンセルされました。ボールトのパスフレーズを使用します。</translation>
     </message>
     <message>
-        <location line="+57"/>
+        <location line="+58"/>
         <location line="+2"/>
         <source>Unlock your passkey vault for this website</source>
         <translation>この Web サイトのパスキー保管庫のロックを解除します</translation>
     </message>
     <message>
-        <location line="-12"/>
+        <location line="-13"/>
         <source>Could not unlock the vault. Use your vault passphrase.</source>
         <translation>金庫のロックを解除できませんでした。ボールトのパスフレーズを使用します。</translation>
     </message>
@@ -3555,7 +3629,7 @@
         <translation>保管庫が変更されました。ボールトのパスフレーズを使用します。</translation>
     </message>
     <message>
-        <location line="+53"/>
+        <location line="+54"/>
         <source>The passkey vault is in use by another browser process.</source>
         <translation>パスキー ボールトは別のブラウザ プロセスによって使用されています。</translation>
     </message>
@@ -3565,7 +3639,7 @@
         <translation>パスキー カタログが破損しています。続行する前にプロファイルを復元してください。</translation>
     </message>
     <message>
-        <location line="+16"/>
+        <location line="+25"/>
         <source>A vault already exists or setup was interrupted. Restore the existing vault; it will not be overwritten.</source>
         <translation>ボールトがすでに存在するか、セットアップが中断されました。既存のボールトを復元します。上書きされません。</translation>
     </message>
@@ -3575,13 +3649,13 @@
         <translation>少なくとも 12 文字を使用し、同じパスフレーズを 2 回入力します。</translation>
     </message>
     <message>
-        <location line="-120"/>
-        <location line="+130"/>
+        <location line="-130"/>
+        <location line="+140"/>
         <source>Could not initialize cryptography.</source>
         <translation>暗号化を初期化できませんでした。</translation>
     </message>
     <message>
-        <location line="-99"/>
+        <location line="-109"/>
         <source>Enter your vault passphrase or enable biometric unlocking again.</source>
         <translation>ボールトのパスフレーズを入力するか、生体認証によるロック解除を再度有効にしてください。</translation>
     </message>
@@ -3591,7 +3665,7 @@
         <translation>生体認証はキャンセルされました。ボールトのパスフレーズを使用します。</translation>
     </message>
     <message>
-        <location line="+97"/>
+        <location line="+107"/>
         <source>Could not save the passkey catalog.</source>
         <translation>パスキー カタログを保存できませんでした。</translation>
     </message>
@@ -3601,12 +3675,12 @@
         <translation>ボールト カタログの保存を完了できませんでした。</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+26"/>
         <source>The secure vault record is invalid.</source>
         <translation>安全な保管庫レコードが無効です。</translation>
     </message>
     <message>
-        <location line="+20"/>
+        <location line="+22"/>
         <location line="+7"/>
         <source>Invalid authenticator request.</source>
         <translation>無効な認証要求です。</translation>
@@ -3667,7 +3741,17 @@
         <translation>認証リクエストに署名できませんでした。</translation>
     </message>
     <message>
-        <location line="+22"/>
+        <location line="+10"/>
+        <source>Device verification is unavailable. Set up device authentication in system settings.</source>
+        <translation>デバイス認証を利用できません。システム設定でデバイス認証を設定してください。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Verify to use your Arbiter passkey</source>
+        <translation>本人確認して Arbiter のパスキーを使用</translation>
+    </message>
+    <message>
+        <location line="+13"/>
         <source>Set up your passkey vault before enabling encrypted sync.</source>
         <translation>暗号化同期を有効にする前に、パスキー保管庫を設定してください。</translation>
     </message>
@@ -3683,14 +3767,14 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+36"/>
+        <location line="+37"/>
         <location line="+39"/>
         <source>Unlock the desktop sync vault and try again.</source>
         <translation>デスクトップの同期保管庫のロックを解除して、もう一度お試しください。</translation>
     </message>
     <message>
-        <location line="-68"/>
-        <location line="+9"/>
+        <location line="-69"/>
+        <location line="+10"/>
         <source>The sync session expired.</source>
         <translation>同期セッションの有効期限が切れました。</translation>
     </message>
@@ -3725,7 +3809,32 @@
         <translation>パスキーは削除されましたが、索引の更新を再試行する必要があります。</translation>
     </message>
     <message>
-        <location filename="../src/passkeyvault.h" line="+33"/>
+        <location line="+10"/>
+        <source>Could not protect the credential key.</source>
+        <translation>認証情報キーを保護できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Could not finish credential migration. The original vault was preserved.</source>
+        <translation>認証情報の移行を完了できませんでした。元の保管庫は保持されています。</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Could not create the credential catalog.</source>
+        <translation>認証情報カタログを作成できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <source>The credential key is missing. Existing passkeys were preserved.</source>
+        <translation>認証情報キーがありません。既存のパスキーは保持されています。</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>The previous passphrase did not unlock your passkeys.</source>
+        <translation>以前のパスフレーズでパスキーを解除できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../src/passkeyvault.h" line="+36"/>
         <source>Biometrics</source>
         <translation>生体認証</translation>
     </message>
@@ -3738,7 +3847,7 @@
 <context>
     <name>PasswordManager</name>
     <message>
-        <location filename="../src/passwordmanager.cpp" line="+78"/>
+        <location filename="../src/passwordmanager.cpp" line="+79"/>
         <source>Could not create the password index directory.</source>
         <translation>パスワード インデックス ディレクトリを作成できませんでした。</translation>
     </message>
@@ -3818,7 +3927,13 @@
         <translation>パスワードが削除されました。</translation>
     </message>
     <message>
-        <location line="+278"/>
+        <location line="+268"/>
+        <location line="+8"/>
+        <source>Sync was stopped.</source>
+        <translation>同期が停止されました。</translation>
+    </message>
+    <message>
+        <location line="+5"/>
         <source>A password does not match its secure index entry.</source>
         <translation>パスワードが安全な索引の項目と一致しません。</translation>
     </message>
@@ -3828,15 +3943,20 @@
         <translation>同期したパスワードのオリジンが無効です。</translation>
     </message>
     <message>
-        <location line="-313"/>
+        <location line="+13"/>
+        <source>Enable encrypted credential sync for this profile</source>
+        <translation>このプロファイルの認証情報の暗号化同期を有効にする</translation>
+    </message>
+    <message>
+        <location line="-329"/>
         <location line="+53"/>
         <location line="+228"/>
-        <location line="+30"/>
+        <location line="+33"/>
         <source>Password storage is unavailable or busy.</source>
         <translation>パスワード ストレージが利用できないか使用中です。</translation>
     </message>
     <message>
-        <location line="-250"/>
+        <location line="-253"/>
         <source>This account does not belong to the current website.</source>
         <translation>このアカウントは現在の Web サイトに属していません。</translation>
     </message>
@@ -4237,7 +4357,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+583"/>
+        <location filename="../src/main.cpp" line="+591"/>
         <source>Settings…</source>
         <translation>設定…</translation>
     </message>
@@ -4756,74 +4876,54 @@
         <translation>保管庫を持ち歩く</translation>
     </message>
     <message>
-        <location line="+3"/>
-        <source>Connect your computers and phones to share one credential vault over local Wi-Fi. Connected devices exchange encrypted changes, including deletions. Keep Arbiter open and desktop sync unlocked; no cloud account is needed.</source>
-        <translation>コンピュータとスマートフォンを接続し、ローカルWi-Fiで認証情報の保管庫を共有します。接続済みデバイスは削除を含む変更を暗号化して交換します。Arbiterを開いたまま、デスクトップの同期をロック解除してください。クラウドアカウントは不要です。</translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="+8"/>
         <source>Open Sync in a regular browser window to pair your devices.</source>
         <translation>通常のブラウザウィンドウで同期を開き、デバイスをペアリングしてください。</translation>
     </message>
     <message>
-        <location line="+7"/>
-        <source>Set up your Arbiter passkey vault first. Its passphrase or biometric verification will also unlock your sync session.</source>
-        <translation>最初にArbiterのパスキー保管庫を設定してください。そのパスフレーズまたは生体認証で同期セッションもロック解除できます。</translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>Set up passkey vault</source>
-        <translation>パスキー保管庫を設定</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>Vault passphrase</source>
-        <translation>保管庫のパスフレーズ</translation>
-    </message>
-    <message>
-        <location line="+9"/>
-        <source>Unlock sync</source>
-        <translation>同期のロックを解除</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>Unlock with %1</source>
-        <translation>%1 でロックを解除します</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>Keep sync unlocked until this computer locks</source>
-        <translation>このコンピューターがロックされるまで同期を解除したままにする</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.</source>
-        <translation>電話のバックグラウンド同期用の任意設定です。このコンピューターがロック解除されている間、ペアリングした端末が同期できます。コンピューターをロックするかArbiterを終了すると、同期は必ずロックされます。</translation>
-    </message>
-    <message>
-        <location line="+6"/>
+        <location line="+32"/>
         <source>Working with your secure vault…</source>
         <translation>安全な保管庫を処理中…</translation>
     </message>
     <message>
+        <location line="-37"/>
+        <source>Enable sync once to share passwords and passkeys between paired devices over local Wi-Fi. Sync starts automatically whenever Arbiter opens and keeps running until you turn it off. No separate vault, passphrase, or cloud account is needed.</source>
+        <translation>同期を一度有効にするだけで、ペアリングしたデバイス間でローカル Wi-Fi 経由でパスワードとパスキーを共有できます。Arbiter を開くと自動的に同期が始まり、無効にするまで継続します。別の保管庫、パスフレーズ、クラウドアカウントは不要です。</translation>
+    </message>
+    <message>
         <location line="+13"/>
-        <source>Sync is unlocked</source>
-        <translation>同期のロックは解除されています</translation>
+        <source>Enter your previous passkey passphrase once to move existing passkeys into your OS-protected credential vault. Passwords do not need to be imported again.</source>
+        <translation>既存のパスキーを OS で保護された保管庫に移すため、以前のパスフレーズを一度だけ入力してください。パスワードの再インポートは不要です。</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Previous passkey passphrase</source>
+        <translation>以前のパスキーのパスフレーズ</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Retry sync</source>
+        <translation>同期を再試行</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Enable sync</source>
+        <translation>同期を有効にする</translation>
+    </message>
+    <message>
+        <location line="+23"/>
+        <source>Sync is enabled</source>
+        <translation>同期は有効です</translation>
     </message>
     <message>
         <location line="+2"/>
-        <source>Lock</source>
-        <translation>ロック</translation>
+        <source>Turn off sync</source>
+        <translation>同期を無効にする</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.</source>
-        <translation>このコンピューターまたは同期をロックするか、Arbiterを終了するまで、このセッションのロック解除を維持します。</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>This session locks after 10 minutes or when your computer locks. Keep Arbiter open on both devices while syncing.</source>
-        <translation>このセッションは10分後、またはコンピュータのロック時にロックされます。同期中は両方のデバイスでArbiterを開いたままにしてください。</translation>
+        <location line="+4"/>
+        <source>Sync continues while Arbiter is open, including when this computer is locked. Sleeping or offline devices reconnect when available. Password filling and passkey sign-in keep their own verification requirements.</source>
+        <translation>Arbiter が開いている間は、コンピュータがロックされていても同期が続きます。スリープ中やオフラインのデバイスは利用可能になると再接続します。パスワードの入力とパスキーでのサインインには、それぞれの認証要件が引き続き適用されます。</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -5395,6 +5495,11 @@
         <translation>このコンピュータにはパスキーが保存されていません</translation>
     </message>
     <message>
+        <location line="+0"/>
+        <source>Verify with your device</source>
+        <translation>デバイスで本人確認</translation>
+    </message>
+    <message>
         <location line="+1"/>
         <source>Verify with %1 or your passphrase</source>
         <translation>%1 またはパスフレーズを使用して確認してください</translation>
@@ -5485,9 +5590,19 @@
         <translation>パスフレーズを 1 回使用して、このセッションの生体認証によるロック解除を有効にします。</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+7"/>
+        <source>Enter your old passphrase once to migrate existing passkeys. Future sign-ins use device verification.</source>
+        <translation>既存のパスキーを移行するため、以前のパスフレーズを一度だけ入力してください。以後のサインインにはデバイス認証を使用します。</translation>
+    </message>
+    <message>
+        <location line="+8"/>
         <source>Arbiter passkey vault passphrase</source>
         <translation>Arbiter パスキー ボールトのパスフレーズ</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Previous passkey passphrase (one time)</source>
+        <translation>以前のパスキーのパスフレーズ（一度のみ）</translation>
     </message>
     <message>
         <location line="+8"/>

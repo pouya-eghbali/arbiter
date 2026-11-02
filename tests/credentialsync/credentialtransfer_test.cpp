@@ -58,7 +58,7 @@ private slots:
         const auto backend=qEnvironmentVariable("ARBITER_TEST_TLS_BACKEND");
         if(!backend.isEmpty()) QVERIFY2(QSslSocket::setActiveBackend(backend),qPrintable("TLS backend unavailable: "+backend));
     }
-    void computerLockCancelsAnInFlightSyncUnlock() {
+    void explicitPauseCancelsAnInFlightSyncUnlock() {
         class DeferredSecrets final : public MemorySecrets {
         public:
             QList<std::function<void()>> waiting;
@@ -70,7 +70,6 @@ private slots:
         PasswordManager passwords(directory.path()+"/passwords","Fixture",&passwordStore);
         PasskeyVault passkeys(&passkeyStore,directory.path()+"/passkeys");passkeys.setup(phrase,phrase);
         CredentialSync sync(&passwords,&passkeys,directory.path()+"/sync",&syncStore,"127.0.0.1");
-        sync.setKeepUnlocked(true);QVERIFY(sync.keepUnlocked());
         sync.unlock(phrase);QTRY_VERIFY(!syncStore.waiting.isEmpty());QVERIFY(sync.busy());
         passkeys.lockSync();QVERIFY(!sync.busy());QVERIFY(!sync.unlocked());
         const auto waiting=syncStore.waiting;syncStore.waiting.clear();for(const auto &callback:waiting)callback();

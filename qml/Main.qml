@@ -1663,45 +1663,38 @@ Basic.ApplicationWindow {
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                         }
-                        UiButton {
-                            text: window.passkeys.configured ? qsTr("Passkey vault is configured") : qsTr("Set up passkey vault…")
+                        Basic.Label {
                             visible: window.passkeys.enabled
-                            enabled: !window.passkeys.configured
-                            onClicked: passkeySetup.open()
+                            text: window.passkeys.needsMigration
+                                ? qsTr("Existing passkeys need a one-time migration. Enter the old passphrase below; future sign-ins use your device authentication.")
+                                : qsTr("Passwords and passkeys use the same automatically created, OS-protected credential vault. Passkey sign-in asks for device verification; there is no separate Arbiter passphrase.")
+                            color: Theme.mutedFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap
+                        }
+                        UiTextField {
+                            id: oldPasskeyPhrase
+                            onVisibleChanged: if (!visible) clear()
+                            visible: window.passkeys.needsMigration
+                            Layout.fillWidth: true; Layout.maximumWidth: 420
+                            echoMode: TextInput.Password
+                            placeholderText: qsTr("Previous passkey passphrase")
+                            enabled: !window.passkeys.busy
+                        }
+                        UiButton {
+                            visible: window.passkeys.needsMigration
+                            text: qsTr("Migrate existing passkeys")
+                            enabled: !window.passkeys.busy && oldPasskeyPhrase.text.length > 0
+                            onClicked: { window.passkeys.migrateLegacy(oldPasskeyPhrase.text); oldPasskeyPhrase.clear() }
                         }
                         Basic.Label {
-                            visible: window.passkeys.enabled && window.passkeys.configured
+                            visible: window.passkeys.enabled
                             text: window.passkeys.biometricStatus
-                            color: Theme.mutedFor(parent)
-                            Layout.fillWidth: true
-                            wrapMode: Text.Wrap
+                            color: Theme.mutedFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap
                         }
                         UiButton {
-                            visible: window.passkeys.enabled && window.passkeys.configured
-                            text: window.passkeys.biometricEnabled ? qsTr("Disable biometric unlocking") : qsTr("Enable %1…").arg(window.passkeys.biometricName)
-                            enabled: !window.passkeys.busy && (window.passkeys.biometricEnabled || window.passkeys.biometricAvailable)
-                            onClicked: {
-                                if (window.passkeys.biometricEnabled) window.passkeys.setBiometricEnabled(false, "")
-                                else biometricSetup.open()
-                            }
-                        }
-                        UiButton {
-                            visible: window.passkeys.enabled && window.passkeys.configured && window.passkeys.biometricNeedsEnrollment
-                            text: qsTr("Enable persistent %1…").arg(window.passkeys.biometricName)
-                            enabled: !window.passkeys.busy && window.passkeys.biometricAvailable
-                            onClicked: biometricSetup.open()
-                        }
-                        Basic.Label {
-                            visible: window.passkeys.enabled && window.passkeys.configured
-                            text: window.passkeys.biometricPersistenceSupported ? qsTr("Enable Touch ID once with your vault passphrase. Each passkey use then asks for Touch ID, even after restarting or switching apps. The passphrase remains your fallback; changing enrolled fingerprints requires enabling Touch ID again.") : qsTr("Biometric unlocking lasts up to 15 minutes while Arbiter stays active. Enter your passphrase once after restarting or leaving the app; each later passkey use still asks for device verification.")
-                            color: Theme.mutedFor(parent)
-                            Layout.fillWidth: true
-                            wrapMode: Text.Wrap
-                        }
-                        RowLayout {
-                            visible: window.passkeys.enabled && window.passkeys.configured
-                            UiButton { text: qsTr("Refresh biometric support"); enabled: !window.passkeys.busy; onClicked: window.passkeys.refreshBiometrics() }
-                            UiButton { text: qsTr("Lock now"); enabled: !window.passkeys.busy && window.passkeys.biometricReady; onClicked: window.passkeys.lockBiometrics() }
+                            visible: window.passkeys.enabled
+                            text: qsTr("Refresh device authentication")
+                            enabled: !window.passkeys.busy
+                            onClicked: window.passkeys.refreshBiometrics()
                         }
                         Basic.Label {
                             visible: window.passkeys.enabled && window.passkeys.error.length > 0

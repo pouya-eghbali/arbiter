@@ -12,7 +12,7 @@ target_link_libraries(credentialsync_test PRIVATE Qt6::Core Qt6::Network Qt6::Te
 add_test(NAME credentialsync COMMAND credentialsync_test)
 
 if(TARGET password_core AND TARGET passkey_core)
-    add_library(credentialsync_application STATIC ../../src/credentialsync.cpp ../../src/credentialsync.h
+    add_library(credentialsync_application STATIC ../../src/credentialstore.cpp ../../src/credentialstore.h ../../src/credentialsync.cpp ../../src/credentialsync.h
         ../../src/credentialsyncserver.cpp ../../src/credentialsyncserver.h ../../src/credentialsyncstate.cpp ../../src/credentialsyncpeer.cpp ../../src/credentialsynccrypto.cpp ../../src/credentialsyncstate.h
         ../../third_party/qrcodegen/qrcodegen.cpp)
     target_include_directories(credentialsync_application PRIVATE ../../src ../../third_party/qrcodegen)
@@ -26,4 +26,11 @@ endif()
 if(TARGET credentialsync_application)
     add_executable(credentialpeer_fixture credentialpeer_fixture.cpp)
     target_link_libraries(credentialpeer_fixture PRIVATE credentialsync_application)
+endif()
+
+if(TARGET credentialsync_application)
+    add_executable(credentialstore_test credentialstore_test.cpp)
+    target_link_libraries(credentialstore_test PRIVATE credentialsync_application Qt6::Widgets Qt6::Test)
+    add_test(NAME credentialstore COMMAND credentialstore_test)
+    set_tests_properties(credentialstore PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

@@ -924,7 +924,7 @@ Controls.ApplicationWindow {
                     Text {
                         textFormat: Text.PlainText
                         visible: window.panel === "pair"
-                        text: qsTr("In Arbiter on desktop, open Settings → Sync, unlock the vault and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.")
+                        text: qsTr("In Arbiter on desktop, open Settings → Sync, enable sync and copy its pairing invitation. Verify the desktop name and certificate fingerprint before pairing.")
                         color: Theme.mutedFor(parent)
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true

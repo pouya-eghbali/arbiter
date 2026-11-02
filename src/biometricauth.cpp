@@ -11,7 +11,7 @@ BiometricAuth::BiometricAuth(QObject *parent) : QObject(parent) {
         if(QGuiApplication::applicationState()==Qt::ApplicationActive) {
             m_focusWait.stop(); complete(m_focusToken,true);
         } else if(m_focusDeadline.hasExpired()) {
-            m_focusWait.stop(); complete(m_focusToken,false,tr("Return to Arbiter and use your vault passphrase or try again."));
+            m_focusWait.stop(); complete(m_focusToken,false,tr("Return to Arbiter and try device verification again."));
         }
     });
 }
@@ -23,7 +23,7 @@ void BiometricAuth::authenticate(const QString &reason, Callback callback) {
     if(foregroundRequired() && QGuiApplication::applicationState()!=Qt::ApplicationActive) {
         callback(false,tr("Focus the browser window and try again.")); return;
     }
-    if (!available() || busy()) { callback(false,tr("Biometric verification is unavailable. Use your vault passphrase.")); return; }
+    if (!available() || busy()) { callback(false,tr("Device verification is unavailable. Check your system authentication settings.")); return; }
     m_callback=std::move(callback); ++m_token; m_timeout.start(); emit changed();
     startNative(reason,m_token);
 }
@@ -44,5 +44,5 @@ void BiometricAuth::cancel() {
     if(!busy()) return;
     const auto token=m_token;
     cancelNative();
-    complete(token,false,tr("Biometric verification was cancelled or timed out. Use your vault passphrase or try again."));
+    complete(token,false,tr("Device verification was cancelled or timed out. Try again."));
 }

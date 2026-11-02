@@ -92,7 +92,7 @@ Item {
                     objectName: "localPasskeyChoice"
                     Layout.fillWidth: true; visible: panel.passkeys.localAvailable
                     text: qsTr("Arbiter passkey"); iconName: "user"; prominent: true
-                    subtitle: !panel.passkeys.configured ? panel.passkeys.registration ? qsTr("Set up on this computer") : qsTr("No passkeys saved on this computer")
+                    subtitle: panel.passkeys.automaticVault ? qsTr("Verify with your device") : !panel.passkeys.configured ? panel.passkeys.registration ? qsTr("Set up on this computer") : qsTr("No passkeys saved on this computer")
                         : panel.passkeys.biometricReady ? qsTr("Verify with %1 or your passphrase").arg(panel.passkeys.biometricName) : qsTr("Verify vault passphrase")
                     enabled: !panel.passkeys.busy && (panel.passkeys.configured || panel.passkeys.registration)
                     onClicked: panel.passkeys.useLocal()
@@ -168,7 +168,7 @@ Item {
             }
 
             UiButton {
-                visible: panel.passkeys.verifying && panel.passkeys.biometricEnabled && panel.passkeys.biometricAvailable
+                visible: !panel.passkeys.automaticVault && panel.passkeys.verifying && panel.passkeys.biometricEnabled && panel.passkeys.biometricAvailable
                 text: qsTr("Use %1").arg(panel.passkeys.biometricName)
                 objectName: "verifyBiometricButton"
                 primary: true
@@ -177,7 +177,7 @@ Item {
                 onClicked: panel.passkeys.verifyBiometric(localAccount.currentIndex)
             }
             Basic.Label {
-                visible: panel.passkeys.verifying && panel.passkeys.biometricEnabled
+                visible: !panel.passkeys.automaticVault && !panel.passkeys.needsMigration && panel.passkeys.verifying && panel.passkeys.biometricEnabled
                 text: panel.passkeys.biometricNeedsEnrollment ? qsTr("Enable persistent Touch ID in Settings using your vault passphrase once.") : panel.passkeys.busy ? panel.passkeys.biometricStatus : panel.passkeys.biometricReady
                     ? qsTr("Or use your vault passphrase below.")
                     : qsTr("Use your passphrase once to enable biometric unlocking for this session.")
@@ -185,12 +185,17 @@ Item {
                 wrapMode: Text.Wrap
                 color: Theme.mutedFor(parent)
             }
+            Basic.Label {
+                visible: panel.passkeys.verifying && panel.passkeys.needsMigration
+                text: qsTr("Enter your old passphrase once to migrate existing passkeys. Future sign-ins use device verification.")
+                Layout.fillWidth: true; wrapMode: Text.Wrap; color: Theme.mutedFor(parent)
+            }
             UiTextField {
                 id: vaultPhrase
                 objectName: "passkeyVaultPhrase"
-                visible: panel.passkeys.verifying && panel.passkeys.configured && (panel.passkeys.registration || panel.passkeys.accounts.length > 0)
+                visible: !panel.passkeys.automaticVault && panel.passkeys.verifying && panel.passkeys.configured && (panel.passkeys.registration || panel.passkeys.accounts.length > 0)
                 echoMode: TextInput.Password
-                placeholderText: qsTr("Arbiter passkey vault passphrase")
+                placeholderText: panel.passkeys.needsMigration ? qsTr("Previous passkey passphrase (one time)") : qsTr("Arbiter passkey vault passphrase")
                 Accessible.name: placeholderText
                 Layout.fillWidth: true
                 enabled: !panel.passkeys.busy
@@ -207,7 +212,7 @@ Item {
                 visible: panel.passkeys.verifying && panel.passkeys.configured
                 text: panel.passkeys.registration ? qsTr("Create passkey in Arbiter") : qsTr("Sign in with Arbiter")
                 objectName: "verifyPassphraseButton"
-                enabled: !panel.passkeys.busy && vaultPhrase.text.length > 0
+                enabled: !panel.passkeys.busy && (panel.passkeys.automaticVault || vaultPhrase.text.length > 0)
                     && (panel.passkeys.registration || localAccount.currentIndex >= 0)
                 onClicked: panel.passkeys.verify(localAccount.currentIndex, vaultPhrase.text)
             }

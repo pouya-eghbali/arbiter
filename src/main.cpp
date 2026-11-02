@@ -25,6 +25,7 @@
 #include "siteaudio.h"
 #include "sitepermissions.h"
 #include "passwordmanager.h"
+#include "credentialstore.h"
 #include "webauthncontroller.h"
 #include "passkeycontroller.h"
 #include "credentialsync.h"
@@ -422,12 +423,19 @@ int main(int argc, char *argv[])
     SitePermissionSettings sitePermissionSettings;
     webProfiles.profileCreated=[&sitePermissionSettings,&downloads](QQuickWebEngineProfile *profile) { sitePermissionSettings.trackProfile(profile); downloads.trackProfile(profile); };
     History history;
-    PasswordManager passwords;
+    const auto profileRoot=QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    KeychainSecretStore credentialKeys(nullptr,QStringLiteral("Arbiter Credentials"));
+    KeychainSecretStore legacyPasswords;
+    KeychainSecretStore legacyPasskeys(nullptr,QStringLiteral("Arbiter Passkeys"));
+    KeychainSecretStore legacySync(nullptr,QStringLiteral("Arbiter Sync"));
+    CredentialStore credentialStore(profileRoot+QStringLiteral("/credentials/Default"),&credentialKeys,
+        &legacyPasswords,&legacyPasskeys,&legacySync);
+    PasswordManager passwords(profileRoot+QStringLiteral("/passwords/Default"),QStringLiteral("Default"),&credentialStore);
     BrowserImporter importer(&passwords,&history);
     BrowserImportSelection importSelection(&importer);
     WebAuthnController webauthn;
-    PasskeyController passkeys;
-    CredentialSync credentialSync(&passwords,passkeys.vaultForSync());
+    PasskeyController passkeys(&credentialStore,profileRoot+QStringLiteral("/passkeys/Default"),nullptr);
+    CredentialSync credentialSync(&passwords,passkeys.vaultForSync(),profileRoot+QStringLiteral("/sync"),&credentialStore,{});
     auto *passwordBiometrics=createBiometricAuth(&passwords);
     const auto updatePasswordBiometrics=[&passwords,passwordBiometrics] {
         passwords.setUserVerification(passwordBiometrics->name(),passwordBiometrics->available(),

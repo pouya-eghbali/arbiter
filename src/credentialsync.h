@@ -17,7 +17,7 @@ class CredentialSync final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool unlocked READ unlocked NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
-    Q_PROPERTY(bool keepUnlocked READ keepUnlocked WRITE setKeepUnlocked NOTIFY changed)
+    Q_PROPERTY(bool enabled READ enabled NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(QString pairingImage READ pairingImage NOTIFY changed)
     Q_PROPERTY(QString pairingCode READ pairingCode NOTIFY changed)
@@ -34,8 +34,8 @@ public:
     ~CredentialSync() override { lock(); }
     bool unlocked() const { return m_key.present() && m_passkeysReady(); }
     bool busy() const { return m_busy; }
-    bool keepUnlocked() const { return m_keepUnlocked; }
-    void setKeepUnlocked(bool enabled);
+    bool enabled() const { return m_enabled; }
+    Q_INVOKABLE void setEnabled(bool enabled, const QString &legacyPassphrase = {});
     QString error() const { return m_error; }
     QString pairingImage() const { return m_qr; }
     QString pairingCode() const { return m_code; }
@@ -73,7 +73,9 @@ private:
     void finish(const QString &error={});
     void loadIdentity(Done callback);
     bool save();
-    void refresh(Done callback);
+    void refresh(Done callback, bool authorizeExisting = false);
+    void resume();
+    bool persistEnabled(bool enabled);
     void apply(Done callback);
     void syncNext(QStringList peers,QStringList errors);
     void request(const QString &path,const QByteArray &token,const QByteArray &body,CredentialSyncServer::Reply reply);
@@ -91,6 +93,6 @@ private:
     QTimer m_poll;
     QJsonObject m_document,m_current,m_pending;
     ArbiterSync::State m_state;
-    bool m_busy=false,m_keepUnlocked=false,m_persistSettings=false,m_locking=false;
+    bool m_busy=false,m_locking=false,m_enabled=false,m_resuming=false,m_enrolling=false;
     quint64 m_epoch=0;
 };

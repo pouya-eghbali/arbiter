@@ -9,7 +9,6 @@
 #include "passkeyvault.h"
 #include "passkeycrypto.h"
 #include "qrcodegen.hpp"
-#include "settings.h"
 #include <QBuffer>
 #include <QCryptographicHash>
 #include <QDir>
@@ -35,17 +34,27 @@ QString identifier(const QJsonObject &data) {
 }
 bool equalToken(const QByteArray &a,const QByteArray &b) { return a.size()==32 && b.size()==32 && CRYPTO_memcmp(a.constData(),b.constData(),32)==0; }
 QString uuid() { return QUuid::createUuid().toString(QUuid::WithoutBraces); }
+QString localEndpoint(quint16 port,const QString &loopback) {
+    if(!loopback.isEmpty() && QHostAddress(loopback).isLoopback()) return "https://"+loopback+":"+QString::number(port);
+    QStringList addresses;
+    for(const auto &address:QNetworkInterface::allAddresses())
+        if(address.protocol()==QAbstractSocket::IPv4Protocol && !address.isLoopback() && CredentialSyncServer::localAddress(address)) addresses.append(address.toString());
+    std::sort(addresses.begin(),addresses.end(),[](const QString &a,const QString &b) {
+        return a.startsWith("192.168.")!=b.startsWith("192.168.") ? a.startsWith("192.168.") : a<b;
+    });
+    return addresses.isEmpty() ? QString() : "https://"+addresses.first()+":"+QString::number(port);
+}
+
 }
 CredentialSync::CredentialSync(PasswordManager *passwords,PasskeyVault *passkeys,QObject *parent)
-    :CredentialSync(passwords,passkeys,QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+QStringLiteral("/sync"),nullptr,{},parent) {
-    m_persistSettings=true;setKeepUnlocked(Settings().value("Sync/keepUnlocked",false).toBool());
-}
+    :CredentialSync(passwords,passkeys,QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+QStringLiteral("/sync"),nullptr,{},parent) {}
 CredentialSync::CredentialSync(PasswordManager *passwords,PasskeyVault *passkeys,const QString &directory,
                                SecretStore *store,const QString &loopbackAddress,QObject *parent)
     :QObject(parent),m_passwords(passwords),m_passkeys(passkeys),m_defaultStore(this,QStringLiteral("Arbiter Sync")),
      m_store(store ? store : &m_defaultStore),m_loopbackAddress(loopbackAddress),m_server(this),m_directory(directory) {
     m_poll.setSingleShot(true);
     connect(&m_poll,&QTimer::timeout,this,[this] {
+        if(m_enabled && !unlocked() && !m_busy) resume();
         if (unlocked() && !m_busy && !m_document.value("connections").toObject().isEmpty()) sync();
         m_poll.start(20000 + QRandomGenerator::global()->bounded(15000));
     });
@@ -57,6 +66,12 @@ CredentialSync::CredentialSync(PasswordManager *passwords,PasskeyVault *passkeys
         if(m_key.present() && !m_passkeysReady()) lock();
         emit changed();
     });
+    if(m_store->automaticProtection()) {
+        QFile preference(m_directory+"/enabled");
+        m_enabled=preference.open(QIODevice::ReadOnly) && preference.readAll()=="1";
+        if(m_enabled) QTimer::singleShot(0,this,[this]{resume();});
+    }
+
 }
 bool CredentialSync::m_passkeysReady() const { return m_passkeys->syncReady(); }
 QVariantList CredentialSync::devices() const {
@@ -89,34 +104,34 @@ QVariantList CredentialSync::conflictChoices() const {
     }
     return choices;
 }
-void CredentialSync::setKeepUnlocked(bool enabled) {
-    if(m_keepUnlocked==enabled) {m_passkeys->setSyncStayUnlocked(enabled);return;}
-    m_keepUnlocked=enabled;
-    if(m_persistSettings) Settings().setValue("Sync/keepUnlocked",enabled);
-    m_passkeys->setSyncStayUnlocked(enabled);emit changed();
-}
 void CredentialSync::finish(const QString &error) { m_busy=false; m_error=error; emit changed(); }
 void CredentialSync::unlock(const QString &phrase,bool biometric) {
     if(m_busy) return;
     m_busy=true; m_error.clear(); emit changed(); const auto epoch=++m_epoch;
-    m_passkeys->unlockForSync(phrase,biometric,protect([this,epoch](const QString &error,const QJsonArray &) {
+    const bool authorizeExisting=!m_resuming;
+    m_passkeys->unlockForSync(phrase,biometric,protect([this,epoch,authorizeExisting](const QString &error,const QJsonArray &) {
         if(epoch!=m_epoch) return;
-        if(!error.isEmpty()) { finish(error); return; }
-        loadIdentity(protect([this,epoch](const QString &error) {
+        if(!error.isEmpty()) { m_enrolling=false; finish(error); return; }
+        loadIdentity(protect([this,epoch,authorizeExisting](const QString &error) {
             if(epoch!=m_epoch) return;
             if(!error.isEmpty()) { lock(); finish(error); return; }
             refresh(protect([this,epoch](const QString &error) {
                 if(epoch!=m_epoch) return;
                 if(!error.isEmpty()) { lock(); finish(error); return; }
+                if(m_enrolling) {
+                    m_enrolling=false;
+                    if(!persistEnabled(true)) { lock(); finish(tr("Could not save the sync preference.")); return; }
+                    m_enabled=true;
+                }
                 finish();
-            }));
+            }),authorizeExisting);
         }));
     }));
 }
 void CredentialSync::lock() {
     if(m_locking) return;
     m_locking=true;
-    ++m_epoch; m_busy=false; m_pending={};
+    ++m_epoch; m_busy=false; m_pending={}; m_enrolling=false;
     for(auto reply:findChildren<QNetworkReply *>()) reply->abort();
     cancelPairing(); m_key.clear(); m_server.stop();
     m_state={}; m_document={}; m_current={}; m_address.clear(); m_passkeys->lockSync(); m_locking=false; emit changed();
@@ -175,13 +190,7 @@ void CredentialSync::loadIdentity(Done callback) {
                 callback(tr("Could not listen for local sync: %1").arg(m_server.error())); return;
             }
             m_document.insert("port",m_server.port());
-            QStringList addresses;
-            for(const auto &address:QNetworkInterface::allAddresses()) if(address.protocol()==QAbstractSocket::IPv4Protocol && !address.isLoopback() && CredentialSyncServer::localAddress(address)) addresses.append(address.toString());
-            if(!m_loopbackAddress.isEmpty() && QHostAddress(m_loopbackAddress).isLoopback()) addresses.prepend(m_loopbackAddress);
-            if(addresses.isEmpty()) { callback(tr("Connect this computer to a local Wi-Fi or Ethernet network before pairing.")); return; }
-            std::sort(addresses.begin(),addresses.end(),[](const QString &a,const QString &b) { return a.startsWith("192.168.")!=b.startsWith("192.168.") ? a.startsWith("192.168.") : a<b; });
-            if(!m_loopbackAddress.isEmpty() && QHostAddress(m_loopbackAddress).isLoopback()) addresses.prepend(m_loopbackAddress);
-            m_address="https://"+addresses.first()+":"+QString::number(m_server.port());
+            m_address=localEndpoint(m_server.port(),m_loopbackAddress);
             callback({});
         }));
     }));
@@ -194,8 +203,10 @@ bool CredentialSync::save() {
     QSaveFile file(m_directory+"/state-v1.enc");
     return file.open(QIODevice::WriteOnly) && file.setPermissions(QFile::ReadOwner|QFile::WriteOwner) && file.write(sealed)==sealed.size() && file.commit();
 }
-void CredentialSync::refresh(Done callback) {
-    m_passkeys->exportForSync(protect([this,callback](const QString &error,const QJsonArray &keys) {
+void CredentialSync::refresh(Done callback, bool authorizeExisting) {
+    const auto epoch=m_epoch; const QPointer<CredentialSync> self(this);
+    const auto current=[self,epoch] { return self && self->m_epoch==epoch && self->unlocked(); };
+    m_passkeys->exportForSync(protect([this,callback,authorizeExisting,current](const QString &error,const QJsonArray &keys) {
         if(!error.isEmpty()) { callback(error); return; }
         m_passwords->exportAfterVerification(protect([this,keys,callback](const QString &error,const QJsonArray &passwords) {
             if(!error.isEmpty()) { callback(error); return; }
@@ -217,8 +228,8 @@ void CredentialSync::refresh(Done callback) {
             const auto previous=m_state; const auto oldDocument=m_document; m_state=candidate; m_document.insert("baseline",current);
             if(!save()) { m_state=previous; m_document=oldDocument; callback(tr("Could not save encrypted sync changes.")); return; }
             m_current=current; callback({});
-        }));
-    }));
+        }),authorizeExisting,current);
+    }),authorizeExisting);
 }
 QByteArray CredentialSync::payload(const QJsonObject &data) const {
     auto key=decode(m_document.value("transportKey")); const auto bytes=ArbiterSync::seal(QJsonDocument(data).toJson(QJsonDocument::Compact),key,"ArbiterSync/v1/"+m_document.value("vaultId").toString().toUtf8());
@@ -228,6 +239,8 @@ void CredentialSync::copyPairingCode() { if (!m_code.isEmpty() && QGuiApplicatio
 void CredentialSync::cancelPairing() { m_pairExpiry.stop(); m_pairCode.clear(); m_code.clear(); m_qr.clear(); emit changed(); }
 void CredentialSync::pair() {
     if(!unlocked() || m_busy) return;
+    m_address=localEndpoint(m_server.port(),m_loopbackAddress);
+    if(m_address.isEmpty()) { finish(tr("Connect this computer to a local Wi-Fi or Ethernet network before pairing.")); return; }
     m_pairCode=PasskeyCrypto::random(32); m_pairExpiry.start();
     const auto pin=QString::fromLatin1(QSslCertificate(m_certificate).digest(QCryptographicHash::Sha256).toHex());
     auto key=decode(m_document.value("transportKey"));
@@ -435,4 +448,33 @@ void CredentialSync::apply(Done callback) {
         } else done(tr("Unsupported credential type."));
     });
     (*step)(0);
+}
+
+bool CredentialSync::persistEnabled(bool enabled) {
+    if(!QDir().mkpath(m_directory)) return false;
+    QSaveFile preference(m_directory+"/enabled");
+    return preference.open(QIODevice::WriteOnly) && preference.setPermissions(QFile::ReadOwner|QFile::WriteOwner)
+        && preference.write(enabled ? "1" : "0")==1 && preference.commit();
+}
+void CredentialSync::setEnabled(bool enabled,const QString &phrase) {
+    if(!m_store->automaticProtection()) return;
+    if(!enabled) {
+        if(!persistEnabled(false)) { finish(tr("Could not save the sync preference.")); return; }
+        m_enabled=false; lock(); return;
+    }
+    if(m_busy) return;
+    ++m_epoch; m_busy=true; m_error.clear(); emit changed();
+    m_passwords->verifyForSync(protect([this,phrase](bool ok,const QString &error) {
+        if(!ok) { finish(error); return; }
+        m_enrolling=true; m_busy=false; unlock(phrase);
+    }));
+}
+void CredentialSync::resume() {
+    if(!m_enabled || m_busy || m_passkeys->busy() || m_passkeys->needsMigration()) return;
+    m_busy=true;
+    // Use the platform quiet-read path before automatic startup/poll access.
+    m_store->readOptionalSilently("credential-startup-probe",protect([this](const QString &error,const QByteArray &) {
+        if(!error.isEmpty()) { finish(error); return; }
+        m_busy=false; m_resuming=true; unlock({}); m_resuming=false;
+    }));
 }

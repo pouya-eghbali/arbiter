@@ -50,123 +50,52 @@ These Windows changes still require native Windows validation.
 
 ## Local passkeys
 
-Settings offers vault setup in patched builds. The user chooses a passphrase of
-at least 12 Unicode characters. Each creation/assertion verifies that passphrase,
-or uses fresh device verification. Supported, properly provisioned macOS builds
-can retain biometric unlocking across sessions; other backends use a short-lived
-biometric session.
-The OS credential store alone is not treated as user verification. A confirmation
-click alone never sets the UV flag.
+Desktop passwords and passkeys share the automatically created `CredentialStore`
+for the browser profile. It encrypts the credential records with AES-256-GCM and
+keeps only a random master key in the OS credential store. No Arbiter passphrase
+or separate vault setup is required for new users. Native device verification
+is required before creating or using a passkey. macOS prefers Touch ID and offers
+the system password; Windows uses Windows Hello. Linux currently requires an
+available enrolled fprintd authenticator for this verification. Unavailable or
+cancelled verification fails closed; an unlocked sync session cannot authorize a
+website challenge.
 
-- OpenSSL 3 generates P-256 keys and produces DER-encoded ECDSA/SHA-256 signatures
-  (COSE ES256, algorithm -7). No custom cryptographic primitives are implemented.
-- A random 32-byte salt and PBKDF2-HMAC-SHA-256 with 600,000 iterations derive the
-  vault encryption key. AES-256-GCM protects the verification record and each
-  private credential, with fresh random nonces and vault/credential identities
-  bound as authenticated context. Verification failures have an in-process
-  exponential backoff. The work factor also applies to offline guessing.
-- QtKeychain stores the protected verification record and private credentials
-  under the `Arbiter Passkeys` service.
-  Plaintext fallback is disabled. Each namespaced item is at most 2,560 bytes,
-  matching the Windows credential-store backend's limit.
-- An owner-only atomic CBOR catalog under `passkeys/Default` contains public
-  credential IDs, RP IDs, user handles and account names. It is not encrypted.
-  The encrypted record repeats this metadata; modified catalog entries cannot
-  redirect a private key to another RP/account. A lock prevents concurrent
-  writers. Identities are reserved before OS-store writes; interrupted setup
-  cannot silently replace an existing vault.
-- Credentials are discoverable, with zero AAGUID, `none` attestation and a constant
-  zero signature counter. New credentials are backup-eligible for optional local
-  encrypted sync; legacy non-eligible credentials retain their original flag.
-  There is no claim of hardware protection, enterprise attestation, PRF,
-  large-blob support or credential management protocol support.
-- Allow/exclusion lists, user-handle bounds and ES256 negotiation are enforced.
-  Accounts are selected by credential ID, including accounts with equal names.
+The existing passphrase format remains readable for migration. Entering the old
+passphrase once saves its encryption key into the shared OS-protected store,
+retaining credential IDs, signing keys, RP/user binding, and backup eligibility.
+Existing persistent biometric enrollment can also supply the legacy key. Source
+records remain intact until their authenticated copies are committed. A missing
+master key, invalid catalog, or failed decryption never creates a replacement
+over existing credentials. The old PBKDF2 passphrase path is retained for legacy
+profiles and regression tests, not offered as new-user setup.
 
-Optional encrypted local mobile sync and credential removal are described in
-[credential-sync.md](credential-sync.md). There is no passphrase recovery or
-general-purpose passkey export/import file UI. Losing the profile catalog, system-store entries or vault passphrase
-can make local passkeys unavailable. The setup UI explains this. Sites that
-require other algorithms or hardware/enterprise attestation need another
-authenticator. Interrupted registration can leave an unused local credential.
+OpenSSL generates P-256 keys and DER ECDSA/SHA-256 signatures (COSE ES256). Private
+records retain authenticated vault/credential identities. No private material is
+published to QML, JavaScript, or the renderer. The provider still validates the
+website's RP, user, credential descriptors, ES256 support, and cancellation epoch.
+Native verification, focus checks, and navigation cancellation remain separate
+from OS keyring access and background sync.
 
-The user-verification and authenticator-data model follows
-[WebAuthn](https://www.w3.org/TR/webauthn-3/); the PBKDF2 work factor follows
-[OWASP's guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+## Device verification and legacy biometric enrollment
 
-## Biometric session unlocking
+Normal passkey operations use fresh native verification: LocalAuthentication's
+`deviceOwnerAuthentication` on macOS (Touch ID first, system password fallback),
+Windows Hello on Windows, and enrolled fprintd matching on Linux. Foreground and
+request-epoch checks reject cancelled, replaced, or background requests. Verification
+failures leave the challenge open for retry and never return a signature.
 
-This is optional convenience unlocking for **Arbiter's own passkeys**; it does not
-provide access to Apple Passwords or replace the phone QR flow. Enable it in
-Settings → Passkeys using the vault passphrase and a fresh device verification.
-Existing vaults keep their encrypted header/private records and gain only an
-optional boolean in the public catalog; no vault migration/re-encryption is needed.
-
-- macOS uses a new `LAContext` for each attempt, the biometric-only policy and
-  zero Touch ID reuse. [Apple's LocalAuthentication API](https://developer.apple.com/documentation/LocalAuthentication/LAContext/evaluatePolicy%28_%3AlocalizedReason%3Areply%3A%29)
-  performs verification; there is no Apple browser entitlement or Passwords access.
-- Windows uses HWND-owned `IUserConsentVerifierInterop` and accepts only
-  `UserConsentVerificationResult::Verified`. This is Windows Hello verification,
-  which can include a Hello PIN as well as biometrics. The desktop interop API
-  requires Windows 11 / build 22000 or newer; older/unconfigured systems retain
-  the passphrase path. Builds use MSVC/C++/WinRT, a Windows 11 SDK, Qt Concurrent
-  and `windowsapp`. See [Microsoft's desktop API](https://learn.microsoft.com/en-us/windows/win32/api/userconsentverifierinterop/nf-userconsentverifierinterop-iuserconsentverifierinterop-requestverificationforwindowasync).
-- Linux uses the system D-Bus fprintd service for the current caller: discover a
-  reader, check enrollment, claim it, start verification, accept only `verify-match`,
-  then stop/release it. Attempts have separate signal receivers/tokens, and reader
-  cleanup finishes before another attempt starts. Configure a compatible reader,
-  enroll fingerprints and use the desktop's normal fprintd/PolicyKit policy.
-  Arbiter does not install or change system authentication policies. See the
-  [fprintd device API](https://fprint.freedesktop.org/fprintd-dev/Device.html).
-
-On macOS, a properly signed and provisioned app can enable persistent Touch ID
-once using the vault passphrase and a biometric check. It stores the 32-byte
-vault unlock key in an app-isolated Data Protection Keychain item with
+The earlier persistent macOS biometric enrollment remains readable only as a
+migration source. Its Data Protection Keychain item uses
 `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` and
-`kSecAccessControlBiometryCurrentSet`. The Keychain releases it only after fresh
-native biometric authorization; there is no separate preliminary Touch ID prompt.
-It is not synchronized to iCloud or exported by Arbiter credential sync. The
-passphrase is never saved. Changing enrolled fingerprints invalidates access to
-the protected item, so the user must use the passphrase and enroll again.
+`kSecAccessControlBiometryCurrentSet`. Successfully unlocking that existing item
+can migrate the legacy root without retyping its passphrase. The old per-session
+biometric cache is likewise retained only for old-format profiles/tests.
 
-Restarting, switching apps, screen locking, and the in-memory cache timeout do
-not remove that protected item. They still cancel pending authorization and clear
-transient keys. Every operation rechecks the encrypted vault verifier with the
-key returned by Keychain before signing. Disabling biometric unlocking deletes
-the protected item. Existing session-based enrollments require a one-time upgrade
-in Settings; no password or passkey records are rewritten or made less protected.
-
-The release packager discovers a matching Developer ID provisioning profile in
-Xcode's profile directory, or accepts `ARBITER_MACOS_PROVISIONING_PROFILE`. It
-validates the app identity, Keychain group, certificate, expiry, macOS platform and
-all-device distribution scope before embedding the profile and adding restricted
-entitlements. Without a matching profile, builds retain the session fallback;
-adding these entitlements alone would make macOS reject the app at launch.
-
-Windows, Linux, and unprovisioned macOS builds retain the locked-memory session
-(`mlock`/`VirtualLock`, with dump exclusion where supported). The session expires
-15 minutes after passphrase verification and is wiped on inactivity, screen lock,
-sleep, shutdown, or Lock now. These platforms do not persist an unprotected unlock
-key in their ordinary credential store. Fresh device verification remains required
-for each operation. The desktop passphrase remains an independent fallback on all
-platforms.
-
-A native verification dialog may temporarily take focus; authorization is delivered
-only when Arbiter is active again. These protections do not defend against a
-compromised browser process.
-
-Cancellation, timeout, navigation, workspace changes and replaced WebAuthn requests
-invalidate in-flight results. Failed/dismissed biometric prompts keep the current
-WebAuthn challenge open for the passphrase fallback. Verification never generates
-WebAuthn output after cancellation. Headless tests inject a verifier and in-memory
-secret store; the production backend never uses those implementations.
-
-The macOS app builds and passes simulated-verifier browser enrollment,
-registration/assertion and fallback tests. Native capability detection and the
-Linux backend's disconnected-D-Bus path have been exercised locally. Real Touch ID,
-Windows Hello and Linux fingerprint matching still require hardware validation;
-Windows builds/runtime validation remain pending. The existing desktop CI matrix
-also compiles/probes the native platform backend without prompting for biometrics.
+The release packager continues validating any embedded Developer ID provisioning
+profile before adding restricted Keychain entitlements. The new shared-store flow
+does not require those biometric-item entitlements. Mobile already uses one
+OS-protected credential store with native device verification and has no separate
+passkey setup passphrase.
 
 ## Phone QR transport
 

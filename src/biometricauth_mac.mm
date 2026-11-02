@@ -35,8 +35,8 @@ public:
         if(busy()) return;
         LAContext *context=[LAContext new];
         NSError *error=nil;
-        const bool supported=[context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error];
-        availability(supported,supported ? BiometricAuth::tr("Touch ID is available.") : BiometricAuth::tr("Touch ID is unavailable. Enroll a fingerprint in macOS settings, or use your vault passphrase."));
+        const bool supported=[context canEvaluatePolicy:LAPolicyDeviceOwnerAuthentication error:&error];
+        availability(supported,supported ? BiometricAuth::tr("Touch ID or your macOS login password can verify your identity.") : BiometricAuth::tr("Device verification is unavailable. Check your macOS login settings."));
     }
     bool persistentKeysSupported() const override {
         SecTaskRef task = SecTaskCreateFromSelf(kCFAllocatorDefault);
@@ -89,12 +89,11 @@ private:
 protected:
     void startNative(const QString &reason, quint64 token) override {
         m_context=[LAContext new];
-        m_context.localizedFallbackTitle=@"";
         m_context.touchIDAuthenticationAllowableReuseDuration=0;
         NSError *error=nil;
-        if(![m_context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
+        if(![m_context canEvaluatePolicy:LAPolicyDeviceOwnerAuthentication error:&error]) {
             m_context=nil;
-            complete(token,false,BiometricAuth::tr("Touch ID is unavailable or locked out. Use your vault passphrase.")); return;
+            complete(token,false,BiometricAuth::tr("Device authentication is unavailable. Check your macOS login settings.")); return;
         }
         QPointer<MacBiometricAuth> self(this);
         if (!m_readId.isEmpty()) {
@@ -124,12 +123,12 @@ protected:
             });
             return;
         }
-        [m_context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
+        [m_context evaluatePolicy:LAPolicyDeviceOwnerAuthentication
             localizedReason:reason.toNSString() reply:^(BOOL success,NSError *) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if(!self || !self->current(token)) return;
                     self->m_context=nil;
-                    self->complete(token,success,success ? QString() : BiometricAuth::tr("Touch ID did not verify. Use your vault passphrase or try again."));
+                    self->complete(token,success,success ? QString() : BiometricAuth::tr("Device verification was cancelled or failed. Try again."));
                 });
             }];
     }

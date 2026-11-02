@@ -16,7 +16,7 @@ Device names also travel with the versioned state so conflicts remain readable
 when changes arrive through a shared peer. This directory is display metadata,
 not an authorization or membership list; the device page lists direct connections.
 
-On computer A, unlock Sync and choose **Add a device**. For another computer,
+On computer A, enable Sync and choose **Add a device**. For another computer,
 copy the pairing code and paste it into computer B's Sync settings, review the
 device and certificate fingerprint, then connect. On a phone, scan A's code;
 **Add another computer** adds B without replacing A. Existing single-computer
@@ -26,7 +26,7 @@ works without a phone. Phones initiate connections rather than hosting a LAN
 server. Devices need a connected path over time, not simultaneous availability
 of every device. No internet relay or automatic membership/key sharing is used.
 
-Desktop polls outgoing connections while sync is unlocked; mobile polls in the
+Desktop polls outgoing connections while sync is enabled; mobile polls in the
 foreground and can use OS-scheduled background jobs. A failed/offline connection
 does not stop the other connections in a batch. The device list shows the last
 successful exchange and whether local state is waiting to be acknowledged.
@@ -54,22 +54,33 @@ self-signed; trust comes from the out-of-band QR, not ambient certificate roots.
 Each device receives a random revocable bearer token. TLS protects the exchange;
 AES-256-GCM also authenticates record envelopes with a fresh 12-byte nonce, 16-byte
 tag and `ArbiterSync/v1/<vaultId>` additional authenticated data. Maximum payload
-size is 16 MiB. At-rest keys are distinct from the wire key. The desktop's separate
-master key and TLS private key are stored through QtKeychain. Mobile stores its
+size is 16 MiB. At-rest keys are distinct from the wire key. The desktop's replica encryption key and TLS private key live inside the shared
+credential store, whose master key is held by the OS keyring. Mobile stores its
 local AES key in the OS credential facility (iOS device-only unlocked Keychain;
 Android Keystore wrapping). Credential files and pairing tokens are encrypted.
 A revoked peer's knowledge of the wire key does not expose the desktop state file.
 Previously received credentials cannot be remotely erased.
 
-The desktop requires passphrase/biometric vault verification before serving and
-locks on OS session lock or after ten minutes by default. An explicit desktop
-setting can keep a sync session alive until computer/manual lock or application
-exit so that phone background jobs can reach it. That opt-in never bypasses the
-initial passphrase/biometric verification or an OS session lock. Mobile's foreground sync may access
-the local encryption key while the credential list is locked, following explicit
-pairing consent. Listing/filling credentials and signing passkey challenges require
-fresh native device authentication. This is an application verification boundary,
-not protection against a compromised OS or a modified Arbiter executable.
+Desktop passwords, passkeys, and pairing secrets share `CredentialStore`, an
+AES-256-GCM encrypted file per profile. A random master key is kept in the OS
+credential store; there is no user-created sync vault or new passphrase. Enable
+sync once, confirm device identity when supported, and pair devices. The opt-in
+survives restarts. Screen locking clears foreground verification without disabling
+sync or discarding its running keys. Quitting clears in-memory keys; reopening
+resumes automatically through the OS credential store. If the OS refuses access,
+on macOS automatic retries use noninteractive Keychain reads rather than opening authorization dialogs. Turning off sync preserves
+credentials and pairings and persists the disabled preference.
+
+Older password/passkey/transport records are copied into the shared store on
+first authorized access. Originals are retained as migration backups; tombstones
+prevent deleted records from being reimported. Explicit deletion also removes the retained legacy source. Legacy passphrase-protected
+passkeys need the old passphrase once (or their existing biometric enrollment)
+to retain the same key. New passkeys need no setup. The UI never uses a cached
+sync authorization as permission to sign a website's challenge: passkey use
+requires fresh native verification, and password filling keeps its configurable
+verification cooldown. Mobile already stores both credential types together and
+keeps foreground verification separate from sync. This protects access through
+Arbiter, not against a compromised OS or modified application.
 
 ## Records and conflicts
 

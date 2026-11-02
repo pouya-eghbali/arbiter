@@ -31,6 +31,7 @@ include(cmake/QtKeychain.cmake)
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 
 qt_add_executable(arbiter src/downloads.cpp src/downloads.h src/downloadfileactions.cpp src/downloadfileactions.h src/crxpackage.cpp src/crxpackage.h src/webstoreinstall.cpp src/webstoreinstall.h src/extensioncatalog.cpp src/extensioncatalog.h src/browserimportselection.cpp src/browserimportselection.h src/browsericons.cpp src/browsericons.h src/browserinstance.cpp src/browserinstance.h src/onboarding.cpp src/onboarding.h src/systemintegration.cpp src/systemintegration.h src/browserimporter.cpp src/browserimporter.h src/importdata.cpp src/importdata.h src/settings.h src/historyswipe.cpp src/historyswipe.h src/splitswapgesture.cpp src/splitswapgesture.h src/splitlayout.cpp src/splitlayout.h src/workspaces.cpp src/workspaces.h src/webprofiles.h src/history.cpp src/history.h src/main.cpp src/appearance.cpp src/appearance.h src/sitenavigation.cpp src/sitenavigation.h src/browserapplication.h src/keybindings.cpp src/keybindings.h src/tabs.cpp src/tabs.h
+    src/credentialstore.cpp src/credentialstore.h
     src/passwordmanager.cpp src/passwordmanager.h src/secretstore.cpp src/secretstore.h
     src/webauthncontroller.cpp src/webauthncontroller.h
     src/passkeycontroller.cpp src/passkeycontroller.h src/passkeyvault.cpp src/passkeyvault.h src/lockedkey.cpp src/lockedkey.h

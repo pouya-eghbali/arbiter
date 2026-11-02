@@ -328,7 +328,7 @@
         <p>
           Pair your computers and phones to sync passwords and Arbiter passkeys over the same local
           Wi-Fi. Changes and deletions sync too; conflicting edits are kept for you to review. Keep
-          Arbiter open and desktop sync unlocked. Sync is encrypted device to device, with no cloud
+          Arbiter open with sync enabled. Once enabled, desktop sync resumes automatically. Sync is encrypted device to device, with no cloud
           account or internet relay.
         </p>
       </details>

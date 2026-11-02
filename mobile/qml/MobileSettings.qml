@@ -210,7 +210,7 @@ ColumnLayout {
         visible: root.category === "sync"
         Layout.fillWidth: true
         title: qsTr("Local encrypted sync")
-        description: qsTr("Direct encrypted sync over the same Wi-Fi. Keep Arbiter open on your desktop and its sync unlocked.")
+        description: qsTr("Direct encrypted sync over the same Wi-Fi. Enable sync once on your desktop and keep Arbiter open.")
         Caption { text: browser.vault.peerName ? qsTr("Paired with %1").arg(browser.vault.peerName) : qsTr("No paired desktop") }
         MobileToggle { Layout.fillWidth: true; text: qsTr("Allow background sync"); checked: browser.settings.backgroundSync; onToggled: browser.setSetting("backgroundSync", checked) }
         MobileButton { Layout.fillWidth: true; text: browser.vault.peerName ? qsTr("Sync now") : qsTr("Pair with your desktop"); enabled: !browser.vault.busy; onClicked: browser.vault.peerName ? browser.vault.sync() : root.pairRequested() }

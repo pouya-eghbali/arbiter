@@ -144,12 +144,13 @@ void PasskeyController::verifyLocal(int accountIndex, const QString &passphrase,
             && request->state()!=QWebEngineWebAuthUxRequest::WebAuthUxState::Cancelled
             && request->state()!=QWebEngineWebAuthUxRequest::WebAuthUxState::Completed;
     };
+    const bool deviceVerification=biometric || m_vault.automaticVault();
     m_vault.perform(registration(), bridge->property("payload").toByteArray(), id, passphrase,
-        [bridge, current, biometric](int status, const QByteArray &response) {
+        [bridge, current, deviceVerification](int status, const QByteArray &response) {
             // No response is delivered after cancellation, navigation or timeout.
             // A dismissed/failed biometric prompt is not a failed WebAuthn
             // ceremony. Keep this challenge alive for the passphrase fallback.
-            if (current() && !(biometric && status==1))
+            if (current() && !(deviceVerification && status==1))
                 QMetaObject::invokeMethod(bridge, "complete", Q_ARG(QByteArray, response), Q_ARG(int, status));
         }, current, biometric);
     emit verificationSubmitted();

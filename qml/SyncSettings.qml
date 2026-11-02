@@ -14,7 +14,7 @@ ColumnLayout {
     Basic.Label { text: qsTr("Bring your vault along"); color: Theme.text; font.pixelSize: 26; font.weight: Font.DemiBold }
     Basic.Label {
         Layout.fillWidth: true
-        text: qsTr("Connect your computers and phones to share one credential vault over local Wi-Fi. Connected devices exchange encrypted changes, including deletions. Keep Arbiter open and desktop sync unlocked; no cloud account is needed.")
+        text: qsTr("Enable sync once to share passwords and passkeys between paired devices over local Wi-Fi. Sync starts automatically whenever Arbiter opens and keeps running until you turn it off. No separate vault, passphrase, or cloud account is needed.")
         color: Theme.muted; wrapMode: Text.WordWrap
     }
     Basic.Label {
@@ -23,51 +23,30 @@ ColumnLayout {
         color: Theme.muted; Layout.fillWidth: true; wrapMode: Text.WordWrap
     }
     ColumnLayout {
-        visible: !!root.manager && !root.passkeys.configured
+        visible: !!root.manager && !root.manager.unlocked
         Layout.fillWidth: true; spacing: 12
         Basic.Label {
-            text: qsTr("Set up your Arbiter passkey vault first. Its passphrase or biometric verification will also unlock your sync session.")
+            visible: root.passkeys.needsMigration
+            text: qsTr("Enter your previous passkey passphrase once to move existing passkeys into your OS-protected credential vault. Passwords do not need to be imported again.")
             color: Theme.muted; Layout.fillWidth: true; wrapMode: Text.WordWrap
         }
-        UiButton { text: qsTr("Set up passkey vault"); onClicked: root.passkeySettingsRequested() }
-    }
-    ColumnLayout {
-        visible: !!root.manager && root.passkeys.configured && !root.manager.unlocked
-        Layout.fillWidth: true; spacing: 12
         UiTextField {
             id: phrase
+            onVisibleChanged: if (!visible) clear()
+            visible: root.passkeys.needsMigration
             Layout.fillWidth: true; Layout.maximumWidth: 420
-            placeholderText: qsTr("Vault passphrase")
+            placeholderText: qsTr("Previous passkey passphrase")
             echoMode: TextInput.Password
             enabled: !!root.manager && !root.manager.busy
-            onAccepted: unlock.clicked()
+            onAccepted: enableSync.clicked()
         }
-        RowLayout {
-            spacing: 10
-            UiButton {
-                id: unlock
-                text: qsTr("Unlock sync")
-                enabled: !!root.manager && !root.manager.busy && phrase.text.length > 0
-                onClicked: { root.manager.unlock(phrase.text, false); phrase.clear() }
-            }
-            UiButton {
-                visible: root.passkeys.biometricReady
-                text: qsTr("Unlock with %1").arg(root.passkeys.biometricName)
-                enabled: !!root.manager && !root.manager.busy
-                onClicked: root.manager.unlock("", true)
-            }
+        UiButton {
+            id: enableSync
+            text: root.manager && root.manager.enabled ? qsTr("Retry sync") : qsTr("Enable sync")
+            primary: true
+            enabled: !!root.manager && !root.manager.busy && (!root.passkeys.needsMigration || phrase.text.length > 0)
+            onClicked: { root.manager.setEnabled(true, phrase.text); phrase.clear() }
         }
-    }
-    UiCheckBox {
-        visible: !!root.manager
-        text: qsTr("Keep sync unlocked until this computer locks")
-        checked: root.manager ? root.manager.keepUnlocked : false
-        onToggled: if(root.manager) root.manager.keepUnlocked=checked
-    }
-    Basic.Label {
-        visible: !!root.manager
-        Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.muted
-        text: qsTr("Optional for phone background sync. Paired devices can sync while this computer stays unlocked. Locking the computer or quitting Arbiter always locks sync.")
     }
     RowLayout {
         visible: !!root.manager && root.manager.busy
@@ -86,15 +65,13 @@ ColumnLayout {
         RowLayout {
             spacing: 10
             UiIcon { name: "shield-check"; color: Theme.accent; Layout.preferredWidth: 22; Layout.preferredHeight: 22 }
-            Basic.Label { text: qsTr("Sync is unlocked"); color: Theme.text; font.weight: Font.DemiBold }
+            Basic.Label { text: qsTr("Sync is enabled"); color: Theme.text; font.weight: Font.DemiBold }
             Item { Layout.fillWidth: true }
-            UiButton { text: qsTr("Lock"); onClicked: root.manager.lock() }
+            UiButton { text: qsTr("Turn off sync"); onClicked: root.manager.setEnabled(false) }
         }
         Basic.Label {
             Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.muted
-            text: root.manager && root.manager.keepUnlocked
-                ? qsTr("This session stays unlocked until you lock this computer, lock sync, or quit Arbiter.")
-                : qsTr("This session locks after 10 minutes or when your computer locks. Keep Arbiter open on both devices while syncing.")
+            text: qsTr("Sync continues while Arbiter is open, including when this computer is locked. Sleeping or offline devices reconnect when available. Password filling and passkey sign-in keep their own verification requirements.")
         }
         UiButton {
             text: qsTr("Add a device")
