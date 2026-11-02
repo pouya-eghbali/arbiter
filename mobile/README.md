@@ -234,6 +234,24 @@ on both operating systems before publishing a mobile release.
 Native Swift crypto checks: `python3 tools/mobile/test_native_crypto.py`.
 Release-tool/manifest tests: `python3 tools/mobile/test_release_tools.py`.
 
+### Scroll-responsive floating pill
+
+Scrolling down collapses the pill to a compact site-address control. Scrolling
+up or tapping the compact control restores the full toolbar; the first tap does
+not open the keyboard. Small direction changes are ignored, and a short hold
+after tapping gives time to use the restored controls. Tab changes, navigation,
+and password suggestions restore the full pill. Reduced Motion disables the
+size transition. iOS updates its obscured viewport inset alongside the animation.
+
+The isolated main-frame scroll helper supports document and nested scroll areas
+on iOS, Android, and WebEngine. It requires recent trusted touch/wheel input,
+clamps overscroll bounce, and ignores viewport/keyboard resize events. Scroll
+messages update transient UI state without saving the browser session per frame.
+
+Run `node mobile/tests/scroll_test.mjs` for the scroll-intent checks. The desktop
+mobile design harness also accepts `--design-screen pillchecks` to verify size,
+scroll reversal, tap expansion, hold, jitter, and new-tab reset behavior.
+
 ### iOS browser-toolbar viewport regression
 
 On iOS 26+, the native page uses WebKit's public `obscuredContentInsets` to
@@ -252,7 +270,8 @@ xcrun simctl launch --terminate-running-process --console-pty booted com.arbiter
 
 The isolated-profile test checks fixed website controls against the usable
 viewport, checks native and DOM hit testing at the website's Continue button, scrolls,
-opens menu/tab panels, and switches to Glacier. Physical-device checks should
+opens menu/tab panels, switches to Glacier, and checks compact/expanded toolbar
+transitions against WebKit’s live viewport. Physical-device checks should
 also cover a site's own app-opening sheet, keyboard, and rotation. The diagnostic
 entry point is compiled only into simulator builds.
 

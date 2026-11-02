@@ -443,6 +443,15 @@ void MobileModel::updatePage(const QString &key, const QString &type, const QVar
     auto index = tabIndex(key);
     if (index < 0)
         return;
+    if (type == "toolbarScroll") {
+        if (key == m_active && !privateLocked()) {
+            const auto delta = values.value("delta").toDouble();
+            const auto offset = values.value("offset").toDouble();
+            if (qIsFinite(delta) && qIsFinite(offset))
+                emit toolbarScrolled(qBound(-1000., delta, 1000.), qMax(0., offset));
+        }
+        return; // Scroll frames must not persist the session or rebuild tab models.
+    }
     auto t = m_tabs[index].toObject();
     const auto data = QJsonObject::fromVariantMap(values);
     const auto origin = [](QUrl url) {
@@ -929,6 +938,8 @@ QString MobileModel::formScript(bool privateMode) const {
                             {"suggestPasswords", m_settings.value("suggestPasswords").toBool()}})
                 .toJson(QJsonDocument::Compact)) +
         ";\n" + QString::fromUtf8(file.readAll());
+    QFile scroll(":/browser/scroll.js");
+    if (scroll.open(QIODevice::ReadOnly)) script += "\n" + QString::fromUtf8(scroll.readAll());
 #ifdef ARBITER_MOBILE_WEBENGINE
     QFile channel(":/qtwebchannel/qwebchannel.js");
     if (channel.open(QIODevice::ReadOnly))

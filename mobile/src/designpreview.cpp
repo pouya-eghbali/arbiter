@@ -126,7 +126,7 @@ void renderDesignPreview(MobileModel &model, QQmlApplicationEngine &engine, cons
         model.addTab();
     if (qEnvironmentVariableIsSet("ARBITER_PREVIEW_THEME"))
         model.setSetting("theme", qEnvironmentVariable("ARBITER_PREVIEW_THEME"));
-    const QString panel = state == "start" || state == "browsing" || state == "private" || state == "suggestions" || state == "interactions" || state == "nativechecks" ? QString()
+    const QString panel = state == "start" || state == "browsing" || state == "private" || state == "suggestions" || state == "interactions" || state == "nativechecks" || state == "pillchecks" ? QString()
                           : state == "settingschecks" ? QStringLiteral("settings")
                           : state == "search" ? QStringLiteral("address")
                                                : state;
@@ -212,6 +212,51 @@ void renderDesignPreview(MobileModel &model, QQmlApplicationEngine &engine, cons
             qInfo("Settings grouping, search, category navigation, search engine choices and vault link passed");
             qApp->quit();
         });
+        return;
+    }
+    if (state == "pillchecks") {
+        model.setSetting("liquidGlass", false);
+        auto timer = new QTimer(window);
+        timer->setInterval(400);
+        QObject::connect(timer, &QTimer::timeout, window, [timer, window, &model, output, step = -2, width = 0., height = 0.]() mutable {
+            auto pill = visualItem(window->contentItem(), "mobilePill");
+            if (!pill) qFatal("Pill missing");
+            if (step == 0) {
+                width = pill->width(); height = pill->height();
+                model.updatePage(model.activeId(), "toolbarScroll", {{"delta", 70}, {"offset", 150}});
+            } else if (step == 1) {
+                if (!pill->property("compact").toBool() || pill->width() >= width || pill->height() >= height) qFatal("Downward scrolling did not shrink pill");
+                if (!window->grabWindow().save(output + ".png")) qFatal("Cannot save compact pill preview");
+                model.updatePage(model.activeId(), "toolbarScroll", {{"delta", -20}, {"offset", 130}});
+            } else if (step == 2) {
+                if (pill->property("compact").toBool() || qAbs(pill->width() - width) > 1) qFatal("Upward scrolling did not expand pill");
+                model.updatePage(model.activeId(), "toolbarScroll", {{"delta", 70}, {"offset", 200}});
+            } else if (step == 3) {
+                auto expand = visualItem(window->contentItem(), "mobileExpandPillButton");
+                if (!expand || !expand->isVisible()) qFatal("Compact control missing");
+                QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, expand->mapToScene(QPointF(expand->width()/2, expand->height()/2)).toPoint());
+            } else if (step == 4) {
+                if (pill->property("compact").toBool() || window->property("panel") != "") qFatal("Compact tap failed to restore controls without opening keyboard");
+                model.updatePage(model.activeId(), "toolbarScroll", {{"delta", 100}, {"offset", 300}});
+                if (pill->property("compact").toBool()) qFatal("Tap hold did not keep controls expanded");
+            } else if (step == 8) {
+                model.updatePage(model.activeId(), "toolbarScroll", {{"delta", 4}, {"offset", 304}});
+                if (pill->property("compact").toBool()) qFatal("Small scroll jitter collapsed pill");
+                model.updatePage(model.activeId(), "toolbarScroll", {{"delta", 70}, {"offset", 374}});
+            } else if (step == 9) {
+                if (!pill->property("compact").toBool()) qFatal("Pill did not collapse after tap hold");
+                model.addTab();
+            } else if (step == 10) {
+                if (pill->property("compact").toBool()) qFatal("New tab retained compact pill");
+                QFile result(output);
+                if (!result.open(QIODevice::WriteOnly)) qFatal("Cannot write pill test result");
+                result.write("Scroll collapse/expand, tap expansion without keyboard, hold, jitter and tab reset passed\n");
+                qInfo("Scroll collapse/expand, tap expansion without keyboard, hold, jitter and tab reset passed");
+                timer->stop(); qApp->quit();
+            }
+            ++step;
+        });
+        timer->start();
         return;
     }
     if (state == "nativechecks") {

@@ -11,19 +11,28 @@ MobilePresentation {
     readonly property bool nativeActive: nativeGlass.active
     readonly property color pillText: nativeActive ? nativeGlass.foregroundColor : Theme.textFor(parent)
     readonly property color pillMuted: nativeActive ? Qt.alpha(nativeGlass.foregroundColor, .72) : Theme.mutedFor(parent)
+    property bool collapsed: false
+    readonly property bool compact: collapsed && Boolean(current.url) && !suggestions
+    property real compactProgress: compact ? 1 : 0
+    Behavior on compactProgress {
+        NumberAnimation { duration: Theme.reducedMotion ? 0 : 260; easing.type: Easing.OutCubic }
+    }
+    function expand() { collapsed = false; expandedByTouch() }
+    signal expandedByTouch
     property int tabCount: 1
     property bool suggestions: false
+    onSuggestionsChanged: if (suggestions) collapsed = false
     property point lastDrag: Qt.point(0, 0)
     signal searchRequested
     signal tabsRequested
     signal moreRequested
     signal cycleRequested(int direction)
-    implicitHeight: (suggestions ? 106 : 58) + Math.max(0, 18 * (MobileMetrics.textScale - 1))
+    implicitHeight: (suggestions ? 106 : 58 - 14 * compactProgress) + Math.max(0, 18 * (MobileMetrics.textScale - 1))
     NativeGlassHost {
         id: nativeGlass
         anchors.fill: parent
         requested: browser.settings.liquidGlass === true
-        radius: 29
+        radius: root.height / 2
         content: pillContent
         WindowContainer {
             anchors.fill: parent
@@ -35,7 +44,7 @@ MobilePresentation {
         visible: !nativeGlass.preferred
         forceOpaque: nativeGlass.reducedTransparency
         anchors.fill: parent
-        radius: 29
+        radius: root.height / 2
         dense: true
     }
     Item {
@@ -43,7 +52,40 @@ MobilePresentation {
         enabled: root.presented
         objectName: "mobilePillContent"
         anchors.fill: parent
+        clip: true
+        Controls.AbstractButton {
+            objectName: "mobileExpandPillButton"
+            anchors.fill: parent
+            visible: root.compactProgress > 0
+            opacity: root.compactProgress
+            enabled: root.compact
+            Accessible.name: qsTr("Show browser controls")
+            onClicked: root.expand()
+            contentItem: RowLayout {
+                spacing: 6
+                Item { Layout.fillWidth: true }
+                UiIcon {
+                    name: root.current.url && root.current.url.startsWith("https:") ? "lock" : "globe"
+                    color: root.pillMuted
+                    Layout.preferredWidth: 13
+                    Layout.preferredHeight: 13
+                }
+                Text {
+                    Layout.maximumWidth: Math.max(0, root.width - 62)
+                    text: root.current.url ? root.current.url.replace(/^https?:\/\//, "").split("/")[0] : ""
+                    textFormat: Text.PlainText
+                    color: root.pillText
+                    font.pixelSize: 13 * MobileMetrics.textScale
+                    elide: Text.ElideRight
+                    verticalAlignment: Text.AlignVCenter
+                }
+                Item { Layout.fillWidth: true }
+            }
+        }
         ColumnLayout {
+            visible: root.compactProgress < .99
+            opacity: 1 - root.compactProgress
+            enabled: !root.compact
             anchors.fill: parent
             anchors.margins: 5
             spacing: 2

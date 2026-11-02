@@ -103,7 +103,10 @@ Controls.ApplicationWindow {
         const revision = SurfacePalette.revision;
         return SurfacePalette.keyboardTop(content, Qt.inputMethod.keyboardRectangle.y);
     }
-    onKeyboardInsetChanged: Qt.callLater(keepFieldVisible)
+    onKeyboardInsetChanged: {
+        if (keyboardInset > 0) pill.resetChrome();
+        Qt.callLater(keepFieldVisible);
+    }
     onActiveFocusItemChanged: Qt.callLater(keepFieldVisible)
     function keepFieldVisible() {
         const field = window.activeFocusItem;
@@ -124,7 +127,7 @@ Controls.ApplicationWindow {
     }
     readonly property Item glassBackdrop: backdropScene
     readonly property string workspaceName: (browser.workspaces.find(w => w.id === browser.workspaceId) || {}).name || qsTr("Personal")
-    // Use the resting toolbar geometry even while a sheet hides the pill. Opening
+    // Keep toolbar geometry even while a sheet hides the pill. Opening
     // a browser panel must not resize/reflow the website behind the glass.
     readonly property real toolbarBottomInset: pill.height + Math.max(14, bottomInset + 8) + 8
     readonly property rect nativeOverlayRect: {
@@ -134,8 +137,13 @@ Controls.ApplicationWindow {
             return Qt.rect(0, 0, 0, 0);
         return Qt.rect(control.x / content.width, control.y / content.height, control.width / content.width, control.height / content.height);
     }
+    property string chromeTabId: ""
+    property string chromeUrl: ""
     function refresh() {
         const next = browser.tabs.find(t => t.id === browser.activeId) || {};
+        if (chromeTabId !== browser.activeId || chromeUrl !== (next.url || "") || browser.privateLocked) {
+            pill.resetChrome(); chromeTabId = browser.activeId; chromeUrl = next.url || "";
+        }
         if (pendingTab && (pendingTab !== browser.activeId || browser.privateLocked || pendingAddress !== (next.url || ""))) cancelPendingPanel();
         if (browser.privateLocked && panel !== "onboarding") {
             panel = "";
@@ -444,8 +452,8 @@ Controls.ApplicationWindow {
         }
         MobilePill {
             id: pill
-            x: 16
-            width: parent.width - 32
+            x: (parent.width - width) / 2
+            width: (parent.width - 32) * (1 - compactProgress) + Math.min(parent.width - 32, Math.max(180, parent.width * .6)) * compactProgress
             y: parent.height - height - Math.max(14, window.bottomInset + 8) - window.keyboardInset + 12 * (1 - pill.progress)
             height: implicitHeight
             current: window.current
@@ -454,6 +462,23 @@ Controls.ApplicationWindow {
             suggestions: browser.fieldFocused
             presented: window.panel === "" && !browser.privateLocked
             concealed: browser.privateLocked
+            onExpandedByTouch: { scrollTravel = 0; pillTouchHold.restart(); pillTransitionHold.restart() }
+            property real scrollTravel: 0
+            Timer { id: pillTouchHold; interval: 1400 }
+            Timer { id: pillTransitionHold; interval: 320 }
+            function resetChrome() { collapsed = false; scrollTravel = 0; pillTransitionHold.restart() }
+            Connections {
+                target: browser
+                function onToolbarScrolled(delta, offset) {
+                    if (!pill.presented || !window.current.url || pill.suggestions || window.keyboardInset > 0 || pillTouchHold.running || pillTransitionHold.running) return;
+                    if (offset < 8) { pill.resetChrome(); return; }
+                    pill.scrollTravel = Math.sign(delta) === Math.sign(pill.scrollTravel) ? pill.scrollTravel + delta : delta;
+                    if (delta > 0 && offset > 80 && pill.scrollTravel > 56 && !pill.collapsed) {
+                        pill.collapsed = true; pill.scrollTravel = 0; pillTransitionHold.restart();
+                    } else if (delta < 0 && pill.scrollTravel < -14 && pill.collapsed) pill.resetChrome();
+                }
+                function onPageAction(tabId, action, argument) { if (tabId === browser.activeId && ["navigate", "back", "forward", "reload"].includes(action)) pill.resetChrome() }
+            }
             onSearchRequested: window.open("address")
             onTabsRequested: window.open("tabs")
             onMoreRequested: window.open("more")

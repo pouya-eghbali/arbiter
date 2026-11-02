@@ -204,7 +204,7 @@ int main(int argc, char **argv) {
                 auto timer = new QTimer(window);
                 timer->setInterval(200);
                 QObject::connect(timer, &QTimer::timeout, window,
-                    [timer, window, &browser, stage = 0, attempts = 0, busy = false]() mutable {
+                    [timer, window, &browser, stage = 0, attempts = 0, busy = false, expandedInset = 0.]() mutable {
                         if (busy) return;
                         auto page = NativePage::pages.value("target");
                         if (!page || page->title() != "Viewport fixture") {
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
                             "return bottom > 0 && bottom <= %1 + 2 && document.elementFromPoint(innerWidth / 2, bottom - 24)?.tagName === 'BUTTON'; })()")
                             .arg(usable);
                         page->evaluate(query,
-                            [timer, window, page, &browser, &stage, &attempts, &busy, inset, usable](QVariant result) {
+                            [timer, window, page, &browser, &stage, &attempts, &busy, &expandedInset, inset, usable](QVariant result) {
                                 busy = false;
                                 if (inset < 50 || !result.toBool()) {
                                     if (++attempts > 50) qFatal("Website bottom controls overlap browser toolbar or fail hit testing (usable=%f inset=%f stage=%d)", usable, inset, stage);
@@ -226,6 +226,7 @@ int main(int argc, char **argv) {
                                 }
                                 attempts = 0;
                                 if (stage == 0) {
+                                    expandedInset = inset;
                                     qInfo("Fixed website footer clears toolbar (usable=%f inset=%f)", usable, inset);
                                     const QPoint point(page->nativeWindow()->width()/2, qRound(usable - 24));
                                     QPoint local;
@@ -238,8 +239,16 @@ int main(int argc, char **argv) {
                                 else if (stage == 4) QMetaObject::invokeMethod(window, "open", Q_ARG(QVariant, "tabs"));
                                 else if (stage == 6) QMetaObject::invokeMethod(window, "dismiss");
                                 else if (stage == 8) browser.setSetting("liquidGlass", false);
-                                else if (stage == 10) {
-                                    qInfo("Website fixed controls remain visible and hit-testable after scroll, browser panels and Glacier switch");
+                                else if (stage == 10) browser.updatePage(browser.activeId(), "toolbarScroll", {{"delta", 90}, {"offset", 200}});
+                                else if (stage == 12) {
+                                    auto pill = window->findChild<QQuickItem *>("mobilePill");
+                                    if (!pill || !pill->property("compact").toBool() || pill->width() > window->width() * .7 || inset >= expandedInset - 10)
+                                        qFatal("Compact pill did not shrink native viewport reservation");
+                                    browser.updatePage(browser.activeId(), "toolbarScroll", {{"delta", -25}, {"offset", 175}});
+                                } else if (stage == 14) {
+                                    auto pill = window->findChild<QQuickItem *>("mobilePill");
+                                    if (!pill || pill->property("compact").toBool()) qFatal("Upward scroll did not restore native pill");
+                                    qInfo("Website fixed controls remain visible and hit-testable after scroll, browser panels, Glacier switch and compact toolbar transitions");
                                     timer->stop(); qApp->quit();
                                 }
                                 ++stage;

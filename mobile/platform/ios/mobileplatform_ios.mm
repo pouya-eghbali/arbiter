@@ -514,7 +514,7 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
         return;
     auto data = map(message.body);
     auto type = data.value("type").toString();
-    if (!QStringList{"credentialFocus", "loginSubmitted", "loginSucceeded", "activityState"}.contains(type))
+    if (!QStringList{"credentialFocus", "loginSubmitted", "loginSucceeded", "activityState", "toolbarScroll"}.contains(type))
         return;
     auto frame = message.frameInfo.securityOrigin;
     auto url = page->url();

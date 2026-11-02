@@ -171,7 +171,7 @@ object NativeBridge {
    if(WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION))androidx.webkit.WebSettingsCompat.setWebAuthenticationSupport(web.settings,androidx.webkit.WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_BROWSER)
    check(WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)){"Update Android System WebView to enable credential suggestions"}
    WebViewCompat.addWebMessageListener(web,"arbiterForms",setOf("*")){_,message,origin,mainFrame,_->
-    if(mainFrame&&origin.scheme in listOf("https","http"))try{val data=JSONObject(message.data!!);val type=data.optString("type");if(type in listOf("credentialFocus","loginSubmitted","loginSucceeded","activityState")&&(!data.has("origin")||data.getString("origin")==origin.toString()))event(id,type,data.toString())}catch(_:Exception){}
+    if(mainFrame&&origin.scheme in listOf("https","http"))try{val data=JSONObject(message.data!!);val type=data.optString("type");if(type in listOf("credentialFocus","loginSubmitted","loginSucceeded","activityState","toolbarScroll")&&(!data.has("origin")||data.getString("origin")==origin.toString()))event(id,type,data.toString())}catch(_:Exception){}
    }
    web.webViewClient=object:WebViewClient(){
     override fun shouldOverrideUrlLoading(view:WebView,request:WebResourceRequest):Boolean {val uri=request.url;if(uri.scheme in listOf("https","http"))return false;if(request.hasGesture()&&uri.scheme in listOf("mailto","tel","sms"))try{activity().startActivity(Intent(Intent.ACTION_VIEW,uri))}catch(_:Exception){};return true}

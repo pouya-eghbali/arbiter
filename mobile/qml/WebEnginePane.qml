@@ -64,7 +64,7 @@ Item {
         WebChannel.id: "arbiterForms"
         function submit(json) {
             try {
-                if (["credentialFocus", "loginSubmitted", "loginSucceeded", "activityState"].includes(json.type))
+                if (["credentialFocus", "loginSubmitted", "loginSucceeded", "activityState", "toolbarScroll"].includes(json.type))
                     browser.updatePage(root.record.id, json.type, json);
             } catch (e) {}
         }

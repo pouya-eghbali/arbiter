@@ -142,6 +142,7 @@ class MobileModel : public QObject {
   signals:
     void changed();
     void settingsChanged();
+    void toolbarScrolled(qreal delta, qreal offset);
     void previewsChanged();
     void previewReady(QString tabId);
     void message(QString text);
