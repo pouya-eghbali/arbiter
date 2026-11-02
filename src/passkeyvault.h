@@ -27,6 +27,9 @@ public:
     bool biometricEnabled() const { return m_index.value(4).toBool(); }
     bool biometricAvailable() const { return m_biometrics && m_biometrics->available(); }
     bool biometricReady() const;
+    bool biometricPersistenceSupported() const { return m_biometrics && m_biometrics->persistentKeysSupported(); }
+    bool biometricPersistent() const { return m_index.value(5).toByteArray().size() == 16; }
+    bool biometricNeedsEnrollment() const { return biometricEnabled() && biometricPersistenceSupported() && !biometricPersistent(); }
     QString biometricName() const { return m_biometrics ? m_biometrics->name() : tr("Biometrics"); }
     QString biometricStatus() const { return m_biometrics ? m_biometrics->status() : tr("Biometric support is unavailable."); }
     void setBiometricEnabled(bool enabled, const QString &passphrase);
@@ -55,6 +58,7 @@ private:
     void finish(const QString &error = {});
     QString itemKey(const QByteArray &id) const;
     void unlock(const QString &passphrase, std::function<void(QByteArray)> callback);
+    QString biometricKeyId(const QByteArray &reference) const { return itemKey({}) + QStringLiteral("biometric/") + QString::fromLatin1(reference.toHex()); }
     void unlockBiometric(std::function<void(QByteArray)> callback);
     bool cacheKey(const QByteArray &key);
     QPointer<SecretStore> m_store;

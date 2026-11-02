@@ -212,7 +212,7 @@
 <context>
     <name>AdBlocker</name>
     <message>
-        <location filename="../src/adblocker.cpp" line="+29"/>
+        <location filename="../src/adblocker.cpp" line="+30"/>
         <source>Using supplied filter rules.</source>
         <translation>提供されたフィルター ルールを使用します。</translation>
     </message>
@@ -376,7 +376,14 @@
         <translation>生体認証がキャンセルされたか、タイムアウトになりました。ボールトのパスフレーズを使用するか、もう一度試してください。</translation>
     </message>
     <message>
-        <location filename="../src/biometricauth.h" line="+35"/>
+        <location filename="../src/biometricauth.h" line="+24"/>
+        <location line="+1"/>
+        <location line="+1"/>
+        <source>Persistent biometric unlocking is unavailable.</source>
+        <translation>永続的な生体認証によるロック解除は利用できません。</translation>
+    </message>
+    <message>
+        <location line="+15"/>
         <source>Checking biometric support…</source>
         <translation>生体認証サポートを確認しています…</translation>
     </message>
@@ -471,7 +478,7 @@
         <translation>Windows Hello を開始できませんでした。ボールトのパスフレーズを使用します。</translation>
     </message>
     <message>
-        <location filename="../src/biometricauth_mac.mm" line="+22"/>
+        <location filename="../src/biometricauth_mac.mm" line="+32"/>
         <source>Touch ID</source>
         <translation>Touch ID</translation>
     </message>
@@ -486,12 +493,12 @@
         <translation>Touch ID は利用できません。 macOS 設定で指紋を登録するか、ボールトのパスフレーズを使用します。</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+57"/>
         <source>Touch ID is unavailable or locked out. Use your vault passphrase.</source>
         <translation>Touch ID は利用できないか、ロックアウトされています。ボールトのパスフレーズを使用します。</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+35"/>
         <source>Touch ID did not verify. Use your vault passphrase or try again.</source>
         <translation>Touch ID は検証しませんでした。ボールトのパスフレーズを使用するか、もう一度試してください。</translation>
     </message>
@@ -507,6 +514,11 @@
         <location line="+2"/>
         <source>Enter your vault passphrase, then verify with your device. Later passkey operations can use device verification for up to 15 minutes while Arbiter stays active. Your passphrase remains the fallback and is required again after restarting or leaving the app.</source>
         <translation>ボールトのパスフレーズを入力し、デバイスで確認します。その後のパスキー操作では、Arbiter がアクティブな間、最大 15 分間デバイス検証を使用できます。パスフレーズはフォールバックのままであり、アプリを再起動するか終了した後も再度必要になります。</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Enter your vault passphrase once, then verify with Touch ID. macOS will protect the unlock key in this app’s device-only Keychain. Each later passkey use asks for Touch ID, including after restarting or switching apps. Your passphrase remains the fallback. Changing enrolled fingerprints requires enabling Touch ID again.</source>
+        <translation>ボールトのパスフレーズを 1 回入力し、Touch ID で確認します。 macOSは、本アプリの端末専用Keychainのロック解除キーを保護します。アプリの再起動や切り替え後も含め、その後パスキーを使用するたびに Touch ID が要求されます。パスフレーズはフォールバックのままです。登録された指紋を変更するには、Touch ID を再度有効にする必要があります。</translation>
     </message>
     <message>
         <location line="+9"/>
@@ -712,7 +724,7 @@
 <context>
     <name>CredentialSync</name>
     <message>
-        <location filename="../src/credentialsync.cpp" line="+78"/>
+        <location filename="../src/credentialsync.cpp" line="+80"/>
         <source>This computer</source>
         <translation>このコンピュータ</translation>
     </message>
@@ -752,7 +764,7 @@
         <translation>暗号化同期の転送キーが見つからないか無効です。</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+11"/>
         <source>The pinned sync certificate lost its private key. Existing pairing was preserved.</source>
         <translation>固定された同期証明書の秘密キーが見つかりません。既存のペアリングは保持されています。</translation>
     </message>
@@ -823,23 +835,23 @@
     </message>
     <message>
         <location line="+3"/>
-        <location line="+93"/>
+        <location line="+94"/>
         <source>Could not persist incoming encrypted changes.</source>
         <translation>受信した暗号化変更を保存できませんでした。</translation>
     </message>
     <message>
-        <location line="-82"/>
-        <location line="+91"/>
+        <location line="-83"/>
+        <location line="+92"/>
         <source>Could not save sync status.</source>
         <translation>同期状態を保存できませんでした。</translation>
     </message>
     <message>
-        <location line="-67"/>
+        <location line="-68"/>
         <source>Could not save the conflict choice.</source>
         <translation>競合の選択を保存できませんでした。</translation>
     </message>
     <message>
-        <location line="+78"/>
+        <location line="+79"/>
         <source>The sync session expired.</source>
         <translation>同期セッションの有効期限が切れました。</translation>
     </message>
@@ -2091,9 +2103,39 @@
     </message>
 </context>
 <context>
+    <name>MacBiometricAuth</name>
+    <message>
+        <location filename="../src/biometricauth_mac.mm" line="-80"/>
+        <location line="+17"/>
+        <source>Persistent biometric unlocking is unavailable.</source>
+        <translation>永続的な生体認証によるロック解除は利用できません。</translation>
+    </message>
+    <message>
+        <location line="-13"/>
+        <location line="+6"/>
+        <source>Could not protect the biometric vault key in Keychain.</source>
+        <translation>Keychain の生体認証ボールト キーを保護できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Could not remove the biometric vault key from Keychain.</source>
+        <translation>Keychain から生体認証ボールト キーを削除できませんでした。</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Could not unlock the biometric vault key. Use your passphrase or enable Touch ID again.</source>
+        <translation>生体認証ボールト キーのロックを解除できませんでした。パスフレーズを使用するか、Touch ID を再度有効にします。</translation>
+    </message>
+    <message>
+        <location line="+45"/>
+        <source>Touch ID could not unlock the vault key. Use your passphrase or enable Touch ID again.</source>
+        <translation>Touch ID はボールト キーのロックを解除できませんでした。パスフレーズを使用するか、Touch ID を再度有効にします。</translation>
+    </message>
+</context>
+<context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+138"/>
+        <location filename="../qml/Main.qml" line="+148"/>
         <source>Private browsing — Arbiter</source>
         <translation>プライベート ブラウジング — Arbiter</translation>
     </message>
@@ -2104,14 +2146,14 @@
     </message>
     <message>
         <location line="+644"/>
-        <location line="+1652"/>
+        <location line="+1676"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>新しいタブ</translation>
     </message>
     <message>
-        <location line="-1649"/>
-        <location line="+1738"/>
+        <location line="-1673"/>
+        <location line="+1762"/>
         <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
@@ -2119,7 +2161,7 @@
         <translation>スタートページ</translation>
     </message>
     <message>
-        <location line="-1243"/>
+        <location line="-1267"/>
         <source>Settings</source>
         <translation>設定</translation>
     </message>
@@ -2335,12 +2377,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+353"/>
+        <location line="+377"/>
         <source>Off</source>
         <translation>オフ</translation>
     </message>
     <message>
-        <location line="-346"/>
+        <location line="-370"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>Web サイトのナビゲーションをタブ タイトルの下に表示するか、macOS メニュー バーの別のメニューとして表示します。</translation>
     </message>
@@ -2450,9 +2492,19 @@
         <translation>%1 を有効にします…</translation>
     </message>
     <message>
+        <location line="+0"/>
+        <source>Enable persistent %1…</source>
+        <translation>永続的な %1 を有効にする…</translation>
+    </message>
+    <message>
         <location line="+9"/>
         <source>Biometric unlocking lasts up to 15 minutes while Arbiter stays active. Enter your passphrase once after restarting or leaving the app; each later passkey use still asks for device verification.</source>
         <translation>Arbiter がアクティブな間、生体認証によるロック解除は最大 15 分間続きます。アプリを再起動するか終了した後、パスフレーズを 1 回入力してください。その後パスキーを使用するたびにデバイスの検証が要求されます。</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Enable Touch ID once with your vault passphrase. Each passkey use then asks for Touch ID, even after restarting or switching apps. The passphrase remains your fallback; changing enrolled fingerprints requires enabling Touch ID again.</source>
+        <translation>ボールトのパスフレーズを使用して Touch ID を 1 回有効にします。アプリを再起動または切り替えた後でも、パスキーを使用するたびに Touch ID が要求されます。パスフレーズはフォールバックのままです。登録された指紋を変更するには、Touch ID を再度有効にする必要があります。</translation>
     </message>
     <message>
         <location line="+7"/>
@@ -2515,7 +2567,7 @@
         <translation>空のスタートページの背景をドラッグしてウィンドウを移動します。</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+32"/>
         <location line="+8"/>
         <source>Interface language</source>
         <translation>表示言語</translation>
@@ -2829,7 +2881,7 @@
         <translation>プライベート</translation>
     </message>
     <message>
-        <location line="-1335"/>
+        <location line="-1359"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass（試験的）</translation>
     </message>
@@ -3039,12 +3091,13 @@
         <translation>色</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location filename="../qml/Main.qml" line="+416"/>
+        <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Default browser</source>
         <translation>既定のブラウザー</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Ready</source>
         <translation>準備完了</translation>
     </message>
@@ -3179,22 +3232,25 @@
         <translation>Arbiter の Web リンクを開きます。システムにより確認を求められる場合があります。これは完全にオプションです。</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location filename="../qml/Main.qml" line="+7"/>
+        <location filename="../qml/Onboarding.qml" line="+3"/>
         <source>Arbiter is your default browser</source>
         <translation>Arbiter はデフォルトのブラウザです</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="+2"/>
+        <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Waiting for your system…</source>
         <translation>システムを待っています…</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="+1"/>
+        <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Set as default</source>
         <translation>デフォルトとして設定</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location filename="../qml/Onboarding.qml" line="+6"/>
         <source>You can also choose Arbiter later in your system&apos;s default application settings.</source>
         <translation>後でシステムのデフォルトのアプリケーション設定で Arbiter を選択することもできます。</translation>
     </message>
@@ -3439,38 +3495,41 @@
 <context>
     <name>PasskeyVault</name>
     <message>
-        <location filename="../src/passkeyvault.cpp" line="+66"/>
+        <location filename="../src/passkeyvault.cpp" line="+67"/>
         <source>Set up the passkey vault first.</source>
         <translation>最初にパスキー保管庫を設定します。</translation>
     </message>
     <message>
-        <location line="+3"/>
-        <location line="+18"/>
+        <location line="+8"/>
+        <location line="+39"/>
+        <location line="+9"/>
         <source>Could not save the biometric preference.</source>
         <translation>生体認証設定を保存できませんでした。</translation>
     </message>
     <message>
-        <location line="-16"/>
+        <location line="-41"/>
         <source>Biometric verification is unavailable. Use your vault passphrase.</source>
         <translation>生体認証は利用できません。ボールトのパスフレーズを使用します。</translation>
     </message>
     <message>
         <location line="+5"/>
+        <location line="+19"/>
         <source>Biometric setup was cancelled.</source>
         <translation>生体認証のセットアップがキャンセルされました。</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-18"/>
         <source>Could not verify the vault passphrase. Wait before trying again.</source>
         <translation>ボールトのパスフレーズを確認できませんでした。再試行する前にお待ちください。</translation>
     </message>
     <message>
         <location line="+1"/>
+        <location line="+50"/>
         <source>Could not protect the biometric session key in memory. Use your vault passphrase.</source>
         <translation>メモリ内の生体認証セッション キーを保護できませんでした。ボールトのパスフレーズを使用します。</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="-48"/>
         <source>Enable biometric unlocking for your passkey vault</source>
         <translation>パスキー保管庫の生体認証によるロック解除を有効にする</translation>
     </message>
@@ -3480,22 +3539,13 @@
         <translation>生体認証のセットアップがキャンセルされました。ボールトのパスフレーズを使用します。</translation>
     </message>
     <message>
-        <location line="+9"/>
-        <source>Enter your vault passphrase to enable biometric unlocking for this session.</source>
-        <translation>このセッションの生体認証によるロック解除を有効にするには、ボールトのパスフレーズを入力してください。</translation>
-    </message>
-    <message>
-        <location line="+3"/>
+        <location line="+57"/>
+        <location line="+2"/>
         <source>Unlock your passkey vault for this website</source>
         <translation>この Web サイトのパスキー保管庫のロックを解除します</translation>
     </message>
     <message>
-        <location line="+2"/>
-        <source>The biometric session expired. Use your vault passphrase.</source>
-        <translation>生体認証セッションの有効期限が切れました。ボールトのパスフレーズを使用します。</translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="-12"/>
         <source>Could not unlock the vault. Use your vault passphrase.</source>
         <translation>金庫のロックを解除できませんでした。ボールトのパスフレーズを使用します。</translation>
     </message>
@@ -3505,7 +3555,7 @@
         <translation>保管庫が変更されました。ボールトのパスフレーズを使用します。</translation>
     </message>
     <message>
-        <location line="+44"/>
+        <location line="+53"/>
         <source>The passkey vault is in use by another browser process.</source>
         <translation>パスキー ボールトは別のブラウザ プロセスによって使用されています。</translation>
     </message>
@@ -3525,12 +3575,23 @@
         <translation>少なくとも 12 文字を使用し、同じパスフレーズを 2 回入力します。</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="-120"/>
+        <location line="+130"/>
         <source>Could not initialize cryptography.</source>
         <translation>暗号化を初期化できませんでした。</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-99"/>
+        <source>Enter your vault passphrase or enable biometric unlocking again.</source>
+        <translation>ボールトのパスフレーズを入力するか、生体認証によるロック解除を再度有効にしてください。</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Biometric verification was cancelled. Use your vault passphrase.</source>
+        <translation>生体認証はキャンセルされました。ボールトのパスフレーズを使用します。</translation>
+    </message>
+    <message>
+        <location line="+97"/>
         <source>Could not save the passkey catalog.</source>
         <translation>パスキー カタログを保存できませんでした。</translation>
     </message>
@@ -3664,7 +3725,7 @@
         <translation>パスキーは削除されましたが、索引の更新を再試行する必要があります。</translation>
     </message>
     <message>
-        <location filename="../src/passkeyvault.h" line="+30"/>
+        <location filename="../src/passkeyvault.h" line="+33"/>
         <source>Biometrics</source>
         <translation>生体認証</translation>
     </message>
@@ -4176,7 +4237,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+582"/>
+        <location filename="../src/main.cpp" line="+583"/>
         <source>Settings…</source>
         <translation>設定…</translation>
     </message>
@@ -5357,8 +5418,8 @@
     </message>
     <message>
         <location line="+9"/>
-        <source>Choose a passphrase of at least 12 characters to protect passkeys on this computer. There is no sync or passphrase recovery. Keep another sign-in method for your accounts.</source>
-        <translation>このコンピュータ上のパスキーを保護するには、12 文字以上のパスフレーズを選択してください。同期やパスフレーズの回復はありません。アカウントには別のサインイン方法を維持してください。</translation>
+        <source>Choose a passphrase of at least 12 characters to protect passkeys on this computer. You can enable biometric unlocking in Settings. Optional encrypted local sync is available; there is no passphrase recovery. Keep another sign-in method for your accounts.</source>
+        <translation>このコンピュータ上のパスキーを保護するには、12 文字以上のパスフレーズを選択してください。設定で生体認証によるロック解除を有効にすることができます。オプションで暗号化されたローカル同期を使用できます。パスフレーズの回復はありません。アカウントには別のサインイン方法を維持してください。</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -5401,7 +5462,12 @@
         <translation>%1 を使用</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+9"/>
+        <source>Enable persistent Touch ID in Settings using your vault passphrase once.</source>
+        <translation>ボールトのパスフレーズを 1 回使用して、設定で永続的な Touch ID を有効にします。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Or use your vault passphrase below.</source>
         <translation>または、以下のボールトのパスフレーズを使用します。</translation>
     </message>

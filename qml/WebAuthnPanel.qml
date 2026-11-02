@@ -114,7 +114,7 @@ Item {
                 Layout.fillWidth: true
                 spacing: 12
                 Basic.Label {
-                    text: qsTr("Choose a passphrase of at least 12 characters to protect passkeys on this computer. There is no sync or passphrase recovery. Keep another sign-in method for your accounts.")
+                    text: qsTr("Choose a passphrase of at least 12 characters to protect passkeys on this computer. You can enable biometric unlocking in Settings. Optional encrypted local sync is available; there is no passphrase recovery. Keep another sign-in method for your accounts.")
                     textFormat: Text.PlainText; color: Theme.mutedFor(parent); Layout.fillWidth: true; wrapMode: Text.Wrap
                 }
                 UiTextField { id: setupPhrase; objectName: "inlinePasskeyPhrase"; Layout.fillWidth: true; echoMode: TextInput.Password; placeholderText: qsTr("Vault passphrase"); enabled: !panel.passkeys.busy }
@@ -178,7 +178,7 @@ Item {
             }
             Basic.Label {
                 visible: panel.passkeys.verifying && panel.passkeys.biometricEnabled
-                text: panel.passkeys.busy ? panel.passkeys.biometricStatus : panel.passkeys.biometricReady
+                text: panel.passkeys.biometricNeedsEnrollment ? qsTr("Enable persistent Touch ID in Settings using your vault passphrase once.") : panel.passkeys.busy ? panel.passkeys.biometricStatus : panel.passkeys.biometricReady
                     ? qsTr("Or use your vault passphrase below.")
                     : qsTr("Use your passphrase once to enable biometric unlocking for this session.")
                 Layout.fillWidth: true

@@ -25,6 +25,8 @@ class PasskeyController final : public QObject
     Q_PROPERTY(bool biometricAvailable READ biometricAvailable NOTIFY changed)
     Q_PROPERTY(bool biometricEnabled READ biometricEnabled NOTIFY changed)
     Q_PROPERTY(bool biometricReady READ biometricReady NOTIFY changed)
+    Q_PROPERTY(bool biometricPersistenceSupported READ biometricPersistenceSupported NOTIFY changed)
+    Q_PROPERTY(bool biometricNeedsEnrollment READ biometricNeedsEnrollment NOTIFY changed)
     Q_PROPERTY(QString biometricName READ biometricName NOTIFY changed)
     Q_PROPERTY(QString biometricStatus READ biometricStatus NOTIFY changed)
     Q_PROPERTY(int abi READ abi CONSTANT)
@@ -49,6 +51,8 @@ public:
     bool biometricAvailable() const { return m_vault.biometricAvailable(); }
     bool biometricEnabled() const { return m_vault.biometricEnabled(); }
     bool biometricReady() const { return m_vault.biometricReady(); }
+    bool biometricPersistenceSupported() const { return m_vault.biometricPersistenceSupported(); }
+    bool biometricNeedsEnrollment() const { return m_vault.biometricNeedsEnrollment(); }
     QString biometricName() const { return m_vault.biometricName(); }
     QString biometricStatus() const { return m_vault.biometricStatus(); }
     Q_INVOKABLE void refreshBiometrics() { m_biometrics->refresh(); }

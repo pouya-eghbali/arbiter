@@ -52,7 +52,9 @@ These Windows changes still require native Windows validation.
 
 Settings offers vault setup in patched builds. The user chooses a passphrase of
 at least 12 Unicode characters. Each creation/assertion verifies that passphrase,
-or uses fresh device verification with an optional, short-lived biometric session.
+or uses fresh device verification. Supported, properly provisioned macOS builds
+can retain biometric unlocking across sessions; other backends use a short-lived
+biometric session.
 The OS credential store alone is not treated as user verification. A confirmation
 click alone never sets the UV flag.
 
@@ -117,21 +119,41 @@ optional boolean in the public catalog; no vault migration/re-encryption is need
   Arbiter does not install or change system authentication policies. See the
   [fprintd device API](https://fprint.freedesktop.org/fprintd-dev/Device.html).
 
-Only the passphrase-derived key is cached, in a dedicated locked memory page
-(`mlock`/`VirtualLock`, with dump exclusion where supported). Failure to lock the
-page prevents biometric enrollment; passphrase operations continue normally.
-Neither the vault passphrase nor a biometric unlock key is written to the catalog,
-QtKeychain, files or credential-provider APIs. Existing encrypted credentials stay
-protected by the passphrase. This is an in-process session, **not** a hardware-bound
-persistent alternative key or protection against a compromised browser process.
+On macOS, a properly signed and provisioned app can enable persistent Touch ID
+once using the vault passphrase and a biometric check. It stores the 32-byte
+vault unlock key in an app-isolated Data Protection Keychain item with
+`kSecAttrAccessibleWhenUnlockedThisDeviceOnly` and
+`kSecAccessControlBiometryCurrentSet`. The Keychain releases it only after fresh
+native biometric authorization; there is no separate preliminary Touch ID prompt.
+It is not synchronized to iCloud or exported by Arbiter credential sync. The
+passphrase is never saved. Changing enrolled fingerprints invalidates access to
+the protected item, so the user must use the passphrase and enroll again.
 
-The session expires 15 minutes after successful passphrase verification and is
-wiped when Arbiter becomes inactive, on screen-lock/sleep notifications, on shutdown, on loss of availability or with
-Lock now. A native verification dialog may temporarily take focus; authorization
-is delivered only when Arbiter is active again. Every operation still requires a
-new native verification, and re-checks the encrypted vault verifier with the cached
-key before using it. Returning to Arbiter after locking/leaving/restarting requires
-the passphrase to warm the session again. Disabling the option clears the cache.
+Restarting, switching apps, screen locking, and the in-memory cache timeout do
+not remove that protected item. They still cancel pending authorization and clear
+transient keys. Every operation rechecks the encrypted vault verifier with the
+key returned by Keychain before signing. Disabling biometric unlocking deletes
+the protected item. Existing session-based enrollments require a one-time upgrade
+in Settings; no password or passkey records are rewritten or made less protected.
+
+The release packager discovers a matching Developer ID provisioning profile in
+Xcode's profile directory, or accepts `ARBITER_MACOS_PROVISIONING_PROFILE`. It
+validates the app identity, Keychain group, certificate, expiry, macOS platform and
+all-device distribution scope before embedding the profile and adding restricted
+entitlements. Without a matching profile, builds retain the session fallback;
+adding these entitlements alone would make macOS reject the app at launch.
+
+Windows, Linux, and unprovisioned macOS builds retain the locked-memory session
+(`mlock`/`VirtualLock`, with dump exclusion where supported). The session expires
+15 minutes after passphrase verification and is wiped on inactivity, screen lock,
+sleep, shutdown, or Lock now. These platforms do not persist an unprotected unlock
+key in their ordinary credential store. Fresh device verification remains required
+for each operation. The desktop passphrase remains an independent fallback on all
+platforms.
+
+A native verification dialog may temporarily take focus; authorization is delivered
+only when Arbiter is active again. These protections do not defend against a
+compromised browser process.
 
 Cancellation, timeout, navigation, workspace changes and replaced WebAuthn requests
 invalidate in-flight results. Failed/dismissed biometric prompts keep the current
@@ -282,3 +304,10 @@ three platforms, including Windows native WebAuthn coexistence. On 2026-10-23,
 the user reported successful GitHub sign-in using a passkey on an iPhone through
 the QR flow on macOS. This is a manual interoperability result; the automated
 pipeline still records physical phone validation as `not_run`.
+
+The opt-in signed macOS test `ARBITER_PROTECTED_KEY_PROBE=1 biometricauth_test
+protectedKeyRequiresNativeAuthorization` creates a synthetic key, verifies that
+Keychain refuses a noninteractive read, then deletes the test item. It requires a
+properly provisioned test app and never reads user credentials. Unit tests also
+cover persistent unlock after restart/lock, failed enrollment, cancellation,
+changed keys, migration, disabling, and passphrase fallback.

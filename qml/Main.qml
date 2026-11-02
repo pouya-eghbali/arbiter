@@ -1685,9 +1685,15 @@ Basic.ApplicationWindow {
                                 else biometricSetup.open()
                             }
                         }
+                        UiButton {
+                            visible: window.passkeys.enabled && window.passkeys.configured && window.passkeys.biometricNeedsEnrollment
+                            text: qsTr("Enable persistent %1…").arg(window.passkeys.biometricName)
+                            enabled: !window.passkeys.busy && window.passkeys.biometricAvailable
+                            onClicked: biometricSetup.open()
+                        }
                         Basic.Label {
                             visible: window.passkeys.enabled && window.passkeys.configured
-                            text: qsTr("Biometric unlocking lasts up to 15 minutes while Arbiter stays active. Enter your passphrase once after restarting or leaving the app; each later passkey use still asks for device verification.")
+                            text: window.passkeys.biometricPersistenceSupported ? qsTr("Enable Touch ID once with your vault passphrase. Each passkey use then asks for Touch ID, even after restarting or switching apps. The passphrase remains your fallback; changing enrolled fingerprints requires enabling Touch ID again.") : qsTr("Biometric unlocking lasts up to 15 minutes while Arbiter stays active. Enter your passphrase once after restarting or leaving the app; each later passkey use still asks for device verification.")
                             color: Theme.mutedFor(parent)
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap

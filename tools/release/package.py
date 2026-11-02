@@ -225,7 +225,18 @@ def sign_macos(app, identity, timestamp):
             entitlements = list(bundle.rglob('QtWebEngineProcess.entitlements'))
             args += ['--entitlements', str(entitlements[0])]
         run('codesign', *args, bundle)
-    run('codesign', *common, '--entitlements', app / 'Contents/Resources/Arbiter.entitlements', app)
+    # Data Protection Keychain isolates biometric keys by the signed app identity.
+    # Infer the team from the binary we just signed; never hard-code a developer.
+    entitlements_path = app / 'Contents/Resources/Arbiter.entitlements'
+    entitlements = plistlib.loads(entitlements_path.read_bytes())
+    details = subprocess.run(['codesign', '-d', '--verbose=4', str(app / 'Contents/MacOS' / info['CFBundleExecutable'])],
+                             check=True, capture_output=True, text=True).stderr
+    team = re.search(r'^TeamIdentifier=([A-Z0-9]{10})$', details, re.MULTILINE)
+    from macos_keychain import configure as configure_keychain
+    if not configure_keychain(app, info, team.group(1) if team else None, entitlements):
+        print('No matching Developer ID profile: persistent Touch ID is unavailable; session unlocking remains available.')
+    entitlements_path.write_bytes(plistlib.dumps(entitlements))
+    run('codesign', *common, '--entitlements', entitlements_path, app)
     run('codesign', '--verify', '--deep', '--strict', app)
 
 

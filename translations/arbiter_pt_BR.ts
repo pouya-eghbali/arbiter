@@ -212,7 +212,7 @@
 <context>
     <name>AdBlocker</name>
     <message>
-        <location filename="../src/adblocker.cpp" line="+29"/>
+        <location filename="../src/adblocker.cpp" line="+30"/>
         <source>Using supplied filter rules.</source>
         <translation>Usando regras de filtro fornecidas.</translation>
     </message>
@@ -376,7 +376,14 @@
         <translation>A verificação biométrica foi cancelada ou expirou. Use a senha do seu cofre ou tente novamente.</translation>
     </message>
     <message>
-        <location filename="../src/biometricauth.h" line="+35"/>
+        <location filename="../src/biometricauth.h" line="+24"/>
+        <location line="+1"/>
+        <location line="+1"/>
+        <source>Persistent biometric unlocking is unavailable.</source>
+        <translation>O desbloqueio biométrico persistente não está disponível.</translation>
+    </message>
+    <message>
+        <location line="+15"/>
         <source>Checking biometric support…</source>
         <translation>Verificando suporte biométrico…</translation>
     </message>
@@ -471,7 +478,7 @@
         <translation>Windows Hello não pôde ser iniciado. Use a senha do seu cofre.</translation>
     </message>
     <message>
-        <location filename="../src/biometricauth_mac.mm" line="+22"/>
+        <location filename="../src/biometricauth_mac.mm" line="+32"/>
         <source>Touch ID</source>
         <translation>Touch ID</translation>
     </message>
@@ -486,12 +493,12 @@
         <translation>Touch ID não está disponível. Registre uma impressão digital nas configurações do macOS ou use a senha do seu cofre.</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+57"/>
         <source>Touch ID is unavailable or locked out. Use your vault passphrase.</source>
         <translation>Touch ID não está disponível ou bloqueado. Use a senha do seu cofre.</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+35"/>
         <source>Touch ID did not verify. Use your vault passphrase or try again.</source>
         <translation>Touch ID não verificou. Use a senha do seu cofre ou tente novamente.</translation>
     </message>
@@ -507,6 +514,11 @@
         <location line="+2"/>
         <source>Enter your vault passphrase, then verify with your device. Later passkey operations can use device verification for up to 15 minutes while Arbiter stays active. Your passphrase remains the fallback and is required again after restarting or leaving the app.</source>
         <translation>Insira a senha do cofre e verifique com seu dispositivo. As operações posteriores de senha podem usar a verificação do dispositivo por até 15 minutos enquanto Arbiter permanece ativo. Sua senha permanece como alternativa e é necessária novamente após reiniciar ou sair do aplicativo.</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Enter your vault passphrase once, then verify with Touch ID. macOS will protect the unlock key in this app’s device-only Keychain. Each later passkey use asks for Touch ID, including after restarting or switching apps. Your passphrase remains the fallback. Changing enrolled fingerprints requires enabling Touch ID again.</source>
+        <translation>Insira a senha do seu cofre uma vez e verifique com Touch ID. macOS protegerá a chave de desbloqueio no Keychain somente para dispositivos deste aplicativo. Cada uso posterior da senha solicita Touch ID, inclusive após reiniciar ou trocar de aplicativo. Sua senha continua sendo a alternativa. A alteração das impressões digitais registradas requer a ativação de Touch ID novamente.</translation>
     </message>
     <message>
         <location line="+9"/>
@@ -712,7 +724,7 @@
 <context>
     <name>CredentialSync</name>
     <message>
-        <location filename="../src/credentialsync.cpp" line="+78"/>
+        <location filename="../src/credentialsync.cpp" line="+80"/>
         <source>This computer</source>
         <translation>Este computador</translation>
     </message>
@@ -752,7 +764,7 @@
         <translation>A chave de transporte da sincronização criptografada está ausente ou é inválida.</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+11"/>
         <source>The pinned sync certificate lost its private key. Existing pairing was preserved.</source>
         <translation>A chave privada do certificado de sincronização fixado está ausente. O pareamento existente foi preservado.</translation>
     </message>
@@ -823,23 +835,23 @@
     </message>
     <message>
         <location line="+3"/>
-        <location line="+93"/>
+        <location line="+94"/>
         <source>Could not persist incoming encrypted changes.</source>
         <translation>Não foi possível salvar as alterações criptografadas recebidas.</translation>
     </message>
     <message>
-        <location line="-82"/>
-        <location line="+91"/>
+        <location line="-83"/>
+        <location line="+92"/>
         <source>Could not save sync status.</source>
         <translation>Não foi possível salvar o estado de sincronização.</translation>
     </message>
     <message>
-        <location line="-67"/>
+        <location line="-68"/>
         <source>Could not save the conflict choice.</source>
         <translation>Não foi possível salvar a escolha do conflito.</translation>
     </message>
     <message>
-        <location line="+78"/>
+        <location line="+79"/>
         <source>The sync session expired.</source>
         <translation>A sessão de sincronização expirou.</translation>
     </message>
@@ -2091,9 +2103,39 @@
     </message>
 </context>
 <context>
+    <name>MacBiometricAuth</name>
+    <message>
+        <location filename="../src/biometricauth_mac.mm" line="-80"/>
+        <location line="+17"/>
+        <source>Persistent biometric unlocking is unavailable.</source>
+        <translation>O desbloqueio biométrico persistente não está disponível.</translation>
+    </message>
+    <message>
+        <location line="-13"/>
+        <location line="+6"/>
+        <source>Could not protect the biometric vault key in Keychain.</source>
+        <translation>Não foi possível proteger a chave biométrica do cofre em Keychain.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Could not remove the biometric vault key from Keychain.</source>
+        <translation>Não foi possível remover a chave biométrica do cofre de Keychain.</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Could not unlock the biometric vault key. Use your passphrase or enable Touch ID again.</source>
+        <translation>Não foi possível desbloquear a chave biométrica do cofre. Use sua senha ou habilite Touch ID novamente.</translation>
+    </message>
+    <message>
+        <location line="+45"/>
+        <source>Touch ID could not unlock the vault key. Use your passphrase or enable Touch ID again.</source>
+        <translation>Touch ID não conseguiu desbloquear a chave do cofre. Use sua senha ou habilite Touch ID novamente.</translation>
+    </message>
+</context>
+<context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+138"/>
+        <location filename="../qml/Main.qml" line="+148"/>
         <source>Private browsing — Arbiter</source>
         <translation>Navegação privada — Arbiter</translation>
     </message>
@@ -2104,14 +2146,14 @@
     </message>
     <message>
         <location line="+644"/>
-        <location line="+1652"/>
+        <location line="+1676"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>Nova aba</translation>
     </message>
     <message>
-        <location line="-1649"/>
-        <location line="+1738"/>
+        <location line="-1673"/>
+        <location line="+1762"/>
         <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
@@ -2119,7 +2161,7 @@
         <translation>Página inicial</translation>
     </message>
     <message>
-        <location line="-1243"/>
+        <location line="-1267"/>
         <source>Settings</source>
         <translation>Configurações</translation>
     </message>
@@ -2335,12 +2377,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+353"/>
+        <location line="+377"/>
         <source>Off</source>
         <translation>Desativado</translation>
     </message>
     <message>
-        <location line="-346"/>
+        <location line="-370"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>Mostre a navegação do site sob o título da guia ou como menus separados na barra de menus do macOS.</translation>
     </message>
@@ -2450,9 +2492,19 @@
         <translation>Habilitar %1…</translation>
     </message>
     <message>
+        <location line="+0"/>
+        <source>Enable persistent %1…</source>
+        <translation>Habilitar persistente %1…</translation>
+    </message>
+    <message>
         <location line="+9"/>
         <source>Biometric unlocking lasts up to 15 minutes while Arbiter stays active. Enter your passphrase once after restarting or leaving the app; each later passkey use still asks for device verification.</source>
         <translation>O desbloqueio biométrico dura até 15 minutos enquanto Arbiter permanece ativo. Digite sua senha uma vez após reiniciar ou sair do aplicativo; cada uso posterior da chave de acesso ainda solicita a verificação do dispositivo.</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Enable Touch ID once with your vault passphrase. Each passkey use then asks for Touch ID, even after restarting or switching apps. The passphrase remains your fallback; changing enrolled fingerprints requires enabling Touch ID again.</source>
+        <translation>Habilite Touch ID uma vez com a senha do seu cofre. Cada senha usada solicita Touch ID, mesmo depois de reiniciar ou trocar de aplicativo. A senha continua sendo sua alternativa; a alteração das impressões digitais registradas requer a ativação do Touch ID novamente.</translation>
     </message>
     <message>
         <location line="+7"/>
@@ -2515,7 +2567,7 @@
         <translation>Mova a janela arrastando o fundo vazio da página inicial.</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+32"/>
         <location line="+8"/>
         <source>Interface language</source>
         <translation>Idioma da interface</translation>
@@ -2829,7 +2881,7 @@
         <translation>Privado</translation>
     </message>
     <message>
-        <location line="-1335"/>
+        <location line="-1359"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass (experimental)</translation>
     </message>
@@ -3039,12 +3091,13 @@
         <translation>Cores</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location filename="../qml/Main.qml" line="+416"/>
+        <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Default browser</source>
         <translation>Navegador padrão</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Ready</source>
         <translation>Pronto</translation>
     </message>
@@ -3179,22 +3232,25 @@
         <translation>Abra links da web em Arbiter. Seu sistema pode solicitar que você confirme. Isso é totalmente opcional.</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location filename="../qml/Main.qml" line="+7"/>
+        <location filename="../qml/Onboarding.qml" line="+3"/>
         <source>Arbiter is your default browser</source>
         <translation>Arbiter é seu navegador padrão</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="+2"/>
+        <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Waiting for your system…</source>
         <translation>Aguardando seu sistema…</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="+1"/>
+        <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Set as default</source>
         <translation>Definir como padrão</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location filename="../qml/Onboarding.qml" line="+6"/>
         <source>You can also choose Arbiter later in your system&apos;s default application settings.</source>
         <translation>Você também pode escolher Arbiter posteriormente nas configurações padrão do aplicativo do seu sistema.</translation>
     </message>
@@ -3439,38 +3495,41 @@
 <context>
     <name>PasskeyVault</name>
     <message>
-        <location filename="../src/passkeyvault.cpp" line="+66"/>
+        <location filename="../src/passkeyvault.cpp" line="+67"/>
         <source>Set up the passkey vault first.</source>
         <translation>Configure primeiro o cofre da chave de acesso.</translation>
     </message>
     <message>
-        <location line="+3"/>
-        <location line="+18"/>
+        <location line="+8"/>
+        <location line="+39"/>
+        <location line="+9"/>
         <source>Could not save the biometric preference.</source>
         <translation>Não foi possível salvar a preferência biométrica.</translation>
     </message>
     <message>
-        <location line="-16"/>
+        <location line="-41"/>
         <source>Biometric verification is unavailable. Use your vault passphrase.</source>
         <translation>A verificação biométrica não está disponível. Use a senha do seu cofre.</translation>
     </message>
     <message>
         <location line="+5"/>
+        <location line="+19"/>
         <source>Biometric setup was cancelled.</source>
         <translation>A configuração biométrica foi cancelada.</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-18"/>
         <source>Could not verify the vault passphrase. Wait before trying again.</source>
         <translation>Não foi possível verificar a senha do cofre. Espere antes de tentar novamente.</translation>
     </message>
     <message>
         <location line="+1"/>
+        <location line="+50"/>
         <source>Could not protect the biometric session key in memory. Use your vault passphrase.</source>
         <translation>Não foi possível proteger a chave de sessão biométrica na memória. Use a senha do seu cofre.</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="-48"/>
         <source>Enable biometric unlocking for your passkey vault</source>
         <translation>Ative o desbloqueio biométrico para seu cofre de chaves</translation>
     </message>
@@ -3480,22 +3539,13 @@
         <translation>A configuração biométrica foi cancelada. Use a senha do seu cofre.</translation>
     </message>
     <message>
-        <location line="+9"/>
-        <source>Enter your vault passphrase to enable biometric unlocking for this session.</source>
-        <translation>Insira a senha do seu cofre para ativar o desbloqueio biométrico para esta sessão.</translation>
-    </message>
-    <message>
-        <location line="+3"/>
+        <location line="+57"/>
+        <location line="+2"/>
         <source>Unlock your passkey vault for this website</source>
         <translation>Desbloqueie seu cofre de senha para este site</translation>
     </message>
     <message>
-        <location line="+2"/>
-        <source>The biometric session expired. Use your vault passphrase.</source>
-        <translation>A sessão biométrica expirou. Use a senha do seu cofre.</translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="-12"/>
         <source>Could not unlock the vault. Use your vault passphrase.</source>
         <translation>Não foi possível desbloquear o cofre. Use a senha do seu cofre.</translation>
     </message>
@@ -3505,7 +3555,7 @@
         <translation>O cofre mudou. Use a senha do seu cofre.</translation>
     </message>
     <message>
-        <location line="+44"/>
+        <location line="+53"/>
         <source>The passkey vault is in use by another browser process.</source>
         <translation>O cofre da chave de acesso está em uso por outro processo do navegador.</translation>
     </message>
@@ -3525,12 +3575,23 @@
         <translation>Use pelo menos 12 caracteres e digite a mesma senha duas vezes.</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="-120"/>
+        <location line="+130"/>
         <source>Could not initialize cryptography.</source>
         <translation>Não foi possível inicializar a criptografia.</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-99"/>
+        <source>Enter your vault passphrase or enable biometric unlocking again.</source>
+        <translation>Digite a senha do seu cofre ou ative o desbloqueio biométrico novamente.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Biometric verification was cancelled. Use your vault passphrase.</source>
+        <translation>A verificação biométrica foi cancelada. Use a senha do seu cofre.</translation>
+    </message>
+    <message>
+        <location line="+97"/>
         <source>Could not save the passkey catalog.</source>
         <translation>Não foi possível salvar o catálogo de chaves de acesso.</translation>
     </message>
@@ -3664,7 +3725,7 @@
         <translation>A chave de acesso foi removida, mas a atualização do índice precisa ser repetida.</translation>
     </message>
     <message>
-        <location filename="../src/passkeyvault.h" line="+30"/>
+        <location filename="../src/passkeyvault.h" line="+33"/>
         <source>Biometrics</source>
         <translation>Biometria</translation>
     </message>
@@ -4176,7 +4237,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cpp" line="+582"/>
+        <location filename="../src/main.cpp" line="+583"/>
         <source>Settings…</source>
         <translation>Configurações…</translation>
     </message>
@@ -5357,8 +5418,8 @@
     </message>
     <message>
         <location line="+9"/>
-        <source>Choose a passphrase of at least 12 characters to protect passkeys on this computer. There is no sync or passphrase recovery. Keep another sign-in method for your accounts.</source>
-        <translation>Escolha uma senha de pelo menos 12 caracteres para proteger as chaves de acesso neste computador. Não há sincronização ou recuperação de senha. Mantenha outro método de login para suas contas.</translation>
+        <source>Choose a passphrase of at least 12 characters to protect passkeys on this computer. You can enable biometric unlocking in Settings. Optional encrypted local sync is available; there is no passphrase recovery. Keep another sign-in method for your accounts.</source>
+        <translation>Escolha uma senha de pelo menos 12 caracteres para proteger as chaves de acesso neste computador. Você pode ativar o desbloqueio biométrico em Configurações. A sincronização local criptografada opcional está disponível; não há recuperação de senha. Mantenha outro método de login para suas contas.</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -5401,7 +5462,12 @@
         <translation>Usar %1</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+9"/>
+        <source>Enable persistent Touch ID in Settings using your vault passphrase once.</source>
+        <translation>Habilite Touch ID persistente em Configurações usando a senha do seu cofre uma vez.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Or use your vault passphrase below.</source>
         <translation>Ou use a senha do seu cofre abaixo.</translation>
     </message>

@@ -18,3 +18,7 @@ __pycache__/
 # Local Android signing material (never distribute private signing keys).
 *.keystore
 *.jks
+
+# Apple signing profiles are local build inputs.
+*.provisionprofile
+*.mobileprovision

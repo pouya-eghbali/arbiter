@@ -31,7 +31,20 @@ public:
 class FakeBiometrics : public BiometricAuth {
 public:
     using BiometricAuth::BiometricAuth;
-    bool automatic=true, success=true;
+    bool automatic=true, success=true, persistent=false, failProtectedWrite=false;
+    QHash<QString, QByteArray> protectedKeys;
+    bool persistentKeysSupported() const override { return persistent; }
+    void storeProtectedKey(const QString &id, const QByteArray &key, KeyCallback callback) override {
+        if (!failProtectedWrite) protectedKeys[id] = key;
+        callback(failProtectedWrite ? QStringLiteral("write failed") : QString(), {});
+    }
+    void removeProtectedKey(const QString &id, KeyCallback callback) override { protectedKeys.remove(id); callback({}, {}); }
+    void readProtectedKey(const QString &id, const QString &reason, KeyCallback callback) override {
+        authenticate(reason, [this, id, callback](bool ok, const QString &error) {
+            callback(ok && protectedKeys.contains(id) ? QString() : error.isEmpty() ? QStringLiteral("missing") : error,
+                     ok ? protectedKeys.value(id) : QByteArray());
+        });
+    }
     int prompts=0;
     quint64 pending=0;
     bool foregroundRequired() const override { return false; }
@@ -70,6 +83,60 @@ QByteArray perform(PasskeyVault &vault, bool make, const QCborMap &request, cons
 class PasskeyVaultTest : public QObject {
     Q_OBJECT
 private slots:
+    void persistentBiometricsSurviveRestartAndLock() {
+        QTemporaryDir dir; MemoryStore store; FakeBiometrics auth; auth.persistent=true; auth.refresh();
+        QByteArray id;
+        {
+            PasskeyVault vault(&store,dir.path(),nullptr,&auth);
+            vault.setup(phrase,phrase); vault.setBiometricEnabled(true,phrase);
+            QVERIFY2(vault.biometricReady(), qPrintable(vault.error())); QVERIFY(vault.biometricPersistent());
+            QCOMPARE(auth.protectedKeys.size(),1);
+            auto response=QCborValue::fromCbor(perform(vault,true,makeRequest(),{},0,{},true)).toMap();
+            id=response.value(2).toByteArray().mid(55,32); QCOMPARE(id.size(),32);
+        }
+        PasskeyVault restored(&store,dir.path(),nullptr,&auth);
+        QVERIFY(restored.biometricReady()); const auto prompts=auth.prompts;
+        QVERIFY(!perform(restored,false,getRequest(),id,0,{},true).isEmpty()); QCOMPARE(auth.prompts,prompts+1);
+        restored.lockBiometrics(); emit auth.sessionLocked(); QVERIFY(restored.biometricReady());
+        QVERIFY(!perform(restored,false,getRequest(),id,0,{},true).isEmpty()); QCOMPARE(auth.prompts,prompts+2);
+        auth.persistent=false; restored.lockBiometrics(); QVERIFY(!restored.biometricReady());
+        QVERIFY(!perform(restored,false,getRequest(),id,0).isEmpty()); QVERIFY(restored.biometricReady());
+        QVERIFY(!perform(restored,false,getRequest(),id,0,{},true).isEmpty()); // Unprovisioned builds retain the session fallback.
+        auth.persistent=true;
+        auth.success=false;
+        QVERIFY(perform(restored,false,getRequest(),id,1,{},true).isEmpty());
+        QVERIFY(!perform(restored,false,getRequest(),id,0).isEmpty()); // Passphrase remains independent.
+        restored.setBiometricEnabled(false,{}); QVERIFY(!restored.biometricReady()); QVERIFY(auth.protectedKeys.isEmpty());
+        PasskeyVault disabled(&store,dir.path(),nullptr,&auth); QVERIFY(!disabled.biometricEnabled());
+    }
+    void persistentBiometricsRejectCancellationAndChangedKeys() {
+        QTemporaryDir dir; MemoryStore store; FakeBiometrics auth; auth.persistent=true; auth.refresh();
+        PasskeyVault vault(&store,dir.path(),nullptr,&auth);
+        vault.setup(phrase,phrase); vault.setBiometricEnabled(true,phrase);
+        auth.automatic=false; int callbacks=0;
+        vault.perform(true,encode(makeRequest()),{}, {},[&](int status,const QByteArray &response) {
+            ++callbacks; QCOMPARE(status,1); QVERIFY(response.isEmpty());
+        },{},true);
+        vault.cancelBiometric(); QCOMPARE(callbacks,1); auth.respond(true); QCOMPARE(callbacks,1);
+        QVERIFY(vault.credentials("example.com").isEmpty());
+        auth.automatic=true;
+        auto name=auth.protectedKeys.constBegin().key(); auth.protectedKeys[name]=QByteArray(32,'x');
+        QVERIFY(perform(vault,true,makeRequest(),{},1,{},true).isEmpty());
+        QVERIFY(vault.credentials("example.com").isEmpty());
+        QVERIFY(!perform(vault,true,makeRequest(),{},0).isEmpty());
+    }
+    void persistentEnrollmentFailureAndMigration() {
+        QTemporaryDir dir; MemoryStore store; FakeBiometrics auth; auth.refresh();
+        PasskeyVault vault(&store,dir.path(),nullptr,&auth);
+        vault.setup(phrase,phrase); vault.setBiometricEnabled(true,phrase); QVERIFY(!vault.biometricPersistent());
+        auth.persistent=true; QVERIFY(vault.biometricNeedsEnrollment());
+        auth.failProtectedWrite=true; vault.setBiometricEnabled(true,phrase);
+        QVERIFY(!vault.biometricPersistent()); QVERIFY(!vault.error().isEmpty()); QVERIFY(auth.protectedKeys.isEmpty());
+        auth.failProtectedWrite=false; vault.setBiometricEnabled(true,phrase);
+        QVERIFY(vault.biometricPersistent()); QVERIFY(!vault.biometricNeedsEnrollment()); QVERIFY(vault.biometricReady());
+        QCOMPARE(auth.protectedKeys.size(),1);
+        vault.setBiometricEnabled(true,phrase); QCOMPARE(auth.protectedKeys.size(),1); // Old protected key removed on replacement.
+    }
     void biometricEnrollmentAndPerOperationVerification() {
         QTemporaryDir dir; MemoryStore store; FakeBiometrics auth; auth.refresh();
         PasskeyVault vault(&store,dir.path(),nullptr,&auth);

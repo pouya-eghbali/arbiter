@@ -30,7 +30,7 @@ UiPopup {
         spacing: 14
         Basic.Label { text: qsTr("Enable %1").arg(setup.controller.biometricName); font.pixelSize: 22 }
         Basic.Label {
-            text: qsTr("Enter your vault passphrase, then verify with your device. Later passkey operations can use device verification for up to 15 minutes while Arbiter stays active. Your passphrase remains the fallback and is required again after restarting or leaving the app.")
+            text: setup.controller.biometricPersistenceSupported ? qsTr("Enter your vault passphrase once, then verify with Touch ID. macOS will protect the unlock key in this app’s device-only Keychain. Each later passkey use asks for Touch ID, including after restarting or switching apps. Your passphrase remains the fallback. Changing enrolled fingerprints requires enabling Touch ID again.") : qsTr("Enter your vault passphrase, then verify with your device. Later passkey operations can use device verification for up to 15 minutes while Arbiter stays active. Your passphrase remains the fallback and is required again after restarting or leaving the app.")
             Layout.fillWidth: true
             wrapMode: Text.Wrap
         }

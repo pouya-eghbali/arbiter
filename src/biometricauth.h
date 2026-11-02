@@ -1,11 +1,12 @@
 #pragma once
 #include <QObject>
+#include <QByteArray>
 #include <QTimer>
 #include <QDeadlineTimer>
 #include <functional>
 
-// Authentication authorizes use of a short-lived in-process vault key. No
-// platform backend receives a passphrase or persists vault key material.
+// Native verification authorizes a vault operation. Supported platforms can
+// also store a device-bound key protected by OS-enforced biometric access.
 class BiometricAuth : public QObject {
     Q_OBJECT
 public:
@@ -18,6 +19,11 @@ public:
     virtual bool foregroundRequired() const { return true; }
     virtual bool nativePromptCanTakeFocus() const { return false; }
     virtual void refresh() = 0;
+    using KeyCallback = std::function<void(const QString &, const QByteArray &)>;
+    virtual bool persistentKeysSupported() const { return false; }
+    virtual void storeProtectedKey(const QString &, const QByteArray &, KeyCallback callback) { callback(tr("Persistent biometric unlocking is unavailable."), {}); }
+    virtual void readProtectedKey(const QString &, const QString &, KeyCallback callback) { callback(tr("Persistent biometric unlocking is unavailable."), {}); }
+    virtual void removeProtectedKey(const QString &, KeyCallback callback) { callback(tr("Persistent biometric unlocking is unavailable."), {}); }
     void authenticate(const QString &reason, Callback callback);
     void cancel();
 signals:
