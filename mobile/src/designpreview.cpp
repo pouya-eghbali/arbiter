@@ -126,7 +126,7 @@ void renderDesignPreview(MobileModel &model, QQmlApplicationEngine &engine, cons
         model.addTab();
     if (qEnvironmentVariableIsSet("ARBITER_PREVIEW_THEME"))
         model.setSetting("theme", qEnvironmentVariable("ARBITER_PREVIEW_THEME"));
-    const QString panel = state == "start" || state == "browsing" || state == "private" || state == "suggestions" || state == "interactions" || state == "nativechecks" || state == "pillchecks" ? QString()
+    const QString panel = state == "start" || state == "browsing" || state == "private" || state == "suggestions" || state == "interactions" || state == "wakechecks" || state == "nativechecks" || state == "pillchecks" ? QString()
                           : state == "settingschecks" ? QStringLiteral("settings")
                           : state == "search" ? QStringLiteral("address")
                                                : state;
@@ -322,6 +322,35 @@ void renderDesignPreview(MobileModel &model, QQmlApplicationEngine &engine, cons
             QTest::qWait(80);
             if (pill->active()) { qCritical("Private lock left native controls visible"); qApp->exit(1); return; }
             qInfo("Native glass swipe, menu actions, lifetime, fallback and private-lock checks passed");
+            qApp->exit(0);
+        });
+        return;
+    }
+    if (state == "wakechecks") {
+        QTimer::singleShot(700, window, [window, &model, output] {
+            const auto focused = model.activeId();
+            if (!NativePage::pages.value(focused)) {
+                qCritical("No native page before suspension");
+                qApp->exit(1);
+                return;
+            }
+            qGuiApp->applicationStateChanged(Qt::ApplicationSuspended);
+            model.updatePage(focused, "error", {{"message", "Fixture renderer recovery"}, {"crashed", true}});
+            QTest::qWait(100);
+            if (NativePage::pages.value(focused)) {
+                qCritical("Discarded page did not release its native renderer");
+                qApp->exit(1);
+                return;
+            }
+            qGuiApp->applicationStateChanged(Qt::ApplicationActive);
+            QTest::qWait(200);
+            if (!NativePage::pages.value(focused) || model.page(focused).value("sleeping").toBool()) {
+                qCritical("Foreground resume did not recreate the native page");
+                qApp->exit(1);
+                return;
+            }
+            window->grabWindow().save(output, "PNG");
+            qInfo("Native page teardown and foreground recreation checks passed");
             qApp->exit(0);
         });
         return;

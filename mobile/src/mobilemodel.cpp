@@ -125,8 +125,10 @@ MobileModel::MobileModel(QObject *parent, const QString &directory) : QObject(pa
             m_pending = {};
             emit changed();
         }
-        if (state == Qt::ApplicationActive)
+        if (state == Qt::ApplicationActive) {
+            wakeActiveTab();
             backgroundSync();
+        }
     });
     connect(qGuiApp, &QCoreApplication::aboutToQuit, this, &MobileModel::persist);
     m_vault.setCooldown(m_settings.value("passwordUnlockSeconds").toInt(300));
@@ -267,16 +269,35 @@ void MobileModel::persist() {
 void MobileModel::ensureTab() {
     auto current = page(m_active);
     if (!current.isEmpty() && current.value("workspace") == m_workspace &&
-        current.value("private").toBool() == m_private)
+        current.value("private").toBool() == m_private) {
+        wakeActiveTab();
         return;
+    }
     for (const auto &v : m_tabs) {
         auto t = v.toObject();
         if (t.value("workspace") == m_workspace && t.value("private").toBool() == m_private) {
             m_active = t.value("id").toString();
+            wakeActiveTab();
             return;
         }
     }
     addTab();
+}
+void MobileModel::wakeActiveTab() {
+    if (m_private && m_locked)
+        return;
+    const auto index = tabIndex(m_active);
+    if (index < 0)
+        return;
+    auto tab = m_tabs[index].toObject();
+    if (!tab.value("sleeping").toBool())
+        return;
+    tab["sleeping"] = false;
+    tab.remove("error");
+    tab["lastUsed"] = double(now());
+    m_tabs[index] = tab;
+    m_saveTimer.start();
+    emit changed();
 }
 QString MobileModel::addTab(const QString &address) {
     m_active = id();
@@ -307,9 +328,9 @@ void MobileModel::selectTab(const QString &key) {
     m_active = key;
     m_workspace = t.value("workspace").toString();
     m_private = t.value("private").toBool();
-    t["sleeping"] = false;
     t["lastUsed"] = double(now());
     m_tabs[index] = t;
+    wakeActiveTab();
     m_activity.restart();
     m_focus = {};
     m_saveTimer.start();
@@ -666,6 +687,7 @@ void MobileModel::unlockPrivate() {
         self->verificationActive = false;
         if (approved) {
             self->m_locked = false;
+            self->wakeActiveTab();
             self->m_activity.restart();
             emit self->changed();
         }

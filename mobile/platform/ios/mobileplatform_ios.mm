@@ -541,7 +541,8 @@ static NSMutableDictionary<NSString *, NSNumber *> *privateUsers;
 }
 - (void)webViewWebContentProcessDidTerminate:(WKWebView *)web {
     if (page)
-        page->event("error", {{"message", QObject::tr("The page stopped responding. Reload to try again.")}});
+        page->event("error", {{"message", QObject::tr("The page stopped responding. Reload to try again.")},
+                              {"crashed", true}});
 }
 - (void)userContentController:(WKUserContentController *)controller
       didReceiveScriptMessage:(WKScriptMessage *)message {

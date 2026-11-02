@@ -157,6 +157,7 @@ class MobileModel : public QObject {
     void restore();
     void persist();
     void ensureTab();
+    void wakeActiveTab();
     void sleepIdle();
     void lockPrivate();
     int tabIndex(const QString &id) const;

@@ -4,6 +4,7 @@
 #include "mobiletabs.h"
 #include "mobilevault.h"
 #include <QFile>
+#include <QGuiApplication>
 #include <QJsonDocument>
 #include <QProcess>
 #include <QTemporaryDir>
@@ -123,6 +124,54 @@ class MobileCoreTest : public QObject {
         QVERIFY(!model.page(audible).value("sleeping").toBool());
         QVERIFY(!model.page(edited).value("sleeping").toBool());
         QVERIFY(!model.page(active).value("sleeping").toBool());
+    }
+    void wakeTabsAfterPhoneSleep() {
+        QTemporaryDir dir;
+        MobileModel model(nullptr, dir.path());
+        const auto first = model.addTab("https://first.example");
+        const auto second = model.addTab("https://second.example");
+        qGuiApp->applicationStateChanged(Qt::ApplicationSuspended);
+        // iOS may reclaim either WebKit process while the phone is locked.
+        for (const auto &tab : {first, second})
+            model.updatePage(tab, "error", {{"message", "Renderer reclaimed"}, {"crashed", true}});
+        qGuiApp->applicationStateChanged(Qt::ApplicationActive);
+        QVERIFY(!model.page(second).value("sleeping").toBool());
+        QVERIFY(!model.page(second).contains("error"));
+        QVERIFY(model.page(first).value("sleeping").toBool());
+        model.selectTab(first);
+        QVERIFY(!model.page(first).value("sleeping").toBool());
+        QVERIFY(!model.page(first).contains("error"));
+        QCOMPARE(model.page(first).value("url").toString(), "https://first.example");
+    }
+    void workspaceSelectionWakesSleepingTab() {
+        QTemporaryDir dir;
+        MobileModel model(nullptr, dir.path());
+        const auto workspace = model.workspaceId();
+        const auto tab = model.activeId();
+        model.navigate("https://workspace.example");
+        model.addWorkspace("Other", false);
+        model.updatePage(tab, "error", {{"message", "Renderer reclaimed"}, {"crashed", true}});
+        model.selectWorkspace(workspace);
+        QCOMPARE(model.activeId(), tab);
+        QVERIFY(!model.page(tab).value("sleeping").toBool());
+        QVERIFY(!model.page(tab).contains("error"));
+    }
+    void privateRecoveryRequiresUnlock() {
+        QTemporaryDir dir;
+        MobileModel model(nullptr, dir.path());
+        model.newPrivateTab();
+        const auto tab = model.activeId();
+        model.navigate("https://private.example");
+        qGuiApp->applicationStateChanged(Qt::ApplicationSuspended);
+        model.updatePage(tab, "error", {{"message", "Renderer reclaimed"}, {"crashed", true}});
+        qGuiApp->applicationStateChanged(Qt::ApplicationActive);
+        model.selectTab(tab);
+        QVERIFY(model.privateLocked());
+        QVERIFY(model.page(tab).value("sleeping").toBool());
+        TestPlatform::approved = true;
+        model.unlockPrivate();
+        QVERIFY(!model.privateLocked());
+        QVERIFY(!model.page(tab).value("sleeping").toBool());
     }
     void authenticationAndEncryption() {
         QTemporaryDir dir;
