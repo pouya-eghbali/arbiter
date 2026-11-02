@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 import Arbiter
+import "qrc:/about/AboutContent.js" as AboutContent
 
 ColumnLayout {
     id: page
@@ -38,7 +39,7 @@ ColumnLayout {
     }
     Basic.Label {
         Layout.fillWidth: true
-        text: qsTr("An open-source browser for power users. Zero telemetry. Zero data collection.")
+        text: AboutContent.intro()
         font.pixelSize: 18
         font.weight: Font.Medium
         color: Theme.text
@@ -46,13 +47,13 @@ ColumnLayout {
     }
     Basic.Label {
         Layout.fillWidth: true
-        text: qsTr("Built for people who like to make their browser their own. Everyone is welcome to contribute: share an idea, report a bug, improve the docs, or help build what comes next.")
+        text: AboutContent.contribute()
         color: Theme.muted
         wrapMode: Text.Wrap
     }
     Basic.Label {
         Layout.fillWidth: true
-        text: qsTr("Licensed under the GNU General Public License, version 3 (GPL-3.0-only).")
+        text: AboutContent.licenseNotice()
         color: Theme.muted
         wrapMode: Text.Wrap
     }
@@ -162,28 +163,16 @@ ColumnLayout {
     ColumnLayout {
         Layout.fillWidth: true
         spacing: 8
-        Basic.Label { text: qsTr("Made possible by"); font.pixelSize: 20; font.weight: Font.DemiBold; color: Theme.text }
+        Basic.Label { text: AboutContent.creditsTitle(); font.pixelSize: 20; font.weight: Font.DemiBold; color: Theme.text }
         Basic.Label {
             Layout.fillWidth: true
-            text: qsTr("Thank you to the contributors and open-source projects behind Arbiter.")
+            text: AboutContent.creditsThanks()
             wrapMode: Text.Wrap
             color: Theme.muted
         }
     }
     Repeater {
-        model: [
-            { name: "Qt & Qt WebEngine", detail: qsTr("Application framework, interface, and Chromium-based web engine"), license: qsTr("Qt licensing"), url: "https://www.qt.io/licensing/" },
-            { name: "Chromium", detail: qsTr("Web platform and browser engine"), license: qsTr("BSD-style & third-party licenses"), url: "https://chromium.googlesource.com/chromium/src/+/main/LICENSE" },
-            { name: "QtKeychain", detail: qsTr("Secure storage through the operating system"), license: "BSD-3-Clause", url: "https://github.com/frankosterfeld/qtkeychain" },
-            { name: "OpenSSL", detail: qsTr("Cryptography for passwords and passkeys"), license: "Apache-2.0", url: "https://www.openssl.org/" },
-            { name: "adblock-rust · Brave", detail: qsTr("Ad and tracker blocking engine"), license: "MPL-2.0", url: "https://github.com/brave/adblock-rust" },
-            { name: "EasyList & EasyPrivacy", detail: qsTr("Community-maintained ad and tracker filter lists"), license: "CC BY-SA 3.0", url: "https://easylist.to/" },
-            { name: "Lucide", detail: qsTr("Interface icons by Lucide and its contributors"), license: "ISC", url: "https://lucide.dev/" },
-            { name: "toml++ · Mark Gillard", detail: qsTr("TOML configuration parsing"), license: "MIT", url: "https://github.com/marzer/tomlplusplus" },
-            { name: "QR Code generator · Project Nayuki", detail: qsTr("QR codes for signing in with another device"), license: "MIT", url: "https://www.nayuki.io/page/qr-code-generator-library" },
-            { name: "SQLite", detail: qsTr("Local history and browser data storage through Qt SQL"), license: qsTr("Public domain"), url: "https://sqlite.org/" },
-            { name: "libsecret", detail: qsTr("Access to Linux secret storage"), license: "LGPL-2.1-or-later", url: "https://gitlab.gnome.org/GNOME/libsecret" }
-        ]
+        model: AboutContent.credits()
         delegate: ColumnLayout {
             id: credit
             required property var modelData
@@ -222,7 +211,7 @@ ColumnLayout {
         Basic.Label { text: qsTr("Widevine & DRM"); font.pixelSize: 20; font.weight: Font.DemiBold; color: Theme.text }
         Basic.Label {
             Layout.fillWidth: true
-            text: qsTr("Arbiter does not bundle or download Widevine. When available, it can use a compatible Widevine module already installed on your device. Widevine is proprietary Google software governed by applicable Google license terms. Compatibility with streaming services and playback quality are not guaranteed.")
+            text: AboutContent.widevineNotice()
             wrapMode: Text.Wrap
             color: Theme.muted
         }

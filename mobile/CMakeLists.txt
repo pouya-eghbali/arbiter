@@ -210,6 +210,7 @@ qt_add_resources(arbiter_mobile mobile_translations PREFIX /i18n BASE assets/i18
 qt_add_resources(arbiter_mobile mobile_form_script PREFIX /browser BASE assets/browser FILES assets/browser/forms.js assets/browser/scroll.js)
 qt_add_resources(arbiter_mobile mobile_lists PREFIX /adblock BASE "${ARBITER_ROOT}/assets/adblock" FILES "${ARBITER_ROOT}/assets/adblock/easylist.txt" "${ARBITER_ROOT}/assets/adblock/easyprivacy.txt")
 qt_add_resources(arbiter_mobile mobile_webkit PREFIX /adblock BASE assets/adblock FILES assets/adblock/webkit.json)
+qt_add_resources(arbiter_mobile about_content PREFIX /about BASE "${ARBITER_ROOT}/qml" FILES "${ARBITER_ROOT}/qml/AboutContent.js")
 qt_add_resources(arbiter_mobile mobile_brand PREFIX /brand BASE "${ARBITER_ROOT}/assets/icon/Arbiter.icon/Assets" FILES "${ARBITER_ROOT}/assets/icon/Arbiter.icon/Assets/valkyrie-source.png")
 qt_add_resources(arbiter_mobile mobile_privacy PREFIX /privacy BASE "${ARBITER_ROOT}/docs" FILES "${ARBITER_ROOT}/docs/privacy-policy.md")
 qt_add_resources(arbiter_mobile mobile_licenses PREFIX /licenses BASE "${ARBITER_ROOT}" FILES "${ARBITER_ROOT}/LICENSE" "${ARBITER_ROOT}/licenses/LGPL-3.0.txt" "${ARBITER_ROOT}/licenses/MobileThirdParty.txt" "${ARBITER_ROOT}/licenses/Lucide.txt" "${ARBITER_ROOT}/licenses/ZXingCpp.txt" "${ARBITER_ROOT}/licenses/AdBlock.txt" "${ARBITER_ROOT}/licenses/AdBlockDependencies.txt" "${ARBITER_ROOT}/licenses/EasyList.txt")

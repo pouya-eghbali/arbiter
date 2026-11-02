@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls.Basic as Controls
 import QtQuick.Layouts
 import Arbiter
+import "qrc:/about/AboutContent.js" as AboutContent
 
 ColumnLayout {
     id: root
@@ -256,7 +257,7 @@ ColumnLayout {
         font.pixelSize: 13 * MobileMetrics.textScale
     }
     MobileSettingsRow {
-        visible: root.category === "privacy" || root.category === "about"
+        visible: root.category === "privacy"
         Layout.fillWidth: true
         text: qsTr("Privacy policy")
         iconName: "shield-check"
@@ -269,12 +270,43 @@ ColumnLayout {
         MobileLogo { Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 64; Layout.preferredHeight: 64 }
         Text { text: "Arbiter"; color: Theme.text; font.pixelSize: 26 * MobileMetrics.textScale; font.weight: Font.DemiBold; Layout.alignment: Qt.AlignHCenter }
         Caption { text: qsTr("Version %1").arg(browser.version); horizontalAlignment: Text.AlignHCenter }
-        Caption { text: qsTr("An open-source browser for power users. Zero telemetry or data collection. Everyone is welcome to contribute.") }
-        Caption { text: "GNU GPL v3 · Qt/QML · Qt WebEngine / native WebView · Brave adblock-rust · Lucide" }
+        Caption { text: AboutContent.intro() }
+        Caption { text: AboutContent.contribute() }
+        Caption { text: AboutContent.licenseNotice() }
         MobileSettingsRow { Layout.fillWidth: true; text: "GitHub"; iconName: "external-link"; onClicked: Qt.openUrlExternally("https://github.com/pouya-eghbali/arbiter") }
         MobileSettingsRow { Layout.fillWidth: true; text: qsTr("Report a bug"); iconName: "bug"; onClicked: Qt.openUrlExternally("https://github.com/pouya-eghbali/arbiter/issues/new?template=bug_report.yml") }
         MobileSettingsRow { Layout.fillWidth: true; text: qsTr("Request a feature"); iconName: "sparkles"; onClicked: Qt.openUrlExternally("https://github.com/pouya-eghbali/arbiter/issues/new?template=feature_request.yml") }
         MobileSettingsRow { Layout.fillWidth: true; text: qsTr("License"); detail: "GNU GPL v3"; iconName: "code-xml"; onClicked: root.category = "licenses" }
+        MobileSettingsRow { Layout.fillWidth: true; text: qsTr("Report a compatibility issue"); iconName: "external-link"; onClicked: Qt.openUrlExternally("https://github.com/pouya-eghbali/arbiter/issues/new?template=compatibility_report.yml") }
+        MobileSettingsRow { Layout.fillWidth: true; text: qsTr("Privacy policy"); iconName: "shield-check"; onClicked: root.category = "privacy-policy" }
+        Caption { text: AboutContent.creditsTitle(); font.pixelSize: 18 * MobileMetrics.textScale; font.weight: Font.DemiBold; color: Theme.text }
+        Caption { text: AboutContent.creditsThanks() }
+        Caption { text: qsTr("Credits cover Arbiter across desktop and mobile. Components vary by platform.") }
+        Repeater {
+            model: AboutContent.credits().concat([
+                { name: "Apple WebKit", detail: qsTr("System web engine on iOS"), license: "BSD-style & LGPL", url: "https://webkit.org/licensing-webkit/" },
+                { name: "Android System WebView & AndroidX", detail: qsTr("System web engine, Android integration and credential provider"), license: "BSD-style & Apache-2.0", url: "https://source.android.com/" },
+                { name: "zxing-cpp", detail: qsTr("QR code scanning for device pairing"), license: "Apache-2.0", url: "https://github.com/zxing-cpp/zxing-cpp" }
+            ])
+            delegate: ColumnLayout {
+                id: credit
+                required property var modelData
+                Layout.fillWidth: true
+                spacing: 4
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { Layout.fillWidth: true; text: credit.modelData.name; textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 15 * MobileMetrics.textScale; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
+                    MobileIconButton { iconName: "external-link"; label: qsTr("Visit %1").arg(credit.modelData.name); onClicked: Qt.openUrlExternally(credit.modelData.url) }
+                }
+                Caption { text: credit.modelData.detail }
+                Caption { text: credit.modelData.license; font.pixelSize: 12 * MobileMetrics.textScale }
+            }
+        }
+        MobileSettingsRow { Layout.fillWidth: true; text: qsTr("Third-party license notices"); iconName: "code-xml"; onClicked: root.category = "licenses" }
+        MobileSettingsRow { Layout.fillWidth: true; text: qsTr("Source license notices"); iconName: "external-link"; onClicked: Qt.openUrlExternally("https://github.com/pouya-eghbali/arbiter/tree/master/licenses") }
+        Caption { text: qsTr("Widevine & DRM"); font.pixelSize: 18 * MobileMetrics.textScale; font.weight: Font.DemiBold; color: Theme.text }
+        Caption { text: AboutContent.widevineNotice() }
+        Caption { text: qsTr("Mobile playback uses the system web engine.") }
     }
     UiPopup {
         id: disconnect

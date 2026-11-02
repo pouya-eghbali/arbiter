@@ -4,7 +4,7 @@
 <context>
     <name>AboutPage</name>
     <message>
-        <location filename="../qml/AboutPage.qml" line="+35"/>
+        <location filename="../qml/AboutPage.qml" line="+36"/>
         <source>Arbiter</source>
         <translation>Arbiter</translation>
     </message>
@@ -14,22 +14,22 @@
         <translation>Version %1</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location filename="../qml/AboutContent.js" line="+4"/>
         <source>An open-source browser for power users. Zero telemetry. Zero data collection.</source>
         <translation>Ein Open-Source-Browser für Power-User. Null Telemetrie. Keine Datenerfassung.</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+1"/>
         <source>Built for people who like to make their browser their own. Everyone is welcome to contribute: share an idea, report a bug, improve the docs, or help build what comes next.</source>
         <translation>Entwickelt für Leute, die ihren Browser gerne zu ihrem eigenen machen möchten. Jeder ist willkommen, einen Beitrag zu leisten: eine Idee zu teilen, einen Fehler zu melden, die Dokumentation zu verbessern oder bei der Entwicklung dessen mitzuhelfen, was als nächstes kommt.</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+1"/>
         <source>Licensed under the GNU General Public License, version 3 (GPL-3.0-only).</source>
         <translation>Lizenziert unter der GNU General Public License, Version 3 (GPL-3.0-only).</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location filename="../qml/AboutPage.qml" line="+28"/>
         <source>GitHub &amp; contribute</source>
         <translation>GitHub &amp; beitragen</translation>
     </message>
@@ -109,17 +109,17 @@
         <translation>Prüft GitHub einmal täglich. Es werden keine Browserdaten gesendet.</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location filename="../qml/AboutContent.js" line="+2"/>
         <source>Made possible by</source>
         <translation>Ermöglicht durch</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+1"/>
         <source>Thank you to the contributors and open-source projects behind Arbiter.</source>
         <translation>Vielen Dank an die Mitwirkenden und Open-Source-Projekte hinter Arbiter.</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+4"/>
         <source>Application framework, interface, and Chromium-based web engine</source>
         <translation>Anwendungsframework, Schnittstelle und Chromium-basierte Web-Engine</translation>
     </message>
@@ -189,7 +189,7 @@
         <translation>Zugriff auf den geheimen Linux-Speicher</translation>
     </message>
     <message>
-        <location line="+20"/>
+        <location filename="../qml/AboutPage.qml" line="+37"/>
         <source>Visit %1</source>
         <translation>Besuchen Sie %1</translation>
     </message>
@@ -204,7 +204,7 @@
         <translation>Widevine &amp; DRM</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location filename="../qml/AboutContent.js" line="-16"/>
         <source>Arbiter does not bundle or download Widevine. When available, it can use a compatible Widevine module already installed on your device. Widevine is proprietary Google software governed by applicable Google license terms. Compatibility with streaming services and playback quality are not guaranteed.</source>
         <translation>Arbiter bündelt oder lädt Widevine nicht herunter. Sofern verfügbar, kann ein kompatibles Widevine-Modul verwendet werden, das bereits auf Ihrem Gerät installiert ist. Widevine ist proprietäre Google-Software, die den geltenden Google-Lizenzbedingungen unterliegt. Die Kompatibilität mit Streaming-Diensten und die Wiedergabequalität werden nicht garantiert.</translation>
     </message>
@@ -4400,7 +4400,7 @@
     <message>
         <location filename="../src/secretstore.cpp" line="+25"/>
         <location line="+15"/>
-        <location filename="../src/secretstore_mac.mm" line="+57"/>
+        <location filename="../src/secretstore_mac.mm" line="+59"/>
         <source>Could not read the credential from the system credential store. Unlock your keyring and try again.</source>
         <translation>Die Anmeldeinformationen konnten nicht aus dem Anmeldeinformationsspeicher des Systems gelesen werden. Entsperren Sie Ihren Schlüsselbund und versuchen Sie es erneut.</translation>
     </message>
@@ -4412,7 +4412,7 @@
     </message>
     <message>
         <location line="+14"/>
-        <location filename="../src/secretstore_mac.mm" line="+8"/>
+        <location filename="../src/secretstore_mac.mm" line="+9"/>
         <source>Could not delete the credential from the system credential store. Try again after unlocking your keyring.</source>
         <translation>Die Anmeldeinformationen konnten nicht aus dem Anmeldeinformationsspeicher des Systems gelöscht werden. Versuchen Sie es erneut, nachdem Sie Ihren Schlüsselbund entsperrt haben.</translation>
     </message>
@@ -4492,7 +4492,7 @@
         <translation>Synchronisierung fehlgeschlagen. Lass das andere Gerät geöffnet und entsperrt im selben WLAN.</translation>
     </message>
     <message>
-        <location filename="../src/secretstore_mac.mm" line="-24"/>
+        <location filename="../src/secretstore_mac.mm" line="-25"/>
         <source>Sync paused: macOS requires permission to read a saved credential. Use that credential in Arbiter to approve access, then try syncing again.</source>
         <translation>Synchronisierung angehalten: macOS benötigt die Berechtigung zum Lesen gespeicherter Anmeldeinformationen. Verwenden Sie diese Anmeldeinformationen in Arbiter, um den Zugriff zu genehmigen, und versuchen Sie dann erneut, die Synchronisierung durchzuführen.</translation>
     </message>

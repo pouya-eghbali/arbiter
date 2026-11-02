@@ -18,12 +18,13 @@ a = p.parse_args()
 # Only literal UI strings, never page content, secrets, or identifiers.
 quoted = r'"((?:[^"\\]|\\.)*)"'
 keys = set()
-for directory in ['mobile/qml', 'mobile/src', 'mobile/platform']:
-    for path in (root / directory).rglob('*'):
-        if path.suffix not in {'.qml', '.cpp', '.mm', '.swift', '.kt'} or 'tests' in path.parts:
+for directory in ['mobile/qml', 'mobile/src', 'mobile/platform', 'qml/AboutContent.js']:
+    source = root / directory
+    for path in ([source] if source.is_file() else source.rglob('*')):
+        if path.suffix not in {'.qml', '.cpp', '.mm', '.swift', '.kt', '.js'} or 'tests' in path.parts:
             continue
         text = path.read_text()
-        patterns = [r'(?:qsTr|\btr|ArbiterText)\(\s*' + quoted,
+        patterns = [r'qsTranslate\(\s*' + quoted + r'\s*,\s*' + quoted, r'(?:qsTr|\btr|ArbiterText)\(\s*' + quoted,
                     r'MobileStrings\.text\([^,\n]+,\s*' + quoted,
                     r'MobileStrings\.text\([^,\n]+,if\([^)]*\)\s*' + quoted + r'\s*else\s*' + quoted,
                     r'ArbiterText\([^\n?]+\?\s*' + quoted,
@@ -31,7 +32,7 @@ for directory in ['mobile/qml', 'mobile/src', 'mobile/platform']:
         for pattern in patterns:
             for match in re.finditer(pattern, text):
                 try:
-                    for literal in match.groups():
+                    for literal in (match.groups()[-1:] if pattern.startswith('qsTranslate') else match.groups()):
                         keys.add(json.loads('"' + literal + '"'))
                 except json.JSONDecodeError:
                     raise ValueError(f'Unsupported escape in {path}: {match.group(1)}')

@@ -1334,7 +1334,7 @@ Basic.ApplicationWindow {
                         spacing: 8
                         Repeater {
                             id: settingsNavigation
-                            model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads"), qsTr("About"), qsTr("Sync")]
+                            model: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads"), qsTr("Sync"), qsTr("About")]
                             delegate: UiButton {
                                 id: categoryButton
                                 required property int index
@@ -1382,7 +1382,7 @@ Basic.ApplicationWindow {
                     width: Math.min(720, settingsScroll.availableWidth)
                     spacing: 24
                     Basic.Label {
-                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads"), qsTr("About"), qsTr("Sync")][window.settingsCategory]
+                        text: [qsTr("Appearance"), qsTr("Passwords"), qsTr("Passkeys"), qsTr("Keyboard"), qsTr("Configuration"), qsTr("Import"), qsTr("Performance"), qsTr("Privacy"), qsTr("Extensions"), qsTr("Downloads"), qsTr("Sync"), qsTr("About")][window.settingsCategory]
                         font.pixelSize: 28
                         font.weight: Font.DemiBold
                         color: Theme.textFor(parent)
@@ -1935,14 +1935,14 @@ Basic.ApplicationWindow {
                         }
                     }
                     SyncSettings {
-                        visible: window.settingsCategory === 11
+                        visible: window.settingsCategory === 10
                         Layout.fillWidth: true
                         manager: window.credentialSync
                         passkeys: window.passkeys
                         onPasskeySettingsRequested: window.settingsCategory = 2
                     }
                     AboutPage {
-                        visible: window.settingsCategory === 10
+                        visible: window.settingsCategory === 11
                         Layout.fillWidth: true
                         updateTracker: window.updateTracker
                     }

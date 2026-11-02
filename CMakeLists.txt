@@ -66,6 +66,7 @@ qt_add_resources(arbiter adblock_licenses PREFIX /licenses BASE licenses FILES l
 target_include_directories(arbiter PRIVATE src third_party/qrcodegen)
 arbiter_configure_webengine_runtime(arbiter)
 qt_add_resources(arbiter password_scripts PREFIX /passwords BASE scripts FILES scripts/passwords.js)
+qt_add_resources(arbiter about_content PREFIX /about BASE qml FILES qml/AboutContent.js)
 qt_add_resources(arbiter brand PREFIX /brand BASE assets/icon/Arbiter.icon/Assets FILES assets/icon/Arbiter.icon/Assets/valkyrie-source.png)
 qt_add_resources(arbiter navigation_scripts PREFIX /navigation BASE scripts FILES scripts/navigation.js)
 if(APPLE)

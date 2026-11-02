@@ -14,7 +14,7 @@ function(arbiter_add_translations target)
     endforeach()
     # Include every platform's sources even when updating on a different OS.
     file(GLOB sources CONFIGURE_DEPENDS "${root}/src/*.cpp" "${root}/src/*.h" "${root}/src/*.mm"
-        "${root}/qml/*.qml" "${root}/qml/ui/*.qml")
+        "${root}/qml/*.qml" "${root}/qml/*.js" "${root}/qml/ui/*.qml")
     # Use explicit sources rather than all target resources: licenses, browser
     # scripts, and generated code are not input for Qt's translation parser.
     qt_add_lupdate(

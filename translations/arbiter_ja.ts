@@ -4,7 +4,7 @@
 <context>
     <name>AboutPage</name>
     <message>
-        <location filename="../qml/AboutPage.qml" line="+35"/>
+        <location filename="../qml/AboutPage.qml" line="+36"/>
         <source>Arbiter</source>
         <translation>Arbiter</translation>
     </message>
@@ -14,22 +14,22 @@
         <translation>バージョン %1</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location filename="../qml/AboutContent.js" line="+4"/>
         <source>An open-source browser for power users. Zero telemetry. Zero data collection.</source>
         <translation>パワー ユーザー向けのオープンソース ブラウザ。テレメトリーゼロ。データ収集ゼロ。</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+1"/>
         <source>Built for people who like to make their browser their own. Everyone is welcome to contribute: share an idea, report a bug, improve the docs, or help build what comes next.</source>
         <translation>ブラウザを自分のものにしたい人のために作られています。アイデアを共有したり、バグを報告したり、ドキュメントを改善したり、次に来るものを構築するのに協力したりするなど、誰でも貢献することができます。</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+1"/>
         <source>Licensed under the GNU General Public License, version 3 (GPL-3.0-only).</source>
         <translation>GNU General Public License バージョン 3 (GPL-3.0-only) に基づいてライセンスされています。</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location filename="../qml/AboutPage.qml" line="+28"/>
         <source>GitHub &amp; contribute</source>
         <translation>GitHub と貢献</translation>
     </message>
@@ -109,17 +109,17 @@
         <translation>1日1回 GitHub を確認します。閲覧データは送信されません。</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location filename="../qml/AboutContent.js" line="+2"/>
         <source>Made possible by</source>
         <translation>によって可能になりました</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+1"/>
         <source>Thank you to the contributors and open-source projects behind Arbiter.</source>
         <translation>Arbiter の貢献者とオープンソース プロジェクトに感謝します。</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+4"/>
         <source>Application framework, interface, and Chromium-based web engine</source>
         <translation>アプリケーション フレームワーク、インターフェイス、および Chromium ベースの Web エンジン</translation>
     </message>
@@ -189,7 +189,7 @@
         <translation>Linux 秘密ストレージへのアクセス</translation>
     </message>
     <message>
-        <location line="+20"/>
+        <location filename="../qml/AboutPage.qml" line="+37"/>
         <source>Visit %1</source>
         <translation>%1 にアクセスしてください</translation>
     </message>
@@ -204,7 +204,7 @@
         <translation>Widevine &amp; DRM</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location filename="../qml/AboutContent.js" line="-16"/>
         <source>Arbiter does not bundle or download Widevine. When available, it can use a compatible Widevine module already installed on your device. Widevine is proprietary Google software governed by applicable Google license terms. Compatibility with streaming services and playback quality are not guaranteed.</source>
         <translation>Arbiter は、Widevine をバンドルまたはダウンロードしません。利用可能な場合は、デバイスにすでにインストールされている互換性のある Widevine モジュールを使用できます。 Widevine は、該当する Google ライセンス条項が適用される Google 独自のソフトウェアです。ストリーミングサービスとの互換性、再生品質は保証しておりません。</translation>
     </message>
@@ -4400,7 +4400,7 @@
     <message>
         <location filename="../src/secretstore.cpp" line="+25"/>
         <location line="+15"/>
-        <location filename="../src/secretstore_mac.mm" line="+57"/>
+        <location filename="../src/secretstore_mac.mm" line="+59"/>
         <source>Could not read the credential from the system credential store. Unlock your keyring and try again.</source>
         <translation>システム資格情報ストアから資格情報を読み取ることができませんでした。キーリングのロックを解除して、もう一度試してください。</translation>
     </message>
@@ -4412,7 +4412,7 @@
     </message>
     <message>
         <location line="+14"/>
-        <location filename="../src/secretstore_mac.mm" line="+8"/>
+        <location filename="../src/secretstore_mac.mm" line="+9"/>
         <source>Could not delete the credential from the system credential store. Try again after unlocking your keyring.</source>
         <translation>システム資格情報ストアから資格情報を削除できませんでした。キーリングのロックを解除してからもう一度お試しください。</translation>
     </message>
@@ -4492,7 +4492,7 @@
         <translation>同期できませんでした。他のデバイスを同じWi-Fiに接続し、アプリを開いてロックを解除してください。</translation>
     </message>
     <message>
-        <location filename="../src/secretstore_mac.mm" line="-24"/>
+        <location filename="../src/secretstore_mac.mm" line="-25"/>
         <source>Sync paused: macOS requires permission to read a saved credential. Use that credential in Arbiter to approve access, then try syncing again.</source>
         <translation>同期が一時停止されました: macOS には、保存された資格情報を読み取る権限が必要です。 Arbiter でその資格情報を使用してアクセスを承認し、再度同期を試みてください。</translation>
     </message>

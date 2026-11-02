@@ -4,7 +4,7 @@
 <context>
     <name>AboutPage</name>
     <message>
-        <location filename="../qml/AboutPage.qml" line="+35"/>
+        <location filename="../qml/AboutPage.qml" line="+36"/>
         <source>Arbiter</source>
         <translation>Arbiter</translation>
     </message>
@@ -14,22 +14,22 @@
         <translation>版本 %1</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location filename="../qml/AboutContent.js" line="+4"/>
         <source>An open-source browser for power users. Zero telemetry. Zero data collection.</source>
         <translation>面向高级用户的开源浏览器。零遥测。零数据收集。</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+1"/>
         <source>Built for people who like to make their browser their own. Everyone is welcome to contribute: share an idea, report a bug, improve the docs, or help build what comes next.</source>
         <translation>专为喜欢打造自己的浏览器的人们而设计。欢迎每个人做出贡献：分享想法、报告错误、改进文档或帮助构建下一步。</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+1"/>
         <source>Licensed under the GNU General Public License, version 3 (GPL-3.0-only).</source>
         <translation>根据 GNU 通用公共许可证第 3 版 (GPL-3.0-only) 许可。</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location filename="../qml/AboutPage.qml" line="+28"/>
         <source>GitHub &amp; contribute</source>
         <translation>GitHub 并贡献</translation>
     </message>
@@ -109,17 +109,17 @@
         <translation>每天检查一次 GitHub，不会发送浏览数据。</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location filename="../qml/AboutContent.js" line="+2"/>
         <source>Made possible by</source>
         <translation>使之成为可能</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+1"/>
         <source>Thank you to the contributors and open-source projects behind Arbiter.</source>
         <translation>感谢 Arbiter 背后的贡献者和开源项目。</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+4"/>
         <source>Application framework, interface, and Chromium-based web engine</source>
         <translation>应用程序框架、界面和基于 Chromium 的 Web 引擎</translation>
     </message>
@@ -189,7 +189,7 @@
         <translation>访问Linux秘密存储</translation>
     </message>
     <message>
-        <location line="+20"/>
+        <location filename="../qml/AboutPage.qml" line="+37"/>
         <source>Visit %1</source>
         <translation>访问%1</translation>
     </message>
@@ -204,7 +204,7 @@
         <translation>Widevine 和 DRM</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location filename="../qml/AboutContent.js" line="-16"/>
         <source>Arbiter does not bundle or download Widevine. When available, it can use a compatible Widevine module already installed on your device. Widevine is proprietary Google software governed by applicable Google license terms. Compatibility with streaming services and playback quality are not guaranteed.</source>
         <translation>Arbiter 不捆绑或下载 Widevine。如果可用，它可以使用设备上已安装的兼容 Widevine 模块。 Widevine 是 Google 专有软件，受适用的 Google 许可条款约束。不保证与流媒体服务的兼容性和播放质量。</translation>
     </message>
@@ -4400,7 +4400,7 @@
     <message>
         <location filename="../src/secretstore.cpp" line="+25"/>
         <location line="+15"/>
-        <location filename="../src/secretstore_mac.mm" line="+57"/>
+        <location filename="../src/secretstore_mac.mm" line="+59"/>
         <source>Could not read the credential from the system credential store. Unlock your keyring and try again.</source>
         <translation>无法从系统凭证存储中读取凭证。解锁您的钥匙圈并重试。</translation>
     </message>
@@ -4412,7 +4412,7 @@
     </message>
     <message>
         <location line="+14"/>
-        <location filename="../src/secretstore_mac.mm" line="+8"/>
+        <location filename="../src/secretstore_mac.mm" line="+9"/>
         <source>Could not delete the credential from the system credential store. Try again after unlocking your keyring.</source>
         <translation>无法从系统凭据存储中删除凭据。解锁钥匙圈后重试。</translation>
     </message>
@@ -4492,7 +4492,7 @@
         <translation>无法同步。请在另一设备上保持应用开启并解锁，并连接到同一 Wi-Fi。</translation>
     </message>
     <message>
-        <location filename="../src/secretstore_mac.mm" line="-24"/>
+        <location filename="../src/secretstore_mac.mm" line="-25"/>
         <source>Sync paused: macOS requires permission to read a saved credential. Use that credential in Arbiter to approve access, then try syncing again.</source>
         <translation>同步已暂停：macOS 需要读取已保存凭据的权限。使用 Arbiter 中的该凭据来批准访问，然后再次尝试同步。</translation>
     </message>
