@@ -8,7 +8,7 @@
   import Icon from '#lib/Icon.svelte';
   import { reveal, accordion } from '#lib/motion.ts';
   const repo = 'https://github.com/pouya-eghbali/arbiter';
-  const version = '0.2.2';
+  const version = '0.3.0';
   const downloads = repo + `/releases/download/v${version}/`;
   let tucked = $state(false);
   const extras = [
@@ -20,7 +20,7 @@
     {
       icon: 'key-round',
       title: 'Keep your keys close.',
-      description: 'Passwords in your OS credential store. Local passkeys, too.'
+      description: 'Passwords and passkeys, protected by your device.'
     },
     {
       icon: 'eye-off',
