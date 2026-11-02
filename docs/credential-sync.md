@@ -115,3 +115,11 @@ native-peer transfer tests use fabricated credentials only. Physical-device syst
 picker and website interoperability tests remain a release gate. iOS distribution
 also requires Apple's managed browser entitlement approval. This implementation has
 not had an independent security audit; do not describe it as audited.
+
+On macOS, background credential exports use noninteractive Keychain reads. If a
+legacy item needs approval for this app, sync stops with a permission error rather
+than opening a chain of Keychain password dialogs. Explicit password filling may
+still ask macOS to authorize that individual item; “Always Allow” applies to that
+item, not every credential sharing the service label. Existing item ACLs are not
+removed or broadened. The native adapter serializes credential-store operations
+and restores the process's previous interaction policy after each silent read.

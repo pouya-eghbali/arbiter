@@ -493,7 +493,7 @@
         <translation>Touch ID não está disponível. Registre uma impressão digital nas configurações do macOS ou use a senha do seu cofre.</translation>
     </message>
     <message>
-        <location line="+57"/>
+        <location line="+58"/>
         <source>Touch ID is unavailable or locked out. Use your vault passphrase.</source>
         <translation>Touch ID não está disponível ou bloqueado. Use a senha do seu cofre.</translation>
     </message>
@@ -2105,14 +2105,14 @@
 <context>
     <name>MacBiometricAuth</name>
     <message>
-        <location filename="../src/biometricauth_mac.mm" line="-80"/>
-        <location line="+17"/>
+        <location filename="../src/biometricauth_mac.mm" line="-81"/>
+        <location line="+18"/>
         <source>Persistent biometric unlocking is unavailable.</source>
         <translation>O desbloqueio biométrico persistente não está disponível.</translation>
     </message>
     <message>
-        <location line="-13"/>
-        <location line="+6"/>
+        <location line="-14"/>
+        <location line="+7"/>
         <source>Could not protect the biometric vault key in Keychain.</source>
         <translation>Não foi possível proteger a chave biométrica do cofre em Keychain.</translation>
     </message>
@@ -2146,14 +2146,14 @@
     </message>
     <message>
         <location line="+644"/>
-        <location line="+1676"/>
+        <location line="+1682"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>Nova aba</translation>
     </message>
     <message>
-        <location line="-1673"/>
-        <location line="+1762"/>
+        <location line="-1679"/>
+        <location line="+1768"/>
         <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
@@ -2161,7 +2161,7 @@
         <translation>Página inicial</translation>
     </message>
     <message>
-        <location line="-1267"/>
+        <location line="-1273"/>
         <source>Settings</source>
         <translation>Configurações</translation>
     </message>
@@ -2377,12 +2377,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+377"/>
+        <location line="+383"/>
         <source>Off</source>
         <translation>Desativado</translation>
     </message>
     <message>
-        <location line="-370"/>
+        <location line="-376"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>Mostre a navegação do site sob o título da guia ou como menus separados na barra de menus do macOS.</translation>
     </message>
@@ -2492,12 +2492,12 @@
         <translation>Habilitar %1…</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="+9"/>
         <source>Enable persistent %1…</source>
         <translation>Habilitar persistente %1…</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+6"/>
         <source>Biometric unlocking lasts up to 15 minutes while Arbiter stays active. Enter your passphrase once after restarting or leaving the app; each later passkey use still asks for device verification.</source>
         <translation>O desbloqueio biométrico dura até 15 minutos enquanto Arbiter permanece ativo. Digite sua senha uma vez após reiniciar ou sair do aplicativo; cada uso posterior da chave de acesso ainda solicita a verificação do dispositivo.</translation>
     </message>
@@ -2881,7 +2881,7 @@
         <translation>Privado</translation>
     </message>
     <message>
-        <location line="-1359"/>
+        <location line="-1365"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass (experimental)</translation>
     </message>
@@ -3091,7 +3091,7 @@
         <translation>Cores</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="+416"/>
+        <location filename="../qml/Main.qml" line="+422"/>
         <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Default browser</source>
         <translation>Navegador padrão</translation>
@@ -4398,18 +4398,21 @@
         <translation>Não foi possível registrar a entrada da área de trabalho de Arbiter.</translation>
     </message>
     <message>
-        <location filename="../src/secretstore.cpp" line="+19"/>
-        <location line="+12"/>
+        <location filename="../src/secretstore.cpp" line="+25"/>
+        <location line="+15"/>
+        <location filename="../src/secretstore_mac.mm" line="+57"/>
         <source>Could not read the credential from the system credential store. Unlock your keyring and try again.</source>
         <translation>Não foi possível ler a credencial do armazenamento de credenciais do sistema. Desbloqueie seu chaveiro e tente novamente.</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+15"/>
+        <location filename="../src/secretstore_mac.mm" line="+15"/>
         <source>Could not save the credential securely. Unlock your system keyring, or enable a supported credential store, and try again.</source>
         <translation>Não foi possível salvar a credencial com segurança. Desbloqueie o chaveiro do sistema ou ative um armazenamento de credenciais compatível e tente novamente.</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="+14"/>
+        <location filename="../src/secretstore_mac.mm" line="+8"/>
         <source>Could not delete the credential from the system credential store. Try again after unlocking your keyring.</source>
         <translation>Não foi possível excluir a credencial do armazenamento de credenciais do sistema. Tente novamente depois de desbloquear seu chaveiro.</translation>
     </message>
@@ -4487,6 +4490,11 @@
         <location line="+1"/>
         <source>Could not sync. Keep the other device open and unlocked on the same Wi-Fi.</source>
         <translation>Não foi possível sincronizar. Mantenha o outro dispositivo aberto e desbloqueado no mesmo Wi-Fi.</translation>
+    </message>
+    <message>
+        <location filename="../src/secretstore_mac.mm" line="-24"/>
+        <source>Sync paused: macOS requires permission to read a saved credential. Use that credential in Arbiter to approve access, then try syncing again.</source>
+        <translation>Sincronização pausada: macOS requer permissão para ler uma credencial salva. Use essa credencial em Arbiter para aprovar o acesso e tente sincronizar novamente.</translation>
     </message>
 </context>
 <context>

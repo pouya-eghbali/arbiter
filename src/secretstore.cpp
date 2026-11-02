@@ -1,5 +1,8 @@
 #include "secretstore.h"
 #include <keychain.h>
+#ifdef Q_OS_MACOS
+#include "secretstore_mac.h"
+#endif
 
 namespace {
 void configure(QKeychain::Job *job, const QString &key)
@@ -13,6 +16,9 @@ void configure(QKeychain::Job *job, const QString &key)
 
 void KeychainSecretStore::read(const QString &key, Callback callback)
 {
+#ifdef Q_OS_MACOS
+    readMacSecret(this, m_service, key, true, false, std::move(callback)); return;
+#endif
     auto *job = new QKeychain::ReadPasswordJob(m_service, this);
     configure(job, key);
     connect(job, &QKeychain::Job::finished, this, [job, callback](QKeychain::Job *) {
@@ -24,6 +30,9 @@ void KeychainSecretStore::read(const QString &key, Callback callback)
 
 void KeychainSecretStore::readOptional(const QString &key, Callback callback)
 {
+#ifdef Q_OS_MACOS
+    readMacSecret(this, m_service, key, true, true, std::move(callback)); return;
+#endif
     auto *job = new QKeychain::ReadPasswordJob(m_service, this);
     configure(job, key);
     connect(job, &QKeychain::Job::finished, this, [job, callback](QKeychain::Job *) {
@@ -36,6 +45,9 @@ void KeychainSecretStore::readOptional(const QString &key, Callback callback)
 
 void KeychainSecretStore::write(const QString &key, const QByteArray &data, Callback callback)
 {
+#ifdef Q_OS_MACOS
+    writeMacSecret(this, m_service, key, data, std::move(callback)); return;
+#endif
     auto *job = new QKeychain::WritePasswordJob(m_service, this);
     configure(job, key);
     job->setBinaryData(data);
@@ -47,6 +59,9 @@ void KeychainSecretStore::write(const QString &key, const QByteArray &data, Call
 
 void KeychainSecretStore::remove(const QString &key, Callback callback)
 {
+#ifdef Q_OS_MACOS
+    removeMacSecret(this, m_service, key, std::move(callback)); return;
+#endif
     auto *job = new QKeychain::DeletePasswordJob(m_service, this);
     configure(job, key);
     connect(job, &QKeychain::Job::finished, this, [job, callback](QKeychain::Job *) {
@@ -54,4 +69,12 @@ void KeychainSecretStore::remove(const QString &key, Callback callback)
                      ? QObject::tr("Could not delete the credential from the system credential store. Try again after unlocking your keyring.") : QString(), {});
     });
     job->start();
+}
+
+void KeychainSecretStore::readSilently(const QString &key, Callback callback) {
+#ifdef Q_OS_MACOS
+    readMacSecret(this, m_service, key, false, false, std::move(callback));
+#else
+    read(key, std::move(callback));
+#endif
 }

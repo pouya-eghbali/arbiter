@@ -9,13 +9,22 @@
 #include <QUuid>
 #include <utility>
 #include <QtTest>
+#ifdef Q_OS_MACOS
+#include <Security/Security.h>
+#endif
 
 class MemoryStore : public SecretStore
 {
 public:
     QMap<QString, QByteArray> values;
     QString failure;
-    int reads = 0;
+    int reads = 0, silentReads = 0;
+    bool denySilent = false;
+    void readSilently(const QString &key, Callback cb) override {
+        ++silentReads;
+        if (denySilent) cb(QStringLiteral("approval required"), {});
+        else read(key, std::move(cb));
+    }
     bool delayed = false;
     std::function<void()> pending;
     void complete(std::function<void()> operation) {
@@ -259,6 +268,20 @@ private slots:
         QCOMPARE(manager.entries().size(), 1);
         QCOMPARE(store.values, original);
     }
+    void syncExportNeverFallsBackToInteractiveReads() {
+        QTemporaryDir dir; MemoryStore store; PasswordManager manager(dir.path(), "Default", &store);
+        manager.save(QUrl("https://example.test"), "alice", "synthetic password");
+        store.denySilent=true;
+        bool done=false; QString error; QJsonArray exported;
+        const auto reads=store.reads;
+        manager.exportAfterVerification([&](const QString &value,const QJsonArray &items) { error=value; exported=items; done=true; });
+        QTRY_VERIFY(done); QVERIFY(!error.isEmpty()); QVERIFY(exported.isEmpty());
+        QCOMPARE(store.silentReads,1); QCOMPARE(store.reads,reads); QVERIFY(!manager.busy());
+        bool filled=false;
+        const auto entry=manager.entries().first().toMap();
+        manager.readForFill(entry.value("id").toString(),"https://example.test",[&](const QString &value,const QByteArray &data) { QVERIFY(value.isEmpty()); QVERIFY(!data.isEmpty()); filled=true; },false);
+        QVERIFY(filled); QCOMPARE(store.reads,reads+1);
+    }
     void rejectsInsecureOversizedAndConcurrentWrites() {
         QTemporaryDir dir;
         MemoryStore store;
@@ -382,6 +405,15 @@ private slots:
         wait();
         QVERIFY(done);
         QVERIFY2(error.isEmpty(), qPrintable(error));
+#ifdef Q_OS_MACOS
+        Boolean before=false; QCOMPARE(SecKeychainGetUserInteractionAllowed(&before),errSecSuccess);
+#endif
+        done = false;
+        store.readSilently(key, [&](const QString &e, const QByteArray &data) { error = e; result = data; done = true; loop.quit(); });
+        wait(); QVERIFY(done); QVERIFY2(error.isEmpty(), qPrintable(error)); QCOMPARE(result, QByteArray("synthetic-test-secret"));
+#ifdef Q_OS_MACOS
+        Boolean after=false; QCOMPARE(SecKeychainGetUserInteractionAllowed(&after),errSecSuccess); QCOMPARE(after,before);
+#endif
         done = false;
         store.read(key, [&](const QString &e, const QByteArray &data) { error = e; result = data; done = true; loop.quit(); });
         wait();

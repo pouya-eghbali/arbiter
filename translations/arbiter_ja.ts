@@ -493,7 +493,7 @@
         <translation>Touch ID は利用できません。 macOS 設定で指紋を登録するか、ボールトのパスフレーズを使用します。</translation>
     </message>
     <message>
-        <location line="+57"/>
+        <location line="+58"/>
         <source>Touch ID is unavailable or locked out. Use your vault passphrase.</source>
         <translation>Touch ID は利用できないか、ロックアウトされています。ボールトのパスフレーズを使用します。</translation>
     </message>
@@ -2105,14 +2105,14 @@
 <context>
     <name>MacBiometricAuth</name>
     <message>
-        <location filename="../src/biometricauth_mac.mm" line="-80"/>
-        <location line="+17"/>
+        <location filename="../src/biometricauth_mac.mm" line="-81"/>
+        <location line="+18"/>
         <source>Persistent biometric unlocking is unavailable.</source>
         <translation>永続的な生体認証によるロック解除は利用できません。</translation>
     </message>
     <message>
-        <location line="-13"/>
-        <location line="+6"/>
+        <location line="-14"/>
+        <location line="+7"/>
         <source>Could not protect the biometric vault key in Keychain.</source>
         <translation>Keychain の生体認証ボールト キーを保護できませんでした。</translation>
     </message>
@@ -2146,14 +2146,14 @@
     </message>
     <message>
         <location line="+644"/>
-        <location line="+1676"/>
+        <location line="+1682"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>新しいタブ</translation>
     </message>
     <message>
-        <location line="-1673"/>
-        <location line="+1762"/>
+        <location line="-1679"/>
+        <location line="+1768"/>
         <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
@@ -2161,7 +2161,7 @@
         <translation>スタートページ</translation>
     </message>
     <message>
-        <location line="-1267"/>
+        <location line="-1273"/>
         <source>Settings</source>
         <translation>設定</translation>
     </message>
@@ -2377,12 +2377,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+377"/>
+        <location line="+383"/>
         <source>Off</source>
         <translation>オフ</translation>
     </message>
     <message>
-        <location line="-370"/>
+        <location line="-376"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>Web サイトのナビゲーションをタブ タイトルの下に表示するか、macOS メニュー バーの別のメニューとして表示します。</translation>
     </message>
@@ -2492,12 +2492,12 @@
         <translation>%1 を有効にします…</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="+9"/>
         <source>Enable persistent %1…</source>
         <translation>永続的な %1 を有効にする…</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+6"/>
         <source>Biometric unlocking lasts up to 15 minutes while Arbiter stays active. Enter your passphrase once after restarting or leaving the app; each later passkey use still asks for device verification.</source>
         <translation>Arbiter がアクティブな間、生体認証によるロック解除は最大 15 分間続きます。アプリを再起動するか終了した後、パスフレーズを 1 回入力してください。その後パスキーを使用するたびにデバイスの検証が要求されます。</translation>
     </message>
@@ -2881,7 +2881,7 @@
         <translation>プライベート</translation>
     </message>
     <message>
-        <location line="-1359"/>
+        <location line="-1365"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass（試験的）</translation>
     </message>
@@ -3091,7 +3091,7 @@
         <translation>色</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="+416"/>
+        <location filename="../qml/Main.qml" line="+422"/>
         <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Default browser</source>
         <translation>既定のブラウザー</translation>
@@ -4398,18 +4398,21 @@
         <translation>Arbiter のデスクトップ エントリを登録できませんでした。</translation>
     </message>
     <message>
-        <location filename="../src/secretstore.cpp" line="+19"/>
-        <location line="+12"/>
+        <location filename="../src/secretstore.cpp" line="+25"/>
+        <location line="+15"/>
+        <location filename="../src/secretstore_mac.mm" line="+57"/>
         <source>Could not read the credential from the system credential store. Unlock your keyring and try again.</source>
         <translation>システム資格情報ストアから資格情報を読み取ることができませんでした。キーリングのロックを解除して、もう一度試してください。</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+15"/>
+        <location filename="../src/secretstore_mac.mm" line="+15"/>
         <source>Could not save the credential securely. Unlock your system keyring, or enable a supported credential store, and try again.</source>
         <translation>認証情報を安全に保存できませんでした。システム キーリングのロックを解除するか、サポートされている資格情報ストアを有効にして、再試行してください。</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="+14"/>
+        <location filename="../src/secretstore_mac.mm" line="+8"/>
         <source>Could not delete the credential from the system credential store. Try again after unlocking your keyring.</source>
         <translation>システム資格情報ストアから資格情報を削除できませんでした。キーリングのロックを解除してからもう一度お試しください。</translation>
     </message>
@@ -4487,6 +4490,11 @@
         <location line="+1"/>
         <source>Could not sync. Keep the other device open and unlocked on the same Wi-Fi.</source>
         <translation>同期できませんでした。他のデバイスを同じWi-Fiに接続し、アプリを開いてロックを解除してください。</translation>
+    </message>
+    <message>
+        <location filename="../src/secretstore_mac.mm" line="-24"/>
+        <source>Sync paused: macOS requires permission to read a saved credential. Use that credential in Arbiter to approve access, then try syncing again.</source>
+        <translation>同期が一時停止されました: macOS には、保存された資格情報を読み取る権限が必要です。 Arbiter でその資格情報を使用してアクセスを承認し、再度同期を試みてください。</translation>
     </message>
 </context>
 <context>

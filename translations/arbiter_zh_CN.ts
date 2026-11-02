@@ -493,7 +493,7 @@
         <translation>Touch ID 不可用。在 macOS 设置中注册指纹，或使用您的保管库密码。</translation>
     </message>
     <message>
-        <location line="+57"/>
+        <location line="+58"/>
         <source>Touch ID is unavailable or locked out. Use your vault passphrase.</source>
         <translation>Touch ID 不可用或被锁定。使用您的保管库密码。</translation>
     </message>
@@ -2105,14 +2105,14 @@
 <context>
     <name>MacBiometricAuth</name>
     <message>
-        <location filename="../src/biometricauth_mac.mm" line="-80"/>
-        <location line="+17"/>
+        <location filename="../src/biometricauth_mac.mm" line="-81"/>
+        <location line="+18"/>
         <source>Persistent biometric unlocking is unavailable.</source>
         <translation>持久生物识别解锁不可用。</translation>
     </message>
     <message>
-        <location line="-13"/>
-        <location line="+6"/>
+        <location line="-14"/>
+        <location line="+7"/>
         <source>Could not protect the biometric vault key in Keychain.</source>
         <translation>无法保护 Keychain 中的生物特征保管库密钥。</translation>
     </message>
@@ -2146,14 +2146,14 @@
     </message>
     <message>
         <location line="+644"/>
-        <location line="+1676"/>
+        <location line="+1682"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>新建标签页</translation>
     </message>
     <message>
-        <location line="-1673"/>
-        <location line="+1762"/>
+        <location line="-1679"/>
+        <location line="+1768"/>
         <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
@@ -2161,7 +2161,7 @@
         <translation>起始页</translation>
     </message>
     <message>
-        <location line="-1267"/>
+        <location line="-1273"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
@@ -2377,12 +2377,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+377"/>
+        <location line="+383"/>
         <source>Off</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location line="-370"/>
+        <location line="-376"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>在选项卡标题下显示网站导航，或在 macOS 菜单栏中显示为单独的菜单。</translation>
     </message>
@@ -2492,12 +2492,12 @@
         <translation>启用%1…</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="+9"/>
         <source>Enable persistent %1…</source>
         <translation>启用持久%1...</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+6"/>
         <source>Biometric unlocking lasts up to 15 minutes while Arbiter stays active. Enter your passphrase once after restarting or leaving the app; each later passkey use still asks for device verification.</source>
         <translation>当 Arbiter 保持活动状态时，生物识别解锁可持续长达 15 分钟。重新启动或离开应用程序后输入一次密码；以后每次使用密钥时仍要求进行设备验证。</translation>
     </message>
@@ -2881,7 +2881,7 @@
         <translation>私人</translation>
     </message>
     <message>
-        <location line="-1359"/>
+        <location line="-1365"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass（实验性）</translation>
     </message>
@@ -3091,7 +3091,7 @@
         <translation>颜色</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="+416"/>
+        <location filename="../qml/Main.qml" line="+422"/>
         <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Default browser</source>
         <translation>默认浏览器</translation>
@@ -4398,18 +4398,21 @@
         <translation>无法注册 Arbiter 的桌面条目。</translation>
     </message>
     <message>
-        <location filename="../src/secretstore.cpp" line="+19"/>
-        <location line="+12"/>
+        <location filename="../src/secretstore.cpp" line="+25"/>
+        <location line="+15"/>
+        <location filename="../src/secretstore_mac.mm" line="+57"/>
         <source>Could not read the credential from the system credential store. Unlock your keyring and try again.</source>
         <translation>无法从系统凭证存储中读取凭证。解锁您的钥匙圈并重试。</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+15"/>
+        <location filename="../src/secretstore_mac.mm" line="+15"/>
         <source>Could not save the credential securely. Unlock your system keyring, or enable a supported credential store, and try again.</source>
         <translation>无法安全地保存凭据。解锁您的系统密钥环，或启用受支持的凭据存储，然后重试。</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="+14"/>
+        <location filename="../src/secretstore_mac.mm" line="+8"/>
         <source>Could not delete the credential from the system credential store. Try again after unlocking your keyring.</source>
         <translation>无法从系统凭据存储中删除凭据。解锁钥匙圈后重试。</translation>
     </message>
@@ -4487,6 +4490,11 @@
         <location line="+1"/>
         <source>Could not sync. Keep the other device open and unlocked on the same Wi-Fi.</source>
         <translation>无法同步。请在另一设备上保持应用开启并解锁，并连接到同一 Wi-Fi。</translation>
+    </message>
+    <message>
+        <location filename="../src/secretstore_mac.mm" line="-24"/>
+        <source>Sync paused: macOS requires permission to read a saved credential. Use that credential in Arbiter to approve access, then try syncing again.</source>
+        <translation>同步已暂停：macOS 需要读取已保存凭据的权限。使用 Arbiter 中的该凭据来批准访问，然后再次尝试同步。</translation>
     </message>
 </context>
 <context>

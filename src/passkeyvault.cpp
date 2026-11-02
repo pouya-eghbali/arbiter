@@ -430,7 +430,7 @@ void PasskeyVault::exportForSync(SyncResult callback)
         const auto next=weak.lock();
         // Credentials registered as device-bound must not become replicated later.
         if(!meta.value(4).toBool()) { QTimer::singleShot(0,self,[next,index] { (*next)(index+1); }); return; }
-        self->m_store->read(self->itemKey(id),[self,meta,id,next,result,index,callback](const QString &error,const QByteArray &sealed) {
+        self->m_store->readSilently(self->itemKey(id),[self,meta,id,next,result,index,callback](const QString &error,const QByteArray &sealed) {
             if(!self) return;
             if(!error.isEmpty() || !self->syncReady()) { self->finish(error); callback(error.isEmpty() ? tr("The sync session expired.") : error,{}); return; }
             auto key=self->m_syncKey.copy();

@@ -559,7 +559,7 @@ void PasswordManager::exportAfterVerification(SyncResult callback)
         if(index==entries.size()) { guard->finish({}); callback({},*result); return; }
         const auto entry=entries[index].toMap();
         const auto continuation=weak.lock();
-        guard->m_store->read(guard->secretKey(entry.value("id").toString()),
+        guard->m_store->readSilently(guard->secretKey(entry.value("id").toString()),
             [guard,entry,result,continuation,callback,index](const QString &error,const QByteArray &bytes) {
                 if(!guard) return;
                 if(!error.isEmpty()) { guard->finish(error); callback(error,{}); return; }

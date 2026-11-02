@@ -54,6 +54,7 @@ set_tests_properties(siteaudio PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 add_library(passkey_core STATIC ../src/passkeyvault.cpp ../src/passkeyvault.h ../src/lockedkey.cpp ../src/lockedkey.h ../src/passkeycrypto.cpp ../src/passkeycrypto.h
     ../src/secretstore.cpp ../src/secretstore.h ../src/biometricauth.cpp ../src/biometricauth.h)
+arbiter_add_mac_secretstore(passkey_core)
 target_link_libraries(passkey_core PUBLIC Qt6::Core Qt6::Gui OpenSSL::Crypto qt6keychain)
 add_executable(passkeyvault_test passkeyvault_test.cpp)
 target_link_libraries(passkeyvault_test PRIVATE passkey_core Qt6::Test Qt6::Widgets)
@@ -75,6 +76,7 @@ add_library(password_core STATIC ../src/passwordmanager.cpp ../src/passwordmanag
     ../src/secretstore.cpp ../src/secretstore.h)
 target_link_libraries(password_core PUBLIC arbiter_settings Qt6::Core qt6keychain)
 add_executable(passwordmanager_test passwordmanager_test.cpp)
+arbiter_add_mac_secretstore(passwordmanager_test)
 target_link_libraries(passwordmanager_test PRIVATE password_core Qt6::Widgets Qt6::Test)
 add_test(NAME passwordmanager COMMAND passwordmanager_test)
 if(NOT APPLE)

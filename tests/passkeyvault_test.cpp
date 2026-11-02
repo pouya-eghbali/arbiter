@@ -15,7 +15,12 @@
 class MemoryStore : public SecretStore {
 public:
     QHash<QString, QByteArray> items;
-    bool failWrites = false;
+    bool failWrites = false, denySilent = false;
+    int silentReads = 0;
+    void readSilently(const QString &key, Callback cb) override {
+        ++silentReads;
+        if (denySilent) cb(QStringLiteral("approval required"), {}); else read(key,std::move(cb));
+    }
     std::function<void()> afterWrite, afterRead;
     void read(const QString &key, Callback cb) override {
         if (afterRead) afterRead();
@@ -83,6 +88,14 @@ QByteArray perform(PasskeyVault &vault, bool make, const QCborMap &request, cons
 class PasskeyVaultTest : public QObject {
     Q_OBJECT
 private slots:
+    void syncExportDoesNotPromptForCredentialAccess() {
+        QTemporaryDir dir; MemoryStore store; PasskeyVault vault(&store,dir.path()); vault.setup(phrase,phrase);
+        QVERIFY(!perform(vault,true,makeRequest(),{},0).isEmpty());
+        bool unlocked=false; vault.unlockForSync(phrase,false,[&](const QString &error,const QJsonArray &) { QVERIFY(error.isEmpty()); unlocked=true; });
+        QTRY_VERIFY(unlocked); store.silentReads=0; store.denySilent=true;
+        bool done=false; vault.exportForSync([&](const QString &error,const QJsonArray &items) { QVERIFY(!error.isEmpty()); QVERIFY(items.isEmpty()); done=true; });
+        QTRY_VERIFY(done); QCOMPARE(store.silentReads,1); QVERIFY(!vault.busy());
+    }
     void persistentBiometricsSurviveRestartAndLock() {
         QTemporaryDir dir; MemoryStore store; FakeBiometrics auth; auth.persistent=true; auth.refresh();
         QByteArray id;

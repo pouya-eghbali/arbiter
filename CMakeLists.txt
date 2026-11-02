@@ -35,6 +35,7 @@ qt_add_executable(arbiter src/downloads.cpp src/downloads.h src/downloadfileacti
     src/webauthncontroller.cpp src/webauthncontroller.h
     src/passkeycontroller.cpp src/passkeycontroller.h src/passkeyvault.cpp src/passkeyvault.h src/lockedkey.cpp src/lockedkey.h
     src/passkeycrypto.cpp src/passkeycrypto.h third_party/qrcodegen/qrcodegen.cpp)
+arbiter_add_mac_secretstore(arbiter)
 include(cmake/BrowserImport.cmake)
 arbiter_add_browser_import(arbiter)
 include(cmake/Biometrics.cmake)

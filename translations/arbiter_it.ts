@@ -493,7 +493,7 @@
         <translation>Touch ID non è disponibile. Registra un&apos;impronta digitale nelle impostazioni di macOS o utilizza la passphrase del vault.</translation>
     </message>
     <message>
-        <location line="+57"/>
+        <location line="+58"/>
         <source>Touch ID is unavailable or locked out. Use your vault passphrase.</source>
         <translation>Touch ID non è disponibile o è bloccato. Usa la passphrase del tuo vault.</translation>
     </message>
@@ -518,7 +518,7 @@
     <message>
         <location line="+0"/>
         <source>Enter your vault passphrase once, then verify with Touch ID. macOS will protect the unlock key in this app’s device-only Keychain. Each later passkey use asks for Touch ID, including after restarting or switching apps. Your passphrase remains the fallback. Changing enrolled fingerprints requires enabling Touch ID again.</source>
-        <translation>Inserisci una volta la passphrase del vault, quindi verifica con Touch ID. macOS proteggerà la chiave di sblocco nel Keychain solo per dispositivo di questa app. Ogni utilizzo successivo della passkey richiede Touch ID, anche dopo il riavvio o il cambio di app. La tua passphrase rimane il fallback. La modifica delle impronte digitali registrate richiede nuovamente l'abilitazione di Touch ID.</translation>
+        <translation>Inserisci una volta la passphrase del vault, quindi verifica con Touch ID. macOS proteggerà la chiave di sblocco nel Keychain solo per dispositivo di questa app. Ogni utilizzo successivo della passkey richiede Touch ID, anche dopo il riavvio o il cambio di app. La tua passphrase rimane il fallback. La modifica delle impronte digitali registrate richiede nuovamente l&apos;abilitazione di Touch ID.</translation>
     </message>
     <message>
         <location line="+9"/>
@@ -2105,14 +2105,14 @@
 <context>
     <name>MacBiometricAuth</name>
     <message>
-        <location filename="../src/biometricauth_mac.mm" line="-80"/>
-        <location line="+17"/>
+        <location filename="../src/biometricauth_mac.mm" line="-81"/>
+        <location line="+18"/>
         <source>Persistent biometric unlocking is unavailable.</source>
         <translation>Lo sblocco biometrico permanente non è disponibile.</translation>
     </message>
     <message>
-        <location line="-13"/>
-        <location line="+6"/>
+        <location line="-14"/>
+        <location line="+7"/>
         <source>Could not protect the biometric vault key in Keychain.</source>
         <translation>Impossibile proteggere la chiave del caveau biometrico in Keychain.</translation>
     </message>
@@ -2146,14 +2146,14 @@
     </message>
     <message>
         <location line="+644"/>
-        <location line="+1676"/>
+        <location line="+1682"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>Nuova scheda</translation>
     </message>
     <message>
-        <location line="-1673"/>
-        <location line="+1762"/>
+        <location line="-1679"/>
+        <location line="+1768"/>
         <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
@@ -2161,7 +2161,7 @@
         <translation>Pagina iniziale</translation>
     </message>
     <message>
-        <location line="-1267"/>
+        <location line="-1273"/>
         <source>Settings</source>
         <translation>Impostazioni</translation>
     </message>
@@ -2377,12 +2377,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+377"/>
+        <location line="+383"/>
         <source>Off</source>
         <translation>Disattivato</translation>
     </message>
     <message>
-        <location line="-370"/>
+        <location line="-376"/>
         <source>Show website navigation under the tab title or as separate menus in the macOS menu bar.</source>
         <translation>Mostra la navigazione del sito web sotto il titolo della scheda o come menu separati nella barra dei menu di macOS.</translation>
     </message>
@@ -2492,19 +2492,19 @@
         <translation>Abilita %1…</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="+9"/>
         <source>Enable persistent %1…</source>
         <translation>Abilita persistente %1…</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+6"/>
         <source>Biometric unlocking lasts up to 15 minutes while Arbiter stays active. Enter your passphrase once after restarting or leaving the app; each later passkey use still asks for device verification.</source>
         <translation>Lo sblocco biometrico dura fino a 15 minuti mentre Arbiter rimane attivo. Inserisci la tua passphrase una volta dopo aver riavviato o abbandonato l&apos;app; ogni utilizzo successivo della passkey richiede comunque la verifica del dispositivo.</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>Enable Touch ID once with your vault passphrase. Each passkey use then asks for Touch ID, even after restarting or switching apps. The passphrase remains your fallback; changing enrolled fingerprints requires enabling Touch ID again.</source>
-        <translation>Abilita Touch ID una volta con la passphrase del vault. Ogni utilizzo della passkey richiede quindi Touch ID, anche dopo il riavvio o il cambio di app. La passphrase rimane il tuo fallback; la modifica delle impronte digitali registrate richiede nuovamente l'abilitazione di Touch ID.</translation>
+        <translation>Abilita Touch ID una volta con la passphrase del vault. Ogni utilizzo della passkey richiede quindi Touch ID, anche dopo il riavvio o il cambio di app. La passphrase rimane il tuo fallback; la modifica delle impronte digitali registrate richiede nuovamente l&apos;abilitazione di Touch ID.</translation>
     </message>
     <message>
         <location line="+7"/>
@@ -2881,7 +2881,7 @@
         <translation>Privato</translation>
     </message>
     <message>
-        <location line="-1359"/>
+        <location line="-1365"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass (sperimentale)</translation>
     </message>
@@ -3091,7 +3091,7 @@
         <translation>Colori</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="+416"/>
+        <location filename="../qml/Main.qml" line="+422"/>
         <location filename="../qml/Onboarding.qml" line="+0"/>
         <source>Default browser</source>
         <translation>Browser predefinito</translation>
@@ -4398,18 +4398,21 @@
         <translation>Impossibile registrare la voce desktop di Arbiter.</translation>
     </message>
     <message>
-        <location filename="../src/secretstore.cpp" line="+19"/>
-        <location line="+12"/>
+        <location filename="../src/secretstore.cpp" line="+25"/>
+        <location line="+15"/>
+        <location filename="../src/secretstore_mac.mm" line="+57"/>
         <source>Could not read the credential from the system credential store. Unlock your keyring and try again.</source>
         <translation>Impossibile leggere la credenziale dall&apos;archivio credenziali del sistema. Sblocca il tuo portachiavi e riprova.</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+15"/>
+        <location filename="../src/secretstore_mac.mm" line="+15"/>
         <source>Could not save the credential securely. Unlock your system keyring, or enable a supported credential store, and try again.</source>
         <translation>Impossibile salvare la credenziale in modo sicuro. Sblocca il portachiavi di sistema o abilita un archivio di credenziali supportato e riprova.</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="+14"/>
+        <location filename="../src/secretstore_mac.mm" line="+8"/>
         <source>Could not delete the credential from the system credential store. Try again after unlocking your keyring.</source>
         <translation>Impossibile eliminare la credenziale dall&apos;archivio credenziali del sistema. Riprova dopo aver sbloccato il portachiavi.</translation>
     </message>
@@ -4487,6 +4490,11 @@
         <location line="+1"/>
         <source>Could not sync. Keep the other device open and unlocked on the same Wi-Fi.</source>
         <translation>Sincronizzazione non riuscita. Mantieni l’altro dispositivo aperto e sbloccato sulla stessa rete Wi-Fi.</translation>
+    </message>
+    <message>
+        <location filename="../src/secretstore_mac.mm" line="-24"/>
+        <source>Sync paused: macOS requires permission to read a saved credential. Use that credential in Arbiter to approve access, then try syncing again.</source>
+        <translation>Sincronizzazione in pausa: macOS richiede l'autorizzazione per leggere una credenziale salvata. Utilizza la credenziale in Arbiter per approvare l'accesso, quindi riprova a eseguire la sincronizzazione.</translation>
     </message>
 </context>
 <context>
