@@ -233,6 +233,20 @@ int main(int argc, char **argv) {
                                     }
                                     return {};
                                 };
+                                if (stage == 9 || stage == 14) {
+                                    QQuickItem *group = nullptr;
+                                    for (auto host : window->findChildren<NativeGlassHost *>()) {
+                                        if (host->content() && host->content()->objectName() == "mobilePillContent")
+                                            group = host->content()->findChild<QQuickItem *>("mobileCompactAddressGroup");
+                                    }
+                                    auto pill = window->findChild<QQuickItem *>("mobilePill");
+                                    if (!group || !pill) qFatal("Compact address group missing");
+                                    const auto actual = group->mapToGlobal(QPointF(group->width()/2, group->height()/2));
+                                    const auto expected = pill->mapToGlobal(QPointF(pill->width()/2, pill->height()/2));
+                                    if (qAbs(actual.x() - expected.x()) > 2 || qAbs(actual.y() - expected.y()) > 2)
+                                        qFatal("Compact address is not centered: actual=%f,%f expected=%f,%f", actual.x(), actual.y(), expected.x(), expected.y());
+                                    qInfo("Compact address centered in %s", stage == 9 ? "Liquid Glass" : "Glacier");
+                                }
                                 if (stage == 0) {
                                     renderSize = nativeRenderSize();
                                     if (!renderSize.isValid()) qFatal("Native pill rendering target missing");

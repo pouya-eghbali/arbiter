@@ -68,25 +68,34 @@ MobilePresentation {
             enabled: root.compact
             Accessible.name: qsTr("Show browser controls")
             onClicked: root.expand()
-            contentItem: RowLayout {
-                spacing: 6
-                Item { Layout.fillWidth: true }
-                UiIcon {
-                    name: root.current.url && root.current.url.startsWith("https:") ? "lock" : "globe"
-                    color: root.pillMuted
-                    Layout.preferredWidth: 13
-                    Layout.preferredHeight: 13
+            padding: 0
+            contentItem: Item {
+                RowLayout {
+                    objectName: "mobileCompactAddressGroup"
+                    anchors.centerIn: parent
+                    width: Math.min(implicitWidth, Math.max(0, root.width - 32))
+                    height: parent.height
+                    spacing: 6
+                    UiIcon {
+                        name: root.current.url && root.current.url.startsWith("https:") ? "lock" : "globe"
+                        color: root.pillMuted
+                        Layout.preferredWidth: 13
+                        Layout.preferredHeight: 13
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.maximumWidth: Math.max(0, root.width - 51)
+                        text: root.current.url ? root.current.url.replace(/^https?:\/\//, "").split("/")[0] : ""
+                        textFormat: Text.PlainText
+                        color: root.pillText
+                        font.pixelSize: 13 * MobileMetrics.textScale
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
                 }
-                Text {
-                    Layout.maximumWidth: Math.max(0, root.width - 62)
-                    text: root.current.url ? root.current.url.replace(/^https?:\/\//, "").split("/")[0] : ""
-                    textFormat: Text.PlainText
-                    color: root.pillText
-                    font.pixelSize: 13 * MobileMetrics.textScale
-                    elide: Text.ElideRight
-                    verticalAlignment: Text.AlignVCenter
-                }
-                Item { Layout.fillWidth: true }
             }
         }
         ColumnLayout {
