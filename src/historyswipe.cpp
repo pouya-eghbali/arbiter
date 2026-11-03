@@ -50,9 +50,10 @@ void HistorySwipe::beginGesture(bool eligible) {
 void HistorySwipe::scrollUpdate(double dx,double dy,bool consumed) {
     if(qEnvironmentVariableIsSet("ARBITER_SWIPE_TRACE")) qInfo()<<"Swipe scroll"<<dx<<dy<<consumed<<m_tracking;
     if(!m_tracking) return;
-    // A swipe which scrolls content belongs to that content for its entire
-    // lifetime. At the boundary the user starts a new swipe, as in Chrome.
-    if(consumed || !std::isfinite(dx) || !std::isfinite(dy)) { cancel(); return; }
+    // A consumed ACK covers both axes: a little vertical page movement must
+    // not veto a compositor-authorized horizontal boundary swipe. Without
+    // that boundary report, consumed scrolling still belongs to the page.
+    if((consumed && !m_boundaryDirection) || !std::isfinite(dx) || !std::isfinite(dy)) { cancel(); return; }
     m_updated=true; m_timeout.start();
     m_x+=dx; m_y+=dy;
     m_totalX+=std::abs(dx); m_totalY+=std::abs(dy);
@@ -68,7 +69,7 @@ void HistorySwipe::overscroll(double dx,double dy,bool allowed) {
     if(!m_tracking) return;
     if(!allowed || !std::isfinite(dx) || !std::isfinite(dy)) { cancel(); return; }
     m_timeout.start();
-    if(std::abs(dx)>std::abs(dy)*2.5 && dx!=0) {
+    if(std::abs(dx)>std::abs(dy)*1.5 && dx!=0) {
         m_boundaryDirection=dx>0 ? -1 : 1;
         updateFeedback();
     }
@@ -76,7 +77,7 @@ void HistorySwipe::overscroll(double dx,double dy,bool allowed) {
 void HistorySwipe::updateFeedback() {
     // Root overscroll authorizes the gesture. Progress uses ACK'd input DIPs,
     // not compositor offsets, whose units differ with scale/elasticity.
-    if(!m_boundaryDirection || std::abs(m_x)<=24 || std::abs(m_x)<=std::abs(m_y)*2.5) return;
+    if(!m_boundaryDirection || std::abs(m_x)<=24 || std::abs(m_x)<=std::abs(m_y)*1.5) return;
     const int direction=m_x>0 ? -1 : 1;
     if(direction!=m_boundaryDirection || (direction==-1 && !m_back) || (direction==1 && !m_forward)
         || (m_direction && m_direction!=direction)) { cancel(); return; }

@@ -17,6 +17,14 @@ private slots:
         QTest::addColumn<QString>("kind"); QTest::addColumn<bool>("shouldNavigate");
         QTest::newRow("boundary") << "boundary" << true;
         QTest::newRow("forward") << "forward" << true;
+        QTest::newRow("split-boundary") << "split-boundary" << true;
+        QTest::newRow("split-forward") << "split-forward" << true;
+        QTest::newRow("split-diagonal-back") << "split-diagonal-back" << true;
+        QTest::newRow("split-diagonal-forward") << "split-diagonal-forward" << true;
+        QTest::newRow("split-diagonal-root-scroll") << "split-diagonal-wide" << false;
+        QTest::newRow("split-diagonal-nested-scroll") << "split-diagonal-nested" << false;
+        QTest::newRow("split-diagonal-css-none") << "split-diagonal-none" << false;
+        QTest::newRow("split-diagonal-vertical") << "split-diagonal-vertical" << false;
         QTest::newRow("short") << "short" << false;
         QTest::newRow("momentum-after-short") << "momentum-short" << false;
         QTest::newRow("momentum-after-ready") << "momentum-ready" << true;
@@ -33,6 +41,11 @@ private slots:
     }
     void compositorDecidesNavigation() {
         QFETCH(QString,kind); QFETCH(bool,shouldNavigate);
+        const bool split=kind.startsWith("split-");
+        if(split) kind=kind.mid(6);
+        const bool diagonal=kind.startsWith("diagonal-");
+        if(diagonal) kind=kind.mid(9);
+        if(kind=="back") kind="boundary";
         QTemporaryDir files; QVERIFY(files.isValid());
         QString html="<html><head><style>html,body{margin:0;height:100%;}body{height:3000px;}</style></head><body>History swipe fixture";
         if(kind=="wide") html+="<div style='width:4000px;height:800px'>Wide content</div>";
@@ -45,14 +58,32 @@ private slots:
         QQmlApplicationEngine engine;
         engine.loadData(R"(
             import QtQuick
+            import QtQuick.Effects
             import QtWebEngine
             Window {
+                id: window
+                property bool split: false
                 width: 900; height: 650; visible: true
-                WebEngineView { id: page; objectName: "page"; anchors.fill: parent; profile: WebEngineProfile { offTheRecord: true } }
+                Flickable {
+                    anchors.fill: parent; interactive: false
+                    contentWidth: width; contentHeight: height
+                    WebEngineView {
+                        id: page; objectName: "page"; width: window.split ? 450 : 900; height: 650
+                        profile: WebEngineProfile { offTheRecord: true }
+                        layer.enabled: window.split
+                        layer.effect: MultiEffect { maskEnabled: true; maskSource: mask }
+                        Rectangle { id: mask; anchors.fill: parent; color: "white"; radius: 12; layer.enabled: true; visible: false }
+                    }
+                    WebEngineView {
+                        x: 450; width: 450; height: 650; visible: window.split
+                        profile: WebEngineProfile { offTheRecord: true }
+                    }
+                }
             }
         )");
         QVERIFY(!engine.rootObjects().isEmpty());
         auto *window=qobject_cast<QQuickWindow *>(engine.rootObjects().first()); QVERIFY(window);
+        window->setProperty("split",split);
         auto *page=window->findChild<QQuickItem *>("page"); QVERIFY(page);
         auto evaluate=[&](const QString &code) { QQmlExpression expression(QQmlEngine::contextForObject(window),window,code); const auto result=expression.evaluate(); if(expression.hasError()) qWarning()<<expression.error(); return result; };
         page->setProperty("url",QUrl::fromLocalFile(files.filePath("first.html")));
@@ -67,15 +98,15 @@ private slots:
         QSignalSpy triggered(&swipe,&HistorySwipe::triggered);
         connect(&swipe,&HistorySwipe::triggered,page,[&](int direction) { evaluate(direction<0 ? "page.goBack()" : "page.goForward()"); });
         QTest::qWait(200);
-        const QPointF pos(450,320);
+        const QPointF pos(split?225:450,320);
         auto wheel=[&](int dx,int dy,Qt::ScrollPhase phase) {
             QWheelEvent event(pos,window->mapToGlobal(pos.toPoint()),QPoint(dx,dy),QPoint(dx*2,dy*2),Qt::NoButton,Qt::NoModifier,phase,false,Qt::MouseEventSynthesizedBySystem);
             QCoreApplication::sendEvent(window,&event); QTest::qWait(70);
         };
         const bool vertical=kind=="vertical";
         const int delta=kind=="wide" || kind=="nested" || kind=="iframe" || kind=="forward" ? -40 : (kind=="short" || kind=="momentum-short") ? 10 : 40;
-        wheel(vertical?0:(delta>0?2:-2),vertical?2:0,kind=="wheel"?Qt::NoScrollPhase:kind=="momentum"?Qt::ScrollMomentum:Qt::ScrollBegin);
-        for(int i=0;i<8;++i) wheel(vertical?0:delta,vertical?40:0,kind=="wheel"?Qt::NoScrollPhase:kind=="momentum"?Qt::ScrollMomentum:Qt::ScrollUpdate);
+        wheel(vertical?(diagonal?1:0):(delta>0?2:-2),vertical?2:diagonal?-1:0,kind=="wheel"?Qt::NoScrollPhase:kind=="momentum"?Qt::ScrollMomentum:Qt::ScrollBegin);
+        for(int i=0;i<8;++i) wheel(vertical?(diagonal?6:0):delta,vertical?40:diagonal?-18:0,kind=="wheel"?Qt::NoScrollPhase:kind=="momentum"?Qt::ScrollMomentum:Qt::ScrollUpdate);
         if(kind=="reverse") for(int i=0;i<4;++i) wheel(-40,0,Qt::ScrollUpdate);
         if(shouldNavigate) { QVERIFY2(swipe.active(),"No compositor overscroll feedback"); QCOMPARE(swipe.direction(),kind=="forward"?1:-1); QCOMPARE(swipe.progress(),1.); }
         if(kind=="momentum-short" || kind=="momentum-ready") {

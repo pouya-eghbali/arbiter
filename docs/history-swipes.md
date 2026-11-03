@@ -36,14 +36,17 @@ the view while its Chromium event callback is on the stack. The SDK manifest's
 Only real, non-synthetic touchpad-style scroll beginnings are eligible. Modified
 scrolling and momentum-only beginnings are rejected. The compositor determines
 whether nested scroll areas, frames, script listeners, or the root viewport
-consume the scroll; consuming content cancels the history gesture. Root
+consume the scroll. Consumed input cancels the gesture unless the compositor
+has already confirmed eligible horizontal root overscroll: an ACK covers both
+axes, so small vertical page movement must not reject a horizontal boundary
+swipe. Horizontal scrolling inside page content still takes priority. Root
 overscroll must also permit the browser default action.
 
 The compositor authorizes boundary feedback; its offsets are not used as input
 distances because their units vary with device scale and elasticity. Progress
 uses acknowledged input deltas in view DIPs. The arrow appears after 24 horizontal
 input pixels with horizontal movement
-at least 2.5 times vertical overscroll. The completion distance is 18% of the view
+at least 1.5 times vertical movement, allowing natural diagonal drift. The completion distance is 18% of the view
 width, clamped to 120–240 pixels. The progress ring fills toward this distance;
 navigation occurs only at scroll end, once per gesture. Reversal, short gestures,
 Escape, loss of focus, navigation, layout width changes, modal UI, private-window
@@ -62,6 +65,9 @@ bridge lifetime, and watchdog behavior. `historyswipe_engine_test` sends phased
 wheel input through actual Qt WebEngine pages, covering Back/Forward at boundaries,
 root/nested/frame scrolling, CSS contain/none, prevented wheel input, vertical
 scrolling, ordinary wheels, momentum, short gestures, and reversal.
+Split-pane cases use the same masked WebEngine layout as the app and include
+diagonal Back/Forward with real vertical page movement, plus diagonal input in
+scrollable content and CSS-restricted pages that must not navigate.
 
 ```sh
 cmake --build build-patched-tests --target historyswipe_test historyswipe_engine_test --parallel 24

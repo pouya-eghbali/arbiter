@@ -45,6 +45,26 @@ private slots:
             QCOMPARE(triggered.size(),0);
         }
     }
+    void diagonalBoundarySwipeToleratesConsumedVerticalMovement() {
+        QQuickItem view; view.setWidth(700);
+        HistorySwipe swipe; swipe.setView(&view); swipe.setCanGoBack(true); swipe.setCanGoForward(true);
+        QSignalSpy triggered(&swipe,&HistorySwipe::triggered);
+        for(int sign : {1,-1}) {
+            swipe.beginGesture(true);
+            swipe.overscroll(2*sign,0,true);
+            swipe.scrollUpdate(2*sign,-1,true);
+            for(int i=0;i<6;++i) {
+                swipe.overscroll(30*sign,0,true);
+                swipe.scrollUpdate(30*sign,-15,true);
+            }
+            QVERIFY(swipe.active()); QCOMPARE(swipe.progress(),1.);
+            swipe.endGesture(); QCOMPARE(triggered.takeFirst().first().toInt(),-sign);
+        }
+        // Root X overscroll cannot turn a predominantly vertical swipe into navigation.
+        swipe.beginGesture(true); swipe.overscroll(2,0,true);
+        swipe.scrollUpdate(2,-1,true); swipe.scrollUpdate(30,-100,true);
+        swipe.endGesture(); QVERIFY(triggered.isEmpty());
+    }
     void bridgeLifetimeAndStalledGesture() {
         QQuickItem view;
         auto *swipe=new HistorySwipe; swipe->setView(&view); swipe->setCanGoBack(true);
