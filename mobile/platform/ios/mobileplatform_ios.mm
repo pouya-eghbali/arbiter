@@ -12,12 +12,39 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QPointer>
+#include <QQuickWindow>
+#include <qpa/qplatformwindow.h>
 #include <QStandardPaths>
 #include <QTimer>
 #import <QuartzCore/QuartzCore.h>
 #import <UIKit/UIKit.h>
 #import <WebKit/WebKit.h>
 #include <memory>
+
+// Qt 6.12's QIOSScreen registers its display link in NSDefaultRunLoopMode.
+// WKWebView uses UITrackingRunLoopMode while a finger scrolls, so QML can
+// change native glass geometry without presenting the corresponding Qt frame.
+// Fill only that tracking-mode gap, using the same pending-update delivery as
+// QIOSScreen. Qt remains responsible for animation timing and default-mode
+// rendering; there is no event-loop pumping or unconditional window redraw.
+@interface ArbiterScrollFrameDriver : NSObject
+- (void)tick:(CADisplayLink *)link;
+@end
+@implementation ArbiterScrollFrameDriver
+- (void)tick:(CADisplayLink *)link {
+    Q_UNUSED(link);
+    if (!qGuiApp || qGuiApp->applicationState() != Qt::ApplicationActive) return;
+    QList<QPointer<QQuickWindow>> windows;
+    for (auto window : QGuiApplication::allWindows())
+        if (auto quick = qobject_cast<QQuickWindow *>(window)) windows.append(quick);
+    for (const auto &quick : windows) {
+        if (!quick || !quick->isVisible() || !quick->isExposed()) continue;
+        auto platform = quick->handle();
+        if (platform && platform->hasPendingUpdateRequest()) platform->deliverUpdateRequest();
+    }
+}
+@end
+static CADisplayLink *scrollFrameLink;
 extern "C" {
 char *arbiter_ios_vault_directory();
 char *arbiter_ios_vault_key(int);
@@ -681,6 +708,11 @@ void openSystemSettings() {
     [UIApplication.sharedApplication openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString] options:@{} completionHandler:nil];
 }
 void initialize() {
+    if (!scrollFrameLink) {
+        scrollFrameLink = [CADisplayLink displayLinkWithTarget:[ArbiterScrollFrameDriver new]
+                                                    selector:@selector(tick:)];
+        [scrollFrameLink addToRunLoop:NSRunLoop.mainRunLoop forMode:UITrackingRunLoopMode];
+    }
     // Qt 6.12.0's QQuickTextInput::q_canPasteChanged() reads mimeData()->text()
     // whenever the clipboard changes. The iOS backend emits that notification
     // on activation after a Handoff copy, prompting before the user chooses Paste.
@@ -755,7 +787,10 @@ void initialize() {
                                  });
                 }];
 }
-void shutdown() {}
+void shutdown() {
+    [scrollFrameLink invalidate];
+    scrollFrameLink = nil;
+}
 QString vaultDirectory() {
     return take(arbiter_ios_vault_directory());
 }
@@ -962,6 +997,23 @@ void evaluate(NativePage *page, const QString &script, std::function<void(QVaria
 } // namespace MobilePlatform
 
 #if TARGET_OS_SIMULATOR
+void arbiter_ios_test_after_native_turn(std::function<void()> work) {
+    // Start tracking outside Qt's timer activation guard, like a real UIKit
+    // pan callback. A nested run loop inside a QTimer blocks other Qt timers.
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 500 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{ work(); });
+}
+void arbiter_ios_test_tracking_loop(std::function<void()> sample) {
+    // Negative control for this simulator-only regression: the unbridged Qt
+    // display link must reproduce the frozen-content failure.
+    if (qEnvironmentVariableIsSet("ARBITER_SCROLL_TRACKING_BASELINE")) scrollFrameLink.paused = YES;
+    auto timer = [NSTimer timerWithTimeInterval:1.0 / 60 repeats:YES block:^(NSTimer *) { sample(); }];
+    [NSRunLoop.mainRunLoop addTimer:timer forMode:UITrackingRunLoopMode];
+    const auto deadline = [NSDate dateWithTimeIntervalSinceNow:.6];
+    while (deadline.timeIntervalSinceNow > 0)
+        [NSRunLoop.mainRunLoop runMode:UITrackingRunLoopMode beforeDate:deadline];
+    [timer invalidate];
+    scrollFrameLink.paused = NO;
+}
 void arbiter_ios_test_reverse_scroll(NativePage *page) {
     ArbiterWeb *bridge = (__bridge ArbiterWeb *)page->handle;
     [bridge reportPanTranslation:CGPointZero state:UIGestureRecognizerStateBegan];

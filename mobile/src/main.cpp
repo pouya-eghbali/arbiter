@@ -29,6 +29,10 @@
 #include "nativeglasshost.h"
 #include "surfacepalette.h"
 #include "nativepage.h"
+#include <atomic>
+#include <memory>
+extern void arbiter_ios_test_tracking_loop(std::function<void()>);
+extern void arbiter_ios_test_after_native_turn(std::function<void()>);
 extern QWindow *arbiter_ios_test_window_at(QWindow *, QPointF, QPoint *);
 extern void arbiter_ios_test_system_appearance(bool);
 extern void arbiter_ios_test_reverse_scroll(NativePage *);
@@ -205,6 +209,42 @@ int main(int argc, char **argv) {
                     browser.setPreview(tab.value("id").toString(), preview);
                 }
                 window->setProperty("panel", qEnvironmentVariable("ARBITER_PANEL_PREVIEW"));
+                return;
+            }
+            if (qEnvironmentVariableIsSet("ARBITER_SCROLL_TRACKING_SMOKE")) {
+                browser.selectTab("target");
+                arbiter_ios_test_after_native_turn([window] {
+                    auto pill = window->findChild<QQuickItem *>("mobilePill");
+                    auto content = window->findChild<QQuickItem *>("mobilePillContent");
+                    if (!pill || !content || !content->window()) qFatal("Native pill content missing");
+                    const auto frames = std::make_shared<std::atomic<int>>(0);
+                    const auto connection = QObject::connect(content->window(), &QQuickWindow::frameSwapped,
+                        content->window(), [frames] { ++*frames; }, Qt::DirectConnection);
+                    for (bool collapse : {true, false}) {
+                        const auto before = frames->load();
+                        int intermediate = 0;
+                        pill->setProperty("collapsed", collapse);
+                        arbiter_ios_test_tracking_loop([&] {
+                            const auto progress = pill->property("compactProgress").toDouble();
+                            if (progress > .02 && progress < .98) ++intermediate;
+                            auto group = content->findChild<QQuickItem *>("mobileCompactAddressGroup");
+                            if (group && progress > .02) {
+                                const auto center = group->mapToItem(content, QPointF(group->width()/2,group->height()/2));
+                                if (qAbs(center.x()-content->width()/2)>1 || qAbs(center.y()-content->height()/2)>1)
+                                    qFatal("Compact address was not centered during scroll tracking");
+                            }
+                        });
+                        if (frames->load()-before < 4 || intermediate < 2)
+                            qFatal("Pill animation froze during native scroll tracking: frames=%d samples=%d",frames->load()-before,intermediate);
+                        qInfo("Pill %s while tracking: %d rendered frames, %d intermediate samples",collapse ? "collapse" : "expand",frames->load()-before,intermediate);
+                        const auto expected = collapse ? 1. : 0.;
+                        if (qAbs(pill->property("compactProgress").toDouble()-expected)>.001)
+                            qFatal("Pill did not finish its animation while tracking continued");
+                    }
+                    QObject::disconnect(connection);
+                    qInfo("Pill collapse/expand rendered and remained centered throughout UIKit scroll tracking");
+                    QCoreApplication::quit();
+                });
                 return;
             }
             if (qEnvironmentVariableIsSet("ARBITER_VIEWPORT_SMOKE")) {

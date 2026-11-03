@@ -246,6 +246,15 @@ avoiding per-frame WebKit relayout. Its native pan recognizer restores controls
 on the first upward movement, including a reversal during collapse. The native
 glass foreground keeps a stable render-target size throughout the transition.
 
+The pinned Qt iOS display link runs in the default run-loop mode, while UIKit
+tracks native scrolling in `UITrackingRunLoopMode`. The iOS app adds a display
+link only for that tracking mode and delivers pending Qt Quick updates using
+`QPlatformWindow`, matching Qt's screen-update path. This requires the matching
+`Qt6::GuiPrivate` headers from the pinned SDK; it does not patch or rebuild Qt.
+Only pending frames are delivered, and the link is invalidated on shutdown.
+Native glass clips its content to the current rounded bounds while retaining
+the expanded Metal backing surface.
+
 Android and WebEngine use the isolated main-frame helper for document and nested
 scroll areas; iOS uses UIKit for root scrolling and the helper for nested areas.
 The helper requires recent trusted touch/wheel input, clamps overscroll bounce,
@@ -278,6 +287,14 @@ opens menu/tab panels, switches to Glacier, and checks compact/expanded toolbar
 transitions against WebKit’s live viewport. Physical-device checks should
 also cover a site's own app-opening sheet, keyboard, and rotation. The diagnostic
 entry point is compiled only into simulator builds.
+
+To test frames *during* continuous UIKit scroll tracking, add
+`SIMCTL_CHILD_ARBITER_SCROLL_TRACKING_SMOKE=1` to the same command. The test
+enters UIKit's tracking run-loop mode for both collapse and expansion, counts
+presented frames and intermediate animation values, and checks address centering
+before scrolling stops. Adding `SIMCTL_CHILD_ARBITER_SCROLL_TRACKING_BASELINE=1`
+disables the bridge in this simulator-only test and must reproduce the frozen
+frame failure. These diagnostics are excluded from physical-device builds.
 
 ### iOS clipboard foreground regression
 

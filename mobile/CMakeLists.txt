@@ -45,6 +45,9 @@ if(NOT IOS)
     target_link_libraries(arbiter_mobile PRIVATE arbiter_adblock_engine)
 endif()
 if(IOS)
+    # Match the pinned Qt iOS screen's pending-update delivery while UIKit is
+    # tracking a native scroll view. No replacement Qt build is required.
+    target_link_libraries(arbiter_mobile PRIVATE Qt6::GuiPrivate)
     # Camera capture uses Apple's native backend; no FFmpeg media stack is bundled.
     qt_import_plugins(arbiter_mobile EXCLUDE Qt6::QFFmpegMediaPlugin INCLUDE Qt6::QDarwinMediaPlugin)
     enable_language(OBJCXX)

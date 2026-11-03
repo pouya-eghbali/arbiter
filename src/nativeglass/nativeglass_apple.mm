@@ -202,6 +202,11 @@ void update(void *value, const QRectF &rect, qreal radius, const QSizeF &minimum
             context.effect.layer.cornerRadius = radius;
             context.effect.layer.cornerCurve = kCACornerCurveContinuous;
             context.effect.cornerConfiguration = [UICornerConfiguration configurationWithRadius:[UICornerRadius fixedRadius:radius]];
+            // Keep the expanded-size Metal backing surface, but clip its
+            // controls to the current material bounds throughout resizing.
+            context.effect.contentView.clipsToBounds = YES;
+            context.effect.contentView.layer.cornerRadius = radius;
+            context.effect.contentView.layer.cornerCurve = kCACornerCurveContinuous;
             context.foreground.frame = CGRectMake(0, 0, MAX(rect.width(), minimumRenderSize.width()),
                                                  MAX(rect.height(), minimumRenderSize.height()));
         }];
