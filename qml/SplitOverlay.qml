@@ -60,6 +60,7 @@ Item {
         delegate: Outline {
             required property int index
             info: overlay.layout.panes[index]
+            strokeWidth: 2
             opacity: info && info.paneId === overlay.layout.activePane ? 0.35 : 0
         }
     }
