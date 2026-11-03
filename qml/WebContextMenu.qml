@@ -15,6 +15,7 @@ UiMenu {
     property bool passwordsEnabled: true
     signal inspectRequested()
     signal printRequested()
+    signal splitRequested(int arrangement)
     property bool siteMuted: false
     property bool canMuteSite: false
     signal muteSiteRequested()
@@ -124,11 +125,16 @@ UiMenu {
     }
     Component {
         id: separatorItem
-        Controls.MenuSeparator {
+        UiMenuSeparator {
             objectName: "contextSeparator"
-            topPadding: 5; bottomPadding: 5
-            leftPadding: 8; rightPadding: 8
-            contentItem: Rectangle { implicitHeight: 1; color: Theme.borderFor(parent) }
+        }
+    }
+    Component {
+        id: splitActionsItem
+        SplitMenuActions {
+            ownerMenu: contextMenu
+            shortcutHints: contextMenu.shortcutHints
+            onSplitRequested: function(arrangement) { contextMenu.splitRequested(arrangement) }
         }
     }
     Component {
@@ -296,6 +302,8 @@ UiMenu {
                 enabled: entry.enabled, checkable: entry.checkable, checked: entry.checked
             }))
         }
+        separator()
+        addItem(splitActionsItem.createObject(contextMenu.contentItem))
         separator()
         addItem(inspectItem.createObject(contextMenu.contentItem))
         request.accepted = true

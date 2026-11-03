@@ -2,10 +2,81 @@
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QQuickItem>
+#include <QQmlExpression>
+#include <QQmlContext>
+#include <QJSValue>
 #include <functional>
 #include <QtWebEngineQuick>
 
 #include "extensionpanel_test.h"
+namespace {
+QQuickItem *visualItem(QQuickItem *item,const QString &name) {
+    if(item->objectName()==name) return item;
+    for(auto child:item->childItems()) if(auto found=visualItem(child,name)) return found;
+    return nullptr;
+}
+}
+void ExtensionPanelTest::browserMenuActions() {
+    QQmlApplicationEngine engine;
+    engine.loadData(R"QML(
+import QtQuick
+import QtQuick.Controls.Basic as Basic
+import Arbiter
+Basic.ApplicationWindow {
+    id: owner; visible: true; width: 850; height: 640; color: "#18212a"
+    property int splitRequest: -1
+    Component.onCompleted: { Theme.dark = true; Theme.liquidGlass = false }
+    Text { x: 48; y: 50; text: "A little room to focus."; color: "#e8edf4"; font.pixelSize: 36 }
+    Text { x: 50; y: 108; text: "Your tabs, your spaces, your rules."; color: "#a8b6c8"; font.pixelSize: 16 }
+    QtObject { id: fakeView; property bool canGoBack: true; property bool canGoForward: false; property bool loading: false; property string url: "https://example.com" }
+    QtObject { id: fakeAppearance; property string navigationRevealMode: "pill"; property bool liquidGlass: false; function displayAddress(url) { return url } }
+    NavigationPill {
+        id: pill; objectName: "menuPillFixture"
+        anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 20
+        revealed: true; view: fakeView; appearance: fakeAppearance
+        workspaceName: "Personal"; workspaceColor: "#8dbbff"; tabCount: 3
+        canShare: true; siteMuteAvailable: true
+        shortcutHints: ({history:"⌘Y", downloads:"⇧⌘J", passwords:"⇧⌘P", settings:"⌘,", developerTools:"⌥⌘I", privateWindow:"⇧⌘N", splitHorizontal:"⌥⌘H"})
+        onSplitHorizontalRequested: owner.splitRequest = 0
+        onSplitVerticalRequested: owner.splitRequest = 1
+        onSplitWithRequested: owner.splitRequest = 2
+    }
+})QML",QUrl("qrc:/browser-menu-test.qml"));
+    QVERIFY(!engine.rootObjects().isEmpty());
+    auto *window=qobject_cast<QQuickWindow *>(engine.rootObjects().first()); QVERIFY(window);
+    auto evaluate=[&](const QString &code) { QQmlExpression expression(QQmlEngine::contextForObject(window),window,code); auto result=expression.evaluate(); if(expression.hasError()) qWarning()<<expression.error(); return result; };
+    QTest::qWait(350); // Let the pill's entrance animation finish before anchoring its menu.
+    for(int arrangement=0;arrangement<3;++arrangement) {
+        evaluate("pill.openMoreMenu()");
+        auto *menu=window->findChild<QObject *>("navigationMoreMenu"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("visible").toBool());
+        auto *strip=window->findChild<QObject *>("splitMenuActions"); QVERIFY(strip);
+        const auto actions=strip->property("actions").value<QJSValue>().toVariant().toList();
+        QCOMPARE(actions.size(),3);
+        if(arrangement==0) {
+            QTest::qWait(250);
+            auto *pill=window->findChild<QQuickItem *>("menuPillFixture"); QVERIFY(pill);
+            QVERIFY2(menu->property("y").toDouble()+menu->property("height").toDouble()<=pill->y()-7,
+                     "Browser menu overlaps the pill after its layout settles");
+            if(const auto path=qEnvironmentVariable("ARBITER_TEST_PILL_MENU_IMAGE");!path.isEmpty()) {
+                QVERIFY(window->grabWindow().save(path));
+            }
+        }
+        const QStringList keys={"splitHorizontal","splitVertical","splitWith"};
+        auto *button=visualItem(qobject_cast<QQuickItem *>(strip),"menuSplit-"+keys[arrangement]); QVERIFY(button);
+        QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,
+                          button->mapToScene(QPointF(button->width()/2,button->height()/2)).toPoint());
+        QCOMPARE(window->property("splitRequest").toInt(),arrangement);
+        QTRY_VERIFY(!menu->property("visible").toBool());
+    }
+    evaluate("pill.openMoreMenu()");
+    auto *strip=window->findChild<QQuickItem *>("splitMenuActions"); QVERIFY(strip);
+    strip->setProperty("selectedAction",0); strip->forceActiveFocus();
+    QTest::keyClick(window,Qt::Key_Right);
+    QCOMPARE(strip->property("selectedAction").toInt(),1);
+    QTest::keyClick(window,Qt::Key_Return);
+    QCOMPARE(window->property("splitRequest").toInt(),1);
+}
 void ExtensionPanelTest::extensionPillMode() {
     QQmlApplicationEngine engine;
     engine.loadData(R"QML(

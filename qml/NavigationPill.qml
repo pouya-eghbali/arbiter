@@ -25,9 +25,12 @@ FocusScope {
         // Keep popup coordinates in the owning overlay, outside the native
         // pill's content hierarchy. Capture once instead of chasing a moving
         // parent while Qt fits the popup to the screen.
+        // Menu uses a ListView: flush its pending item-size changes before
+        // measuring, including the taller split toolbar and hidden rows.
+        more.contentItem.forceLayout()
         const anchor = pill.mapToItem(more.parent, pill.width, 0)
         more.x = Math.max(12, Math.min(more.parent.width - more.width - 12, anchor.x - more.width))
-        more.y = Math.max(12, anchor.y - more.height - 8)
+        more.anchorY = anchor.y
         more.open()
     }
     function shareAnchor() { if (!shareButton.visible) return Qt.point(pill.x + pill.width / 2, pill.y); const global = shareButton.mapToGlobal(shareButton.width / 2, shareButton.height / 2); const local = pill.mapFromGlobal(global.x, global.y); return pill.mapToItem(null, local.x, local.y) }
@@ -75,6 +78,7 @@ FocusScope {
     readonly property bool expanded: extensionsMode || revealed || activeFocus || pillForeground.activeFocus || more.visible
     signal shareRequested()
     property bool canShare: false
+    property var shortcutHints: ({})
     signal addressRequested()
     signal tabsRequested()
     signal passwordsRequested()
@@ -344,6 +348,10 @@ FocusScope {
         id: more
         parent: Basic.Overlay.overlay
         objectName: "navigationMoreMenu"
+        property real anchorY: 0
+        // Keep the captured anchor while ListView finishes sizing its rows.
+        // Following the pill itself would create a popup/reveal feedback loop.
+        y: Math.max(12, anchorY - height - 8)
         palette.text: Theme.textFor(parent)
         palette.windowText: Theme.textFor(parent)
         palette.base: Theme.window
@@ -351,17 +359,27 @@ FocusScope {
         palette.highlightedText: Theme.textFor(parent)
         onOpened: pill.revealed = true
         onClosed: collapse.restart()
-        UiMenuItem { text: qsTr("Split left / right"); onTriggered: pill.splitHorizontalRequested() }
-        UiMenuItem { text: qsTr("Split top / bottom"); onTriggered: pill.splitVerticalRequested() }
-        UiMenuItem { text: qsTr("Split with…"); onTriggered: pill.splitWithRequested() }
-        UiMenuItem { visible: !adBlockButton.visible; text: pill.adBlockActive ? qsTr("Pause ad blocking in this view") : qsTr("Resume ad blocking in this view"); enabled: pill.adBlockEnabled; onTriggered: pill.adBlockRequested() }
-        UiMenuItem { visible: !shareButton.visible; text: qsTr("Share current page…"); enabled: pill.canShare; onTriggered: pill.shareRequested() }
-        UiMenuItem { text: qsTr("Developer tools…"); onTriggered: pill.developerToolsRequested() }
-        UiMenuItem { text: pill.activeDownloads > 0 ? qsTr("Downloads (%1 active)…").arg(pill.activeDownloads) : qsTr("Downloads…"); onTriggered: pill.downloadsRequested() }
-        UiMenuItem { text: qsTr("History…"); onTriggered: pill.historyRequested() }
-        UiMenuItem { text: qsTr("Passwords…"); onTriggered: pill.passwordsRequested() }
-        UiMenuItem { text: qsTr("New private window"); onTriggered: pill.privateWindowRequested() }
-        UiMenuItem { visible: pill.privateMode; text: qsTr("Lock private window"); onTriggered: pill.lockPrivateRequested() }
-        UiMenuItem { text: qsTr("Settings…"); onTriggered: pill.settingsRequested() }
+        SplitMenuActions {
+            ownerMenu: more
+            shortcutHints: pill.shortcutHints
+            onSplitRequested: function(arrangement) {
+                if (arrangement === 0) pill.splitHorizontalRequested()
+                else if (arrangement === 1) pill.splitVerticalRequested()
+                else pill.splitWithRequested()
+            }
+        }
+        UiMenuSeparator { }
+        UiMenuItem { visible: !adBlockButton.visible; iconName: pill.adBlockActive ? "shield-check" : "shield"; shortcutText: pill.shortcutHints.toggleAdBlock || ""; text: pill.adBlockActive ? qsTr("Pause ad blocking in this view") : qsTr("Resume ad blocking in this view"); enabled: pill.adBlockEnabled; onTriggered: pill.adBlockRequested() }
+        UiMenuItem { visible: !shareButton.visible; iconName: "share"; shortcutText: pill.shortcutHints.share || ""; text: qsTr("Share current page…"); enabled: pill.canShare; onTriggered: pill.shareRequested() }
+        UiMenuSeparator { visible: !adBlockButton.visible || !shareButton.visible }
+        UiMenuItem { iconName: "download"; shortcutText: pill.shortcutHints.downloads || ""; text: pill.activeDownloads > 0 ? qsTr("Downloads (%1 active)…").arg(pill.activeDownloads) : qsTr("Downloads…"); onTriggered: pill.downloadsRequested() }
+        UiMenuItem { iconName: "clock-arrow-up"; shortcutText: pill.shortcutHints.history || ""; text: qsTr("History…"); onTriggered: pill.historyRequested() }
+        UiMenuItem { iconName: "key-round"; shortcutText: pill.shortcutHints.passwords || ""; text: qsTr("Passwords…"); onTriggered: pill.passwordsRequested() }
+        UiMenuItem { iconName: "code-xml"; shortcutText: pill.shortcutHints.developerTools || ""; text: qsTr("Developer tools…"); onTriggered: pill.developerToolsRequested() }
+        UiMenuSeparator { }
+        UiMenuItem { iconName: "eye-off"; shortcutText: pill.shortcutHints.privateWindow || ""; text: qsTr("New private window"); onTriggered: pill.privateWindowRequested() }
+        UiMenuItem { visible: pill.privateMode; iconName: "lock"; shortcutText: pill.shortcutHints.lockPrivate || ""; text: qsTr("Lock private window"); onTriggered: pill.lockPrivateRequested() }
+        UiMenuSeparator { }
+        UiMenuItem { iconName: "settings"; shortcutText: pill.shortcutHints.settings || ""; text: qsTr("Settings…"); onTriggered: pill.settingsRequested() }
     }
 }

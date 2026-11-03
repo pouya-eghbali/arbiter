@@ -751,7 +751,7 @@
         <translation>凭据验证失败。现有凭据未被覆盖。</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+10"/>
         <source>Could not save encrypted credentials.</source>
         <translation>无法保存加密凭据。</translation>
     </message>
@@ -2197,14 +2197,14 @@
     </message>
     <message>
         <location line="+643"/>
-        <location line="+1617"/>
+        <location line="+1641"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>新建标签页</translation>
     </message>
     <message>
-        <location line="-1614"/>
-        <location line="+1703"/>
+        <location line="-1638"/>
+        <location line="+1727"/>
         <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
@@ -2212,19 +2212,19 @@
         <translation>起始页</translation>
     </message>
     <message>
-        <location line="-1208"/>
+        <location line="-1222"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
     <message>
-        <location line="-1205"/>
-        <location line="+1278"/>
+        <location line="-1215"/>
+        <location line="+1288"/>
         <source>Appearance</source>
         <translation>外观</translation>
     </message>
     <message>
-        <location line="-1277"/>
-        <location line="+1277"/>
+        <location line="-1287"/>
+        <location line="+1287"/>
         <location line="+0"/>
         <location line="+11"/>
         <source>Passwords</source>
@@ -2237,14 +2237,14 @@
         <translation>通行密钥</translation>
     </message>
     <message>
-        <location line="-1287"/>
-        <location line="+1276"/>
+        <location line="-1297"/>
+        <location line="+1286"/>
         <source>Keyboard</source>
         <translation>键盘</translation>
     </message>
     <message>
-        <location line="-1275"/>
-        <location line="+1275"/>
+        <location line="-1285"/>
+        <location line="+1285"/>
         <source>Configuration</source>
         <translation>配置</translation>
     </message>
@@ -2255,32 +2255,32 @@
         <translation>导入</translation>
     </message>
     <message>
-        <location line="-1285"/>
-        <location line="+1274"/>
+        <location line="-1295"/>
+        <location line="+1284"/>
         <source>Performance</source>
         <translation>性能</translation>
     </message>
     <message>
-        <location line="-1273"/>
-        <location line="+1273"/>
+        <location line="-1283"/>
+        <location line="+1283"/>
         <source>Privacy</source>
         <translation>隐私</translation>
     </message>
     <message>
-        <location line="-1272"/>
-        <location line="+1272"/>
+        <location line="-1282"/>
+        <location line="+1282"/>
         <source>Extensions</source>
         <translation>扩展程序</translation>
     </message>
     <message>
-        <location line="-1271"/>
-        <location line="+1271"/>
+        <location line="-1281"/>
+        <location line="+1281"/>
         <source>Downloads</source>
         <translation>下载</translation>
     </message>
     <message>
-        <location line="-1270"/>
-        <location line="+1270"/>
+        <location line="-1280"/>
+        <location line="+1280"/>
         <source>About</source>
         <translation>关于</translation>
     </message>
@@ -2753,7 +2753,7 @@
         <translation>添加至 Arbiter</translation>
     </message>
     <message>
-        <location line="+339"/>
+        <location line="+353"/>
         <source>%1 open · Pick up where you left off</source>
         <translation>%1 打开 · 从上次停下的地方继续</translation>
     </message>
@@ -2829,7 +2829,7 @@
         <translation>私人</translation>
     </message>
     <message>
-        <location line="-1287"/>
+        <location line="-1301"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass（实验性）</translation>
     </message>
@@ -2850,7 +2850,7 @@
 <context>
     <name>NavigationPill</name>
     <message>
-        <location filename="../qml/NavigationPill.qml" line="+156"/>
+        <location filename="../qml/NavigationPill.qml" line="+160"/>
         <source>Show navigation</source>
         <translation>显示导航</translation>
     </message>
@@ -2891,12 +2891,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+124"/>
+        <location line="+135"/>
         <source>Resume ad blocking in this view</source>
         <translation>在此视图中恢复广告拦截</translation>
     </message>
     <message>
-        <location line="-114"/>
+        <location line="-125"/>
         <source>Share current page</source>
         <translation>分享当前页面</translation>
     </message>
@@ -2946,22 +2946,7 @@
         <translation>管理扩展...</translation>
     </message>
     <message>
-        <location line="+19"/>
-        <source>Split left / right</source>
-        <translation>左/右分割</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Split top / bottom</source>
-        <translation>顶部/底部分开</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Split with…</source>
-        <translation>分裂与...</translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+33"/>
         <source>Pause ad blocking in this view</source>
         <translation>在此视图中暂停广告拦截</translation>
     </message>
@@ -2971,12 +2956,12 @@
         <translation>分享当前页面...</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+5"/>
         <source>Developer tools…</source>
         <translation>开发者工具...</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-3"/>
         <source>Downloads (%1 active)…</source>
         <translation>下载（%1 有效）...</translation>
     </message>
@@ -2996,7 +2981,7 @@
         <translation>密码…</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+3"/>
         <source>New private window</source>
         <translation>新建无痕窗口</translation>
     </message>
@@ -3006,7 +2991,7 @@
         <translation>锁定私人窗口</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+2"/>
         <source>Settings…</source>
         <translation>设置…</translation>
     </message>
@@ -4581,9 +4566,32 @@
     </message>
 </context>
 <context>
+    <name>SplitMenuActions</name>
+    <message>
+        <location filename="../qml/SplitMenuActions.qml" line="+14"/>
+        <source>Split left / right</source>
+        <translation>左/右分割</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Split top / bottom</source>
+        <translation>顶部/底部分开</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Split with…</source>
+        <translation>分裂与...</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Split view</source>
+        <translation>分屏视图</translation>
+    </message>
+</context>
+<context>
     <name>SplitOverlay</name>
     <message>
-        <location filename="../qml/SplitOverlay.qml" line="+115"/>
+        <location filename="../qml/SplitOverlay.qml" line="+116"/>
         <source>Resize split. Double click to balance.</source>
         <translation>调整分割大小。双击平衡。</translation>
     </message>
@@ -5380,12 +5388,12 @@
 <context>
     <name>WebContextMenu</name>
     <message>
-        <location filename="../qml/WebContextMenu.qml" line="+49"/>
+        <location filename="../qml/WebContextMenu.qml" line="+50"/>
         <source>Quick actions</source>
         <translation>快捷操作</translation>
     </message>
     <message>
-        <location line="+101"/>
+        <location line="+106"/>
         <source>Saved passwords…</source>
         <translation>已保存密码...</translation>
     </message>

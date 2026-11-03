@@ -1119,8 +1119,18 @@ Basic.ApplicationWindow {
                                 canMuteSite: window.siteAudio.siteHost(page.url).length > 0
                                 shortcutHints: ({
                                     print: window.keyBindings.nativeSequence(window.bindings.print),
-                                    passwords: window.keyBindings.nativeSequence(window.bindings.passwords)
+                                    passwords: window.keyBindings.nativeSequence(window.bindings.passwords),
+                                    splitHorizontal: window.keyBindings.nativeSequence(window.bindings.splitHorizontal),
+                                    splitVertical: window.keyBindings.nativeSequence(window.bindings.splitVertical),
+                                    splitWith: window.keyBindings.nativeSequence(window.bindings.splitWith)
                                 })
+                                onSplitRequested: function(arrangement) {
+                                    if (window.privateCovered || window.shuttingDown || window.settingsOpen) return
+                                    window.splits.activate(page.paneGeometry.paneId)
+                                    if (arrangement === 0) window.splitHorizontal()
+                                    else if (arrangement === 1) window.splitVertical()
+                                    else window.openSplitWith()
+                                }
                                 onMuteSiteRequested: {
                                     if (!window.privateCovered && !window.shuttingDown)
                                         window.siteAudio.setMuted(page.url, !page.siteMuted)
@@ -2134,6 +2144,20 @@ Basic.ApplicationWindow {
         workspaceColor: window.workspaces.currentColor
         onAddressRequested: window.focusAddress()
         canShare: window.canSharePage
+        shortcutHints: ({
+            splitHorizontal: window.keyBindings.nativeSequence(window.bindings.splitHorizontal),
+            splitVertical: window.keyBindings.nativeSequence(window.bindings.splitVertical),
+            splitWith: window.keyBindings.nativeSequence(window.bindings.splitWith),
+            downloads: window.keyBindings.nativeSequence(window.bindings.downloads),
+            history: window.keyBindings.nativeSequence(window.bindings.history),
+            passwords: window.keyBindings.nativeSequence(window.bindings.passwords),
+            developerTools: window.keyBindings.nativeSequence(window.bindings.developerTools),
+            privateWindow: window.keyBindings.nativeSequence(window.bindings.privateWindow),
+            lockPrivate: window.keyBindings.nativeSequence(window.bindings.lockPrivate),
+            settings: window.keyBindings.nativeSequence(window.bindings.settings),
+            toggleAdBlock: window.keyBindings.nativeSequence(window.bindings.toggleAdBlock),
+            share: window.keyBindings.nativeSequence(window.bindings.sharePage)
+        })
         installedExtensions: window.extensionCatalog ? window.extensionCatalog.items : []
         onExtensionRequested: function(id, options) { extensionPanel.showExtension(id, options) }
         onManageExtensionsRequested: { window.openSettings(); window.settingsCategory = 8 }

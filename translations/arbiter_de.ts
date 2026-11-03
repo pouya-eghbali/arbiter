@@ -751,7 +751,7 @@
         <translation>Die Authentifizierung der Anmeldedaten ist fehlgeschlagen. Vorhandene Anmeldedaten wurden nicht überschrieben.</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+10"/>
         <source>Could not save encrypted credentials.</source>
         <translation>Die verschlüsselten Anmeldedaten konnten nicht gespeichert werden.</translation>
     </message>
@@ -2197,14 +2197,14 @@
     </message>
     <message>
         <location line="+643"/>
-        <location line="+1617"/>
+        <location line="+1641"/>
         <location filename="../qml/WorkspacePanel.qml" line="+44"/>
         <source>New tab</source>
         <translation>Neuer Tab</translation>
     </message>
     <message>
-        <location line="-1614"/>
-        <location line="+1703"/>
+        <location line="-1638"/>
+        <location line="+1727"/>
         <location line="+8"/>
         <location line="+13"/>
         <location filename="../qml/WorkspacePanel.qml" line="+3"/>
@@ -2212,19 +2212,19 @@
         <translation>Startseite</translation>
     </message>
     <message>
-        <location line="-1208"/>
+        <location line="-1222"/>
         <source>Settings</source>
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location line="-1205"/>
-        <location line="+1278"/>
+        <location line="-1215"/>
+        <location line="+1288"/>
         <source>Appearance</source>
         <translation>Erscheinungsbild</translation>
     </message>
     <message>
-        <location line="-1277"/>
-        <location line="+1277"/>
+        <location line="-1287"/>
+        <location line="+1287"/>
         <location line="+0"/>
         <location line="+11"/>
         <source>Passwords</source>
@@ -2237,14 +2237,14 @@
         <translation>Passkeys</translation>
     </message>
     <message>
-        <location line="-1287"/>
-        <location line="+1276"/>
+        <location line="-1297"/>
+        <location line="+1286"/>
         <source>Keyboard</source>
         <translation>Tastatur</translation>
     </message>
     <message>
-        <location line="-1275"/>
-        <location line="+1275"/>
+        <location line="-1285"/>
+        <location line="+1285"/>
         <source>Configuration</source>
         <translation>Konfiguration</translation>
     </message>
@@ -2255,32 +2255,32 @@
         <translation>Importieren</translation>
     </message>
     <message>
-        <location line="-1285"/>
-        <location line="+1274"/>
+        <location line="-1295"/>
+        <location line="+1284"/>
         <source>Performance</source>
         <translation>Leistung</translation>
     </message>
     <message>
-        <location line="-1273"/>
-        <location line="+1273"/>
+        <location line="-1283"/>
+        <location line="+1283"/>
         <source>Privacy</source>
         <translation>Datenschutz</translation>
     </message>
     <message>
-        <location line="-1272"/>
-        <location line="+1272"/>
+        <location line="-1282"/>
+        <location line="+1282"/>
         <source>Extensions</source>
         <translation>Erweiterungen</translation>
     </message>
     <message>
-        <location line="-1271"/>
-        <location line="+1271"/>
+        <location line="-1281"/>
+        <location line="+1281"/>
         <source>Downloads</source>
         <translation>Downloads</translation>
     </message>
     <message>
-        <location line="-1270"/>
-        <location line="+1270"/>
+        <location line="-1280"/>
+        <location line="+1280"/>
         <source>About</source>
         <translation>Über</translation>
     </message>
@@ -2753,7 +2753,7 @@
         <translation>Zu Arbiter hinzufügen</translation>
     </message>
     <message>
-        <location line="+339"/>
+        <location line="+353"/>
         <source>%1 open · Pick up where you left off</source>
         <translation>%1 geöffnet · Machen Sie dort weiter, wo Sie aufgehört haben</translation>
     </message>
@@ -2829,7 +2829,7 @@
         <translation>Privat</translation>
     </message>
     <message>
-        <location line="-1287"/>
+        <location line="-1301"/>
         <source>Liquid Glass (experimental)</source>
         <translation>Liquid Glass (experimentell)</translation>
     </message>
@@ -2850,7 +2850,7 @@
 <context>
     <name>NavigationPill</name>
     <message>
-        <location filename="../qml/NavigationPill.qml" line="+156"/>
+        <location filename="../qml/NavigationPill.qml" line="+160"/>
         <source>Show navigation</source>
         <translation>Navigation anzeigen</translation>
     </message>
@@ -2891,12 +2891,12 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+124"/>
+        <location line="+135"/>
         <source>Resume ad blocking in this view</source>
         <translation>Setzen Sie die Werbeblockierung in dieser Ansicht fort</translation>
     </message>
     <message>
-        <location line="-114"/>
+        <location line="-125"/>
         <source>Share current page</source>
         <translation>Aktuelle Seite teilen</translation>
     </message>
@@ -2946,22 +2946,7 @@
         <translation>Erweiterungen verwalten…</translation>
     </message>
     <message>
-        <location line="+19"/>
-        <source>Split left / right</source>
-        <translation>Links / rechts teilen</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Split top / bottom</source>
-        <translation>Oben/unten teilen</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Split with…</source>
-        <translation>Geteilt mit…</translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+33"/>
         <source>Pause ad blocking in this view</source>
         <translation>Werbeblocker in dieser Ansicht pausieren</translation>
     </message>
@@ -2971,12 +2956,12 @@
         <translation>Aktuelle Seite teilen…</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+5"/>
         <source>Developer tools…</source>
         <translation>Entwicklertools…</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-3"/>
         <source>Downloads (%1 active)…</source>
         <translation>Downloads (%1 aktiv)…</translation>
     </message>
@@ -2996,7 +2981,7 @@
         <translation>Passwörter…</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+3"/>
         <source>New private window</source>
         <translation>Neues privates Fenster</translation>
     </message>
@@ -3006,7 +2991,7 @@
         <translation>Privates Fenster sperren</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+2"/>
         <source>Settings…</source>
         <translation>Einstellungen…</translation>
     </message>
@@ -4581,9 +4566,32 @@
     </message>
 </context>
 <context>
+    <name>SplitMenuActions</name>
+    <message>
+        <location filename="../qml/SplitMenuActions.qml" line="+14"/>
+        <source>Split left / right</source>
+        <translation>Links / rechts teilen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Split top / bottom</source>
+        <translation>Oben/unten teilen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Split with…</source>
+        <translation>Geteilt mit…</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Split view</source>
+        <translation>Geteilte Ansicht</translation>
+    </message>
+</context>
+<context>
     <name>SplitOverlay</name>
     <message>
-        <location filename="../qml/SplitOverlay.qml" line="+115"/>
+        <location filename="../qml/SplitOverlay.qml" line="+116"/>
         <source>Resize split. Double click to balance.</source>
         <translation>Größe der Teilung ändern. Zum Ausbalancieren doppelklicken.</translation>
     </message>
@@ -5380,12 +5388,12 @@
 <context>
     <name>WebContextMenu</name>
     <message>
-        <location filename="../qml/WebContextMenu.qml" line="+49"/>
+        <location filename="../qml/WebContextMenu.qml" line="+50"/>
         <source>Quick actions</source>
         <translation>Schnellaktionen</translation>
     </message>
     <message>
-        <location line="+101"/>
+        <location line="+106"/>
         <source>Saved passwords…</source>
         <translation>Gespeicherte Passwörter…</translation>
     </message>

@@ -23,6 +23,7 @@ void DevToolsTest::frontendAndLifecycle()
             property var pageResult: null
             property bool inspectedFromMenu: false
             property int muteRequests: 0
+            property int splitRequest: -1
             WebEngineView {
                 id: first
                 width: root.width; height: root.height - dock.height
@@ -37,6 +38,7 @@ void DevToolsTest::frontendAndLifecycle()
                 shortcutHints: ({print:Qt.platform.os === "osx" ? "⌘P" : "Ctrl+P", passwords:Qt.platform.os === "osx" ? "⇧⌘P" : "Ctrl+Shift+P"})
                 onMuteSiteRequested: { root.muteRequests++; siteMuted = !siteMuted }
                 onInspectRequested: { root.inspectedFromMenu = true; dock.openFor(first, true) }
+                onSplitRequested: arrangement => root.splitRequest = arrangement
             }
             WebEngineView { id: second; visible: false; profile: first.profile }
             DeveloperToolsDock {
@@ -86,6 +88,13 @@ void DevToolsTest::frontendAndLifecycle()
         QTRY_VERIFY(!evaluate("contextMenu.visible").toBool());
     }
     QCOMPARE(root->property("muteRequests").toInt(),4);
+    for(int arrangement=0;arrangement<3;++arrangement) {
+        QTest::mouseClick(window,Qt::RightButton,Qt::NoModifier,QPoint(700,35));
+        QTRY_VERIFY(evaluate("contextMenu.visible").toBool());
+        QVERIFY(evaluate("(() => { for(let i=0;i<contextMenu.count;i++) { const item=contextMenu.itemAt(i); if(item.objectName==='splitMenuActions'){item.activate("+QString::number(arrangement)+");return true} } return false })()").toBool());
+        QCOMPARE(root->property("splitRequest").toInt(),arrangement);
+        QTRY_VERIFY(!evaluate("contextMenu.visible").toBool());
+    }
     QTest::mouseClick(window,Qt::RightButton,Qt::NoModifier,QPoint(700,35));
     QTRY_VERIFY(evaluate("contextMenu.visible").toBool());
     auto *toolbar=evaluate("contextMenu.itemAt(0)").value<QObject *>();QVERIFY(toolbar);
