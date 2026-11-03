@@ -5,6 +5,8 @@
 #include <QQmlExpression>
 #include <QQmlContext>
 #include <QJSValue>
+#include <QCursor>
+#include <QScopeGuard>
 #include <functional>
 #include <QtWebEngineQuick>
 
@@ -17,6 +19,8 @@ QQuickItem *visualItem(QQuickItem *item,const QString &name) {
 }
 }
 void ExtensionPanelTest::browserMenuActions() {
+    const auto originalCursor=QCursor::pos();
+    const auto restoreCursor=qScopeGuard([originalCursor] { QCursor::setPos(originalCursor); });
     QQmlApplicationEngine engine;
     engine.loadData(R"QML(
 import QtQuick
@@ -69,9 +73,15 @@ Basic.ApplicationWindow {
         QCOMPARE(window->property("splitRequest").toInt(),arrangement);
         QTRY_VERIFY(!menu->property("visible").toBool());
     }
+    // Begin keyboard input away from the last clicked button: delayed hover
+    // delivery when the menu reopens must not choose the keyboard's start item.
+    QTest::mouseMove(window,QPoint(10,10));
+    QCursor::setPos(window->mapToGlobal(QPoint(10,10)));
+    QTest::qWait(30);
     evaluate("pill.openMoreMenu()");
     auto *strip=window->findChild<QQuickItem *>("splitMenuActions"); QVERIFY(strip);
-    strip->setProperty("selectedAction",0); strip->forceActiveFocus();
+    QTest::qWait(250);
+    strip->forceActiveFocus(); strip->setProperty("selectedAction",0);
     QTest::keyClick(window,Qt::Key_Right);
     QCOMPARE(strip->property("selectedAction").toInt(),1);
     QTest::keyClick(window,Qt::Key_Return);
