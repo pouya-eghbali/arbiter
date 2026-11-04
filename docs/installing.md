@@ -24,6 +24,8 @@ sudo zypper install ./arbiter-*.x86_64.rpm
 
 This installs the browser, desktop entry, and icon system-wide. To uninstall,
 use `sudo zypper remove arbiter`; your browser profile and credentials are kept.
+If switching from `./install.sh` to an RPM, uninstall the user-installed copy
+first so its application-menu entry does not take precedence over the RPM.
 The 0.3.1 release has only the older tar archive; RPMs apply to builds produced
 by the updated packaging scripts.
 
