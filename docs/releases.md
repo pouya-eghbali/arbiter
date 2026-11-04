@@ -432,5 +432,12 @@ source archive includes pins and patches, **not the full source of all binary
 dependencies**. Before publishing binaries, provide required corresponding
 dependency sources/build material and generated third-party notices for the exact
 SDK/toolchain. An SBOM or upstream link alone is not a claim of complete source
-compliance. Qt deployment reference:
+compliance. Linux runtime bundles now include Qt SerialPort for Qt Positioning's
+NMEA plugin; include `qtserialport-everywhere-src-6.12.0.tar.xz` with the other
+matching Qt module sources. The FFmpeg 8 compile-only SDK also uses the exact
+source pinned in `tools/cross/linux-ffmpeg.json`; include that archive as build
+material without putting its codec libraries into the app. Locally staged
+additions are kept in `build-release-artifacts/dependency-source-additions` for
+the next source bundle; do not replace an already published release's bundle.
+Qt deployment reference:
 https://doc.qt.io/qt-6/qtwebengine-deploying.html
