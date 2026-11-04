@@ -23,7 +23,7 @@ Use the mouse, make it keyboard-first, or hide the controls entirely.
 | macOS | [DMG](https://github.com/pouya-eghbali/arbiter/releases/download/v0.3.2/arbiter-0.3.2-macos-arm64.dmg) | Apple Silicon · macOS 14.4 or later |
 | Windows | [Installer](https://github.com/pouya-eghbali/arbiter/releases/download/v0.3.2/arbiter-0.3.2-windows-x86_64-unsigned-setup.exe) | x64 · Unsigned build |
 | Linux · Ubuntu | [DEB](https://github.com/pouya-eghbali/arbiter/releases/download/v0.3.2/arbiter_0.3.2-1.ffmpeg6_amd64.deb) | x86_64 · Ubuntu 24.04 · FFmpeg 6 |
-| Linux · openSUSE | [RPM](https://github.com/pouya-eghbali/arbiter/releases/download/v0.3.2/arbiter-0.3.2-1.ffmpeg8.x86_64.rpm) | x86_64 · Tumbleweed · FFmpeg 8 |
+| Linux · openSUSE | [RPM](https://github.com/pouya-eghbali/arbiter/releases/download/v0.3.2/arbiter-0.3.2-1.ffmpeg9.x86_64.rpm) | x86_64 · Tumbleweed · FFmpeg 9 |
 
 On **macOS**, open the DMG and drag Arbiter to Applications. The app is signed
 and notarized. On **Windows**, run the per-user installer; the download is

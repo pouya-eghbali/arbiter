@@ -36,8 +36,8 @@ starting with 0.3.2. The older 0.3.1 release contains portable archives only.
 Linux archives require **x86_64**, glibc 2.39 or later, and the matching FFmpeg
 shared libraries. The default archive uses **FFmpeg 6** (Ubuntu 24.04); the
 `-ffmpeg8` archive uses **FFmpeg 8**. Current Tumbleweed uses **FFmpeg 9**;
-new FFmpeg 9 builds use `-ffmpeg9` archives or `1.ffmpeg9` RPMs. The older
-0.3.2 release assets use FFmpeg 8 and do not use your FFmpeg 9 libraries.
+the 0.3.2 release includes a `1.ffmpeg9` RPM for it. The `1.ffmpeg8` RPM
+and `-ffmpeg8` archive remain available for systems using FFmpeg 8.
 Other distributions
 need the same library ABIs; having a newer FFmpeg alone does not make an archive
 compatible.

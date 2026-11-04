@@ -297,7 +297,7 @@
       <p class="build-note">
         <a href={repo + `/releases/tag/v${version}`}>Release notes & other downloads</a>.
         <span class="mobile-download-note linux-download-note"
-          >Linux alternatives: <a href={downloads + `arbiter-${version}-1.ffmpeg8.x86_64.rpm`}
+          >Linux alternatives: <a href={downloads + `arbiter-${version}-1.ffmpeg9.x86_64.rpm`}
             >openSUSE Tumbleweed RPM</a
           >
           · portable archives for
