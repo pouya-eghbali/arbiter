@@ -266,6 +266,17 @@ def elf_type(path):
     return int.from_bytes(header[16:18], 'little' if header[5] == 1 else 'big')
 
 
+def normalize_linux_permissions(stage):
+    # Runtime probes can create owner-only directories (e.g. resources/locales).
+    # Native packages change ownership to root, so every user needs read/traverse
+    # access. Do not follow symlinks or change their targets outside the bundle.
+    for path in [stage, *stage.rglob('*')]:
+        if not path.is_symlink():
+            mode = path.stat().st_mode & 0o777
+            readable = 0o755 if path.is_dir() else 0o444 | (0o111 if mode & 0o111 else 0)
+            path.chmod(mode | readable)
+
+
 def linux_archive(stage, archive):
     # Chromium is large: parallel native xz avoids a long single-core packaging
     # tail. Keep Python's implementation as a portable fallback.
@@ -468,6 +479,7 @@ def main():
                                 .replace('@FFMPEG_LIBRARIES@', libraries))
         audit(stage); engine_symbol(stage)
         smoke(stage, sdk, qt)
+        normalize_linux_permissions(stage)
         archive = output / (name + '.tar.xz')
         linux_archive(stage, archive)
         native_format = os.environ.get('ARBITER_LINUX_PACKAGE_FORMAT', 'auto')

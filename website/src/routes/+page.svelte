@@ -8,7 +8,7 @@
   import Icon from '#lib/Icon.svelte';
   import { reveal, accordion } from '#lib/motion.ts';
   const repo = 'https://github.com/pouya-eghbali/arbiter';
-  const version = '0.3.1';
+  const version = '0.3.2';
   const downloads = repo + `/releases/download/v${version}/`;
   let tucked = $state(false);
   const extras = [
@@ -279,21 +279,32 @@
             >Apple Silicon · macOS 14.4 or later.</small
           ></span
         ><Icon name="arrow-right" size={25} /></a
-      ><a class="get-option" href={downloads + `arbiter-${version}-windows-x86_64-unsigned.zip`}
+      ><a
+        class="get-option"
+        href={downloads + `arbiter-${version}-windows-x86_64-unsigned-setup.exe`}
         ><span
           ><Icon name="download" size={27} /><strong>Download for Windows</strong><small
-            >x64 · Unsigned ZIP.</small
+            >x64 · Per-user installer · Unsigned.</small
           ></span
         ><Icon name="arrow-right" size={22} /></a
-      ><a class="get-option" href={downloads + `arbiter-${version}-linux-x86_64.tar.xz`}
+      ><a class="get-option" href={downloads + `arbiter_${version}-1.ffmpeg6_amd64.deb`}
         ><span
           ><Icon name="download" size={27} /><strong>Download for Linux</strong><small
-            >x86_64 · Ubuntu 24.04 · FFmpeg 6.</small
+            >x86_64 · Ubuntu 24.04 · DEB.</small
           ></span
         ><Icon name="arrow-right" size={22} /></a
       >
       <p class="build-note">
         <a href={repo + `/releases/tag/v${version}`}>Release notes & other downloads</a>.
+        <span class="mobile-download-note linux-download-note"
+          >Linux alternatives: <a href={downloads + `arbiter-${version}-1.ffmpeg8.x86_64.rpm`}
+            >openSUSE Tumbleweed RPM</a
+          >
+          · portable archives for
+          <a href={downloads + `arbiter-${version}-linux-x86_64.tar.xz`}>FFmpeg 6</a>
+          or
+          <a href={downloads + `arbiter-${version}-linux-x86_64-ffmpeg8.tar.xz`}>FFmpeg 8</a>.</span
+        >
         <span class="mobile-download-note"
           >On your phone? <a href="#mobile"
             >Explore the iOS and Android developer preview <Icon name="arrow-right" size={13} /></a
@@ -328,8 +339,8 @@
         <p>
           Pair your computers and phones to sync passwords and Arbiter passkeys over the same local
           Wi-Fi. Changes and deletions sync too; conflicting edits are kept for you to review. Keep
-          Arbiter open with sync enabled. Once enabled, desktop sync resumes automatically. Sync is encrypted device to device, with no cloud
-          account or internet relay.
+          Arbiter open with sync enabled. Once enabled, desktop sync resumes automatically. Sync is
+          encrypted device to device, with no cloud account or internet relay.
         </p>
       </details>
       <details use:accordion>

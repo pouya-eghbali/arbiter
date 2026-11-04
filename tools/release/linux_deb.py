@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tempfile
 
-from package import audit, elf_type, linux_external_libraries
+from package import audit, elf_type, linux_external_libraries, normalize_linux_permissions
 import linux_abi
 
 
@@ -44,6 +44,7 @@ def main():
         work = Path(temporary); stage = work / 'package'
         app = stage / 'opt/arbiter'; app.parent.mkdir(parents=True)
         shutil.copytree(bundle, app, symlinks=True)
+        normalize_linux_permissions(app)
         (stage / 'usr/bin').mkdir(parents=True)
         command = stage / 'usr/bin/arbiter'
         command.write_text('#!/bin/sh\nexec /opt/arbiter/arbiter "$@"\n'); command.chmod(0o755)

@@ -62,6 +62,7 @@ navigation pill. This package uses the distribution's FFmpeg {abi['major']} libr
 %install
 mkdir -p "%{{buildroot}}/opt/arbiter" "%{{buildroot}}/usr/bin" "%{{buildroot}}/usr/share/applications" "%{{buildroot}}/usr/share/icons/hicolor/scalable/apps"
 cp -a "$ARBITER_RPM_BUNDLE/." "%{{buildroot}}/opt/arbiter/"
+chmod -R a+rX "%{{buildroot}}/opt/arbiter/"
 printf '#!/bin/sh\\nexec /opt/arbiter/arbiter "$@"\\n' > "%{{buildroot}}/usr/bin/arbiter"
 chmod 755 "%{{buildroot}}/usr/bin/arbiter"
 sed 's|^Exec=arbiter %U$|Exec=/opt/arbiter/arbiter %U|' "$ARBITER_RPM_BUNDLE/share/applications/com.arbiter.browser.desktop" > "%{{buildroot}}/usr/share/applications/com.arbiter.browser.desktop"

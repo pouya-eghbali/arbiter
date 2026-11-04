@@ -1,5 +1,6 @@
 import io
 import json
+import os
 from pathlib import Path
 import tarfile
 import tempfile
@@ -8,6 +9,7 @@ from unittest.mock import patch
 
 import publish
 import windows_installer
+from package import normalize_linux_permissions
 
 
 def deb_payload(paths):
@@ -23,6 +25,23 @@ def deb_payload(paths):
 
 
 class NativePackageTests(unittest.TestCase):
+    @unittest.skipIf(os.name == 'nt', 'POSIX package permissions')
+    def test_runtime_probe_permissions_are_safe_for_system_installation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / 'bundle'; bundle.mkdir(mode=0o700)
+            locales = bundle / 'resources/locales'; locales.mkdir(parents=True, mode=0o700)
+            data = locales / 'en-US.pak'; data.write_text('fixture'); data.chmod(0o600)
+            executable = bundle / 'arbiter'; executable.write_text('fixture'); executable.chmod(0o700)
+            outside = root / 'private'; outside.write_text('private'); outside.chmod(0o600)
+            (bundle / 'link').symlink_to(outside)
+            normalize_linux_permissions(bundle)
+            self.assertEqual(locales.stat().st_mode & 0o777, 0o755)
+            self.assertEqual(data.stat().st_mode & 0o777, 0o644)
+            self.assertEqual(executable.stat().st_mode & 0o777, 0o755)
+            self.assertEqual(outside.stat().st_mode & 0o777, 0o600)
+            self.assertTrue((bundle / 'link').is_symlink())
+
     def test_reads_deb_identity_and_rejects_ambiguous_or_truncated_metadata(self):
         with tempfile.TemporaryDirectory() as temporary:
             asset = Path(temporary) / 'test.deb'
