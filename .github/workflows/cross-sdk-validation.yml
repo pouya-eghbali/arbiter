@@ -68,7 +68,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y dpkg-dev ninja-build patchelf pkg-config libssl-dev libsecret-1-dev gnome-keyring dbus-x11 xvfb libavcodec-dev libavformat-dev libavutil-dev libopus-dev libnss3 libegl1 libopengl0 libxcb-cursor0 libxkbcommon-x11-0 libasound2t64
+          sudo apt-get install -y dpkg-dev ninja-build libxcb-shape0-dev patchelf pkg-config libssl-dev libsecret-1-dev gnome-keyring dbus-x11 xvfb libavcodec-dev libavformat-dev libavutil-dev libopus-dev libnss3 libegl1 libopengl0 libxcb-cursor0 libxkbcommon-x11-0 libasound2t64
       - uses: jurplel/install-qt-action@v4
         with:
           aqtsource: git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7

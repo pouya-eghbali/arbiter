@@ -12,8 +12,10 @@ Build prerequisites, local commands and the source map for contributors. For dow
 - QtKeychain 0.14.2+ built with Qt 6. CMake prefers an installed package; otherwise
   it downloads and statically builds the pinned 0.14.2 archive after SHA-256
   verification. The initial configure needs network access or a local source override.
-- Linux: Qt DBus, pkg-config, libsecret development headers (for example,
-  `sudo apt install libsecret-1-dev pkg-config`), and a supported keyring session at runtime.
+- Linux: Qt DBus, the matching Qt Gui private headers, pkg-config, libsecret
+  and XCB Shape development headers (for example,
+  `sudo apt install libsecret-1-dev libxcb-shape0-dev pkg-config`), and a
+  supported keyring session at runtime.
 - On macOS, full Xcode 26+ with Icon Composer and `actool` to compile the layered app icon.
 
 On macOS, use the Qt Online Installer / MaintenanceTool to install the Qt 6.12

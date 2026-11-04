@@ -1,5 +1,7 @@
+#include "desktopwindow_test.h"
 #include "../../src/keybindings.h"
 #include "../../src/settings.h"
+#include "../../src/linuxwindowframe.h"
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
@@ -9,10 +11,82 @@
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
 #include <QtTest>
 
-class DesktopWindowTest : public QObject {
-    Q_OBJECT
-private slots:
-    void frameAndSettingsWhilePageFocused() {
+void DesktopWindowTest::roundedFrameGeometry() {
+        if (QGuiApplication::platformName() != "wayland" && QGuiApplication::platformName() != "xcb")
+            QSKIP("Native Linux frame test needs Wayland or X11");
+        QQmlApplicationEngine engine;
+        engine.loadData(R"QML(
+import QtQuick
+import QtQuick.Controls.Basic as Basic
+import QtQuick.Effects
+import Arbiter.Windowing
+import "qrc:/desktop-window-test/Arbiter" as WindowComponents
+Basic.ApplicationWindow {
+    id: root; width: 640; height: 480; visible: true
+    flags: Qt.Window | Qt.FramelessWindowHint
+    property bool framed: visibility === Window.Windowed
+    readonly property int inset: framed ? 24 : 0
+    color: framed ? "transparent" : "#19222d"
+    topPadding: inset; bottomPadding: inset; leftPadding: inset; rightPadding: inset
+    LinuxWindowFrame { targetWindow: root; shadowMargin: root.inset }
+    background: WindowComponents.DesktopWindowSurface { framed: root.framed; windowActive: true; color: "#19222d" }
+    contentItem.layer.enabled: framed
+    contentItem.layer.effect: MultiEffect { maskEnabled: true; maskSource: cornerMask }
+    Rectangle { id: cornerMask; anchors.fill: parent; color: "white"; radius: 12; visible: false; layer.enabled: true }
+    Rectangle { anchors.fill: parent; color: "#e7e8eb" }
+    WindowComponents.DesktopWindowOverlayClip { targetWindow: root; framed: root.framed }
+    Basic.Popup {
+        objectName: "testPopup"
+        width: 200; height: 120; modal: true; dim: true
+        parent: Basic.Overlay.overlay
+        anchors.centerIn: parent
+        Basic.Overlay.modal: Rectangle { color: "#88000000" }
+    }
+})QML", QUrl("qrc:/frame-fixture.qml"));
+        QVERIFY(!engine.rootObjects().isEmpty());
+        auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first()); QVERIFY(window);
+        QVERIFY(QTest::qWaitForWindowExposed(window));
+        QTest::qWait(100);
+        QVERIFY(window->mask().isEmpty() || !window->mask().contains({0,0}));
+        if (qgetenv("QT_QUICK_BACKEND") != "software") {
+            const QImage image = window->grabWindow();
+            QVERIFY(!image.isNull());
+            QCOMPARE(image.pixelColor(0,0).alpha(),0);
+            const qreal scale = image.width() / qreal(window->width());
+            const int y = image.height() / 2;
+            const int shadowAlpha = image.pixelColor(qRound(16 * scale),y).alpha();
+            QVERIFY2(shadowAlpha > 0 && shadowAlpha < 255,"Shadow must be visible outside the content, with transparency");
+            QVERIFY(image.pixelColor(qRound(24 * scale),qRound(24 * scale)).alpha() < 255);
+            QCOMPARE(image.pixelColor(image.width()/2,y).alpha(),255);
+            if (!qEnvironmentVariableIsEmpty("ARBITER_FRAME_SCREENSHOT"))
+                QVERIFY(image.save(qEnvironmentVariable("ARBITER_FRAME_SCREENSHOT")));
+            auto *popup = window->findChild<QObject *>("testPopup"); QVERIFY(popup);
+            QVERIFY(QMetaObject::invokeMethod(popup, "open"));
+            QTest::qWait(150);
+            const QImage popupImage = window->grabWindow();
+            QCOMPARE(popupImage.pixelColor(0,0).alpha(),0);
+            // A modal backdrop must not turn transparent shadow margins opaque.
+            QVERIFY(popupImage.pixelColor(qRound(16 * scale),y).alpha() < 255);
+            QVERIFY(QMetaObject::invokeMethod(popup, "close"));
+            QTest::qWait(150);
+        }
+        const QSize floatingSize = window->size();
+        window->showMaximized();
+        QTRY_COMPARE(window->visibility(), QWindow::Maximized);
+        QTRY_VERIFY(!window->property("framed").toBool());
+        QVERIFY(window->mask().isEmpty());
+        window->showNormal();
+        QTRY_COMPARE(window->visibility(), QWindow::Windowed);
+        QTRY_VERIFY(window->property("framed").toBool());
+        QTRY_COMPARE(window->size(), floatingSize);
+        window->setProperty("framed",false);
+        QTest::qWait(50);
+        QVERIFY(window->mask().isEmpty());
+        window->setProperty("framed",true);
+        QTest::qWait(50);
+        QVERIFY(window->mask().isEmpty() || !window->mask().contains({0,0}));
+    }
+void DesktopWindowTest::frameAndSettingsWhilePageFocused() {
         QTemporaryDir config;
         qputenv("XDG_CONFIG_HOME",config.path().toUtf8());
         qputenv("XDG_CONFIG_DIRS",config.path().toUtf8()); Settings().clear();
@@ -76,10 +150,9 @@ Basic.ApplicationWindow {
         window->setProperty("decorated",true);
         QTRY_VERIFY(!window->flags().testFlag(Qt::FramelessWindowHint));
     }
-};
 int main(int argc,char **argv) {
     QtWebEngineQuick::initialize(); QGuiApplication app(argc,argv);
     QStandardPaths::setTestModeEnabled(true);
+    qmlRegisterType<LinuxWindowFrame>("Arbiter.Windowing",1,0,"LinuxWindowFrame");
     DesktopWindowTest test; return QTest::qExec(&test,argc,argv);
 }
-#include "desktopwindow_test.moc"

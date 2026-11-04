@@ -308,7 +308,7 @@ Use native Windows `bison`, `flex` and `gperf` binaries, such as Qt's
 [GNU tools bundle](https://download.qt.io/development_releases/gnuwin32/gnuwin32.zip),
 and keep MSYS2/Cygwin tool directories out of the build's `PATH`.
 Linux needs system FFmpeg/OpenSSL development packages, Qt's build prerequisites,
-`xvfb`, `dbus-x11`, `gnome-keyring`, `libsecret-1-dev`, `libopus-dev`, `patchelf`, `pkg-config`,
+`xvfb`, `dbus-x11`, `gnome-keyring`, `libsecret-1-dev`, `libxcb-shape0-dev`, `libopus-dev`, `patchelf`, `pkg-config`,
 and `nm`. The Linux package bundles its Qt runtime and the matching ICU libraries
 from the Qt kit; it does not rely on an incompatible distro Qt/ICU ABI. Do not run release browsers as root or disable Chromium's sandbox.
 

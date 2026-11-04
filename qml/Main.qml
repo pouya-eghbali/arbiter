@@ -6,6 +6,7 @@ import QtQuick.Controls.Basic as Basic
 import QtWebEngine
 import QtWebChannel
 import Arbiter.Credentials 1.0
+import Arbiter.Windowing 1.0
 import "DesktopWindowFrame.js" as WindowFrame
 
 Basic.ApplicationWindow {
@@ -158,9 +159,32 @@ Basic.ApplicationWindow {
     minimumHeight: 480
     visible: true
     flags: WindowFrame.flags(windowDecorations, Qt.platform.os)
-    topPadding: 0
+    readonly property bool linuxFloatingFrame: Qt.platform.os === "linux" && !windowDecorations && visibility === Window.Windowed
+    readonly property int shadowInset: linuxFloatingFrame ? 24 : 0
+    topPadding: shadowInset
+    bottomPadding: shadowInset
+    leftPadding: shadowInset
+    rightPadding: shadowInset
+    LinuxWindowFrame { targetWindow: window; shadowMargin: window.shadowInset }
+    background: DesktopWindowSurface {
+        framed: window.linuxFloatingFrame
+        windowActive: window.active
+        color: Theme.window
+    }
+    contentItem.layer.enabled: linuxFloatingFrame
+    contentItem.layer.effect: MultiEffect { maskEnabled: true; maskSource: windowCornerMask }
+    Rectangle {
+        id: windowCornerMask
+        parent: window.contentItem
+        anchors.fill: parent
+        radius: 12
+        color: "white"
+        layer.enabled: window.linuxFloatingFrame
+        visible: false
+    }
+    DesktopWindowOverlayClip { targetWindow: window; framed: window.linuxFloatingFrame }
     title: privateMode ? qsTr("Private browsing — Arbiter") : settingsOpen ? qsTr("Settings — Arbiter") : !emptyPage && webView && webView.title ? webView.title + " — Arbiter" : "Arbiter"
-    color: palette.window
+    color: linuxFloatingFrame ? "transparent" : palette.window
     palette.window: Theme.window
     palette.base: Theme.window
     palette.alternateBase: Theme.field
@@ -1373,7 +1397,7 @@ Basic.ApplicationWindow {
                                 text: modelData.title
                                 highlighted: (window.credentialSettings ? 1 : window.settingsCategory) === modelData.id
                                 Accessible.role: Accessible.PageTab
-                                Accessible.name: modelData
+                                Accessible.name: modelData.title
                                 Accessible.selected: highlighted
                                 onActiveFocusChanged: if (activeFocus) categoryScroll.revealCategory(modelData.id)
                                 contentItem: RowLayout {
@@ -2369,6 +2393,15 @@ Basic.ApplicationWindow {
         targetWindow: window
         enabled: Qt.platform.os === "linux" && !window.windowDecorations
         visible: enabled && window.visibility === Window.Windowed
+    }
+    Rectangle {
+        anchors.fill: parent
+        z: 1001
+        visible: window.linuxFloatingFrame
+        color: "transparent"
+        radius: 12
+        border.width: 1
+        border.color: Qt.rgba(1, 1, 1, window.active ? 0.15 : 0.08)
     }
 
     Tutorial {

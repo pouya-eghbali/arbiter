@@ -10,6 +10,7 @@
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
 #include "keybindings.h"
 #include "settings.h"
+#include "linuxwindowframe.h"
 #include "localization.h"
 #include "browserapplication.h"
 #include "browserinstance.h"
@@ -485,6 +486,7 @@ int main(int argc, char *argv[])
     updatePasswordBiometrics();
     QTimer::singleShot(0,passwordBiometrics,&BiometricAuth::refresh);
     qmlRegisterType<SplitSwapGesture>("Arbiter.Input", 1, 0, "SplitSwapGesture");
+    qmlRegisterType<LinuxWindowFrame>("Arbiter.Windowing", 1, 0, "LinuxWindowFrame");
     qmlRegisterType<PasswordSession>("Arbiter.Credentials", 1, 0, "PasswordSession");
     QMenuBar nativeMenu;
     SiteNavigation siteNavigation(&nativeMenu);
