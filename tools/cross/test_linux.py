@@ -7,10 +7,16 @@ import unittest
 from unittest.mock import patch
 
 import linux
+import linux_ffmpeg
 import linux_sysroot as sdk
 
 
 class LinuxCrossTests(unittest.TestCase):
+    def test_current_tumbleweed_ffmpeg_abi_is_explicit(self):
+        self.assertEqual(linux_ffmpeg.abi(9), dict(major=9, libraries=dict(
+            libavcodec=63, libavformat=63, libavutil=61)))
+        self.assertEqual(linux_ffmpeg.PINS['9']['version'], '9.0.2')
+
     def test_elf_rejects_wrong_architecture_and_macos(self):
         with tempfile.TemporaryDirectory() as folder:
             binary = Path(folder) / 'binary'

@@ -5,6 +5,7 @@ ABIS = {
     6: {'libavcodec': 60, 'libavformat': 60, 'libavutil': 58},
     7: {'libavcodec': 61, 'libavformat': 61, 'libavutil': 59},
     8: {'libavcodec': 62, 'libavformat': 62, 'libavutil': 60},
+    9: {'libavcodec': 63, 'libavformat': 63, 'libavutil': 61},
 }
 
 

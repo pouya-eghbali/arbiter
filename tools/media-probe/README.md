@@ -1,5 +1,19 @@
 # Manual media smoke test
 
+To check actual H.264 video and AAC audio decoding without DRM or external
+services, supply a local MP4 fixture containing those codecs:
+
+```sh
+./build-media-probe/arbiter-media-probe --media-file /path/to/h264-aac.mp4
+```
+
+This mode serves only the fixture on loopback, uses an off-the-record profile,
+and stays muted. Success requires at least three seconds of advancing video,
+15 decoded video frames, and successful independent AAC-to-PCM decoding. It
+does not read your browser profile or require a Widevine module.
+
+Without `--media-file`, the existing network/DRM probe below runs.
+
 This standalone probe uses an off-the-record Qt WebEngine profile, without
 reading Arbiter profiles or accounts. It contacts the public Shaka demo player,
 Google-hosted demo media, and Shaka's demonstration Widevine license server.

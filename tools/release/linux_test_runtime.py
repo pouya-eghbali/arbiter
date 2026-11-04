@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Provision FFmpeg 8 on the disposable Ubuntu validation runner, never in an app bundle."""
+"""Provision a pinned FFmpeg runtime on a disposable Ubuntu validation runner."""
 import argparse
 import json
 import os
@@ -16,13 +16,14 @@ from linux_sysroot import fetch
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jobs', type=int, default=4)
+    parser.add_argument('--ffmpeg', type=int, choices=(8, 9), default=8)
     args = parser.parse_args()
     if not sys.platform.startswith('linux') or os.environ.get('GITHUB_ACTIONS') != 'true':
         parser.error('This system installation is only for a disposable Linux GitHub Actions runner')
     if not 1 <= args.jobs <= 96:
         parser.error('--jobs must be between 1 and 96')
-    pin = json.loads((ROOT / 'tools/cross/linux-ffmpeg.json').read_text())['8']
-    work = ROOT / 'build-cross-validation/test-ffmpeg8'
+    pin = json.loads((ROOT / 'tools/cross/linux-ffmpeg.json').read_text())[str(args.ffmpeg)]
+    work = ROOT / f'build-cross-validation/test-ffmpeg{args.ffmpeg}'
     work.mkdir(parents=True, exist_ok=True)
     archive = fetch(pin['url'], work / 'source.tar.xz', pin['sha256'])
     with tarfile.open(archive) as bundle:

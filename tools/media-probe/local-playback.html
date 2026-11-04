@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Arbiter local H.264/AAC decoder test</title>
+<video id="video" muted playsinline style="width:100%;max-height:90vh" src="/fixture.mp4"></video>
+<script>
+const fail = error => console.log('PROBE_FAIL ' + JSON.stringify({message: error.message || String(error)}));
+window.addEventListener('error', event => fail(event.error || event.message));
+window.addEventListener('unhandledrejection', event => fail(event.reason));
+async function probe() {
+  const video = document.querySelector('video');
+  video.addEventListener('error', () => fail(video.error));
+  // Independently decode AAC into PCM, without relying on muted audio output.
+  const bytes = await (await fetch('/fixture.mp4')).arrayBuffer();
+  const context = new OfflineAudioContext(2, 48000, 48000);
+  const audio = await context.decodeAudioData(bytes);
+  if (audio.duration < 3 || audio.numberOfChannels < 1) throw new Error('AAC decode did not produce enough PCM');
+  await video.play();
+  const timer = setInterval(() => {
+    const frames = video.getVideoPlaybackQuality().totalVideoFrames;
+    if (video.currentTime >= 3 && frames >= 15 && video.videoWidth > 0) {
+      clearInterval(timer);
+      console.log('PROBE_PASS ' + JSON.stringify({time: video.currentTime, frames,
+        width: video.videoWidth, height: video.videoHeight, audioDuration: audio.duration,
+        audioSampleRate: audio.sampleRate, audioChannels: audio.numberOfChannels}));
+    }
+  }, 100);
+}
+probe().catch(fail);
+</script>

@@ -115,7 +115,7 @@ def main():
     p.add_argument('--prepare-only', action='store_true', help='Create a source-only draft; binaries are uploaded after local builds')
     p.add_argument('--platform', action='append', choices=('macos', 'windows', 'linux'),
                    help='Upload only this platform; repeat to select several. Default: require all three')
-    p.add_argument('--linux-ffmpeg', type=int, action='append', choices=(6, 7, 8),
+    p.add_argument('--linux-ffmpeg', type=int, action='append', choices=(6, 7, 8, 9),
                    help='Linux FFmpeg ABI to upload; repeat for multiple variants (default: 6)')
     a = p.parse_args()
     if a.prepare_only and a.platform: p.error('--prepare-only cannot be combined with --platform')

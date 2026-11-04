@@ -37,26 +37,26 @@ Outputs are `build-linux-cross/sdk` and `build-linux-cross/app/arbiter`.
 
 The default `--ffmpeg 6` targets Ubuntu 24.04's `libavcodec.so.60`,
 `libavformat.so.60`, and `libavutil.so.58`. Newer FFmpeg majors are separate
-ABIs, not drop-in replacements. To build for FFmpeg 8 systems such as
-openSUSE Tumbleweed:
+ABIs, not drop-in replacements. Current openSUSE Tumbleweed ships FFmpeg 9
+(`libavcodec.so.63`,
+`libavformat.so.63`, `libavutil.so.61`). Build for that ABI explicitly:
 
 ```sh
-python3.12 tools/cross/linux.py engine --ffmpeg 8 \
+python3.12 tools/cross/linux.py engine --ffmpeg 9 \
   --host-qt "$HOME/Qt/6.12.0/macos" \
   --llvm /opt/homebrew/opt/llvm@22 --lld /opt/homebrew/opt/lld@22 --jobs 24
-python3.12 tools/cross/linux.py app --ffmpeg 8 \
+python3.12 tools/cross/linux.py app --ffmpeg 9 \
   --host-qt "$HOME/Qt/6.12.0/macos" \
   --llvm /opt/homebrew/opt/llvm@22 --lld /opt/homebrew/opt/lld@22 --jobs 24
 ```
 
-Run `prepare` and `runtime` first in a new work directory. The two SDKs are
-kept separately: `sdk` and `sdk-ffmpeg8`, with applications in `app` and
-`app-ffmpeg8`. The engine compilation directory is shared, so switching ABIs
+Run `prepare` and `runtime` first in a new work directory. Each SDK is kept separately: `sdk`, `sdk-ffmpeg8`, and `sdk-ffmpeg9`,
+with corresponding applications in `app`, `app-ffmpeg8`, and `app-ffmpeg9`. The engine compilation directory is shared, so switching ABIs
 recompiles affected media code and relinks instead of rebuilding all Chromium.
 
-The FFmpeg 8 profile builds a checksum-pinned, **compile-only** link SDK under
-`sysroot/usr/local/arbiter-ffmpeg8`. Every codec is disabled in this SDK. Its
-headers and import libraries select the target ABI; none of its `libav*`
+The FFmpeg 8 and 9 profiles build checksum-pinned, **compile-only** link SDKs
+under `sysroot/usr/local/arbiter-ffmpeg8` and `sysroot/usr/local/arbiter-ffmpeg9`.
+Every codec is disabled in these SDKs. Their headers and import libraries select the target ABI; none of its `libav*`
 libraries enter the application bundle. The user's distribution supplies the
 actual decoders. Never put that compile-only SDK on a runtime library path.
 The driver checks the resulting engine's ELF dependencies before writing its
@@ -67,24 +67,28 @@ Ubuntu's `libxml2.so.2`, which is absent on current Tumbleweed. The parser sourc
 and notices are part of the pinned Chromium tree. Media codecs remain external.
 
 Native packaging derives the archive name from the actual engine dependencies:
-the existing Ubuntu/FFmpeg 6 archive keeps its name; FFmpeg 8 adds
-`-ffmpeg8.tar.xz`. The archive's `release.json` and installation instructions
+the existing Ubuntu/FFmpeg 6 archive keeps its name; FFmpeg 8 and 9 add
+`-ffmpeg8.tar.xz` and `-ffmpeg9.tar.xz`, respectively. The archive's
+`release.json` and installation instructions
 list the required libraries. A native FFmpeg 7 SDK is also recognized and
-labeled `-ffmpeg7`; the macOS cross driver currently prepares 6 and 8.
+labeled `-ffmpeg7`; the macOS cross driver currently prepares 6, 8, and 9.
+Keep the older profile only for systems
+actually using that older runtime; do not infer the current distro default from
+a compatibility library left installed on one machine.
 
-To prepare inputs for native validation of the FFmpeg 8 variant:
+To prepare inputs for native validation of the FFmpeg 9 variant:
 
 ```sh
-INPUT_PLATFORM=linux ARBITER_CROSS_SDK="$PWD/build-linux-cross/sdk-ffmpeg8" \
+INPUT_PLATFORM=linux ARBITER_CROSS_SDK="$PWD/build-linux-cross/sdk-ffmpeg9" \
   python3.12 tools/release/cross_inputs.py pack
 ```
 
-Upload that private `build-inputs-linux-ffmpeg8.zip` to the matching release
-draft, then select `linux_ffmpeg: 8` in the manual cross-SDK validation workflow.
-The disposable Ubuntu runner installs a test-only FFmpeg 8 runtime, builds and
+Upload that private `build-inputs-linux-ffmpeg9.zip` to the matching release
+draft, then select `linux_ffmpeg: 9` in the manual cross-SDK validation workflow.
+The disposable Ubuntu runner installs a test-only FFmpeg 9 runtime, builds and
 tests Arbiter, and packages without codecs. FFmpeg 6 validation keeps using the
 distro's system libraries. Tumbleweed startup/desktop checks are also required
-before calling the FFmpeg 8 package supported there.
+before calling the FFmpeg 9 package supported there.
 
 Upload validated variants using `tools/release/upload.sh --platform linux
 --linux-ffmpeg 6 --linux-ffmpeg 8 --tag vX.Y.Z`. The uploader verifies ABI metadata
@@ -141,3 +145,8 @@ including Qt platform plugins, WebEngine subprocesses, graphics, password storag
 media, extensions and PDF rendering before publishing. Cross compilation reduces
 build time; it does not replace native runtime tests. The existing Docker build
 remains available separately for developers who prefer a Linux build environment.
+
+Installing the correct major does not guarantee decoder availability. Restricted
+and full codec providers can expose identical SONAMEs. Validate the packaged
+engine with `tools/media-probe` local H.264/AAC playback on the target distro;
+a working `ffmpeg` executable alone does not prove the browser loads that ABI.

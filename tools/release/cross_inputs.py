@@ -17,7 +17,7 @@ WORK = ROOT / 'build-cross-validation'
 def download():
     platform = os.environ['INPUT_PLATFORM']
     major = int(os.environ.get('INPUT_LINUX_FFMPEG', '6'))
-    if major not in (6, 8) or (platform != 'linux' and major != 6):
+    if major not in (6, 8, 9) or (platform != 'linux' and major != 6):
         raise RuntimeError('Invalid platform/FFmpeg combination')
     variant = f'-ffmpeg{major}' if platform == 'linux' and major != 6 else ''
     tag, digest = os.environ['RELEASE_TAG'], os.environ['INPUT_SHA256']
@@ -134,7 +134,7 @@ def pack():
     variant = ''
     if platform == 'linux':
         major = receipt.get('linux_ffmpeg', {}).get('major', 6)
-        if major not in (6, 7, 8):
+        if major not in (6, 7, 8, 9):
             raise RuntimeError('Unknown Linux FFmpeg ABI')
         if major != 6:
             variant = '-ffmpeg' + str(major)

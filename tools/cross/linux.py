@@ -320,8 +320,8 @@ def main():
     parser.add_argument('--lld', type=Path, required=True)
     parser.add_argument('--jobs', type=int, default=16)
     parser.add_argument('--configure-only', action='store_true')
-    parser.add_argument('--ffmpeg', type=int, choices=(6, 8), default=6,
-                        help='Target system FFmpeg ABI (6 for Ubuntu 24.04, 8 for Tumbleweed); codecs stay external')
+    parser.add_argument('--ffmpeg', type=int, choices=(6, 8, 9), default=6,
+                        help='Target system FFmpeg ABI (6 for Ubuntu 24.04, 9 for current Tumbleweed); codecs stay external')
     args = parser.parse_args()
     if sys.platform != 'darwin':
         parser.error('This entry point runs natively on macOS')

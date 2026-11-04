@@ -4,5 +4,11 @@
     "url": "https://ffmpeg.org/releases/ffmpeg-8.0.3.tar.xz",
     "sha256": "6136812ea6d4e68bdba27e33c2a94382711cdf4f8602ffef056ff792bd6f9818",
     "libraries": {"libavcodec": 62, "libavformat": 62, "libavutil": 60}
+  },
+  "9": {
+    "version": "9.0.2",
+    "url": "https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz",
+    "sha256": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e",
+    "libraries": {"libavcodec": 63, "libavformat": 63, "libavutil": 61}
   }
 }

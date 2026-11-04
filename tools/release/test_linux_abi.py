@@ -27,6 +27,7 @@ class LinuxAbiTests(unittest.TestCase):
     def test_package_names_preserve_baseline_and_distinguish_newer_abis(self):
         self.assertEqual(linux_abi.suffix(6), '')
         self.assertEqual(linux_abi.suffix(8), '-ffmpeg8')
+        self.assertEqual(linux_abi.suffix(9), '-ffmpeg9')
         with self.assertRaises(RuntimeError):
             linux_abi.suffix(99)
 
