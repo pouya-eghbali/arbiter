@@ -123,7 +123,11 @@ def main():
         if args.uninstall:
             uninstall(paths)
         else:
-            install(Path(__file__).resolve().parent, paths)
+            source = Path(__file__).resolve().parent
+            result = subprocess.run(['/bin/sh', str(source / 'arbiter'), '--check-dependencies'], check=False)
+            if result.returncode:
+                raise RuntimeError('System library check failed; choose a matching build or install its distribution dependencies first')
+            install(source, paths)
     except (OSError, ValueError, RuntimeError) as error:
         parser.exit(1, f'Installation failed: {error}\n')
 

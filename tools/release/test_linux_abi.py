@@ -1,4 +1,5 @@
 import unittest
+import os
 from pathlib import Path
 import tarfile
 import tempfile
@@ -29,6 +30,7 @@ class LinuxAbiTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             linux_abi.suffix(99)
 
+    @unittest.skipIf(os.name == 'nt', 'POSIX Linux archive modes')
     def test_native_archive_round_trip_keeps_paths_and_symlinks(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder); stage = root / 'arbiter-linux'; stage.mkdir()

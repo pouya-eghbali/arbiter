@@ -14,6 +14,7 @@ installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
 
 
+@unittest.skipIf(os.name == 'nt', 'POSIX Linux installer')
 class LinuxInstallTests(unittest.TestCase):
     def bundle(self, root):
         source = root / 'download'
@@ -96,6 +97,18 @@ class LinuxInstallTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 1)
                 self.assertIn(output, result.stderr)
                 self.assertNotIn('<--check-dependencies>', result.stdout)
+
+    def test_cli_does_not_install_a_bundle_with_missing_dependencies(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); source = self.bundle(root); tools = root / 'tools'; tools.mkdir()
+            ldd = tools / 'ldd'
+            ldd.write_text('#!/bin/sh\necho "libavcodec.so.60 => not found"\nexit 1\n'); ldd.chmod(0o755)
+            env = dict(os.environ, PATH=str(tools) + os.pathsep + os.environ['PATH'])
+            result = subprocess.run(['/bin/sh', str(source / 'install.sh'), '--prefix', str(root / 'prefix')],
+                                    env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('libavcodec.so.60', result.stderr)
+            self.assertFalse((root / 'prefix').exists())
 
 
 if __name__ == '__main__':
