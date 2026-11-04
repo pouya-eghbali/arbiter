@@ -266,6 +266,28 @@ def elf_type(path):
     return int.from_bytes(header[16:18], 'little' if header[5] == 1 else 'big')
 
 
+def linux_archive(stage, archive):
+    # Chromium is large: parallel native xz avoids a long single-core packaging
+    # tail. Keep Python's implementation as a portable fallback.
+    if not shutil.which('xz'):
+        with tarfile.open(archive, 'w:xz') as tar:
+            tar.add(stage, arcname=stage.name)
+        return
+    with archive.open('wb') as output:
+        process = subprocess.Popen(['xz', '-T' + str(min(24, os.cpu_count() or 1)), '-3', '-c'],
+                                   stdin=subprocess.PIPE, stdout=output)
+        try:
+            with tarfile.open(fileobj=process.stdin, mode='w|') as tar:
+                tar.add(stage, arcname=stage.name)
+            process.stdin.close()
+            if process.wait() != 0:
+                raise RuntimeError('Linux archive compression failed')
+        except BaseException:
+            process.kill(); process.wait()
+            archive.unlink(missing_ok=True)
+            raise
+
+
 def linux(stage, sdk, qt):
     # Match the distro baseline used by the builder. System FFmpeg, glibc,
     # desktop/graphics drivers, Secret Service and fprintd stay external.
@@ -427,7 +449,7 @@ def main():
         audit(stage); engine_symbol(stage)
         smoke(stage, sdk, qt)
         archive = output / (name + '.tar.xz')
-        with tarfile.open(archive, 'w:xz') as tar: tar.add(stage, arcname=stage.name)
+        linux_archive(stage, archive)
     with archive.open('rb') as stream:
         digest = hashlib.file_digest(stream, 'sha256').hexdigest()
     (output / (archive.name + '.sha256')).write_text(digest + '  ' + archive.name + '\n')

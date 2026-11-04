@@ -1,6 +1,10 @@
 import unittest
+from pathlib import Path
+import tarfile
+import tempfile
 
 import linux_abi
+import package
 
 
 class LinuxAbiTests(unittest.TestCase):
@@ -22,6 +26,19 @@ class LinuxAbiTests(unittest.TestCase):
         self.assertEqual(linux_abi.suffix(8), '-ffmpeg8')
         with self.assertRaises(RuntimeError):
             linux_abi.suffix(99)
+
+    def test_native_archive_round_trip_keeps_paths_and_symlinks(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); stage = root / 'arbiter-linux'; stage.mkdir()
+            (stage / 'arbiter').write_text('launcher')
+            (stage / 'arbiter').chmod(0o755)
+            (stage / 'link').symlink_to('arbiter')
+            archive = root / 'bundle.tar.xz'
+            package.linux_archive(stage, archive)
+            with tarfile.open(archive) as tar:
+                self.assertEqual(tar.extractfile('arbiter-linux/arbiter').read(), b'launcher')
+                self.assertEqual(tar.getmember('arbiter-linux/arbiter').mode, 0o755)
+                self.assertEqual(tar.getmember('arbiter-linux/link').linkname, 'arbiter')
 
 
 if __name__ == '__main__':
