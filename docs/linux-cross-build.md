@@ -62,6 +62,10 @@ actual decoders. Never put that compile-only SDK on a runtime library path.
 The driver checks the resulting engine's ELF dependencies before writing its
 ABI receipt; the packager checks them again.
 
+Cross builds use Chromium's maintained XML/XSLT parsers rather than linking
+Ubuntu's `libxml2.so.2`, which is absent on current Tumbleweed. The parser source
+and notices are part of the pinned Chromium tree. Media codecs remain external.
+
 Native packaging derives the archive name from the actual engine dependencies:
 the existing Ubuntu/FFmpeg 6 archive keeps its name; FFmpeg 8 adds
 `-ffmpeg8.tar.xz`. The archive's `release.json` and installation instructions
@@ -87,6 +91,22 @@ Upload validated variants using `tools/release/upload.sh --platform linux
 and distinguishes the archives and checksum manifest. A new engine ABI variant
 must not replace an older published asset or be labeled as tested before its
 runtime checks pass.
+
+After validating an extracted bundle on a matching Linux distro, generate a
+native RPM there with `python3 tools/release/linux_rpm.py /path/to/bundle --output
+build-release-artifacts` (requires `rpm-build` and `patchelf`). The RPM records
+external shared-library capabilities for the package manager to resolve,
+excluding private bundled Qt libraries. It installs under `/opt/arbiter`, with
+a launcher, desktop entry, and icon under `/usr`. Browser data stays outside
+the RPM. Test `zypper install ./arbiter-*.rpm`, launch as a desktop user, and
+remove via the package manager before publishing it.
+
+`python3 tools/release/validate_linux_bundle.py /path/to/bundle` checks the ELF
+ABI, verifies that no media codec libraries were bundled, installs into an
+isolated temporary home, validates the desktop entry, starts an actual
+WebEngine renderer under Xvfb/D-Bus, and uninstalls while checking that profile
+data remains intact. Run it on the target distro as an unprivileged user with
+`desktop-file-utils`, `patchelf`, `xvfb-run`, and `dbus-run-session` available.
 
 The probe compiles and links Qt resources, Qt's meta-object system, C++ threads,
 FFmpeg, NSS and OpenSSL into an ELF x64 executable. It verifies the executable's

@@ -316,6 +316,10 @@ def linux(stage, sdk, qt):
             target = 'translations/qtwebengine_locales' if 'qtwebengine_locales' in resource.parts else 'resources'
             copy(resource, stage / target / resource.name)
     (stage / 'bin/qt.conf').write_text('[Paths]\nPrefix=..\nLibraries=lib\nPlugins=plugins\nQmlImports=qml\nLibraryExecutables=libexec\nData=.\nTranslations=translations\n')
+    # Arbiter uses SQLite, not Qt's optional proprietary/database client plugins.
+    for driver in (stage / 'plugins/sqldrivers').glob('*'):
+        if driver.is_file() and driver.name != 'libqsqlite.so':
+            driver.unlink()
     for name in ('arbiter', 'install.sh', 'install.py'):
         copy(ROOT / 'tools/release/linux' / name, stage / name)
         (stage / name).chmod(0o755)

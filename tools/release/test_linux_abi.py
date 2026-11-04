@@ -2,9 +2,11 @@ import unittest
 from pathlib import Path
 import tarfile
 import tempfile
+from unittest.mock import patch
 
 import linux_abi
 import package
+import linux_rpm
 
 
 class LinuxAbiTests(unittest.TestCase):
@@ -39,6 +41,16 @@ class LinuxAbiTests(unittest.TestCase):
                 self.assertEqual(tar.extractfile('arbiter-linux/arbiter').read(), b'launcher')
                 self.assertEqual(tar.getmember('arbiter-linux/arbiter').mode, 0o755)
                 self.assertEqual(tar.getmember('arbiter-linux/link').linkname, 'arbiter')
+
+    def test_rpm_requires_external_libraries_not_private_qt(self):
+        with tempfile.TemporaryDirectory() as folder:
+            bundle = Path(folder)
+            (bundle / 'libQt6Core.so.6').write_bytes(b'\x7fELF\x02\x01' + bytes(10) + (3).to_bytes(2, 'little'))
+            with patch.object(linux_rpm.subprocess, 'check_output', return_value='libQt6Core.so.6\nlibavcodec.so.62\nlibc.so.6\n'):
+                self.assertEqual(linux_rpm.dependencies(bundle), ['libavcodec.so.62()(64bit)', 'libc.so.6()(64bit)'])
+            with patch.object(linux_rpm.subprocess, 'check_output', return_value='/build/host/libwrong.so\n'):
+                with self.assertRaisesRegex(RuntimeError, 'Nonportable'):
+                    linux_rpm.dependencies(bundle)
 
 
 if __name__ == '__main__':

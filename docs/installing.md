@@ -15,6 +15,20 @@ contains the same app if you prefer that format.
 
 ## Linux
 
+For a native `.rpm` download matching your distro/FFmpeg version, use your
+package manager so it can resolve dependencies. On openSUSE:
+
+```sh
+sudo zypper install ./arbiter-*.x86_64.rpm
+```
+
+This installs the browser, desktop entry, and icon system-wide. To uninstall,
+use `sudo zypper remove arbiter`; your browser profile and credentials are kept.
+The 0.3.1 release has only the older tar archive; RPMs apply to builds produced
+by the updated packaging scripts.
+
+### Portable archive
+
 The current native archive targets **Ubuntu 24.04 x86_64**, with glibc 2.39 or
 later and **FFmpeg 6** shared libraries. Other distributions need those same
 library ABIs; having a newer FFmpeg alone does not make the archive compatible.

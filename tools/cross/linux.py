@@ -243,6 +243,10 @@ def engine(args):
         '-DFEATURE_webengine_embedded_build=OFF', '-DFEATURE_webengine_webrtc=ON',
         '-DFEATURE_webengine_printing_and_pdf=ON',
         '-DFEATURE_webengine_system_ffmpeg=ON', '-DFEATURE_webengine_proprietary_codecs=ON',
+        # Tumbleweed moved libxml2 from SONAME 2 to 16. Chromium already ships
+        # its maintained parser; use it rather than inheriting the Ubuntu
+        # sysroot's obsolete XML ABI. These are parsers, not media codecs.
+        '-DFEATURE_webengine_system_libxml=OFF',
         '-DFEATURE_webengine_geolocation=ON', '-DFEATURE_webengine_extensions=ON',
         '-DFEATURE_webengine_rust_build=OFF']
     env = environment(args)
