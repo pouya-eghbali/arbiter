@@ -15,6 +15,11 @@ on:
         description: SHA-256 of build-inputs-PLATFORM.zip
         required: true
         type: string
+      linux_ffmpeg:
+        description: Linux system FFmpeg ABI (leave 6 for Windows)
+        type: choice
+        options: ['6', '8']
+        default: '6'
       extension_probe:
         description: Windows extension diagnostics only (never packages a release)
         type: boolean
@@ -72,12 +77,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ steps.pins.outputs.rust }}
+      - name: Install FFmpeg 8 test runtime on the disposable Linux runner
+        if: inputs.platform == 'linux' && inputs.linux_ffmpeg == '8'
+        run: python tools/release/linux_test_runtime.py
       - name: Download verified SDK inputs
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.release_tag }}
           INPUT_PLATFORM: ${{ inputs.platform }}
+          INPUT_LINUX_FFMPEG: ${{ inputs.linux_ffmpeg }}
           INPUT_SHA256: ${{ inputs.input_sha256 }}
         run: |
           python tools/release/cross_inputs.py download
@@ -102,6 +111,7 @@ jobs:
         shell: bash
         env:
           INPUT_PLATFORM: ${{ inputs.platform }}
+          INPUT_LINUX_FFMPEG: ${{ inputs.linux_ffmpeg }}
           ARBITER_QT_PREFIX: ${{ env.QT_ROOT_DIR }}
           ARBITER_CROSS_EXTENSION_PROBE: ${{ inputs.extension_probe && '1' || '' }}
           ARBITER_TEST_KEYCHAIN: '1'
@@ -114,7 +124,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: ${{ inputs.extension_probe && 'extension-probe' || 'cross-validated' }}-${{ inputs.platform }}
+          name: ${{ inputs.extension_probe && 'extension-probe' || 'cross-validated' }}-${{ inputs.platform }}${{ inputs.platform == 'linux' && inputs.linux_ffmpeg == '8' && '-ffmpeg8' || '' }}
           path: |
             build-release-artifacts/
             build-release-tests-*/Testing/Temporary/LastTest.log

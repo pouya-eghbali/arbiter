@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+base=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+export LD_LIBRARY_PATH="$base/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+if command -v ldd >/dev/null 2>&1; then
+    status=0
+    dependencies=$(LC_ALL=C ldd "$base/bin/arbiter" 2>&1) || status=$?
+    missing=$(printf '%s\n' "$dependencies" | grep -E '=> not found|version .* not found') || true
+    if [ -n "$missing" ] || [ "$status" -ne 0 ]; then
+        printf 'Arbiter cannot load its system libraries:\n%s\n\n' "${missing:-$dependencies}" >&2
+        printf 'Check LINUX-INSTALL.md in this folder for supported libraries and installation steps.\n' >&2
+        printf 'A newer FFmpeg major is a different ABI; do not rename or symlink it to an older version.\n' >&2
+        exit 1
+    fi
+    if [ "${1:-}" = --check-dependencies ]; then
+        printf 'Arbiter system libraries were found.\n'
+        exit 0
+    fi
+elif [ "${1:-}" = --check-dependencies ]; then
+    printf 'Install your distribution\047s ldd utility to check system dependencies.\n' >&2
+    exit 1
+fi
+exec "$base/bin/arbiter" "$@"

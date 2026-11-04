@@ -16,6 +16,7 @@ import tarfile
 
 import windows as common
 import linux_sysroot
+import linux_ffmpeg
 
 ROOT, HERE, ENGINE, DEPS = common.ROOT, common.HERE, common.ENGINE, common.DEPS
 PINS = linux_sysroot.PINS
@@ -46,11 +47,13 @@ def identity(args):
         raise RuntimeError('Native Qt host tools must match the target Qt version')
     digest = hashlib.sha256()
     for path in [HERE / name for name in ('linux.py', 'linux_sysroot.py', 'linux-sysroot.json',
-                 'linux-packages.lock.json', 'linux.patch', 'windows.py', 'qtwebengine.patch')
+                 'linux-packages.lock.json', 'linux.patch', 'linux_ffmpeg.py', 'linux-ffmpeg.json',
+                 'windows.py', 'qtwebengine.patch')
                  if (HERE / name).exists()] + [ROOT / 'cmake/toolchains/LinuxClang.cmake']:
         digest.update(path.name.encode() + b'\0' + path.read_bytes())
     return dict(engine_inputs_sha256=common.fingerprint(), cross_inputs_sha256=digest.hexdigest(),
-                target='x86_64-unknown-linux-gnu', host='darwin', qt=ENGINE['qt'], llvm=PINS['llvm_version'])
+                target='x86_64-unknown-linux-gnu', host='darwin', qt=ENGINE['qt'], llvm=PINS['llvm_version'],
+                linux_ffmpeg=linux_ffmpeg.abi(args.ffmpeg))
 
 
 def environment(args):
@@ -60,6 +63,9 @@ def environment(args):
         PKG_CONFIG_LIBDIR=os.pathsep.join(str(root / suffix) for suffix in (
             'usr/lib/x86_64-linux-gnu/pkgconfig', 'usr/lib/pkgconfig', 'usr/share/pkgconfig')),
         PATH=str(args.work / 'tools/bin') + os.pathsep + env['PATH'], NINJAFLAGS=f'-j{args.jobs}')
+    if args.ffmpeg != 6:
+        pc = root / linux_ffmpeg.prefix(args.ffmpeg).relative_to('/') / 'lib/pkgconfig'
+        env['PKG_CONFIG_LIBDIR'] = str(pc) + os.pathsep + env['PKG_CONFIG_LIBDIR']
     # Do not inherit macOS SDK/compiler settings into target configure checks.
     for key in ('SDKROOT', 'MACOSX_DEPLOYMENT_TARGET', 'CFLAGS', 'CXXFLAGS', 'LDFLAGS', 'CPATH',
                 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'LIBRARY_PATH'):
@@ -106,6 +112,7 @@ def tool_facade(args):
 def flags(args):
     elf_x64(qt(args) / 'lib/libQt6Core.so.6')
     return ['-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release',
+        '-DARBITER_LINUX_FFMPEG_PREFIX=' + (str(linux_ffmpeg.prefix(args.ffmpeg)) if args.ffmpeg != 6 else ''),
         f'-DCMAKE_TOOLCHAIN_FILE={ROOT / "cmake/toolchains/LinuxClang.cmake"}',
         f'-DARBITER_LINUX_SYSROOT={args.work / "sysroot"}', f'-DARBITER_LINUX_TOOLS={args.work / "tools"}',
         f'-DARBITER_LINUX_LLVM={args.llvm}', f'-DARBITER_LINUX_QT={qt(args)}',
@@ -127,6 +134,7 @@ def prepare(args):
         run(python(args), '-m', 'aqt', 'install-qt', 'linux', 'desktop', ENGINE['qt'], 'linux_gcc_64',
             '--outputdir', args.work / 'qt', '--modules', 'qtwebchannel', 'qtpositioning', 'qtshadertools', cwd=args.work)
     tool_facade(args)
+    linux_ffmpeg.prepare(args)
 
 
 
@@ -221,7 +229,8 @@ def engine(args):
     before = identity(args)
     code = source(args)
     tools = tool_facade(args)
-    build, sdk = args.work / 'engine', args.work / 'sdk'
+    linux_ffmpeg.prepare(args)
+    build, sdk = args.work / 'engine', sdk_path(args)
     (sdk / 'arbiter-engine-build.json').unlink(missing_ok=True)
     options = flags(args) + [f'-DCMAKE_INSTALL_PREFIX={sdk}', f'-DPython3_EXECUTABLE={python(args)}',
         f'-DARBITER_WINDOWS_CLANG_PREFIX={tools}', f'-DQWELibClang_BIN_PATH={args.llvm / "bin"}',
@@ -252,15 +261,24 @@ def engine(args):
     run('cmake', '--install', build, env=env)
     elf_x64(sdk / 'lib/libQt6WebEngineCore.so.6')
     elf_x64(sdk / 'lib/libQt6Pdf.so.6')
+    needed = run(args.llvm / 'bin/llvm-readelf', '-d', sdk / 'lib/libQt6WebEngineCore.so.6', capture=True)
+    libraries = {name: int(major) for name, major in re.findall(
+        r'Shared library: \[(libavcodec|libavformat|libavutil)\.so\.(\d+)\]', needed)}
+    if libraries != linux_ffmpeg.abi(args.ffmpeg)['libraries']:
+        raise RuntimeError('The built engine linked a different FFmpeg ABI: ' + repr(libraries))
     shutil.copyfile(ROOT / 'engine/manifest.json', sdk / 'arbiter-engine-manifest.json')
     shutil.copyfile(ROOT / 'engine/LICENSE', sdk / 'arbiter-engine-LICENSE.txt')
     atomic_json(sdk / 'arbiter-cross-build.json', before)
     atomic_json(sdk / 'arbiter-engine-build.json', dict(inputs_sha256=common.fingerprint(),
-        qt=ENGINE['qt'], platform='linux', architecture='x86_64'))
+        qt=ENGINE['qt'], platform='linux', architecture='x86_64', linux_ffmpeg=linux_ffmpeg.abi(args.ffmpeg)))
+
+
+def sdk_path(args):
+    return args.work / ('sdk' if args.ffmpeg == 6 else f'sdk-ffmpeg{args.ffmpeg}')
 
 
 def app(args):
-    sdk = args.work / 'sdk'
+    sdk = sdk_path(args)
     receipt = common.verify_sdk(sdk)
     if receipt.get('platform') != 'linux' or receipt.get('architecture') != 'x86_64':
         raise RuntimeError('The engine SDK must be Linux x64')
@@ -274,9 +292,10 @@ def app(args):
         CC_x86_64_unknown_linux_gnu=str(args.work / 'tools/bin/x86_64-linux-gnu-clang'),
         AR_x86_64_unknown_linux_gnu=str(args.llvm / 'bin/llvm-ar'))
     env['PATH'] = str(Path(cargo).parent) + os.pathsep + env['PATH']
-    build = args.work / 'app'
+    build = args.work / ('app' if args.ffmpeg == 6 else f'app-ffmpeg{args.ffmpeg}')
     options = flags(args) + [f'-DARBITER_WEBENGINE_PREFIX={sdk}',
         '-DARBITER_PATCHED_WEBENGINE=ON', '-DARBITER_STRICT_ENGINE_IDENTITY=ON',
+        '-DARBITER_BUNDLED_KEYCHAIN=ON',
         '-DARBITER_WEBENGINE_SDK_RUNTIME=OFF', '-DARBITER_RUST_TARGET=x86_64-unknown-linux-gnu',
         f'-DPython3_EXECUTABLE={python(args)}', f'-DARBITER_CARGO={cargo}']
     configure(args, ROOT, build, options, env)
@@ -294,6 +313,8 @@ def main():
     parser.add_argument('--lld', type=Path, required=True)
     parser.add_argument('--jobs', type=int, default=16)
     parser.add_argument('--configure-only', action='store_true')
+    parser.add_argument('--ffmpeg', type=int, choices=(6, 8), default=6,
+                        help='Target system FFmpeg ABI (6 for Ubuntu 24.04, 8 for Tumbleweed); codecs stay external')
     args = parser.parse_args()
     if sys.platform != 'darwin':
         parser.error('This entry point runs natively on macOS')

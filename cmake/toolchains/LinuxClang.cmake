@@ -31,12 +31,23 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 set(ENV{PKG_CONFIG_PATH} "")
 set(ENV{PKG_CONFIG_SYSROOT_DIR} "${ARBITER_LINUX_SYSROOT}")
 set(ENV{PKG_CONFIG_LIBDIR} "${ARBITER_LINUX_SYSROOT}/usr/lib/x86_64-linux-gnu/pkgconfig:${ARBITER_LINUX_SYSROOT}/usr/lib/pkgconfig:${ARBITER_LINUX_SYSROOT}/usr/share/pkgconfig")
+if(ARBITER_LINUX_FFMPEG_PREFIX)
+    set(_arbiter_ffmpeg "${ARBITER_LINUX_SYSROOT}${ARBITER_LINUX_FFMPEG_PREFIX}")
+    set(ENV{PKG_CONFIG_LIBDIR} "${_arbiter_ffmpeg}/lib/pkgconfig:$ENV{PKG_CONFIG_LIBDIR}")
+endif()
 list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
-    ARBITER_LINUX_SYSROOT ARBITER_LINUX_TOOLS ARBITER_LINUX_LLVM ARBITER_LINUX_QT)
+    ARBITER_LINUX_SYSROOT ARBITER_LINUX_TOOLS ARBITER_LINUX_LLVM ARBITER_LINUX_QT ARBITER_LINUX_FFMPEG_PREFIX)
 # Target Qt's transitive libraries (including its bundled ICU ABI) are needed
 # at link time, but remain separate from the host's libraries and programs.
 if(ARBITER_LINUX_QT)
     set(_arbiter_linux_link "-Wl,-rpath-link,${ARBITER_LINUX_QT}/lib -Wl,-rpath-link,${ARBITER_LINUX_SYSROOT}/usr/lib/x86_64-linux-gnu")
+    if(_arbiter_ffmpeg)
+        # Qt exports GN's system-library directories in dependency traversal
+        # order, where the baseline directory can precede FFmpeg's. Select the
+        # requested ABI before those generic -L entries, including at final link.
+        string(PREPEND _arbiter_linux_link "-L${_arbiter_ffmpeg}/lib ")
+        string(APPEND _arbiter_linux_link " -Wl,-rpath-link,${_arbiter_ffmpeg}/lib")
+    endif()
     set(CMAKE_EXE_LINKER_FLAGS_INIT "${_arbiter_linux_link}")
     set(CMAKE_SHARED_LINKER_FLAGS_INIT "${_arbiter_linux_link}")
     set(CMAKE_MODULE_LINKER_FLAGS_INIT "${_arbiter_linux_link}")

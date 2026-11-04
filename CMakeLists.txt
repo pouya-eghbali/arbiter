@@ -180,4 +180,6 @@ if(NOT APPLE)
 endif()
 if(UNIX AND NOT APPLE)
     install(FILES cmake/com.arbiter.browser.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+    install(FILES assets/brand/arbiter-badge.svg
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps RENAME com.arbiter.browser.svg)
 endif()

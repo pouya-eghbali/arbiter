@@ -10,6 +10,7 @@ import sys
 import tarfile
 import tempfile
 import zipfile
+import linux_abi
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -76,8 +77,12 @@ def main():
     p.add_argument('--prepare-only', action='store_true', help='Create a source-only draft; binaries are uploaded after local builds')
     p.add_argument('--platform', action='append', choices=('macos', 'windows', 'linux'),
                    help='Upload only this platform; repeat to select several. Default: require all three')
+    p.add_argument('--linux-ffmpeg', type=int, action='append', choices=(6, 7, 8),
+                   help='Linux FFmpeg ABI to upload; repeat for multiple variants (default: 6)')
     a = p.parse_args()
     if a.prepare_only and a.platform: p.error('--prepare-only cannot be combined with --platform')
+    if a.linux_ffmpeg and (a.prepare_only or (a.platform and 'linux' not in a.platform)):
+        p.error('--linux-ffmpeg requires a Linux package upload')
     tag = a.tag
     import re
     if not re.fullmatch(r'v\d+\.\d+\.\d+(?:-[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*)?', tag):
@@ -101,7 +106,10 @@ def main():
     partial = bool(a.platform)
     assets = [] if a.prepare_only else [output / f'arbiter-{version}-{os_name}-{arch}{suffix if os_name != "linux" else ""}.{extension}'
               for os_name, arch, extension in [('macos', 'arm64', 'zip'),
-                                               ('windows', 'x86_64', 'zip'), ('linux', 'x86_64', 'tar.xz')] if os_name in platforms]
+                                               ('windows', 'x86_64', 'zip')] if os_name in platforms]
+    linux_majors = sorted(set(a.linux_ffmpeg or [6]))
+    if not a.prepare_only and 'linux' in platforms:
+        assets.extend(output / f'arbiter-{version}-linux-x86_64{linux_abi.suffix(major)}.tar.xz' for major in linux_majors)
     dmg = output / f'arbiter-{version}-macos-arm64.dmg'
     if not a.prepare_only and not unsigned and 'macos' in platforms and dmg.exists():
         assets.append(dmg)
@@ -122,12 +130,18 @@ def main():
                 raise RuntimeError(f'Package OpenSSL pin or macOS minimum differs: {asset.name}')
         expected_signed = metadata['platform'] != 'linux' and not unsigned
         expected_name = f'arbiter-{version}-{metadata["platform"]}-{metadata["architecture"]}{suffix if metadata["platform"] != "linux" else ""}'
+        if metadata['platform'] == 'linux':
+            media = metadata.get('linux_ffmpeg')
+            if not media or linux_abi.ABIS.get(media.get('major')) != media.get('libraries'):
+                raise RuntimeError('Missing or invalid Linux FFmpeg ABI metadata: ' + asset.name)
+            expected_name += linux_abi.suffix(media['major'])
         if metadata['signed'] != expected_signed or not asset.name.startswith(expected_name + '.'):
             raise RuntimeError(f'Package platform, architecture or signing status differs: {asset.name}')
     source = output / f'arbiter-{version}-source.tar.gz'
     run('git', 'archive', '--format=tar.gz', f'--prefix=arbiter-{version}/', f'--output={source}', sha)
     assets.append(source)
-    sums = output / ('SHA256SUMS-' + '-'.join(sorted(platforms)) if partial else 'SHA256SUMS')
+    variant_label = ''.join('-ffmpeg' + str(m) for m in linux_majors) if a.linux_ffmpeg else ''
+    sums = output / ('SHA256SUMS-' + '-'.join(sorted(platforms)) + variant_label if partial else 'SHA256SUMS')
     lines = []
     for asset in assets:
         with asset.open('rb') as stream: digest = hashlib.file_digest(stream, 'sha256').hexdigest()

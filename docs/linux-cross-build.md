@@ -33,6 +33,61 @@ phases are `prepare`, `probe`, `runtime`, `engine` and `app`. `engine
 --configure-only` checks the CMake configuration without compiling Chromium.
 Outputs are `build-linux-cross/sdk` and `build-linux-cross/app/arbiter`.
 
+### Native FFmpeg ABI variants
+
+The default `--ffmpeg 6` targets Ubuntu 24.04's `libavcodec.so.60`,
+`libavformat.so.60`, and `libavutil.so.58`. Newer FFmpeg majors are separate
+ABIs, not drop-in replacements. To build for FFmpeg 8 systems such as
+openSUSE Tumbleweed:
+
+```sh
+python3.12 tools/cross/linux.py engine --ffmpeg 8 \
+  --host-qt "$HOME/Qt/6.12.0/macos" \
+  --llvm /opt/homebrew/opt/llvm@22 --lld /opt/homebrew/opt/lld@22 --jobs 24
+python3.12 tools/cross/linux.py app --ffmpeg 8 \
+  --host-qt "$HOME/Qt/6.12.0/macos" \
+  --llvm /opt/homebrew/opt/llvm@22 --lld /opt/homebrew/opt/lld@22 --jobs 24
+```
+
+Run `prepare` and `runtime` first in a new work directory. The two SDKs are
+kept separately: `sdk` and `sdk-ffmpeg8`, with applications in `app` and
+`app-ffmpeg8`. The engine compilation directory is shared, so switching ABIs
+recompiles affected media code and relinks instead of rebuilding all Chromium.
+
+The FFmpeg 8 profile builds a checksum-pinned, **compile-only** link SDK under
+`sysroot/usr/local/arbiter-ffmpeg8`. Every codec is disabled in this SDK. Its
+headers and import libraries select the target ABI; none of its `libav*`
+libraries enter the application bundle. The user's distribution supplies the
+actual decoders. Never put that compile-only SDK on a runtime library path.
+The driver checks the resulting engine's ELF dependencies before writing its
+ABI receipt; the packager checks them again.
+
+Native packaging derives the archive name from the actual engine dependencies:
+the existing Ubuntu/FFmpeg 6 archive keeps its name; FFmpeg 8 adds
+`-ffmpeg8.tar.xz`. The archive's `release.json` and installation instructions
+list the required libraries. A native FFmpeg 7 SDK is also recognized and
+labeled `-ffmpeg7`; the macOS cross driver currently prepares 6 and 8.
+
+To prepare inputs for native validation of the FFmpeg 8 variant:
+
+```sh
+INPUT_PLATFORM=linux ARBITER_CROSS_SDK="$PWD/build-linux-cross/sdk-ffmpeg8" \
+  python3.12 tools/release/cross_inputs.py pack
+```
+
+Upload that private `build-inputs-linux-ffmpeg8.zip` to the matching release
+draft, then select `linux_ffmpeg: 8` in the manual cross-SDK validation workflow.
+The disposable Ubuntu runner installs a test-only FFmpeg 8 runtime, builds and
+tests Arbiter, and packages without codecs. FFmpeg 6 validation keeps using the
+distro's system libraries. Tumbleweed startup/desktop checks are also required
+before calling the FFmpeg 8 package supported there.
+
+Upload validated variants using `tools/release/upload.sh --platform linux
+--linux-ffmpeg 6 --linux-ffmpeg 8 --tag vX.Y.Z`. The uploader verifies ABI metadata
+and distinguishes the archives and checksum manifest. A new engine ABI variant
+must not replace an older published asset or be labeled as tested before its
+runtime checks pass.
+
 The probe compiles and links Qt resources, Qt's meta-object system, C++ threads,
 FFmpeg, NSS and OpenSSL into an ELF x64 executable. It verifies the executable's
 architecture and dynamic dependencies; it does not claim runtime validation.

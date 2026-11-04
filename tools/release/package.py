@@ -18,6 +18,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'engine'))
 from identity import verify_sdk
+import linux_abi
 
 
 def run(*args, capture=False):
@@ -293,9 +294,11 @@ def linux(stage, sdk, qt):
             target = 'translations/qtwebengine_locales' if 'qtwebengine_locales' in resource.parts else 'resources'
             copy(resource, stage / target / resource.name)
     (stage / 'bin/qt.conf').write_text('[Paths]\nPrefix=..\nLibraries=lib\nPlugins=plugins\nQmlImports=qml\nLibraryExecutables=libexec\nData=.\nTranslations=translations\n')
-    launcher = stage / 'arbiter'
-    launcher.write_text('#!/bin/sh\nset -eu\nbase=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexport LD_LIBRARY_PATH="$base/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\nexec "$base/bin/arbiter" "$@"\n')
-    launcher.chmod(0o755)
+    for name in ('arbiter', 'install.sh', 'install.py'):
+        copy(ROOT / 'tools/release/linux' / name, stage / name)
+        (stage / name).chmod(0o755)
+    copy(ROOT / 'assets/brand/arbiter-badge.svg', stage / 'share/arbiter/arbiter.svg')
+    copy(ROOT / 'tools/release/linux/INSTALL.md', stage / 'LINUX-INSTALL.md')
     for path in stage.rglob('*'):
         if path.is_file() and not path.is_symlink():
             kind = elf_type(path)
@@ -357,6 +360,13 @@ def main():
     arch = {'aarch64': 'arm64', 'AMD64': 'x86_64'}.get(platform.machine(), platform.machine())
     os_name = {'darwin': 'macos', 'win32': 'windows'}.get(sys.platform, 'linux')
     name = f'arbiter-{version}-{os_name}-{arch}' + ('-unsigned' if a.unsigned and os_name != 'linux' else '')
+    media_abi = None
+    if os_name == 'linux':
+        media_abi = linux_abi.identify(run('patchelf', '--print-needed', sdk / 'lib/libQt6WebEngineCore.so.6', capture=True))
+        declared = json.loads((sdk / 'arbiter-engine-build.json').read_text()).get('linux_ffmpeg')
+        if declared is not None and declared != media_abi:
+            raise RuntimeError('Linux SDK FFmpeg receipt disagrees with its actual ELF dependencies')
+        name += linux_abi.suffix(media_abi['major'])
     output.mkdir(parents=True, exist_ok=True)
     stage = output / name
     if stage.exists(): raise RuntimeError(f'Refusing to overwrite staged package: {stage}')
@@ -374,6 +384,8 @@ def main():
     if sys.platform == 'darwin':
         metadata['minimum_os'] = macos_minimum(qt)
         metadata['openssl'] = json.loads((Path(os.environ['ARBITER_OPENSSL_ROOT']) / 'arbiter-openssl-build.json').read_text())
+    if media_abi:
+        metadata['linux_ffmpeg'] = media_abi
     (resources / 'release.json').write_text(json.dumps(metadata, indent=2) + '\n')
     if sys.platform == 'darwin':
         app = stage / 'arbiter.app'
@@ -407,7 +419,12 @@ def main():
             run('signtool', 'verify', '/pa', stage / 'bin/arbiter.exe')
         archive = Path(shutil.make_archive(str(output / name), 'zip', root_dir=stage.parent, base_dir=stage.name))
     else:
-        linux(stage, sdk, qt); audit(stage); engine_symbol(stage)
+        linux(stage, sdk, qt)
+        instructions = stage / 'LINUX-INSTALL.md'
+        libraries = '\n'.join(f'- `{library}.so.{major}`' for library, major in media_abi['libraries'].items())
+        instructions.write_text(instructions.read_text().replace('@FFMPEG_MAJOR@', str(media_abi['major']))
+                                .replace('@FFMPEG_LIBRARIES@', libraries))
+        audit(stage); engine_symbol(stage)
         smoke(stage, sdk, qt)
         archive = output / (name + '.tar.xz')
         with tarfile.open(archive, 'w:xz') as tar: tar.add(stage, arcname=stage.name)

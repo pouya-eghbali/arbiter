@@ -16,6 +16,10 @@ WORK = ROOT / 'build-cross-validation'
 
 def download():
     platform = os.environ['INPUT_PLATFORM']
+    major = int(os.environ.get('INPUT_LINUX_FFMPEG', '6'))
+    if major not in (6, 8) or (platform != 'linux' and major != 6):
+        raise RuntimeError('Invalid platform/FFmpeg combination')
+    variant = f'-ffmpeg{major}' if platform == 'linux' and major != 6 else ''
     tag, digest = os.environ['RELEASE_TAG'], os.environ['INPUT_SHA256']
     if platform not in ('windows', 'linux') or not re.fullmatch(r'v\d+\.\d+\.\d+', tag) or not re.fullmatch(r'[0-9a-f]{64}', digest):
         raise RuntimeError('Invalid cross-build input request')
@@ -26,7 +30,7 @@ def download():
     if not release.get('isDraft') or not re.fullmatch(r'[0-9a-f]{40}', revision) or revision != head:
         raise RuntimeError('Build inputs must belong to a draft pinned to the exact checked-out release commit')
     WORK.mkdir(exist_ok=True)
-    asset = f'build-inputs-{platform}.zip'
+    asset = f'build-inputs-{platform}{variant}.zip'
     subprocess.run(['gh', 'release', 'download', tag, '--repo', repo, '--pattern', asset,
                     '--dir', str(WORK), '--clobber'], check=True)
     archive = WORK / asset
@@ -62,6 +66,10 @@ def build():
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     if (WORK / 'source-commit').read_text().strip() != head:
         raise RuntimeError('Cross inputs were downloaded for another source revision')
+    if platform == 'linux':
+        receipt = json.loads((WORK / 'sdk/arbiter-engine-build.json').read_text())
+        if receipt.get('linux_ffmpeg', {}).get('major', 6) != int(os.environ.get('INPUT_LINUX_FFMPEG', '6')):
+            raise RuntimeError('Downloaded SDK does not match the selected Linux FFmpeg ABI')
     deps = json.loads((ROOT / 'dependencies.json').read_text())
     subprocess.run([sys.executable, '-m', 'pip', 'install', 'html5lib==' + deps['html5lib']], check=True)
     env = os.environ.copy()
@@ -105,12 +113,13 @@ def pack():
     if platform not in ('windows', 'linux'):
         raise RuntimeError('Expected windows or linux cross-build inputs')
     work = Path(os.environ.get('ARBITER_CROSS_WORK', str(ROOT / ('build-' + platform + '-cross')))).resolve()
+    sdk = Path(os.environ.get('ARBITER_CROSS_SDK', str(work / 'sdk'))).resolve()
     sys.path.insert(0, str(ROOT / 'engine'))
     from identity import verify_sdk
-    receipt = verify_sdk(work / 'sdk')
+    receipt = verify_sdk(sdk)
     if receipt.get('platform') != {'windows': 'win32', 'linux': 'linux'}[platform] or receipt.get('architecture') != 'x86_64':
         raise RuntimeError('Cross-build inputs have the wrong platform/architecture')
-    roots = [('sdk', work / 'sdk')]
+    roots = [('sdk', sdk)]
     if platform == 'windows':
         openssl = work / 'openssl/sdk'
         recorded = json.loads((openssl / 'arbiter-openssl-build.json').read_text())
@@ -118,7 +127,14 @@ def pack():
         if recorded.get('linkage') != 'static' or any(recorded.get(k) != v for k,v in expected.items()):
             raise RuntimeError('Cross OpenSSL SDK does not match release pins')
         roots.append(('openssl', openssl))
-    output = ROOT / 'build-release-artifacts' / ('build-inputs-' + platform + '.zip')
+    variant = ''
+    if platform == 'linux':
+        major = receipt.get('linux_ffmpeg', {}).get('major', 6)
+        if major not in (6, 7, 8):
+            raise RuntimeError('Unknown Linux FFmpeg ABI')
+        if major != 6:
+            variant = '-ffmpeg' + str(major)
+    output = ROOT / 'build-release-artifacts' / ('build-inputs-' + platform + variant + '.zip')
     output.parent.mkdir(exist_ok=True)
     temporary = output.with_suffix('.zip.partial')
     with zipfile.ZipFile(temporary, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=1) as bundle:

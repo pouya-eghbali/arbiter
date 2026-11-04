@@ -288,7 +288,7 @@
       ><a class="get-option" href={downloads + `arbiter-${version}-linux-x86_64.tar.xz`}
         ><span
           ><Icon name="download" size={27} /><strong>Download for Linux</strong><small
-            >x86_64 · Ubuntu 24.04 or compatible.</small
+            >x86_64 · Ubuntu 24.04 · FFmpeg 6.</small
           ></span
         ><Icon name="arrow-right" size={22} /></a
       >
