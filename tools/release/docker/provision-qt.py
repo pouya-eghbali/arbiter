@@ -6,4 +6,4 @@ import subprocess
 
 manifest = json.loads(Path('/opt/arbiter-pins/manifest.json').read_text())
 subprocess.run(['aqt', 'install-qt', 'linux', 'desktop', manifest['qt'], 'linux_gcc_64',
-                '-O', '/opt/qt', '-m', 'qtwebchannel', 'qtpositioning'], check=True)
+                '-O', '/opt/qt', '-m', 'qtwebchannel', 'qtpositioning', 'qtserialport'], check=True)

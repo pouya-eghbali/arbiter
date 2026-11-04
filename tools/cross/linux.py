@@ -132,7 +132,10 @@ def prepare(args):
     run(python(args), HERE / 'linux_sysroot.py', 'prepare', '--work', args.work)
     if not (qt(args) / 'lib/cmake/Qt6Core/Qt6CoreConfig.cmake').exists():
         run(python(args), '-m', 'aqt', 'install-qt', 'linux', 'desktop', ENGINE['qt'], 'linux_gcc_64',
-            '--outputdir', args.work / 'qt', '--modules', 'qtwebchannel', 'qtpositioning', 'qtshadertools', cwd=args.work)
+            '--outputdir', args.work / 'qt', '--modules', 'qtwebchannel', 'qtpositioning', 'qtshadertools', 'qtserialport', cwd=args.work)
+    if not (qt(args) / 'lib/libQt6SerialPort.so.6').exists():
+        run(python(args), '-m', 'aqt', 'install-qt', 'linux', 'desktop', ENGINE['qt'], 'linux_gcc_64',
+            '--outputdir', args.work / 'qt', '--noarchives', '--modules', 'qtserialport', cwd=args.work)
     tool_facade(args)
     linux_ffmpeg.prepare(args)
 

@@ -210,7 +210,7 @@ class ReleaseTests(unittest.TestCase):
             (module / 'objects-RelWithDebInfo/resource.o').write_bytes(header(1))
             (stage / 'bin').mkdir(parents=True)
             executable = stage / 'bin/arbiter'; executable.write_bytes(header(2))
-            with patch.object(package, 'run') as commands:
+            with patch.object(package, 'run') as commands, patch.object(package, 'linux_external_libraries'):
                 package.linux(stage, sdk, qt)
             copied = stage / 'qml/Example'
             self.assertTrue((copied / 'view.qml').exists())

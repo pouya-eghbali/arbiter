@@ -70,7 +70,7 @@ jobs:
           aqtsource: git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7
           version: ${{ steps.pins.outputs.qt }}
           arch: ${{ inputs.platform == 'windows' && 'win64_msvc2022_64' || 'linux_gcc_64' }}
-          modules: 'qtwebchannel qtpositioning qtshadertools qtwebengine qtpdf'
+          modules: 'qtwebchannel qtpositioning qtshadertools qtserialport qtwebengine qtpdf'
           setup-python: false
           cache: true
           cache-key-prefix: arbiter-qt-cross-validation-v1

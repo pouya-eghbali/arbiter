@@ -288,6 +288,19 @@ def linux_archive(stage, archive):
             raise
 
 
+def linux_external_libraries(stage):
+    provided = {path.name for path in stage.rglob('*') if path.is_file()}
+    needed = set()
+    for path in stage.rglob('*'):
+        if path.is_file() and not path.is_symlink() and elf_type(path) in (2, 3):
+            needed.update(subprocess.check_output(['patchelf', '--print-needed', str(path)], text=True).split())
+    external = needed - provided
+    missing_qt = sorted(name for name in external if name.startswith('libQt6'))
+    if missing_qt:
+        raise RuntimeError('Bundle is missing matching Qt components: ' + ', '.join(missing_qt))
+    return external
+
+
 def linux(stage, sdk, qt):
     # Match the distro baseline used by the builder. System FFmpeg, glibc,
     # desktop/graphics drivers, Secret Service and fprintd stay external.
@@ -333,6 +346,7 @@ def linux(stage, sdk, qt):
             elif kind in (2, 3):  # ET_EXEC / ET_DYN, including PIE executables.
                 relative = os.path.relpath(stage / 'lib', path.parent)
                 run('patchelf', '--set-rpath', '$ORIGIN/' + relative, path)
+    linux_external_libraries(stage)
 
 
 def windows(stage, sdk, qt):

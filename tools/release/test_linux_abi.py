@@ -53,6 +53,9 @@ class LinuxAbiTests(unittest.TestCase):
             with patch.object(linux_rpm.subprocess, 'check_output', return_value='/build/host/libwrong.so\n'):
                 with self.assertRaisesRegex(RuntimeError, 'Nonportable'):
                     linux_rpm.dependencies(bundle)
+            with patch.object(linux_rpm.subprocess, 'check_output', return_value='libQt6SerialPort.so.6\n'):
+                with self.assertRaisesRegex(RuntimeError, 'missing matching Qt'):
+                    linux_rpm.dependencies(bundle)
 
 
 if __name__ == '__main__':

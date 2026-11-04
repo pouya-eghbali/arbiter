@@ -11,17 +11,12 @@ import subprocess
 import sys
 import tempfile
 
-from package import elf_type, audit
+from package import audit, linux_external_libraries
 import linux_abi
 
 
 def dependencies(bundle):
-    bundled = {path.name for path in bundle.rglob('*') if path.is_file()}
-    needed = set()
-    for path in bundle.rglob('*'):
-        if path.is_file() and not path.is_symlink() and elf_type(path) in (2, 3):
-            needed.update(subprocess.check_output(['patchelf', '--print-needed', str(path)], text=True).split())
-    external = needed - bundled
+    external = linux_external_libraries(bundle)
     if any(not re.fullmatch(r'[A-Za-z0-9_+.-]+\.so(?:\.\d+)*', name) for name in external):
         raise RuntimeError('Nonportable dependency name: ' + repr(external))
     return sorted(name + '()(64bit)' for name in external)
