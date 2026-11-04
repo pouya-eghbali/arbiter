@@ -73,6 +73,10 @@ def build():
     deps = json.loads((ROOT / 'dependencies.json').read_text())
     subprocess.run([sys.executable, '-m', 'pip', 'install', 'html5lib==' + deps['html5lib']], check=True)
     env = os.environ.copy()
+    if platform == 'linux' and int(env.get('INPUT_LINUX_FFMPEG', '6')) != 6:
+        # The Ubuntu test-only runtime is not a distro-owned DEB dependency.
+        # Build the native RPM separately on its matching distro.
+        env['ARBITER_LINUX_PACKAGE_FORMAT'] = 'none'
     if platform == 'windows':
         env['ARBITER_OPENSSL_ROOT'] = str(WORK / 'openssl')
         # Do not let Windows loader errors open an unattended modal dialog.

@@ -60,11 +60,15 @@ jobs:
           python-version: ${{ steps.pins.outputs.python }}
       - uses: ilammy/msvc-dev-cmd@v1
         if: runner.os == 'Windows'
+      - name: Install Windows setup compiler
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: choco install nsis --yes --no-progress
       - name: Install Linux runtime and packaging tools
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build patchelf pkg-config libssl-dev libsecret-1-dev gnome-keyring dbus-x11 xvfb libavcodec-dev libavformat-dev libavutil-dev libopus-dev libnss3 libegl1 libopengl0 libxcb-cursor0 libxkbcommon-x11-0 libasound2t64
+          sudo apt-get install -y dpkg-dev ninja-build patchelf pkg-config libssl-dev libsecret-1-dev gnome-keyring dbus-x11 xvfb libavcodec-dev libavformat-dev libavutil-dev libopus-dev libnss3 libegl1 libopengl0 libxcb-cursor0 libxkbcommon-x11-0 libasound2t64
       - uses: jurplel/install-qt-action@v4
         with:
           aqtsource: git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7
@@ -121,6 +125,25 @@ jobs:
           QT_OPENGL: software
         run: |
           python tools/release/cross_inputs.py build
+      - name: Test Windows installer
+        if: runner.os == 'Windows' && !inputs.extension_probe
+        shell: pwsh
+        run: |
+          $setup = @(Get-ChildItem build-release-artifacts/*-setup.exe)
+          if ($setup.Count -ne 1) { throw 'Expected one Windows setup executable' }
+          python tools/release/validate_windows_installer.py $setup[0].FullName
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build FFmpeg 8 RPM
+        if: inputs.platform == 'linux' && inputs.linux_ffmpeg == '8'
+        run: |
+          docker run --rm --platform linux/amd64 \
+            --mount type=bind,src="$PWD",dst=/repo --workdir /repo \
+            opensuse/tumbleweed:latest bash -ec '
+              zypper --non-interactive install --no-recommends python3 patchelf rpm-build
+              python3 tools/release/linux_rpm.py \
+                "build-release-artifacts/arbiter-$(cat VERSION.txt)-linux-x86_64-ffmpeg8" \
+                --output build-release-artifacts
+            '
       - uses: actions/upload-artifact@v7
         if: always()
         with:

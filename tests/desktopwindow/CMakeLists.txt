@@ -1,0 +1,13 @@
+find_package(Qt6 ${ARBITER_QT_SERIES} REQUIRED COMPONENTS Quick QuickControls2 WebEngineQuick)
+add_executable(desktopwindow_test desktopwindow_test.cpp ../../src/keybindings.cpp ../../src/keybindings.h)
+target_link_libraries(desktopwindow_test PRIVATE arbiter_settings Qt6::Quick Qt6::QuickControls2 Qt6::WebEngineQuick Qt6::Test)
+set(window_qml ../../qml/DesktopWindowFrame.js ../../qml/DesktopSettingsShortcut.qml ../../qml/FramelessResizeEdges.qml)
+foreach(file IN LISTS window_qml)
+    get_filename_component(name "${file}" NAME)
+    set_source_files_properties("${file}" PROPERTIES QT_RESOURCE_ALIAS "${name}")
+endforeach()
+qt_add_qml_module(desktopwindow_test URI Arbiter VERSION 1.0 NO_IMPORT_SCAN
+    RESOURCE_PREFIX /desktop-window-test QML_FILES ${window_qml})
+arbiter_configure_webengine_runtime(desktopwindow_test)
+add_test(NAME desktopwindow COMMAND desktopwindow_test)
+set_tests_properties(desktopwindow PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" LABELS webengine-runtime)

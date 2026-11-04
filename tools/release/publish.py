@@ -2,6 +2,7 @@
 """Upload verified native assets and matching source to a GitHub DRAFT only."""
 import argparse
 import hashlib
+import io
 import json
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -10,6 +11,7 @@ import sys
 import tarfile
 import tempfile
 import zipfile
+import shutil
 import linux_abi
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,6 +24,42 @@ def run(*args, capture=False):
 
 
 def package_metadata(asset):
+    if asset.suffix == '.exe':
+        inspector = shutil.which('7zz') or shutil.which('7z')
+        if not inspector:
+            candidate = Path(os.environ.get('ProgramFiles', '/nonexistent')) / '7-Zip/7z.exe'
+            if candidate.is_file(): inspector = str(candidate)
+        if not inspector: raise RuntimeError('Install 7-Zip to inspect Windows setup metadata')
+        data = subprocess.check_output([inspector, 'x', '-so', str(asset), 'share/arbiter/release.json'])
+        if len(data) > 65536: raise RuntimeError('Invalid installer metadata')
+        metadata = json.loads(data)
+        if metadata.get('signed'):
+            if sys.platform != 'win32': raise RuntimeError('Verify/upload signed Windows setup on Windows with signtool')
+            run('signtool', 'verify', '/pa', asset)
+        return metadata
+    if asset.suffix == '.rpm':
+        inspector = shutil.which('bsdtar') or shutil.which('tar')
+        data = subprocess.check_output([inspector, '-xOf', str(asset), './opt/arbiter/share/arbiter/release.json'])
+        if len(data) > 65536: raise RuntimeError('Invalid RPM metadata')
+        return json.loads(data)
+    if asset.suffix == '.deb':
+        with asset.open('rb') as stream:
+            if stream.read(8) != b'!<arch>\n': raise RuntimeError('Invalid DEB archive')
+            while header := stream.read(60):
+                if len(header) != 60 or header[-2:] != b'`\n': raise RuntimeError('Invalid DEB member')
+                name = header[:16].decode('ascii').strip().rstrip('/')
+                size = int(header[48:58])
+                if size < 0 or size > 1024**3: raise RuntimeError('Invalid DEB member size')
+                if name.startswith('data.tar.'):
+                    data = stream.read(size)
+                    if len(data) != size: raise RuntimeError('Truncated DEB payload')
+                    with tarfile.open(fileobj=io.BytesIO(data), mode='r:*') as archive:
+                        members = [m for m in archive.getmembers() if m.name.endswith('/release.json')]
+                        if len(members) != 1 or not members[0].isfile() or members[0].size > 65536:
+                            raise RuntimeError('Invalid DEB release metadata')
+                        return json.load(archive.extractfile(members[0]))
+                stream.seek(size + size % 2, 1)
+        raise RuntimeError('DEB payload is missing')
     if asset.suffix == '.dmg':
         if sys.platform != 'darwin':
             raise RuntimeError('Upload macOS DMGs from macOS so signatures and contents can be verified')
@@ -110,6 +148,12 @@ def main():
     linux_majors = sorted(set(a.linux_ffmpeg or [6]))
     if not a.prepare_only and 'linux' in platforms:
         assets.extend(output / f'arbiter-{version}-linux-x86_64{linux_abi.suffix(major)}.tar.xz' for major in linux_majors)
+        for major in linux_majors:
+            for name in (f'arbiter-{version}-1.ffmpeg{major}.x86_64.rpm', f'arbiter_{version}-1.ffmpeg{major}_amd64.deb'):
+                if (output / name).exists(): assets.append(output / name)
+    if not a.prepare_only and 'windows' in platforms:
+        setup = output / f'arbiter-{version}-windows-x86_64{suffix}-setup.exe'
+        if setup.exists(): assets.append(setup)
     dmg = output / f'arbiter-{version}-macos-arm64.dmg'
     if not a.prepare_only and not unsigned and 'macos' in platforms and dmg.exists():
         assets.append(dmg)
@@ -130,11 +174,19 @@ def main():
                 raise RuntimeError(f'Package OpenSSL pin or macOS minimum differs: {asset.name}')
         expected_signed = metadata['platform'] != 'linux' and not unsigned
         expected_name = f'arbiter-{version}-{metadata["platform"]}-{metadata["architecture"]}{suffix if metadata["platform"] != "linux" else ""}'
+        if asset.suffix in ('.rpm', '.deb') and metadata['platform'] != 'linux':
+            raise RuntimeError('Native Linux installer has incorrect platform metadata')
         if metadata['platform'] == 'linux':
             media = metadata.get('linux_ffmpeg')
             if not media or linux_abi.ABIS.get(media.get('major')) != media.get('libraries'):
                 raise RuntimeError('Missing or invalid Linux FFmpeg ABI metadata: ' + asset.name)
             expected_name += linux_abi.suffix(media['major'])
+        if asset.suffix == '.rpm':
+            expected_name = f'arbiter-{version}-1.ffmpeg{media["major"]}.x86_64'
+        elif asset.suffix == '.deb':
+            expected_name = f'arbiter_{version}-1.ffmpeg{media["major"]}_amd64'
+        elif asset.suffix == '.exe':
+            expected_name += '-setup'
         if metadata['signed'] != expected_signed or not asset.name.startswith(expected_name + '.'):
             raise RuntimeError(f'Package platform, architecture or signing status differs: {asset.name}')
     source = output / f'arbiter-{version}-source.tar.gz'
@@ -150,7 +202,7 @@ def main():
     assets.append(sums)
     # Sidecars make independently uploaded packages verifiable without a combined manifest.
     assets.extend(output / (asset.name + '.sha256') for asset in list(assets)
-                  if asset.name.endswith(('.zip', '.tar.xz', '.dmg')))
+                  if asset.name.endswith(('.zip', '.tar.xz', '.dmg', '.rpm', '.deb', '.exe')))
     notes = output / 'release-notes.md'
     notes.write_text(f'''Arbiter {version} — {'SOURCE-ONLY DRAFT — local binaries pending' if a.prepare_only else 'UNSIGNED TESTING DRAFT' if unsigned else 'PARTIAL DRAFT — other platform packages may be pending' if partial else 'release candidate'}
 

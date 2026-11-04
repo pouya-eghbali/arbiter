@@ -6,6 +6,7 @@ import QtQuick.Controls.Basic as Basic
 import QtWebEngine
 import QtWebChannel
 import Arbiter.Credentials 1.0
+import "DesktopWindowFrame.js" as WindowFrame
 
 Basic.ApplicationWindow {
     id: window
@@ -156,7 +157,7 @@ Basic.ApplicationWindow {
     minimumWidth: 640
     minimumHeight: 480
     visible: true
-    flags: windowDecorations ? Qt.Window : Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint
+    flags: WindowFrame.flags(windowDecorations, Qt.platform.os)
     topPadding: 0
     title: privateMode ? qsTr("Private browsing — Arbiter") : settingsOpen ? qsTr("Settings — Arbiter") : !emptyPage && webView && webView.title ? webView.title + " — Arbiter" : "Arbiter"
     color: palette.window
@@ -375,6 +376,11 @@ Basic.ApplicationWindow {
     }
     Shortcut { sequence: window.bindings.toggleAdBlock; enabled: !window.privateCovered && !window.settingsOpen && window.recordingIndex < 0; onActivated: window.toggleAdBlock() }
     Shortcut { sequence: window.bindings.address; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.focusAddress() }
+    DesktopSettingsShortcut {
+        binding: window.bindings.settings
+        blocked: window.privateCovered || window.recordingIndex >= 0
+        onActivated: window.openSettings()
+    }
     Shortcut { sequence: window.bindings.workspaces; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.openWorkspaces() }
     Shortcut { sequence: window.bindings.nextWorkspace; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.workspaces.cycle(1) }
     Shortcut { sequence: window.bindings.previousWorkspace; enabled: !window.privateCovered && window.recordingIndex < 0; onActivated: window.workspaces.cycle(-1) }
@@ -2355,6 +2361,14 @@ Basic.ApplicationWindow {
             opacity: windowHandle.containsMouse ? 0.45 : 0
             Behavior on opacity { NumberAnimation { duration: 120 } }
         }
+    }
+
+    FramelessResizeEdges {
+        anchors.fill: parent
+        z: 1000
+        targetWindow: window
+        enabled: Qt.platform.os === "linux" && !window.windowDecorations
+        visible: enabled && window.visibility === Window.Windowed
     }
 
     Tutorial {

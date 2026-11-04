@@ -15,19 +15,21 @@ contains the same app if you prefer that format.
 
 ## Linux
 
-For a native `.rpm` download matching your distro/FFmpeg version, use your
-package manager so it can resolve dependencies. On openSUSE:
+For a native `.rpm` or `.deb` download matching your distro/FFmpeg version,
+use your package manager so it can resolve dependencies. On openSUSE:
 
 ```sh
 sudo zypper install ./arbiter-*.x86_64.rpm
 ```
+
+On Ubuntu/Debian, use `sudo apt install ./arbiter_*_amd64.deb`.
 
 This installs the browser, desktop entry, and icon system-wide. To uninstall,
 use `sudo zypper remove arbiter`; your browser profile and credentials are kept.
 If switching from `./install.sh` to an RPM, uninstall the user-installed copy
 first so its application-menu entry does not take precedence over the RPM.
 The 0.3.1 release has only the older tar archive; RPMs apply to builds produced
-by the updated packaging scripts.
+by the updated packaging scripts, as do DEBs and Windows setup executables.
 
 ### Portable archive
 
@@ -95,6 +97,14 @@ credentials. You can select Arbiter as your default browser separately through
 its settings or your desktop's default-applications settings.
 
 ## Windows
+
+When a release provides a `-setup.exe`, run it to install Arbiter for your
+Windows account. It adds a Start menu entry and an entry in Installed apps for
+uninstalling. Administrator access is not required. The setup registers Arbiter
+as an available default browser; choose it separately in Windows settings.
+Close Arbiter before installing an update. Uninstalling keeps your browser data.
+
+The ZIP remains available for portable use:
 
 1. Download the Windows x64 `.zip` file.
 2. Extract the entire archive, keeping its folders together.

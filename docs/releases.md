@@ -71,6 +71,14 @@ $env:PATH = "$env:ARBITER_QT_PREFIX\bin;$env:PATH"
 `-SdkPrefix` reuses a verified SDK. `ARBITER_PYTHON` can select the Python executable;
 otherwise the scripts prefer `build-release-python` and then system Python.
 
+Install NSIS (`choco install nsis -y`, or `brew install makensis` for packaging
+on macOS). Packaging produces a portable ZIP and a per-user `-setup.exe`.
+`tools/release/windows_installer.py BUNDLE --output DIRECTORY --unsigned` can
+also wrap an already validated unsigned bundle without recompiling. Signed
+setup builds require Windows and the same signing certificate as the app.
+The manual Windows validation workflow exercises silent installation, update,
+uninstall, and refusal to overwrite an unrelated folder on its disposable runner.
+
 Run the release build on the signed-in Windows desktop and leave it unlocked while
 GUI tests run. SSH sessions, services, and background scheduled tasks cannot expose
 the test windows; preflight rejects those sessions. For scheduled local builds, use
@@ -85,6 +93,29 @@ path. Compilation uses no container or CPU emulation. Runtime tests still run on
 Linux x64.
 
 The Docker alternative follows.
+
+Linux packaging automatically adds a DEB on Debian/Ubuntu (`dpkg-dev` required)
+or an RPM on openSUSE/Fedora/RHEL (`rpm-build` required), alongside the portable
+archive. Set `ARBITER_LINUX_PACKAGE_FORMAT=none|deb|rpm|auto` to select the format.
+Native packages install under `/opt/arbiter` with a desktop entry, icon, and
+`/usr/bin/arbiter`; removing them preserves browser profiles. Build packages
+against the matching distribution's FFmpeg ABI. The FFmpeg 8 validation job uses
+Tumbleweed for RPM packaging; Ubuntu's test-only FFmpeg 8 runtime cannot produce
+a correctly resolved distro DEB.
+
+To package an existing validated Linux bundle without rebuilding:
+
+```sh
+python3 tools/release/linux_deb.py /path/to/bundle --output build-release-artifacts
+# Or, in the matching RPM distribution:
+python3 tools/release/linux_rpm.py /path/to/bundle --output build-release-artifacts
+```
+
+The uploader includes matching DEB, RPM, and Windows setup files when present,
+checking their embedded release identity and SHA-256 alongside the archives.
+Upload Windows setups with 7-Zip installed and RPMs with libarchive's `bsdtar`
+available (macOS's `/usr/bin/tar` supports RPM). New package formats must use the
+same source commit as the release; do not relabel test packages as an older tag.
 
 Run on the Windows x64 machine with Docker Desktop using Linux containers:
 

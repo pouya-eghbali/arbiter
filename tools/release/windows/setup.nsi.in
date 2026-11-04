@@ -1,0 +1,153 @@
+Unicode true
+!include MUI2.nsh
+!include LogicLib.nsh
+!include x64.nsh
+Name "Arbiter"
+OutFile "@OUTPUT@"
+InstallDir "$LOCALAPPDATA\Programs\Arbiter"
+InstallDirRegKey HKCU "Software\Arbiter\Installer" "InstallLocation"
+RequestExecutionLevel user
+ManifestDPIAware true
+SetCompressor /SOLID zlib
+AllowSkipFiles off
+BrandingText "Arbiter — Open source"
+!define MUI_ABORTWARNING
+!define MUI_FINISHPAGE_RUN "$INSTDIR\bin\arbiter.exe"
+!define MUI_FINISHPAGE_RUN_NOTCHECKED
+!insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_PAGE_FINISH
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+!insertmacro MUI_LANGUAGE English
+
+Function .onInit
+  SetShellVarContext current
+  SetRegView 64
+  ${IfNot} ${RunningX64}
+    MessageBox MB_OK|MB_ICONSTOP "Arbiter requires 64-bit Windows." /SD IDOK
+    Abort
+  ${EndIf}
+FunctionEnd
+
+Function .onVerifyInstDir
+  IfFileExists "$INSTDIR\." 0 valid
+  IfFileExists "$INSTDIR\.arbiter-installer" 0 checkEmpty
+  FileOpen $0 "$INSTDIR\.arbiter-installer" r
+  FileRead $0 $1
+  FileClose $0
+  StrCmp $1 "ArbiterWindowsInstaller1" valid invalid
+checkEmpty:
+  FindFirst $0 $1 "$INSTDIR\*"
+loop:
+  StrCmp $1 "" empty
+  StrCmp $1 "." next
+  StrCmp $1 ".." next invalidClose
+next:
+  FindNext $0 $1
+  Goto loop
+invalidClose:
+  FindClose $0
+  Goto invalid
+empty:
+  FindClose $0
+valid:
+  ClearErrors
+  Return
+invalid:
+  SetErrors
+FunctionEnd
+
+Section "Arbiter" SEC_APP
+  SectionIn RO
+  ClearErrors
+  Call .onVerifyInstDir
+  IfErrors 0 +3
+    MessageBox MB_OK|MB_ICONSTOP "Choose an empty folder or an existing Arbiter installation." /SD IDOK
+    Abort
+  IfFileExists "$INSTDIR\bin\arbiter.exe" 0 unlocked
+  ClearErrors
+  FileOpen $0 "$INSTDIR\bin\arbiter.exe" a
+  IfErrors 0 closeHandle
+    MessageBox MB_OK|MB_ICONSTOP "Close Arbiter before installing this update." /SD IDOK
+    Abort
+closeHandle:
+  FileClose $0
+unlocked:
+  IfFileExists "$INSTDIR\uninstall.exe" 0 copyFiles
+  ExecWait '$\"$INSTDIR\uninstall.exe$\" /S _?=$INSTDIR' $0
+  IntCmp $0 0 copyFiles
+    MessageBox MB_OK|MB_ICONSTOP "The previous installation could not be removed. Your browser profile has been kept." /SD IDOK
+    Abort
+copyFiles:
+  SetOutPath "$INSTDIR"
+  FileOpen $0 "$INSTDIR\.arbiter-installer" w
+  FileWrite $0 "ArbiterWindowsInstaller1"
+  FileClose $0
+@FILES@
+  WriteUninstaller "$INSTDIR\uninstall.exe"
+  CreateShortcut "$SMPROGRAMS\Arbiter.lnk" "$INSTDIR\bin\arbiter.exe"
+  WriteRegStr HKCU "Software\Arbiter\Installer" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Arbiter" "DisplayName" "Arbiter"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Arbiter" "DisplayVersion" "@VERSION@"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Arbiter" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Arbiter" "DisplayIcon" "$INSTDIR\bin\arbiter.exe"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Arbiter" "UninstallString" '$\"$INSTDIR\uninstall.exe$\"'
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Arbiter" "QuietUninstallString" '$\"$INSTDIR\uninstall.exe$\" /S'
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Arbiter" "NoModify" 1
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Arbiter" "NoRepair" 1
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Arbiter" "EstimatedSize" @SIZE@
+  WriteRegStr HKCU "Software\Classes\ArbiterHTML" "" "Arbiter web link"
+  WriteRegStr HKCU "Software\Classes\ArbiterHTML" "URL Protocol" ""
+  WriteRegStr HKCU "Software\Classes\ArbiterHTML\shell\open\command" "" '$\"$INSTDIR\bin\arbiter.exe$\" $\"%1$\"'
+  WriteRegStr HKCU "Software\Clients\StartMenuInternet\Arbiter" "" "Arbiter"
+  WriteRegStr HKCU "Software\Clients\StartMenuInternet\Arbiter\shell\open\command" "" '$\"$INSTDIR\bin\arbiter.exe$\"'
+  WriteRegStr HKCU "Software\Clients\StartMenuInternet\Arbiter\Capabilities" "ApplicationName" "Arbiter"
+  WriteRegStr HKCU "Software\Clients\StartMenuInternet\Arbiter\Capabilities" "ApplicationDescription" "A browser for power users"
+  WriteRegStr HKCU "Software\Clients\StartMenuInternet\Arbiter\Capabilities\URLAssociations" "http" "ArbiterHTML"
+  WriteRegStr HKCU "Software\Clients\StartMenuInternet\Arbiter\Capabilities\URLAssociations" "https" "ArbiterHTML"
+  WriteRegStr HKCU "Software\Clients\StartMenuInternet\Arbiter\Capabilities\FileAssociations" ".html" "ArbiterHTML"
+  WriteRegStr HKCU "Software\RegisteredApplications" "Arbiter" "Software\Clients\StartMenuInternet\Arbiter\Capabilities"
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
+SectionEnd
+
+Section Uninstall
+  SetShellVarContext current
+  SetRegView 64
+  FileOpen $0 "$INSTDIR\.arbiter-installer" r
+  IfErrors invalid
+  FileRead $0 $1
+  FileClose $0
+  StrCmp $1 "ArbiterWindowsInstaller1" 0 invalid
+  IfFileExists "$INSTDIR\bin\arbiter.exe" 0 unlocked
+  ClearErrors
+  FileOpen $0 "$INSTDIR\bin\arbiter.exe" a
+  IfErrors 0 +3
+    MessageBox MB_OK|MB_ICONSTOP "Close Arbiter before uninstalling." /SD IDOK
+    Abort
+  FileClose $0
+unlocked:
+@DELETES@
+  Delete "$INSTDIR\.arbiter-installer"
+  ReadRegStr $0 HKCU "Software\Arbiter\Installer" "InstallLocation"
+  StrCmp $0 $INSTDIR 0 registrationsDone
+  Delete "$SMPROGRAMS\Arbiter.lnk"
+  DeleteRegKey HKCU "Software\Arbiter\Installer"
+  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Arbiter"
+  ReadRegStr $0 HKCU "Software\Classes\ArbiterHTML\shell\open\command" ""
+  StrCmp $0 '$\"$INSTDIR\bin\arbiter.exe$\" $\"%1$\"' 0 registrationsDone
+  DeleteRegKey HKCU "Software\Classes\ArbiterHTML"
+  DeleteRegKey HKCU "Software\Clients\StartMenuInternet\Arbiter"
+  DeleteRegValue HKCU "Software\RegisteredApplications" "Arbiter"
+registrationsDone:
+@DIRECTORIES@
+  Delete "$INSTDIR\uninstall.exe"
+  RMDir "$INSTDIR"
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
+  Goto done
+invalid:
+  MessageBox MB_OK|MB_ICONSTOP "This folder is not an Arbiter installer-managed installation." /SD IDOK
+  Abort
+done:
+SectionEnd

@@ -458,6 +458,8 @@ def main():
                 '/tr', os.environ.get('ARBITER_TIMESTAMP_URL', 'http://timestamp.digicert.com'), '/td', 'SHA256', stage / 'bin/arbiter.exe')
             run('signtool', 'verify', '/pa', stage / 'bin/arbiter.exe')
         archive = Path(shutil.make_archive(str(output / name), 'zip', root_dir=stage.parent, base_dir=stage.name))
+        from windows_installer import build as build_setup
+        build_setup(stage, output, a.unsigned)
     else:
         linux(stage, sdk, qt)
         instructions = stage / 'LINUX-INSTALL.md'
@@ -468,6 +470,15 @@ def main():
         smoke(stage, sdk, qt)
         archive = output / (name + '.tar.xz')
         linux_archive(stage, archive)
+        native_format = os.environ.get('ARBITER_LINUX_PACKAGE_FORMAT', 'auto')
+        if native_format == 'auto':
+            distro = platform.freedesktop_os_release()
+            identifiers = {distro.get('ID', ''), *distro.get('ID_LIKE', '').split()}
+            native_format = 'deb' if identifiers & {'ubuntu', 'debian'} else 'rpm' if identifiers & {'suse', 'opensuse', 'opensuse-tumbleweed', 'fedora', 'rhel'} else 'none'
+        if native_format not in ('deb', 'rpm', 'none'):
+            raise RuntimeError('ARBITER_LINUX_PACKAGE_FORMAT must be auto, deb, rpm, or none')
+        if native_format != 'none':
+            run(sys.executable, ROOT / 'tools/release' / ('linux_' + native_format + '.py'), stage, '--output', output)
     with archive.open('rb') as stream:
         digest = hashlib.file_digest(stream, 'sha256').hexdigest()
     (output / (archive.name + '.sha256')).write_text(digest + '  ' + archive.name + '\n')
