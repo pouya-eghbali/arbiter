@@ -106,7 +106,8 @@ ABI, verifies that no media codec libraries were bundled, installs into an
 isolated temporary home, validates the desktop entry, starts an actual
 WebEngine renderer under Xvfb/D-Bus, and uninstalls while checking that profile
 data remains intact. Run it on the target distro as an unprivileged user with
-`desktop-file-utils`, `patchelf`, `xvfb-run`, and `dbus-run-session` available.
+`desktop-file-utils`, `ldd` (or `patchelf`), and `Xvfb` available. It uses a
+separate D-Bus session too when `dbus-run-session` is installed.
 
 The probe compiles and links Qt resources, Qt's meta-object system, C++ threads,
 FFmpeg, NSS and OpenSSL into an ELF x64 executable. It verifies the executable's
