@@ -111,6 +111,10 @@ ctest --test-dir /path/to/test-build -R '^(aacpacket|passkeyengine|passkeycontro
   compatibility, and codec support separately.
 - Native AAC decode fails: check raw access-unit framing, including ADTS removal
   after decryption. Do not adjust encrypted subsample offsets in this adapter.
+- On macOS, AAC passed to Web Audio's `decodeAudioData()` still uses Chromium's
+  FFmpeg audio-file reader rather than AudioToolbox. The codec-free FFmpeg build
+  cannot decode AAC through that API. HTML media playback uses a separate native
+  decoder path; this limitation also exists in the previous engine snapshot.
 - Playback works in the probe but fails on a service: investigate that service's
   browser/CDM requirements. A demo license does not validate production access.
 
