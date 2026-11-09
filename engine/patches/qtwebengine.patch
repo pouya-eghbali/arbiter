@@ -83,7 +83,7 @@ index 37e1cd4..eb4bf9a 100644
                  use_ozone=true
                  ozone_auto_platforms=false
 diff --git a/src/core/api/qtwebenginecoreglobal.h b/src/core/api/qtwebenginecoreglobal.h
-index 334d53d..6479080 100644
+index 1f0a1c8..688dffc 100644
 --- a/src/core/api/qtwebenginecoreglobal.h
 +++ b/src/core/api/qtwebenginecoreglobal.h
 @@ -9,9 +9,13 @@
@@ -688,7 +688,7 @@ index 838fa3b..4962aa3 100644
              if (subscription->permission != permissionTypeBlink)
                  continue;
 diff --git a/src/core/render_widget_host_view_qt.cpp b/src/core/render_widget_host_view_qt.cpp
-index ee59f53..15fd5e1 100644
+index cb77820..8536e8f 100644
 --- a/src/core/render_widget_host_view_qt.cpp
 +++ b/src/core/render_widget_host_view_qt.cpp
 @@ -351,7 +351,9 @@ void RenderWidgetHostViewQt::Focus()
@@ -702,30 +702,7 @@ index ee59f53..15fd5e1 100644
  }
  
  bool RenderWidgetHostViewQt::IsPointerLocked()
-@@ -387,16 +389,18 @@ void RenderWidgetHostViewQt::ShowWithVisibility(content::PageVisibilityState pag
- 
- void RenderWidgetHostViewQt::Hide()
- {
--    Q_ASSERT(m_delegate);
-+    // Hidden extension documents can receive visibility changes without a UI.
-+    // Also cancel a deferred show if Chromium hides the view before attachment.
-+    m_deferredShow = false;
-     if (isPopup())
-         m_isPopupInitializing = false;
--    m_delegate->hide();
-+    if (m_delegate)
-+        m_delegate->hide();
- }
- 
- bool RenderWidgetHostViewQt::IsShowing()
- {
--    Q_ASSERT(m_delegate);
--    return m_delegate->isVisible();
-+    return m_delegate && m_delegate->isVisible();
- }
- 
- // Retrieve the bounds of the View, in screen coordinates.
-@@ -1016,12 +1020,55 @@ void RenderWidgetHostViewQt::WheelEventAck(const blink::WebMouseWheelEvent &even
+@@ -1019,12 +1021,55 @@ void RenderWidgetHostViewQt::WheelEventAck(const blink::WebMouseWheelEvent &even
      }
  }
  
