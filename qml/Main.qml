@@ -21,7 +21,7 @@ Basic.ApplicationWindow {
     function newPrivateWindow() { if (privacy) privacy.open() }
     function lockPrivateWindow() { if (privateSession) privateSession.lock() }
     property bool temporaryPill: false
-    readonly property bool edgeActionsAllowed: window.active && !privateCovered && !shuttingDown && !settingsOpen
+    readonly property bool edgeActionsAllowed: !webFullscreen.active && window.active && !privateCovered && !shuttingDown && !settingsOpen
         && !window.webauthn.active && !sitePermissionQueue.active && !desktopSharePanel.request
         && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible && !shortcutHelp.visible
         && !downloadsPanel.visible && !extensionPanel.visible && !extensionReview.visible
@@ -41,6 +41,7 @@ Basic.ApplicationWindow {
             downloadsPanel.close()
             shortcutHelp.close()
             developerTools.close()
+            webFullscreen.exit()
             temporaryPill = false
             splitWithPicker.close(); workspacePanel.close(); historyPanel.close(); addressPopup.close(); tabsPopup.close()
             tutorial.close()
@@ -255,6 +256,7 @@ Basic.ApplicationWindow {
         shortcutHelp.close()
         pagePrinter.cancel()
         developerTools.close()
+        webFullscreen.exit()
         downloadsPanel.close()
         nativeShare.cancel()
         temporaryPill = false
@@ -751,6 +753,7 @@ Basic.ApplicationWindow {
 
     function toggleFullScreen() {
         if (privateCovered) return;
+        if (webFullscreen.active) { webFullscreen.exit(); return }
         if (visibility === Window.FullScreen)
             showNormal()
         else
@@ -1086,6 +1089,12 @@ Basic.ApplicationWindow {
                                 layer.enabled: true
                                 visible: false
                             }
+                            settings.fullScreenSupportEnabled: true
+                            onFullScreenRequested: function(request) {
+                                webFullscreen.request(page, request,
+                                    page === window.webView && !window.privateCovered
+                                    && !window.settingsOpen && !window.shuttingDown && window.active)
+                            }
                             // Chromium’s built-in PDF viewer requires plugin support.
                             settings.pluginsEnabled: true
                             settings.pdfViewerEnabled: true
@@ -1202,6 +1211,7 @@ Basic.ApplicationWindow {
                                 else webAuthnPanel.show(page, request)
                             }
                             Component.onDestruction: {
+                                webFullscreen.closeFor(page)
                                 pagePrinter.cancelFor(page)
                                 developerTools.closeFor(page)
                                 sitePermissionQueue.cancelFor(page)
@@ -1328,6 +1338,15 @@ Basic.ApplicationWindow {
         width: splitViewport.width; height: splitViewport.height
         clip: true
         z: 5
+    }
+    WebFullScreen {
+        id: webFullscreen
+        objectName: "webFullscreen"
+    }
+    Connections {
+        target: window
+        function onWebViewChanged() { if (webFullscreen.view && webFullscreen.view !== window.webView) webFullscreen.exit() }
+        function onSettingsOpenChanged() { if (window.settingsOpen) webFullscreen.exit() }
     }
     DeveloperToolsDock {
         id: developerTools
@@ -2154,7 +2173,7 @@ Basic.ApplicationWindow {
         anchors.bottom: parent.bottom
         anchors.bottomMargin: developerTools.height + 12 - slideOffset
         z: 21
-        forceHidden: window.privateCovered || window.shuttingDown
+        forceHidden: window.privateCovered || window.shuttingDown || webFullscreen.active
         shown: ((window.appearance.navigationPill && (!edgeReveal || engaged)) || window.temporaryPill) && (!window.emptyPage || window.temporaryPill || edgeReveal) && !window.settingsOpen
             && !window.webauthn.active && !addressPopup.visible && !tabsPopup.visible && !historyPanel.visible && !workspacePanel.visible
         view: window.webView

@@ -5788,4 +5788,11 @@
         <translation>Impossibile salvare gli spazi di lavoro.</translation>
     </message>
 </context>
+<context>
+    <name>WebFullScreen</name>
+    <message>
+        <source>Exit fullscreen (Esc)</source>
+        <translation>Esci da schermo intero (Esc)</translation>
+    </message>
+</context>
 </TS>

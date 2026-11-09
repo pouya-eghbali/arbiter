@@ -150,6 +150,98 @@ Basic.ApplicationWindow {
         window->setProperty("decorated",true);
         QTRY_VERIFY(!window->flags().testFlag(Qt::FramelessWindowHint));
     }
+void DesktopWindowTest::webFullscreen() {
+    QQmlApplicationEngine engine;
+    engine.loadData(R"QML(
+import QtQuick
+import QtQuick.Controls.Basic as Basic
+import QtWebEngine
+import Arbiter
+Basic.ApplicationWindow {
+    id: root; width: 800; height: 600; visible: true
+    property bool loaded: false
+    property bool allowFullscreen: true
+    property alias contentFullscreen: fullscreen.active
+    property alias engineFullscreen: page.isFullScreen
+    property alias pageWidth: page.width
+    property alias pageHeight: page.height
+    property alias pageX: page.x
+    property alias pageY: page.y
+    property bool reparented: page.parent === fullscreen
+    function leaveFromPage() { page.runJavaScript("document.exitFullscreen()") }
+    function navigateAway() { page.url = "about:blank" }
+    Rectangle { id: split; anchors.fill: parent; color: "#202530" }
+    WebEngineView {
+        id: page; objectName: "fullscreenPage"; parent: split
+        x: 90; y: 80; width: 320; height: 240
+        profile: WebEngineProfile { offTheRecord: true }
+        settings.fullScreenSupportEnabled: true
+        onFullScreenRequested: function(request) {
+            fullscreen.request(page, request, root.allowFullscreen)
+        }
+        onJavaScriptConsoleMessage: function(level, message) { console.log("video fixture", message) }
+        onLoadingChanged: request => {
+            if (request.status === WebEngineView.LoadSucceededStatus) root.loaded = true
+        }
+        Component.onCompleted: loadHtml("<!doctype html><html><body style='margin:0'><button style='position:fixed;left:0;top:0;width:150px;height:60px;z-index:9' onclick='document.querySelector(\"video\").requestFullscreen().catch(e=>console.error(e.name+e.message))'>Fullscreen video</button><video muted autoplay playsinline></video><script>const c=document.createElement('canvas');c.width=320;c.height=180;c.getContext('2d').fillRect(0,0,320,180);document.querySelector('video').srcObject=c.captureStream(10);</script></body></html>")
+    }
+    WebFullScreen { id: fullscreen }
+})QML", QUrl("qrc:/fullscreen-fixture.qml"));
+    QVERIFY(!engine.rootObjects().isEmpty());
+    auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first()); QVERIFY(window);
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+    window->requestActivate(); QTRY_VERIFY(window->isActive());
+    QTRY_VERIFY(window->property("loaded").toBool());
+    auto *page = window->findChild<QQuickItem *>("fullscreenPage"); QVERIFY(page);
+    const auto enter = [&] {
+        page->forceActiveFocus();
+        const QPoint point = page->mapToScene(QPointF(60,30)).toPoint();
+        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, point);
+    };
+    const auto restored = [&] {
+        return !window->property("contentFullscreen").toBool()
+            && !window->property("engineFullscreen").toBool()
+            && !window->property("reparented").toBool()
+            && page->x() == 90 && page->y() == 80
+            && page->width() == 320 && page->height() == 240;
+    };
+    enter();
+    QTRY_VERIFY(window->property("contentFullscreen").toBool());
+    QTRY_VERIFY(window->property("engineFullscreen").toBool());
+    QTRY_COMPARE(window->visibility(), QWindow::FullScreen);
+    QTRY_VERIFY(window->property("reparented").toBool());
+    QTRY_COMPARE(page->width(), window->contentItem()->width());
+    QTRY_COMPARE(page->height(), window->contentItem()->height());
+    QTest::keyClick(window, Qt::Key_Escape);
+    QTRY_VERIFY(restored());
+    QTRY_COMPARE(window->visibility(), QWindow::Windowed);
+
+    // Page-owned exit also restores split bindings, including a previously
+    // fullscreen browser window.
+    window->showFullScreen();
+    QTRY_COMPARE(window->visibility(), QWindow::FullScreen);
+    QTest::qWait(1200); // Native Space transition must finish before injecting input.
+    enter();
+    QTRY_VERIFY(window->property("contentFullscreen").toBool());
+    QVERIFY(QMetaObject::invokeMethod(window, "leaveFromPage"));
+    QTRY_VERIFY(restored());
+    QCOMPARE(window->visibility(), QWindow::FullScreen);
+    window->showNormal();
+    QTRY_COMPARE(window->visibility(), QWindow::Windowed);
+    QTest::qWait(1200);
+
+    window->setProperty("allowFullscreen", false);
+    enter();
+    QTest::qWait(300);
+    QVERIFY(restored());
+    window->setProperty("allowFullscreen", true);
+    enter();
+    QTRY_VERIFY(window->property("contentFullscreen").toBool());
+    QVERIFY(QMetaObject::invokeMethod(window, "navigateAway"));
+    QTRY_VERIFY(restored());
+    QTRY_COMPARE(window->visibility(), QWindow::Windowed);
+}
+
 int main(int argc,char **argv) {
     QtWebEngineQuick::initialize(); QGuiApplication app(argc,argv);
     QStandardPaths::setTestModeEnabled(true);

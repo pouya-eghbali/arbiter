@@ -5788,4 +5788,11 @@
         <translation>无法保存工作区。</translation>
     </message>
 </context>
+<context>
+    <name>WebFullScreen</name>
+    <message>
+        <source>Exit fullscreen (Esc)</source>
+        <translation>退出全屏 (Esc)</translation>
+    </message>
+</context>
 </TS>

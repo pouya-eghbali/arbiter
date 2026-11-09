@@ -5788,4 +5788,11 @@
         <translation>ワークスペースを保存できませんでした。</translation>
     </message>
 </context>
+<context>
+    <name>WebFullScreen</name>
+    <message>
+        <source>Exit fullscreen (Esc)</source>
+        <translation>全画面表示を終了 (Esc)</translation>
+    </message>
+</context>
 </TS>

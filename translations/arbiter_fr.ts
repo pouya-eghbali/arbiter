@@ -5788,4 +5788,11 @@
         <translation>Impossible d&apos;enregistrer les espaces de travail.</translation>
     </message>
 </context>
+<context>
+    <name>WebFullScreen</name>
+    <message>
+        <source>Exit fullscreen (Esc)</source>
+        <translation>Quitter le plein écran (Échap)</translation>
+    </message>
+</context>
 </TS>

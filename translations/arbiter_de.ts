@@ -5788,4 +5788,11 @@
         <translation>Arbeitsbereiche konnten nicht gespeichert werden.</translation>
     </message>
 </context>
+<context>
+    <name>WebFullScreen</name>
+    <message>
+        <source>Exit fullscreen (Esc)</source>
+        <translation>Vollbild verlassen (Esc)</translation>
+    </message>
+</context>
 </TS>
