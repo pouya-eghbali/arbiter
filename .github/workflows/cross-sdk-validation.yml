@@ -176,7 +176,15 @@ jobs:
         with:
           name: ${{ inputs.extension_probe && 'extension-probe' || 'cross-validated' }}-${{ inputs.platform }}${{ inputs.platform == 'linux' && inputs.linux_ffmpeg != '6' && format('-ffmpeg{0}', inputs.linux_ffmpeg) || '' }}
           path: |
-            build-release-artifacts/
+            build-release-artifacts/*.zip
+            build-release-artifacts/*.tar.xz
+            build-release-artifacts/*.exe
+            build-release-artifacts/*.deb
+            build-release-artifacts/*.rpm
+            build-release-artifacts/*.sha256
+            build-release-artifacts/*.json
+            build-release-artifacts/*.md
+            build-release-artifacts/*.txt
             build-release-tests-*/Testing/Temporary/LastTest.log
             build-cross-validation/extension-probe/Testing/Temporary/LastTest.log
           if-no-files-found: error
