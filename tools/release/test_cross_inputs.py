@@ -17,6 +17,12 @@ SPEC.loader.exec_module(inputs)
 
 
 class CrossInputTests(unittest.TestCase):
+    def setUp(self):
+        # Fixtures choose their own ABI; do not inherit the runner's selection.
+        environment = patch.dict(os.environ, {'INPUT_LINUX_FFMPEG': '6'})
+        environment.start()
+        self.addCleanup(environment.stop)
+
     def test_extension_probe_never_builds_a_release_package(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(inputs.subprocess, 'run') as run, \
              patch.object(inputs, 'WORK', Path(directory)):

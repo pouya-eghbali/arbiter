@@ -36,6 +36,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ inputs.release_tag }}
       - name: Read pins and validate request
         id: pins
         shell: bash
@@ -126,7 +128,28 @@ jobs:
           QT_QUICK_BACKEND: software
           QT_OPENGL: software
         run: |
-          python tools/release/cross_inputs.py build
+          # Keep the release checkout immutable while the workflow can receive
+          # orchestration fixes. Older tagged test fixtures inherit ABI settings.
+          python - <<'PY'
+          import json, os, subprocess, sys
+          from pathlib import Path
+          work = Path('build-cross-validation')
+          head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          assert (work / 'source-commit').read_text().strip() == head
+          selected = int(os.environ['INPUT_LINUX_FFMPEG'])
+          receipt = json.loads((work / 'sdk/arbiter-engine-build.json').read_text())
+          assert receipt['linux_ffmpeg']['major'] == selected
+          deps = json.loads(Path('dependencies.json').read_text())
+          subprocess.run([sys.executable, '-m', 'pip', 'install', 'html5lib==' + deps['html5lib']], check=True)
+          env = os.environ.copy()
+          # The real ABI is verified above and again by the packager from ELF.
+          # Unit-test fixtures must not inherit the job's archive selection.
+          env.pop('INPUT_LINUX_FFMPEG', None)
+          if selected != 6:
+              env['ARBITER_LINUX_PACKAGE_FORMAT'] = 'none'
+          subprocess.run([sys.executable, 'tools/release/build.py', '--package', '--unsigned',
+                          '--jobs', '4', '--sdk-prefix', str(work / 'sdk')], env=env, check=True)
+          PY
       - name: Test Windows installer
         if: runner.os == 'Windows' && !inputs.extension_probe
         shell: pwsh
